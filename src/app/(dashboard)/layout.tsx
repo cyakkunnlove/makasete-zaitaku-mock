@@ -215,6 +215,29 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      {/* Demo banner */}
+      {!process.env.NEXT_PUBLIC_SUPABASE_URL && (
+        <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-xs">
+          <span className="text-amber-300 font-medium">🎭 デモモード</span>
+          <span className="text-gray-400">ロール切替:</span>
+          {(['admin', 'pharmacist', 'pharmacy_admin'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => {
+                const ctx = document.querySelector('[data-role-switch]') as HTMLElement | null
+                ctx?.dispatchEvent(new CustomEvent('switch-role', { detail: r }))
+                window.location.reload()
+              }}
+              className={`px-2 py-0.5 rounded text-xs ${
+                role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Main content */}
       <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">
         {children}
