@@ -35,12 +35,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { Clock3, Plus } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, Plus } from 'lucide-react'
 import {
   requestData,
   statusMeta,
   priorityMeta,
 } from '@/lib/mock-data'
+import type { RequestStatus } from '@/types/database'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
 
@@ -50,6 +51,34 @@ const tabItems: Array<{ key: TabKey; label: string }> = [
   { key: 'completed', label: '完了(24)' },
   { key: 'all', label: '全件' },
 ]
+
+const terminalStatuses: RequestStatus[] = ['completed', 'cancelled']
+
+function getSlaInfo(slaMet: boolean | null, status: RequestStatus) {
+  if (slaMet === true) {
+    return {
+      label: '達成',
+      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+      icon: CheckCircle2,
+    }
+  }
+  if (slaMet === false) {
+    return {
+      label: '違反',
+      className: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+      icon: AlertTriangle,
+    }
+  }
+  // slaMet === null
+  if (terminalStatuses.includes(status)) {
+    return null // no badge for completed/cancelled with null SLA
+  }
+  return {
+    label: '計測中',
+    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+    icon: Clock3,
+  }
+}
 
 export default function RequestsPage() {
   const router = useRouter()
@@ -129,10 +158,12 @@ export default function RequestsPage() {
         </CardContent>
       </Card>
 
+      {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
         {filteredRequests.map((request) => {
           const status = statusMeta[request.status]
           const priority = priorityMeta[request.priority]
+          const slaInfo = getSlaInfo(request.slaMet, request.status)
 
           return (
             <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
@@ -148,9 +179,17 @@ export default function RequestsPage() {
                       <p className="text-sm font-semibold text-white">{request.patientName}</p>
                       <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
                     </div>
-                    <Badge variant="outline" className={cn('border text-xs', status.className)}>
-                      {status.label}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className={cn('border text-xs', status.className)}>
+                        {status.label}
+                      </Badge>
+                      {slaInfo && (
+                        <Badge variant="outline" className={cn('border text-xs', slaInfo.className)}>
+                          <slaInfo.icon className="mr-0.5 h-3 w-3" />
+                          {slaInfo.label}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between text-xs text-gray-300">
@@ -170,6 +209,7 @@ export default function RequestsPage() {
         })}
       </div>
 
+      {/* Desktop table view */}
       <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
         <Table>
           <TableHeader>
@@ -179,6 +219,7 @@ export default function RequestsPage() {
               <TableHead className="text-gray-400">患者名</TableHead>
               <TableHead className="text-gray-400">薬局名</TableHead>
               <TableHead className="text-gray-400">ステータス</TableHead>
+              <TableHead className="text-gray-400">SLA</TableHead>
               <TableHead className="text-gray-400">担当者</TableHead>
             </TableRow>
           </TableHeader>
@@ -186,6 +227,7 @@ export default function RequestsPage() {
             {filteredRequests.map((request) => {
               const status = statusMeta[request.status]
               const priority = priorityMeta[request.priority]
+              const slaInfo = getSlaInfo(request.slaMet, request.status)
 
               return (
                 <TableRow
@@ -210,6 +252,16 @@ export default function RequestsPage() {
                     <Badge variant="outline" className={cn('border text-xs', status.className)}>
                       {status.label}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {slaInfo ? (
+                      <Badge variant="outline" className={cn('border text-xs', slaInfo.className)}>
+                        <slaInfo.icon className="mr-0.5 h-3 w-3" />
+                        {slaInfo.label}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-gray-500">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-300">{request.assignee}</TableCell>
                 </TableRow>
