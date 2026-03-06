@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,6 +52,7 @@ const tabItems: Array<{ key: TabKey; label: string }> = [
 ]
 
 export default function RequestsPage() {
+  const router = useRouter()
   const { role } = useAuth()
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
@@ -188,7 +190,7 @@ export default function RequestsPage() {
               return (
                 <TableRow
                   key={request.id}
-                  onClick={() => {}}
+                  onClick={() => router.push(`/dashboard/requests/${request.id}`)}
                   className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
                 >
                   <TableCell>

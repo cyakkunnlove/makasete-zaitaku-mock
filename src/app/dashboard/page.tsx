@@ -1,7 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
   Activity,
@@ -11,8 +21,10 @@ import {
   CalendarCheck2,
   ClipboardList,
   FileOutput,
+  Plus,
   Settings,
   Stethoscope,
+  Timer,
   Users,
 } from 'lucide-react'
 import { kpiData, timelineEvents, nightStaff } from '@/lib/mock-data'
@@ -32,8 +44,21 @@ const staffStatusClass: Record<string, string> = {
   移動中: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
 }
 
+// SLA gauge constants
+const slaRate = 94.2
+const slaTarget = 15
+const avgResponseMin = 11.8
+
+function getSlaColor(rate: number) {
+  if (rate >= 95) return { bar: 'from-emerald-500 to-emerald-400', text: 'text-emerald-400', label: '良好' }
+  if (rate >= 90) return { bar: 'from-amber-500 to-amber-400', text: 'text-amber-400', label: '注意' }
+  return { bar: 'from-rose-500 to-rose-400', text: 'text-rose-400', label: '要改善' }
+}
+
 export default function DashboardPage() {
   const { role } = useAuth()
+  const [fabOpen, setFabOpen] = useState(false)
+  const slaColor = getSlaColor(slaRate)
 
   return (
     <div className="space-y-6 text-gray-100">
@@ -64,6 +89,85 @@ export default function DashboardPage() {
             </Card>
           )
         })}
+      </section>
+
+      {/* SLA Gauge */}
+      <section>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Timer className="h-5 w-5 text-indigo-400" />
+              <CardTitle className="text-base text-white">SLA達成状況</CardTitle>
+              <span
+                className={cn(
+                  'ml-auto rounded-md border px-2 py-0.5 text-xs font-semibold',
+                  slaRate >= 95
+                    ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                    : slaRate >= 90
+                      ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                      : 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                )}
+              >
+                {slaColor.label}
+              </span>
+            </div>
+            <CardDescription className="text-gray-400">
+              折返し{slaTarget}分以内の達成率（今夜）
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Gauge bar */}
+            <div className="space-y-2">
+              <div className="flex items-end justify-between">
+                <span className={cn('text-3xl font-bold tracking-tight', slaColor.text)}>
+                  {slaRate}%
+                </span>
+                <span className="text-sm text-gray-400">目標: 95%</span>
+              </div>
+              <div className="relative h-4 w-full overflow-hidden rounded-full bg-[#111827]">
+                {/* Filled bar */}
+                <div
+                  className={cn(
+                    'absolute inset-y-0 left-0 rounded-full bg-gradient-to-r transition-all duration-700',
+                    slaColor.bar
+                  )}
+                  style={{ width: `${slaRate}%` }}
+                />
+                {/* 95% target marker */}
+                <div
+                  className="absolute inset-y-0 w-0.5 bg-white/50"
+                  style={{ left: '95%' }}
+                  title="目標ライン 95%"
+                />
+              </div>
+              {/* Scale labels */}
+              <div className="flex justify-between text-[10px] text-gray-500">
+                <span>0%</span>
+                <span>50%</span>
+                <span className="text-white/40">95%</span>
+                <span>100%</span>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-[#2a3553] bg-[#10172b] p-3">
+                <p className="text-xs text-gray-400">今夜の平均応答時間</p>
+                <p className="mt-1 text-lg font-bold text-white">
+                  {avgResponseMin}
+                  <span className="ml-1 text-sm font-normal text-gray-400">分</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#10172b] p-3">
+                <p className="text-xs text-gray-400">SLA目標</p>
+                <p className="mt-1 text-lg font-bold text-white">
+                  {slaTarget}
+                  <span className="ml-1 text-sm font-normal text-gray-400">分以内</span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       {role === 'admin' && (
@@ -149,6 +253,41 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      {/* FAB - Mobile only */}
+      <button
+        onClick={() => setFabOpen(true)}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-600 active:scale-95 lg:hidden"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <Dialog open={fabOpen} onOpenChange={setFabOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">新規依頼登録</DialogTitle>
+            <DialogDescription className="text-gray-400">夜間受電内容を入力して依頼を起票します。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-xs text-gray-400">薬局名</p>
+              <Input placeholder="薬局を選択" className="border-[#2a3553] bg-[#1a2035]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs text-gray-400">患者名</p>
+              <Input placeholder="患者名を入力" className="border-[#2a3553] bg-[#1a2035]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs text-gray-400">症状</p>
+              <Input placeholder="主訴を入力" className="border-[#2a3553] bg-[#1a2035]" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setFabOpen(false)} className="text-gray-300">キャンセル</Button>
+            <Button onClick={() => setFabOpen(false)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">依頼を作成</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

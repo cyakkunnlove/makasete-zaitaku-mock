@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { FileText, Layers } from 'lucide-react'
+import { CheckCircle, FileText, Layers } from 'lucide-react'
 
 import { billingData, type BillingRecord } from '@/lib/mock-data'
 
@@ -32,6 +32,12 @@ const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   unpaid: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
   overdue: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+}
+
+const statusLabel: Record<BillingStatus, string> = {
+  paid: '入金済',
+  unpaid: '未入金',
+  overdue: '期限超過',
 }
 
 const yen = new Intl.NumberFormat('ja-JP', {
@@ -42,11 +48,12 @@ const yen = new Intl.NumberFormat('ja-JP', {
 
 export default function BillingPage() {
   const { role } = useAuth()
-  const [records] = useState<BillingRecord[]>(billingData)
+  const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
 
   const summary = useMemo(() => {
     const totalBilled = records.reduce((sum, record) => sum + record.total, 0)
@@ -63,6 +70,14 @@ export default function BillingPage() {
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
     setBatchDialogOpen(false)
+  }
+
+  const handlePaymentConfirm = (recordId: string, pharmacyName: string) => {
+    setRecords((prev) =>
+      prev.map((r) => (r.id === recordId ? { ...r, status: 'paid' as BillingStatus } : r))
+    )
+    setToastMessage(`${pharmacyName} の入金を確認しました（モック）`)
+    setTimeout(() => setToastMessage(''), 3000)
   }
 
   return (
@@ -111,6 +126,15 @@ export default function BillingPage() {
         </Card>
       )}
 
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-4 py-3 text-sm font-medium text-emerald-300 shadow-lg backdrop-blur-sm">
+          <CheckCircle className="h-4 w-4" />
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Mobile cards */}
       <div className="space-y-3 lg:hidden">
         {records.map((record) => (
           <Card key={record.id} className="border-[#2a3553] bg-[#1a2035]">
@@ -121,29 +145,43 @@ export default function BillingPage() {
                   <p className="text-xs text-gray-400">{record.month} 請求</p>
                 </div>
                 <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>
-                  {record.status}
+                  {statusLabel[record.status]}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
                 <p>SaaS料: {yen.format(record.saasFee)}</p>
+                <p>夜間連携: {yen.format(record.nightFee)}</p>
                 <p>税: {yen.format(record.tax)}</p>
-                <p className="col-span-2 font-semibold text-gray-100">合計: {yen.format(record.total)}</p>
+                <p className="font-semibold text-gray-100">合計: {yen.format(record.total)}</p>
               </div>
 
-              <Button
-                size="sm"
-                onClick={() => setSelectedRecord(record)}
-                className="w-full bg-[#2a3553] text-white hover:bg-[#334166]"
-              >
-                <FileText className="h-4 w-4" />
-                請求書PDFプレビュー
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setSelectedRecord(record)}
+                  className="flex-1 bg-[#2a3553] text-white hover:bg-[#334166]"
+                >
+                  <FileText className="h-4 w-4" />
+                  請求書PDFプレビュー
+                </Button>
+                {role === 'admin' && record.status !== 'paid' && (
+                  <Button
+                    size="sm"
+                    onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)}
+                    className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    入金確認
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Desktop table */}
       <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
         <CardContent className="p-0">
           <Table>
@@ -152,6 +190,7 @@ export default function BillingPage() {
                 <TableHead className="text-gray-400">薬局名</TableHead>
                 <TableHead className="text-gray-400">請求月</TableHead>
                 <TableHead className="text-right text-gray-400">SaaS料金</TableHead>
+                <TableHead className="text-right text-gray-400">夜間連携</TableHead>
                 <TableHead className="text-right text-gray-400">税</TableHead>
                 <TableHead className="text-right text-gray-400">合計</TableHead>
                 <TableHead className="text-gray-400">状態</TableHead>
@@ -164,24 +203,37 @@ export default function BillingPage() {
                   <TableCell className="font-medium text-white">{record.pharmacyName}</TableCell>
                   <TableCell className="text-gray-300">{record.month}</TableCell>
                   <TableCell className="text-right text-gray-300">{yen.format(record.saasFee)}</TableCell>
+                  <TableCell className="text-right text-gray-300">{yen.format(record.nightFee)}</TableCell>
                   <TableCell className="text-right text-gray-300">{yen.format(record.tax)}</TableCell>
                   <TableCell className="text-right font-semibold text-gray-100">
                     {yen.format(record.total)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>
-                      {record.status}
+                      {statusLabel[record.status]}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setSelectedRecord(record)}
-                      className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
-                    >
-                      PDFプレビュー
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedRecord(record)}
+                        className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
+                      >
+                        PDFプレビュー
+                      </Button>
+                      {role === 'admin' && record.status !== 'paid' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)}
+                          className="text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200"
+                        >
+                          入金確認
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -190,6 +242,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
+      {/* Batch generation dialog */}
       <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
         <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
           <DialogHeader>
@@ -222,6 +275,7 @@ export default function BillingPage() {
         </DialogContent>
       </Dialog>
 
+      {/* PDF preview dialog */}
       <Dialog open={Boolean(selectedRecord)} onOpenChange={() => setSelectedRecord(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-2xl">
           {selectedRecord && (

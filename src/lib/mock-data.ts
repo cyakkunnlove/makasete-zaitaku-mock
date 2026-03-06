@@ -384,3 +384,146 @@ export const sbarStyles = {
   assessment: { label: 'A: Assessment（評価）', className: 'border-amber-500/40 bg-amber-500/10 text-amber-100' },
   recommendation: { label: 'R: Recommendation（提言）', className: 'border-purple-500/40 bg-purple-500/10 text-purple-100' },
 }
+
+// ─── Shifts ───
+export interface ShiftEntry {
+  id: string
+  pharmacistId: string
+  pharmacistName: string
+  shiftDate: string // YYYY-MM-DD
+  shiftType: 'primary' | 'backup'
+}
+
+// Generate shifts for the week of 2026-03-02 to 2026-03-08
+export const shiftData: ShiftEntry[] = [
+  // Monday 03-02
+  { id: 'SH-01', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-02', shiftType: 'primary' },
+  { id: 'SH-02', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-02', shiftType: 'backup' },
+  // Tuesday 03-03
+  { id: 'SH-03', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-03', shiftType: 'primary' },
+  { id: 'SH-04', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-03', shiftType: 'backup' },
+  // Wednesday 03-04
+  { id: 'SH-05', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-04', shiftType: 'primary' },
+  { id: 'SH-06', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-04', shiftType: 'backup' },
+  // Thursday 03-05
+  { id: 'SH-07', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-05', shiftType: 'primary' },
+  { id: 'SH-08', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-05', shiftType: 'backup' },
+  // Friday 03-06
+  { id: 'SH-09', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-06', shiftType: 'primary' },
+  { id: 'SH-10', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-06', shiftType: 'backup' },
+  // Saturday 03-07
+  { id: 'SH-11', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-07', shiftType: 'primary' },
+  { id: 'SH-12', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-07', shiftType: 'backup' },
+  // Sunday 03-08
+  { id: 'SH-13', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-08', shiftType: 'primary' },
+  { id: 'SH-14', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-08', shiftType: 'backup' },
+]
+
+// Pharmacist list for shift calendar
+export const shiftPharmacists = [
+  { id: 'ST-02', name: '佐藤 健一' },
+  { id: 'ST-03', name: '高橋 奈央' },
+  { id: 'ST-04', name: '山口 美咲' },
+  { id: 'ST-10', name: '佐々木 翔' },
+]
+
+// ─── Audit Logs ───
+export type AuditActionType =
+  | 'login'
+  | 'request_update'
+  | 'handover_confirm'
+  | 'staff_update'
+  | 'billing_generate'
+  | 'export_csv'
+  | 'pharmacy_update'
+
+export interface AuditEntry {
+  id: string
+  timestamp: string
+  user: string
+  action: AuditActionType
+  target: string
+  details: string
+}
+
+export const auditLogData: AuditEntry[] = [
+  { id: 'AL-001', timestamp: '2026-03-05 00:58:14', user: '田中 直樹', action: 'billing_generate', target: '請求管理', details: '2026-03対象の請求書を6件一括生成。' },
+  { id: 'AL-002', timestamp: '2026-03-05 00:50:42', user: '山田 美咲', action: 'handover_confirm', target: 'HO-260301', details: '申し送りを確認済みに変更。確認コメント: 朝訪問前倒し。' },
+  { id: 'AL-003', timestamp: '2026-03-05 00:47:10', user: '佐藤 健一', action: 'request_update', target: 'RQ-2411', details: 'ステータスを in_progress に更新。患者宅到着を記録。' },
+  { id: 'AL-004', timestamp: '2026-03-05 00:41:03', user: '田中 直樹', action: 'staff_update', target: 'ST-09', details: 'スタッフ状態を active に変更。連絡先情報を更新。' },
+  { id: 'AL-005', timestamp: '2026-03-05 00:38:55', user: '小林 恒一', action: 'login', target: '管理画面', details: 'MFA認証を伴う管理画面ログインに成功。' },
+  { id: 'AL-006', timestamp: '2026-03-05 00:31:19', user: '中村 玲子', action: 'request_update', target: 'RQ-2412', details: 'FAX受領時刻を登録し、ステータスを fax_received に更新。' },
+  { id: 'AL-007', timestamp: '2026-03-05 00:24:11', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-03', details: '転送設定を OFF から ON に変更。' },
+  { id: 'AL-008', timestamp: '2026-03-05 00:16:29', user: '高橋 奈央', action: 'request_update', target: 'RQ-2407', details: 'ステータスを completed に更新。対応完了メモを追記。' },
+  { id: 'AL-009', timestamp: '2026-03-05 00:09:04', user: '山口 美咲', action: 'handover_confirm', target: 'HO-260302', details: '申し送り確認とバイタル再評価メモを登録。' },
+  { id: 'AL-010', timestamp: '2026-03-04 23:59:57', user: '田中 直樹', action: 'export_csv', target: '実績レポート', details: '2026-02の実績CSVをエクスポート。' },
+  { id: 'AL-011', timestamp: '2026-03-04 23:51:26', user: '伊藤 真理', action: 'request_update', target: 'RQ-2405', details: '患者連絡履歴を追加し優先度を normal に維持。' },
+  { id: 'AL-012', timestamp: '2026-03-04 23:44:02', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-05', details: '加盟店ステータスを pending から active に変更。' },
+  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', action: 'login', target: '管理画面', details: '薬局スタッフ権限でログイン。' },
+  { id: 'AL-014', timestamp: '2026-03-04 23:19:42', user: '山田 美咲', action: 'request_update', target: 'RQ-2403', details: '主訴を修正し、既往歴リンクを添付。' },
+  { id: 'AL-015', timestamp: '2026-03-04 23:12:27', user: '小林 恒一', action: 'staff_update', target: 'ST-08', details: 'スタッフ状態を inactive に変更。退職予定登録。' },
+  { id: 'AL-016', timestamp: '2026-03-04 22:58:33', user: '田中 直樹', action: 'billing_generate', target: '請求管理', details: '再発行対応としてINV-2026-03-004を単体再生成。' },
+  { id: 'AL-017', timestamp: '2026-03-04 22:46:11', user: '佐藤 健一', action: 'request_update', target: 'RQ-2401', details: '出動記録を追加。到着見込み時刻を更新。' },
+  { id: 'AL-018', timestamp: '2026-03-04 22:33:40', user: '田中 直樹', action: 'login', target: '管理画面', details: 'システム監視対応のためログイン。' },
+]
+
+export const auditActionLabel: Record<AuditActionType, string> = {
+  login: 'ログイン',
+  request_update: '依頼更新',
+  handover_confirm: '申し送り確認',
+  staff_update: 'スタッフ更新',
+  billing_generate: '請求生成',
+  export_csv: 'CSV出力',
+  pharmacy_update: '加盟店更新',
+}
+
+export const auditActionClass: Record<AuditActionType, string> = {
+  login: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+  request_update: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+  handover_confirm: 'border-purple-500/40 bg-purple-500/20 text-purple-300',
+  staff_update: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  billing_generate: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+  export_csv: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  pharmacy_update: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
+}
+
+// Unique users from audit logs for user filter
+export const auditUsers = Array.from(new Set(auditLogData.map((entry) => entry.user)))
+
+// ─── Reports: Pharmacy Performance ───
+export interface PharmacyPerformance {
+  pharmacyId: string
+  pharmacyName: string
+  requestCount: number
+  avgResponseMin: number
+  slaRate: number
+  completionRate: number
+}
+
+export const pharmacyPerformanceData: PharmacyPerformance[] = [
+  { pharmacyId: 'PH-01', pharmacyName: '城南みらい薬局', requestCount: 32, avgResponseMin: 10.2, slaRate: 96.9, completionRate: 100 },
+  { pharmacyId: 'PH-02', pharmacyName: '港北さくら薬局', requestCount: 24, avgResponseMin: 11.5, slaRate: 95.8, completionRate: 100 },
+  { pharmacyId: 'PH-05', pharmacyName: '西新宿いろは薬局', requestCount: 28, avgResponseMin: 12.1, slaRate: 92.9, completionRate: 96.4 },
+  { pharmacyId: 'PH-06', pharmacyName: '世田谷つばさ薬局', requestCount: 18, avgResponseMin: 9.8, slaRate: 100, completionRate: 100 },
+  { pharmacyId: 'PH-07', pharmacyName: '江東あおぞら薬局', requestCount: 21, avgResponseMin: 13.4, slaRate: 90.5, completionRate: 95.2 },
+  { pharmacyId: 'PH-09', pharmacyName: '渋谷ひまわり薬局', requestCount: 26, avgResponseMin: 11.0, slaRate: 96.2, completionRate: 100 },
+  { pharmacyId: 'PH-03', pharmacyName: '中野しらさぎ薬局', requestCount: 19, avgResponseMin: 14.2, slaRate: 89.5, completionRate: 94.7 },
+  { pharmacyId: 'PH-08', pharmacyName: '吉祥寺つばめ薬局', requestCount: 12, avgResponseMin: 10.8, slaRate: 100, completionRate: 100 },
+  { pharmacyId: 'PH-04', pharmacyName: '池袋みどり薬局', requestCount: 6, avgResponseMin: 15.1, slaRate: 83.3, completionRate: 83.3 },
+]
+
+export interface HourlyDistribution {
+  hour: string
+  count: number
+}
+
+export const hourlyDistributionData: HourlyDistribution[] = [
+  { hour: '22時', count: 28 },
+  { hour: '23時', count: 42 },
+  { hour: '0時', count: 35 },
+  { hour: '1時', count: 31 },
+  { hour: '2時', count: 22 },
+  { hour: '3時', count: 14 },
+  { hour: '4時', count: 8 },
+  { hour: '5時', count: 6 },
+]
