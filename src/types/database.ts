@@ -78,6 +78,8 @@ export interface Patient {
   allergies: string | null
   current_medications: string | null
   visit_notes: string | null
+  insurance_info: string | null
+  disease_name: string | null
   risk_score: number
   requires_multi_visit: boolean
   status: PatientStatus
@@ -103,6 +105,7 @@ export interface Request {
   sla_met: boolean | null
   notes: string | null
   completed_at: string | null
+  timeline_events: TimelineEvent[]
   created_by: string | null
   created_at: string
   updated_at: string
@@ -159,9 +162,17 @@ export interface Handover {
   confirmed_by: string | null
   confirmed_at: string | null
   reminder_sent_at: string | null
+  report_file_url: string | null
   reminder_count: number
   created_at: string
   updated_at: string
+}
+
+export interface TimelineEvent {
+  status: RequestStatus
+  timestamp: string
+  user_name: string
+  note?: string
 }
 
 export interface VitalsData {

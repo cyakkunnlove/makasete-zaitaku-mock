@@ -91,6 +91,73 @@ export default function DashboardPage() {
         })}
       </section>
 
+      {/* Active Requests - Uber Eats Style */}
+      <section className="space-y-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <Activity className="h-4 w-4 text-amber-400" />
+          現在対応中
+        </h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Active request 1 */}
+          <Card className="border-l-4 border-l-amber-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">田中 優子</p>
+                  <p className="mt-0.5 text-xs text-gray-400">城南みらい薬局</p>
+                </div>
+                <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-1 text-xs font-medium text-amber-300">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                  対応中
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-gray-400">担当: 佐藤 健一</span>
+                <span className="text-indigo-300">経過 25分</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active request 2 */}
+          <Card className="border-l-4 border-l-indigo-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">小川 正子</p>
+                  <p className="mt-0.5 text-xs text-gray-400">港北さくら薬局</p>
+                </div>
+                <span className="flex items-center gap-1 rounded-full bg-indigo-500/20 px-2 py-1 text-xs font-medium text-indigo-300">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
+                  移動中
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-gray-400">担当: 高橋 直人</span>
+                <span className="text-indigo-300">経過 8分</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Daily Summary Card */}
+          <Card className="border-[#2a3553] bg-gradient-to-br from-[#1a2035] to-[#151b2e]">
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">本日の訪問</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-[#0a0e1a]/60 p-2 text-center">
+                  <p className="text-lg font-bold text-sky-300">12</p>
+                  <p className="text-[10px] text-gray-500">日中</p>
+                </div>
+                <div className="rounded-lg bg-[#0a0e1a]/60 p-2 text-center">
+                  <p className="text-lg font-bold text-amber-300">5</p>
+                  <p className="text-[10px] text-gray-500">夜間</p>
+                </div>
+              </div>
+              <p className="mt-2 text-center text-[10px] text-gray-500">合計 17件</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* SLA Gauge */}
       <section>
         <Card className="border-[#2a3553] bg-[#1a2035]">

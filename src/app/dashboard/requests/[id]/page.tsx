@@ -96,15 +96,15 @@ export default function RequestDetailPage() {
     emergency: '緊急対応',
   }
 
-  // Mock timeline events for this request
+  // Mock timeline events for this request (Uber Eats style)
   const timelineEvents = [
-    { time: request.receivedAt, label: '受電・依頼受付', done: currentStep >= 0 },
-    { time: '', label: 'FAX受領', done: currentStep >= 1 },
-    { time: '', label: '薬剤師アサイン', done: currentStep >= 2 },
-    { time: '', label: '出動', done: currentStep >= 3 },
-    { time: '', label: '現地到着', done: currentStep >= 4 },
-    { time: '', label: '対応中', done: currentStep >= 5 },
-    { time: '', label: '対応完了', done: currentStep >= 6 },
+    { time: request.receivedAt, label: '受電・依頼受付', done: currentStep >= 0, userName: '事務局' },
+    { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
+    { time: currentStep >= 2 ? '23:15' : '', label: '薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
+    { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
+    { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
+    { time: currentStep >= 5 ? '23:35' : '', label: '対応中', done: currentStep >= 5, userName: assignee?.name ?? '' },
+    { time: currentStep >= 6 ? '00:05' : '', label: '対応完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
   ]
 
   return (
@@ -149,49 +149,78 @@ export default function RequestDetailPage() {
         </div>
       </div>
 
-      {/* Stepper */}
+      {/* Uber Eats Style Vertical Timeline - Always Visible */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="overflow-x-auto p-4">
-          <div className="flex min-w-[600px] items-center justify-between">
-            {requestFlow.map((step, index) => {
-              const reached = index <= currentStep
-              const isCurrent = index === currentStep
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Clock3 className="h-4 w-4 text-indigo-400" />
+            対応ステータス
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="relative space-y-0">
+            {timelineEvents.map((event, index) => {
+              const isCompleted = event.done && index < currentStep
+              const isCurrent = index === currentStep && event.done
+              const isPending = !event.done
               return (
-                <div key={step} className="flex flex-1 items-center">
-                  <div className="flex flex-col items-center gap-1">
+                <div key={index} className="relative flex gap-3 pb-4 last:pb-0">
+                  {/* Vertical line */}
+                  {index < timelineEvents.length - 1 && (
                     <div
                       className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-colors',
-                        isCurrent
-                          ? 'border-indigo-400 bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                          : reached
-                            ? 'border-indigo-500 bg-indigo-500 text-white'
-                            : 'border-[#2a3553] bg-[#0a0e1a] text-gray-500'
-                      )}
-                    >
-                      {reached ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        index + 1
-                      )}
-                    </div>
-                    <span
-                      className={cn(
-                        'text-[11px] whitespace-nowrap',
-                        isCurrent ? 'font-medium text-indigo-300' : reached ? 'text-indigo-400' : 'text-gray-500'
-                      )}
-                    >
-                      {step}
-                    </span>
-                  </div>
-                  {index < requestFlow.length - 1 && (
-                    <div
-                      className={cn(
-                        'mx-1 h-px flex-1',
-                        index < currentStep ? 'bg-indigo-500' : 'bg-[#2a3553]'
+                        'absolute left-[11px] top-6 h-full w-0.5',
+                        isCompleted ? 'bg-emerald-500/60' : isCurrent ? 'bg-indigo-500/60' : 'bg-[#2a3553]'
                       )}
                     />
                   )}
+                  {/* Status Dot */}
+                  <div
+                    className={cn(
+                      'relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all',
+                      isCompleted
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : isCurrent
+                          ? 'border-indigo-400 bg-indigo-500 text-white animate-pulse shadow-lg shadow-indigo-500/40'
+                          : 'border-[#2a3553] bg-[#0a0e1a]'
+                    )}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : isCurrent ? (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    ) : (
+                      <div className="h-2 w-2 rounded-full bg-gray-600" />
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div className="flex flex-1 items-center justify-between pt-0.5">
+                    <div>
+                      <p
+                        className={cn(
+                          'text-sm',
+                          isCompleted
+                            ? 'font-medium text-emerald-300'
+                            : isCurrent
+                              ? 'font-semibold text-indigo-300'
+                              : 'text-gray-500'
+                        )}
+                      >
+                        {event.label}
+                        {isCurrent && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
+                            現在
+                          </span>
+                        )}
+                      </p>
+                      {event.done && event.userName && (
+                        <p className="mt-0.5 text-xs text-gray-500">担当: {event.userName}</p>
+                      )}
+                    </div>
+                    {event.time && event.done && (
+                      <p className="text-xs text-gray-400">{event.time}</p>
+                    )}
+                  </div>
                 </div>
               )
             })}

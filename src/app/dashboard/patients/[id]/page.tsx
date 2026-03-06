@@ -27,6 +27,7 @@ import {
   FileText,
   Stethoscope,
   Clock3,
+  ExternalLink,
 } from 'lucide-react'
 
 function calculateAge(dob: string): number {
@@ -95,6 +96,7 @@ export default function PatientDetailPage() {
 
   const age = calculateAge(patient.dob)
   const hasAllergies = patient.allergies !== 'なし'
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
 
   return (
     <div className="space-y-4 text-gray-100">
@@ -129,6 +131,23 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+      {/* Visit Notes Alert Card - TOP PRIORITY */}
+      {patient.visitNotes && (
+        <Card className="border-amber-500/40 bg-amber-500/10">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-300">訪問時注意事項</p>
+                <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-amber-100">
+                  {patient.visitNotes}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Basic info */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
@@ -152,7 +171,19 @@ export default function PatientDetailPage() {
                 <MapPin className="h-3 w-3" />
                 住所
               </p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.address}</p>
+              <div className="mt-0.5 flex items-center gap-2">
+                <p className="text-sm text-gray-200">{patient.address}</p>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-300 transition hover:bg-indigo-500/20"
+                >
+                  <MapPin className="h-3 w-3" />
+                  地図を開く
+                  <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+              </div>
             </div>
             <div>
               <p className="flex items-center gap-1 text-xs text-gray-500">
@@ -231,7 +262,7 @@ export default function PatientDetailPage() {
         </Card>
       </div>
 
-      {/* Clinical info */}
+      {/* Clinical info (without current meds and visit notes) */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
@@ -257,19 +288,27 @@ export default function PatientDetailPage() {
             </p>
           </div>
           <div>
-            <p className="flex items-center gap-1 text-xs text-gray-500">
-              <Pill className="h-3 w-3" />
-              現在薬
-            </p>
-            <p className="mt-0.5 text-sm text-gray-200">{patient.currentMeds}</p>
+            <p className="text-xs text-gray-500">保険情報</p>
+            <p className="mt-0.5 text-sm text-gray-200">{patient.insuranceInfo}</p>
           </div>
           <div>
-            <p className="flex items-center gap-1 text-xs text-gray-500">
-              <FileText className="h-3 w-3" />
-              訪問時メモ
-            </p>
-            <p className="mt-0.5 text-sm leading-relaxed text-gray-200">{patient.visitNotes}</p>
+            <p className="text-xs text-gray-500">主疾患</p>
+            <p className="mt-0.5 text-sm text-gray-200">{patient.diseaseName}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Current Medications - moved to bottom with (任意) label */}
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Pill className="h-4 w-4 text-indigo-400" />
+            現在薬
+            <span className="text-xs font-normal text-gray-500">（任意）</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-200">{patient.currentMeds}</p>
         </CardContent>
       </Card>
 

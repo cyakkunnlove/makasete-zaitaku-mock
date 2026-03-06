@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope, FileText as FileTextIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { handoverData, patientData, sbarStyles } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -212,6 +212,39 @@ export default function HandoverDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Attached Report */}
+        {handover.reportFileUrl && (
+          <Card className="border-[#2a3553] bg-[#111827]">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <FileTextIcon className="h-4 w-4 text-indigo-400" />
+                添付報告書
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#1a2035] p-4">
+                <div className="flex items-center gap-3">
+                  <FileTextIcon className="h-8 w-8 text-indigo-400" />
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {handover.reportFileUrl.split('/').pop()}
+                    </p>
+                    <p className="text-xs text-gray-400">PDF報告書</p>
+                  </div>
+                </div>
+                <a
+                  href={handover.reportFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-sm text-indigo-300 transition hover:bg-indigo-500/20"
+                >
+                  報告書を表示
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Confirm section */}
         <Card className="border-[#2a3553] bg-[#111827]">

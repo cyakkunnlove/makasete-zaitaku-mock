@@ -122,20 +122,22 @@ export interface PatientRecord {
   allergies: string
   currentMeds: string
   visitNotes: string
+  insuranceInfo: string
+  diseaseName: string
   status: 'active' | 'inactive'
 }
 
 export const patientData: PatientRecord[] = [
-  { id: 'PT-001', name: '田中 優子', dob: '1948-06-12', address: '東京都世田谷区上馬2-14-6', pharmacyId: 'PH-01', pharmacyName: '城南みらい薬局', riskScore: 8, emergencyContact: { name: '田中 恒一', relation: '長男', phone: '090-1234-5678' }, doctor: { name: '鈴木 恒一', clinic: '世田谷在宅クリニック', phone: '03-3412-1101' }, medicalHistory: '慢性心不全、2型糖尿病、肺炎既往', allergies: 'ペニシリン系抗菌薬', currentMeds: 'フロセミド、メトホルミン、アムロジピン', visitNotes: '玄関暗証番号 4721。小型犬あり、訪問前連絡必須。', status: 'active' },
-  { id: 'PT-002', name: '小川 正子', dob: '1942-11-02', address: '神奈川県横浜市港北区篠原西町18-4', pharmacyId: 'PH-02', pharmacyName: '港北さくら薬局', riskScore: 6, emergencyContact: { name: '小川 真理', relation: '長女', phone: '080-4455-2233' }, doctor: { name: '山口 恒一', clinic: '港北ホームケア診療所', phone: '045-509-8181' }, medicalHistory: '関節リウマチ、慢性腎不全', allergies: 'なし', currentMeds: 'プレドニゾロン、アセトアミノフェン', visitNotes: 'エレベーターなし3階。転倒歴あり。', status: 'active' },
-  { id: 'PT-003', name: '橋本 和子', dob: '1939-08-21', address: '東京都豊島区南池袋3-9-12', pharmacyId: 'PH-04', pharmacyName: '池袋みどり薬局', riskScore: 4, emergencyContact: { name: '橋本 恒一', relation: '夫', phone: '090-9870-1221' }, doctor: { name: '中村 恒一', clinic: '豊島在宅内科', phone: '03-5985-0303' }, medicalHistory: '慢性心不全、貧血', allergies: 'NSAIDs', currentMeds: 'カルベジロール、鉄剤、利尿薬', visitNotes: '夜間はドアチェーン使用。インターホン後に氏名を名乗る。', status: 'active' },
-  { id: 'PT-004', name: '清水 恒一', dob: '1951-01-15', address: '東京都中野区白鷺1-25-8', pharmacyId: 'PH-03', pharmacyName: '中野しらさぎ薬局', riskScore: 9, emergencyContact: { name: '清水 麻衣', relation: '次女', phone: '080-7770-3388' }, doctor: { name: '高橋 恒一', clinic: '中野訪問診療センター', phone: '03-5327-2210' }, medicalHistory: 'レビー小体型認知症、高血圧', allergies: 'ラテックス', currentMeds: 'ドネペジル、クエチアピン、アムロジピン', visitNotes: '夕方以降せん妄増悪。家族同席時に説明を優先。', status: 'active' },
-  { id: 'PT-005', name: '井上 恒一', dob: '1946-03-29', address: '東京都江東区住吉2-6-11', pharmacyId: 'PH-07', pharmacyName: '江東あおぞら薬局', riskScore: 7, emergencyContact: { name: '井上 美香', relation: '妻', phone: '090-6654-2200' }, doctor: { name: '吉田 恒一', clinic: '江東すみれクリニック', phone: '03-5600-4781' }, medicalHistory: '糖尿病、末梢神経障害', allergies: 'なし', currentMeds: 'インスリングラルギン、ボグリボース', visitNotes: '血糖測定器は寝室棚。低血糖症状時は家族へ即連絡。', status: 'active' },
-  { id: 'PT-006', name: '渡辺 美和', dob: '1957-12-07', address: '東京都新宿区西新宿4-32-2', pharmacyId: 'PH-05', pharmacyName: '西新宿いろは薬局', riskScore: 3, emergencyContact: { name: '渡辺 恒一', relation: '弟', phone: '070-4451-7661' }, doctor: { name: '松本 恒一', clinic: '新宿在宅総合診療所', phone: '03-6279-4902' }, medicalHistory: '乳がん術後、慢性疼痛', allergies: '造影剤', currentMeds: 'トラマドール、プレガバリン', visitNotes: '夜間は携帯優先。インターホンに気づきにくい。', status: 'active' },
-  { id: 'PT-007', name: '山本 直子', dob: '1944-09-18', address: '東京都世田谷区北沢5-10-3', pharmacyId: 'PH-06', pharmacyName: '世田谷つばさ薬局', riskScore: 5, emergencyContact: { name: '山本 恒一', relation: '長男', phone: '090-2201-8890' }, doctor: { name: '小林 恒一', clinic: '下北沢メディカルホーム', phone: '03-5453-6008' }, medicalHistory: '慢性閉塞性肺疾患、骨粗しょう症', allergies: 'なし', currentMeds: 'チオトロピウム、ビタミンD製剤', visitNotes: '酸素濃縮器あり。停電時対応フローを家族と共有済み。', status: 'active' },
-  { id: 'PT-008', name: '森田 恒一', dob: '1950-04-03', address: '東京都武蔵野市吉祥寺本町1-22-9', pharmacyId: 'PH-08', pharmacyName: '吉祥寺つばめ薬局', riskScore: 2, emergencyContact: { name: '森田 由紀', relation: '妻', phone: '080-3098-9011' }, doctor: { name: '藤井 恒一', clinic: '吉祥寺在宅クリニック', phone: '0422-27-0073' }, medicalHistory: '高血圧、脂質異常症', allergies: 'なし', currentMeds: 'ロサルタン、ロスバスタチン', visitNotes: '鍵はキーボックス管理。番号は担当者限定共有。', status: 'active' },
-  { id: 'PT-009', name: '林 恒一', dob: '1953-07-09', address: '東京都千代田区神田須田町1-8-4', pharmacyId: 'PH-05', pharmacyName: '西新宿いろは薬局', riskScore: 6, emergencyContact: { name: '林 洋子', relation: '妻', phone: '090-3344-5566' }, doctor: { name: '佐藤 恒一', clinic: '神田中央クリニック', phone: '03-3251-4400' }, medicalHistory: 'COPD、慢性心不全', allergies: 'スルホンアミド', currentMeds: 'カルベジロール、スピリーバ', visitNotes: 'エレベーター利用。酸素投与中。', status: 'active' },
-  { id: 'PT-010', name: '高田 恒一', dob: '1960-02-25', address: '東京都渋谷区神宮前2-18-5', pharmacyId: 'PH-09', pharmacyName: '渋谷ひまわり薬局', riskScore: 3, emergencyContact: { name: '高田 由美', relation: '妻', phone: '080-1122-3344' }, doctor: { name: '木村 恒一', clinic: '渋谷在宅内科', phone: '03-5774-3300' }, medicalHistory: '高血圧、軽度糖尿病', allergies: 'なし', currentMeds: 'アムロジピン、メトホルミン', visitNotes: 'オートロック。暗証番号1234。', status: 'active' },
+  { id: 'PT-001', name: '田中 優子', dob: '1948-06-12', address: '東京都世田谷区上馬2-14-6', pharmacyId: 'PH-01', pharmacyName: '城南みらい薬局', riskScore: 8, emergencyContact: { name: '田中 恒一', relation: '長男', phone: '090-1234-5678' }, doctor: { name: '鈴木 恒一', clinic: '世田谷在宅クリニック', phone: '03-3412-1101' }, medicalHistory: '慢性心不全、2型糖尿病、肺炎既往', allergies: 'ペニシリン系抗菌薬', currentMeds: 'フロセミド、メトホルミン、アムロジピン', visitNotes: '【暗証番号】オートロック暗証番号: 4721（エントランス）→ 502号室\n【ペット】小型犬（チワワ）あり。吠えるため訪問10分前に家族へ電話連絡必須\n【配薬場所】リビングテーブル上の薬ケースに配薬\n【お届け方法】夜間は玄関チャイムを鳴らさず、ドアノックで対応', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '慢性心不全、2型糖尿病', status: 'active' },
+  { id: 'PT-002', name: '小川 正子', dob: '1942-11-02', address: '神奈川県横浜市港北区篠原西町18-4', pharmacyId: 'PH-02', pharmacyName: '港北さくら薬局', riskScore: 6, emergencyContact: { name: '小川 真理', relation: '長女', phone: '080-4455-2233' }, doctor: { name: '山口 恒一', clinic: '港北ホームケア診療所', phone: '045-509-8181' }, medicalHistory: '関節リウマチ、慢性腎不全', allergies: 'なし', currentMeds: 'プレドニゾロン、アセトアミノフェン', visitNotes: '【アクセス】エレベーターなし3階。階段狭いため荷物は最小限に\n【転倒リスク】転倒歴あり（2025年12月）。廊下に手すりなし、スリッパ滑りやすい\n【配薬場所】台所カウンター上のお薬カレンダーに配薬', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '関節リウマチ、慢性腎不全', status: 'active' },
+  { id: 'PT-003', name: '橋本 和子', dob: '1939-08-21', address: '東京都豊島区南池袋3-9-12', pharmacyId: 'PH-04', pharmacyName: '池袋みどり薬局', riskScore: 4, emergencyContact: { name: '橋本 恒一', relation: '夫', phone: '090-9870-1221' }, doctor: { name: '中村 恒一', clinic: '豊島在宅内科', phone: '03-5985-0303' }, medicalHistory: '慢性心不全、貧血', allergies: 'NSAIDs', currentMeds: 'カルベジロール、鉄剤、利尿薬', visitNotes: '【セキュリティ】夜間はドアチェーン使用。インターホン後に「マカセテ在宅の○○です」と氏名を名乗ること\n【配薬場所】仏壇横の薬箱\n【注意】夫が難聴のため大きな声で話す', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '慢性心不全、貧血', status: 'active' },
+  { id: 'PT-004', name: '清水 恒一', dob: '1951-01-15', address: '東京都中野区白鷺1-25-8', pharmacyId: 'PH-03', pharmacyName: '中野しらさぎ薬局', riskScore: 9, emergencyContact: { name: '清水 麻衣', relation: '次女', phone: '080-7770-3388' }, doctor: { name: '高橋 恒一', clinic: '中野訪問診療センター', phone: '03-5327-2210' }, medicalHistory: 'レビー小体型認知症、高血圧', allergies: 'ラテックス', currentMeds: 'ドネペジル、クエチアピン、アムロジピン', visitNotes: '【認知症対応】夕方以降せん妄増悪。家族同席時に説明を優先\n【暗証番号】玄関キーボックス: 8823\n【注意】夜間徘徊リスクあり。玄関の施錠確認を必ず行うこと\n【配薬場所】寝室サイドテーブルの薬ケース', insuranceInfo: '国民健康保険 3割負担', diseaseName: 'レビー小体型認知症、高血圧', status: 'active' },
+  { id: 'PT-005', name: '井上 恒一', dob: '1946-03-29', address: '東京都江東区住吉2-6-11', pharmacyId: 'PH-07', pharmacyName: '江東あおぞら薬局', riskScore: 7, emergencyContact: { name: '井上 美香', relation: '妻', phone: '090-6654-2200' }, doctor: { name: '吉田 恒一', clinic: '江東すみれクリニック', phone: '03-5600-4781' }, medicalHistory: '糖尿病、末梢神経障害', allergies: 'なし', currentMeds: 'インスリングラルギン、ボグリボース', visitNotes: '【医療機器】血糖測定器は寝室棚の上段。予備センサーは台所引き出し\n【低血糖対応】低血糖症状時は家族（妻）へ即連絡。ブドウ糖タブレット冷蔵庫内\n【配薬場所】台所テーブル上\n【駐車】マンション来客用P（B1F）利用可', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '糖尿病、末梢神経障害', status: 'active' },
+  { id: 'PT-006', name: '渡辺 美和', dob: '1957-12-07', address: '東京都新宿区西新宿4-32-2', pharmacyId: 'PH-05', pharmacyName: '西新宿いろは薬局', riskScore: 3, emergencyContact: { name: '渡辺 恒一', relation: '弟', phone: '070-4451-7661' }, doctor: { name: '松本 恒一', clinic: '新宿在宅総合診療所', phone: '03-6279-4902' }, medicalHistory: '乳がん術後、慢性疼痛', allergies: '造影剤', currentMeds: 'トラマドール、プレガバリン', visitNotes: '【連絡方法】夜間は携帯（090-8877-2211）優先。インターホンに気づきにくい\n【暗証番号】マンションオートロック: 3356\n【お届け方法】レスキュー薬はポスト投函不可、必ず手渡し', insuranceInfo: '協会けんぽ 3割負担', diseaseName: '乳がん術後、慢性疼痛', status: 'active' },
+  { id: 'PT-007', name: '山本 直子', dob: '1944-09-18', address: '東京都世田谷区北沢5-10-3', pharmacyId: 'PH-06', pharmacyName: '世田谷つばさ薬局', riskScore: 5, emergencyContact: { name: '山本 恒一', relation: '長男', phone: '090-2201-8890' }, doctor: { name: '小林 恒一', clinic: '下北沢メディカルホーム', phone: '03-5453-6008' }, medicalHistory: '慢性閉塞性肺疾患、骨粗しょう症', allergies: 'なし', currentMeds: 'チオトロピウム、ビタミンD製剤', visitNotes: '【医療機器】酸素濃縮器あり（2L/分）。停電時対応フローを家族と共有済み\n【配薬場所】リビング酸素濃縮器横のワゴン\n【注意】火気厳禁エリアあり。酸素チューブ周辺での作業注意', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: 'COPD、骨粗しょう症', status: 'active' },
+  { id: 'PT-008', name: '森田 恒一', dob: '1950-04-03', address: '東京都武蔵野市吉祥寺本町1-22-9', pharmacyId: 'PH-08', pharmacyName: '吉祥寺つばめ薬局', riskScore: 2, emergencyContact: { name: '森田 由紀', relation: '妻', phone: '080-3098-9011' }, doctor: { name: '藤井 恒一', clinic: '吉祥寺在宅クリニック', phone: '0422-27-0073' }, medicalHistory: '高血圧、脂質異常症', allergies: 'なし', currentMeds: 'ロサルタン、ロスバスタチン', visitNotes: '【暗証番号】キーボックス: 7790（玄関左側の壁面）。番号は担当者限定共有\n【配薬場所】玄関先のポストに配薬OK（妻が回収）\n【駐車】路地裏に1台分スペースあり', insuranceInfo: '国民健康保険 3割負担', diseaseName: '高血圧、脂質異常症', status: 'active' },
+  { id: 'PT-009', name: '林 恒一', dob: '1953-07-09', address: '東京都千代田区神田須田町1-8-4', pharmacyId: 'PH-05', pharmacyName: '西新宿いろは薬局', riskScore: 6, emergencyContact: { name: '林 洋子', relation: '妻', phone: '090-3344-5566' }, doctor: { name: '佐藤 恒一', clinic: '神田中央クリニック', phone: '03-3251-4400' }, medicalHistory: 'COPD、慢性心不全', allergies: 'スルホンアミド', currentMeds: 'カルベジロール、スピリーバ', visitNotes: '【アクセス】エレベーター利用（5階）。夜間はオートロック解除コード: 2468\n【医療機器】酸素投与中（1.5L/分）。パルスオキシメーター枕元\n【配薬場所】ベッドサイドテーブル', insuranceInfo: '国民健康保険 3割負担', diseaseName: 'COPD、慢性心不全', status: 'active' },
+  { id: 'PT-010', name: '高田 恒一', dob: '1960-02-25', address: '東京都渋谷区神宮前2-18-5', pharmacyId: 'PH-09', pharmacyName: '渋谷ひまわり薬局', riskScore: 3, emergencyContact: { name: '高田 由美', relation: '妻', phone: '080-1122-3344' }, doctor: { name: '木村 恒一', clinic: '渋谷在宅内科', phone: '03-5774-3300' }, medicalHistory: '高血圧、軽度糖尿病', allergies: 'なし', currentMeds: 'アムロジピン、メトホルミン', visitNotes: '【暗証番号】オートロック: 1234。エレベーターで3階\n【配薬場所】キッチンカウンター上のお薬ボックス\n【ペット】猫1匹（室内飼い）。ドア開閉時の脱走注意', insuranceInfo: '協会けんぽ 3割負担', diseaseName: '高血圧、軽度糖尿病', status: 'active' },
 ]
 
 // ─── Requests ───
@@ -157,19 +159,70 @@ export interface RequestItem {
   urgency: string
   notes: string
   slaMet: boolean | null
+  timelineEvents: { status: string; timestamp: string; userName: string; note?: string }[]
 }
 
 export const requestData: RequestItem[] = [
-  { id: 'RQ-2401', patientId: 'PT-001', pharmacyId: 'PH-01', receivedAt: '22:14', receivedDate: '2026-03-05', patientName: '田中 優子', pharmacyName: '城南みらい薬局', status: 'received', priority: 'high', assignee: '未割当', assigneeId: null, symptom: '悪寒と発熱（38.5℃）', vitalsChange: '体温上昇、脈拍110/分', consciousness: '清明', urgency: '高', notes: '家族より電話あり。食事摂取困難。', slaMet: null },
-  { id: 'RQ-2402', patientId: 'PT-002', pharmacyId: 'PH-02', receivedAt: '22:28', receivedDate: '2026-03-05', patientName: '小川 正子', pharmacyName: '港北さくら薬局', status: 'fax_pending', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '吐き気と食欲低下', vitalsChange: '血圧100/60まで低下', consciousness: 'やや傾眠', urgency: '中', notes: '', slaMet: null },
-  { id: 'RQ-2403', patientId: 'PT-009', pharmacyId: 'PH-05', receivedAt: '22:46', receivedDate: '2026-03-05', patientName: '林 恒一', pharmacyName: '西新宿いろは薬局', status: 'assigning', priority: 'high', assignee: '佐藤 健一', assigneeId: 'ST-02', symptom: '呼吸苦の訴え', vitalsChange: 'SpO2 91%へ低下', consciousness: '清明', urgency: '高', notes: '主治医へ連絡済み。', slaMet: true },
-  { id: 'RQ-2404', patientId: 'PT-006', pharmacyId: 'PH-05', receivedAt: '23:05', receivedDate: '2026-03-05', patientName: '渡辺 美和', pharmacyName: '西新宿いろは薬局', status: 'assigned', priority: 'normal', assignee: '高橋 奈央', assigneeId: 'ST-03', symptom: '疼痛コントロール不良', vitalsChange: '痛みスコア上昇', consciousness: '清明', urgency: '中', notes: 'レスキュー使用回数増加中。', slaMet: true },
-  { id: 'RQ-2405', patientId: 'PT-007', pharmacyId: 'PH-06', receivedAt: '23:22', receivedDate: '2026-03-05', patientName: '山本 直子', pharmacyName: '世田谷つばさ薬局', status: 'fax_received', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '下痢・脱水傾向', vitalsChange: '尿量減少', consciousness: '清明', urgency: '中', notes: '', slaMet: null },
-  { id: 'RQ-2406', patientId: 'PT-004', pharmacyId: 'PH-03', receivedAt: '23:31', receivedDate: '2026-03-05', patientName: '清水 恒一', pharmacyName: '中野しらさぎ薬局', status: 'in_progress', priority: 'high', assignee: '佐藤 健一', assigneeId: 'ST-02', symptom: 'せん妄症状の増悪', vitalsChange: '脈拍増加、発汗', consciousness: '混濁', urgency: '高', notes: '家族同席。環境調整実施中。', slaMet: true },
-  { id: 'RQ-2407', patientId: 'PT-003', pharmacyId: 'PH-04', receivedAt: '23:40', receivedDate: '2026-03-05', patientName: '橋本 和子', pharmacyName: '池袋みどり薬局', status: 'arrived', priority: 'normal', assignee: '高橋 奈央', assigneeId: 'ST-03', symptom: '嘔吐後のふらつき', vitalsChange: '血圧92/54', consciousness: '清明', urgency: '中', notes: '', slaMet: true },
-  { id: 'RQ-2408', patientId: 'PT-005', pharmacyId: 'PH-07', receivedAt: '23:52', receivedDate: '2026-03-05', patientName: '井上 恒一', pharmacyName: '江東あおぞら薬局', status: 'dispatched', priority: 'normal', assignee: '山口 美咲', assigneeId: 'ST-04', symptom: '血糖コントロール悪化', vitalsChange: '血糖値312mg/dL', consciousness: '清明', urgency: '中', notes: 'インスリン量の確認必要。', slaMet: true },
-  { id: 'RQ-2409', patientId: 'PT-010', pharmacyId: 'PH-09', receivedAt: '00:03', receivedDate: '2026-03-06', patientName: '高田 恒一', pharmacyName: '渋谷ひまわり薬局', status: 'completed', priority: 'low', assignee: '山口 美咲', assigneeId: 'ST-04', symptom: '軽度発熱', vitalsChange: '体温37.5℃', consciousness: '清明', urgency: '低', notes: '経過観察で改善。', slaMet: true },
-  { id: 'RQ-2410', patientId: 'PT-008', pharmacyId: 'PH-08', receivedAt: '00:11', receivedDate: '2026-03-06', patientName: '森田 恒一', pharmacyName: '吉祥寺つばめ薬局', status: 'completed', priority: 'normal', assignee: '佐々木 翔', assigneeId: 'ST-10', symptom: '夜間痛の増強', vitalsChange: '疼痛スケール 8/10', consciousness: '清明', urgency: '中', notes: '定時鎮痛薬を服用させ、1時間後に改善確認。', slaMet: true },
+  { id: 'RQ-2401', patientId: 'PT-001', pharmacyId: 'PH-01', receivedAt: '22:14', receivedDate: '2026-03-05', patientName: '田中 優子', pharmacyName: '城南みらい薬局', status: 'received', priority: 'high', assignee: '未割当', assigneeId: null, symptom: '悪寒と発熱（38.5℃）', vitalsChange: '体温上昇、脈拍110/分', consciousness: '清明', urgency: '高', notes: '家族より電話あり。食事摂取困難。', slaMet: null, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 22:14', userName: '田中 直樹', note: '受電・依頼受付' },
+  ] },
+  { id: 'RQ-2402', patientId: 'PT-002', pharmacyId: 'PH-02', receivedAt: '22:28', receivedDate: '2026-03-05', patientName: '小川 正子', pharmacyName: '港北さくら薬局', status: 'fax_pending', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '吐き気と食欲低下', vitalsChange: '血圧100/60まで低下', consciousness: 'やや傾眠', urgency: '中', notes: '', slaMet: null, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 22:28', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_pending', timestamp: '2026-03-05 22:30', userName: '田中 直樹', note: 'FAX送信依頼' },
+  ] },
+  { id: 'RQ-2403', patientId: 'PT-009', pharmacyId: 'PH-05', receivedAt: '22:46', receivedDate: '2026-03-05', patientName: '林 恒一', pharmacyName: '西新宿いろは薬局', status: 'assigning', priority: 'high', assignee: '佐藤 健一', assigneeId: 'ST-02', symptom: '呼吸苦の訴え', vitalsChange: 'SpO2 91%へ低下', consciousness: '清明', urgency: '高', notes: '主治医へ連絡済み。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 22:46', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 22:52', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigning', timestamp: '2026-03-05 22:55', userName: '田中 直樹', note: '佐藤 健一にアサイン送信' },
+  ] },
+  { id: 'RQ-2404', patientId: 'PT-006', pharmacyId: 'PH-05', receivedAt: '23:05', receivedDate: '2026-03-05', patientName: '渡辺 美和', pharmacyName: '西新宿いろは薬局', status: 'assigned', priority: 'normal', assignee: '高橋 奈央', assigneeId: 'ST-03', symptom: '疼痛コントロール不良', vitalsChange: '痛みスコア上昇', consciousness: '清明', urgency: '中', notes: 'レスキュー使用回数増加中。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 23:05', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 23:10', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-05 23:14', userName: '高橋 奈央', note: 'アサイン受諾' },
+  ] },
+  { id: 'RQ-2405', patientId: 'PT-007', pharmacyId: 'PH-06', receivedAt: '23:22', receivedDate: '2026-03-05', patientName: '山本 直子', pharmacyName: '世田谷つばさ薬局', status: 'fax_received', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '下痢・脱水傾向', vitalsChange: '尿量減少', consciousness: '清明', urgency: '中', notes: '', slaMet: null, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 23:22', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 23:28', userName: '田中 直樹', note: 'FAX受領確認' },
+  ] },
+  { id: 'RQ-2406', patientId: 'PT-004', pharmacyId: 'PH-03', receivedAt: '23:31', receivedDate: '2026-03-05', patientName: '清水 恒一', pharmacyName: '中野しらさぎ薬局', status: 'in_progress', priority: 'high', assignee: '佐藤 健一', assigneeId: 'ST-02', symptom: 'せん妄症状の増悪', vitalsChange: '脈拍増加、発汗', consciousness: '混濁', urgency: '高', notes: '家族同席。環境調整実施中。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 23:31', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 23:35', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-05 23:38', userName: '佐藤 健一', note: 'アサイン受諾' },
+    { status: 'dispatched', timestamp: '2026-03-05 23:40', userName: '佐藤 健一', note: '出発' },
+    { status: 'arrived', timestamp: '2026-03-05 23:52', userName: '佐藤 健一', note: '患者宅に到着' },
+    { status: 'in_progress', timestamp: '2026-03-05 23:54', userName: '佐藤 健一', note: '対応開始・家族同席' },
+  ] },
+  { id: 'RQ-2407', patientId: 'PT-003', pharmacyId: 'PH-04', receivedAt: '23:40', receivedDate: '2026-03-05', patientName: '橋本 和子', pharmacyName: '池袋みどり薬局', status: 'arrived', priority: 'normal', assignee: '高橋 奈央', assigneeId: 'ST-03', symptom: '嘔吐後のふらつき', vitalsChange: '血圧92/54', consciousness: '清明', urgency: '中', notes: '', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 23:40', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 23:44', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-05 23:47', userName: '高橋 奈央', note: 'アサイン受諾' },
+    { status: 'dispatched', timestamp: '2026-03-05 23:49', userName: '高橋 奈央', note: '出発' },
+    { status: 'arrived', timestamp: '2026-03-06 00:01', userName: '高橋 奈央', note: '患者宅に到着' },
+  ] },
+  { id: 'RQ-2408', patientId: 'PT-005', pharmacyId: 'PH-07', receivedAt: '23:52', receivedDate: '2026-03-05', patientName: '井上 恒一', pharmacyName: '江東あおぞら薬局', status: 'dispatched', priority: 'normal', assignee: '山口 美咲', assigneeId: 'ST-04', symptom: '血糖コントロール悪化', vitalsChange: '血糖値312mg/dL', consciousness: '清明', urgency: '中', notes: 'インスリン量の確認必要。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-05 23:52', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-05 23:56', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-05 23:59', userName: '山口 美咲', note: 'アサイン受諾' },
+    { status: 'dispatched', timestamp: '2026-03-06 00:02', userName: '山口 美咲', note: '出発' },
+  ] },
+  { id: 'RQ-2409', patientId: 'PT-010', pharmacyId: 'PH-09', receivedAt: '00:03', receivedDate: '2026-03-06', patientName: '高田 恒一', pharmacyName: '渋谷ひまわり薬局', status: 'completed', priority: 'low', assignee: '山口 美咲', assigneeId: 'ST-04', symptom: '軽度発熱', vitalsChange: '体温37.5℃', consciousness: '清明', urgency: '低', notes: '経過観察で改善。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-06 00:03', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-06 00:06', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-06 00:08', userName: '山口 美咲', note: 'アサイン受諾' },
+    { status: 'dispatched', timestamp: '2026-03-06 00:10', userName: '山口 美咲', note: '出発' },
+    { status: 'arrived', timestamp: '2026-03-06 00:18', userName: '山口 美咲', note: '患者宅に到着' },
+    { status: 'in_progress', timestamp: '2026-03-06 00:20', userName: '山口 美咲', note: '対応開始' },
+    { status: 'completed', timestamp: '2026-03-06 00:45', userName: '山口 美咲', note: '経過観察で改善。対応完了' },
+  ] },
+  { id: 'RQ-2410', patientId: 'PT-008', pharmacyId: 'PH-08', receivedAt: '00:11', receivedDate: '2026-03-06', patientName: '森田 恒一', pharmacyName: '吉祥寺つばめ薬局', status: 'completed', priority: 'normal', assignee: '佐々木 翔', assigneeId: 'ST-10', symptom: '夜間痛の増強', vitalsChange: '疼痛スケール 8/10', consciousness: '清明', urgency: '中', notes: '定時鎮痛薬を服用させ、1時間後に改善確認。', slaMet: true, timelineEvents: [
+    { status: 'received', timestamp: '2026-03-06 00:11', userName: '田中 直樹', note: '受電・依頼受付' },
+    { status: 'fax_received', timestamp: '2026-03-06 00:14', userName: '田中 直樹', note: 'FAX受領' },
+    { status: 'assigned', timestamp: '2026-03-06 00:16', userName: '佐々木 翔', note: 'アサイン受諾' },
+    { status: 'dispatched', timestamp: '2026-03-06 00:18', userName: '佐々木 翔', note: '出発' },
+    { status: 'arrived', timestamp: '2026-03-06 00:30', userName: '佐々木 翔', note: '患者宅に到着' },
+    { status: 'in_progress', timestamp: '2026-03-06 00:32', userName: '佐々木 翔', note: '対応開始' },
+    { status: 'completed', timestamp: '2026-03-06 01:35', userName: '佐々木 翔', note: '定時鎮痛薬投与後、改善確認。対応完了' },
+  ] },
 ]
 
 // ─── Handovers ───
@@ -193,6 +246,7 @@ export interface HandoverItem {
   vitals: { temperature: string; bloodPressure: string; pulse: string; spo2: string }
   medicationAdministered: string
   patientCondition: string
+  reportFileUrl: string | null
 }
 
 export const handoverData: HandoverItem[] = [
@@ -205,6 +259,7 @@ export const handoverData: HandoverItem[] = [
     vitals: { temperature: '38.6', bloodPressure: '102/64', pulse: '108', spo2: '93' },
     medicationAdministered: 'アセトアミノフェン 500mg 経口投与',
     patientCondition: '発熱持続するも意識清明。経口補水可能。',
+    reportFileUrl: '/mock/reports/HO-260301_report.pdf',
   },
   {
     id: 'HO-260302', requestId: 'RQ-2410', pharmacistName: '高橋 奈央', pharmacistId: 'ST-03', patientId: 'PT-002', patientName: '小川 正子', pharmacyId: 'PH-02', pharmacyName: '港北さくら薬局', timestamp: '2026/03/05 00:04', confirmed: true, confirmedAt: '2026/03/05 00:36', confirmedBy: '山田 美咲',
@@ -215,6 +270,7 @@ export const handoverData: HandoverItem[] = [
     vitals: { temperature: '37.1', bloodPressure: '118/72', pulse: '96', spo2: '97' },
     medicationAdministered: 'オキシコドン速放錠 5mg レスキュー投与',
     patientCondition: '疼痛やや軽減（NRS 5/10）。安静時は耐えられる程度。',
+    reportFileUrl: null,
   },
   {
     id: 'HO-260303', requestId: null, pharmacistName: '山口 美咲', pharmacistId: 'ST-04', patientId: 'PT-004', patientName: '清水 恒一', pharmacyId: 'PH-03', pharmacyName: '中野しらさぎ薬局', timestamp: '2026/03/04 23:48', confirmed: false, confirmedAt: null, confirmedBy: null,
@@ -225,6 +281,7 @@ export const handoverData: HandoverItem[] = [
     vitals: { temperature: '36.8', bloodPressure: '130/78', pulse: '102', spo2: '96' },
     medicationAdministered: 'クエチアピン 25mg 臨時投与',
     patientCondition: '投薬後30分で落ち着きを取り戻す。見守り継続中。',
+    reportFileUrl: '/mock/reports/HO-260303_medics_report.pdf',
   },
   {
     id: 'HO-260304', requestId: null, pharmacistName: '佐々木 翔', pharmacistId: 'ST-10', patientId: 'PT-003', patientName: '橋本 和子', pharmacyId: 'PH-04', pharmacyName: '池袋みどり薬局', timestamp: '2026/03/04 23:20', confirmed: true, confirmedAt: '2026/03/04 23:55', confirmedBy: '山田 美咲',
@@ -235,6 +292,7 @@ export const handoverData: HandoverItem[] = [
     vitals: { temperature: '36.5', bloodPressure: '94/58', pulse: '90', spo2: '95' },
     medicationAdministered: 'なし（経口補水のみ）',
     patientCondition: '嘔吐は収まり、少量の水分摂取可能。',
+    reportFileUrl: null,
   },
 ]
 
