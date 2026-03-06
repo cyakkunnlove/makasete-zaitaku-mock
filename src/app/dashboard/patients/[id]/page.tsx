@@ -29,6 +29,7 @@ import {
   Clock3,
   ExternalLink,
 } from 'lucide-react'
+import { VisitSchedule } from '@/components/visit-schedule'
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
@@ -297,6 +298,9 @@ export default function PatientDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Visit Schedule */}
+      <VisitSchedule patientId={patient.id} />
 
       {/* Current Medications - moved to bottom with (任意) label */}
       <Card className="border-[#2a3553] bg-[#1a2035]">

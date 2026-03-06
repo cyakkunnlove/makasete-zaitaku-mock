@@ -151,44 +151,137 @@ function AdminDashboard() {
 
 // ─── Pharmacy Staff Dashboard ───
 
+// Mock: today's scheduled visits for this pharmacy
+const pharmacyTodayVisits = [
+  { patientId: 'PT-001', scheduledTime: '10:00', visitType: '定期', status: 'completed' as const },
+  { patientId: 'PT-004', scheduledTime: '11:30', visitType: '定期', status: 'completed' as const },
+  { patientId: 'PT-002', scheduledTime: '14:00', visitType: '臨時', status: 'upcoming' as const },
+  { patientId: 'PT-005', scheduledTime: '15:30', visitType: '定期', status: 'upcoming' as const },
+  { patientId: 'PT-003', scheduledTime: '22:30', visitType: '夜間', status: 'upcoming' as const },
+]
+
 function PharmacyDashboard() {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const enrichedVisits = useMemo(() => {
+    return pharmacyTodayVisits.map((visit) => {
+      const patient = patientData.find((p) => p.id === visit.patientId)
+      return { ...visit, patient }
+    })
+  }, [])
+
+  const filteredVisits = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return enrichedVisits
+    return enrichedVisits.filter((v) => v.patient?.name.toLowerCase().includes(query))
+  }, [searchQuery, enrichedVisits])
+
+  const completedCount = pharmacyTodayVisits.filter((v) => v.status === 'completed').length
+  const upcomingCount = pharmacyTodayVisits.filter((v) => v.status === 'upcoming').length
+
   return (
     <div className="space-y-4">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-400">1</p>
-            <p className="text-[10px] text-gray-500">対応完了</p>
+            <p className="text-2xl font-bold text-white">{pharmacyTodayVisits.length}</p>
+            <p className="text-[10px] text-gray-500">本日合計</p>
           </CardContent>
         </Card>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-amber-400">1</p>
-            <p className="text-[10px] text-gray-500">対応中</p>
+            <p className="text-2xl font-bold text-emerald-400">{completedCount}</p>
+            <p className="text-[10px] text-gray-500">訪問済</p>
           </CardContent>
         </Card>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-sky-400">1</p>
-            <p className="text-[10px] text-gray-500">FAX送信済</p>
+            <p className="text-2xl font-bold text-sky-400">{upcomingCount}</p>
+            <p className="text-[10px] text-gray-500">未訪問</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* My Pharmacy Requests */}
+      {/* Search */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="患者名で検索"
+          className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm"
+        />
+      </div>
+
+      {/* Today's Visit List */}
       <div className="space-y-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
           <Building2 className="h-4 w-4 text-indigo-400" />
-          自店舗の依頼状況
+          本日の訪問予定
+          <span className="text-xs font-normal text-gray-500">{pharmacyTodayVisits.length}件</span>
+        </h2>
+
+        <div className="space-y-2">
+          {filteredVisits.map((visit) => {
+            const patient = visit.patient
+            if (!patient) return null
+            const isCompleted = visit.status === 'completed'
+            const isNight = visit.visitType === '夜間'
+
+            return (
+              <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
+                <Card className={cn(
+                  'cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60',
+                  isNight && 'border-l-4 border-l-indigo-500'
+                )}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={cn('text-sm font-semibold', isCompleted ? 'text-gray-400 line-through' : 'text-white')}>
+                            {patient.name}
+                          </p>
+                          <Badge variant="outline" className={cn('border text-[10px]',
+                            visit.visitType === '夜間' ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' :
+                            visit.visitType === '臨時' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' :
+                            'border-[#2a3553] text-gray-400'
+                          )}>
+                            {visit.visitType}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-medium text-gray-300">{visit.scheduledTime}</span>
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Clock3 className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* FAX Status */}
+      <div className="space-y-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <FileImage className="h-4 w-4 text-indigo-400" />
+          送信済みFAX
         </h2>
         {mockPharmacyRequests.map((req) => (
           <Card key={req.id} className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">{req.patientName}</p>
-                  <p className="mt-0.5 text-xs text-gray-400">{req.id} • {req.time}</p>
+                  <p className="text-sm font-medium text-white">{req.patientName}</p>
+                  <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
                 </div>
                 <Badge variant="outline" className={cn('border text-xs',
                   req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
@@ -198,7 +291,6 @@ function PharmacyDashboard() {
                   {req.status}
                 </Badge>
               </div>
-              <p className="mt-2 text-xs text-gray-400">担当: {req.pharmacist}</p>
             </CardContent>
           </Card>
         ))}
