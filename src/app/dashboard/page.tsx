@@ -13,8 +13,6 @@ import {
   MapPin,
   AlertTriangle,
   FileText,
-  Phone,
-  ChevronRight,
   Activity,
   CheckCircle2,
   Users,
