@@ -2,8 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Demo mode: skip auth checks
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  // Demo mode: always skip auth checks
+  // Set to false when connecting real Supabase
+  const IS_DEMO = true
+  if (IS_DEMO || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     return NextResponse.next()
   }
 
