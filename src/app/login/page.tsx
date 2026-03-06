@@ -20,9 +20,9 @@ export default function LoginPage() {
   // Demo mode: auto-redirect to dashboard
   useEffect(() => {
     if (IS_DEMO) {
-      router.replace('/dashboard')
+      window.location.href = '/dashboard'
     }
-  }, [router])
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
