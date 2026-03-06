@@ -44,7 +44,7 @@ const settingsNavItems: NavItem[] = [
 const mobileNavItems = [
   { href: '/dashboard', label: 'ホーム', icon: <Home size={20} />, hasBadge: false },
   { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} />, hasBadge: false },
-  { href: '/dashboard/notifications', label: '通知', icon: <Bell size={20} />, hasBadge: true },
+  { href: '/dashboard/patients', label: '患者', icon: <Users size={20} />, hasBadge: false },
   { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, hasBadge: false },
   { href: '/dashboard/more', label: 'その他', icon: <Menu size={20} />, hasBadge: false },
 ]
