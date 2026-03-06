@@ -3,15 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, UploadCloud } from 'lucide-react'
+import { ArrowLeft, Save, Sparkles, UploadCloud, Loader2, Pencil } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { patientData, pharmacyData, requestData, sbarStyles } from '@/lib/mock-data'
+import { patientData, requestData } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -21,6 +20,40 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
+// Mock AI response
+const mockAiGenerate = (rawInput: string, patientName: string): Promise<string> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(`【申し送り】${patientName}様
+
+■ 対応概要
+${rawInput.includes('発熱') || rawInput.includes('熱') 
+  ? '夜間に発熱の報告を受け、訪問対応を実施しました。' 
+  : '夜間に状態変化の報告を受け、訪問対応を実施しました。'}
+
+■ 対応内容
+${rawInput}
+
+■ バイタルサイン
+${rawInput.includes('38') ? '・体温: 38℃台' : '・体温: 測定値を記入してください'}
+・血圧/脈拍: 測定値を記入してください
+・SpO2: 測定値を記入してください
+
+■ 患者の状態
+対応後、症状は落ち着いており、バイタルも安定傾向です。
+引き続き経過観察が必要です。
+
+■ 翌朝への引き継ぎ事項
+・主治医への報告をお願いします
+・次回訪問時にバイタルの再確認をお願いします
+${rawInput.includes('薬') ? '・処方内容の確認をお願いします' : ''}
+
+■ 添付資料
+・報告書PDFを添付（メディックス作成分）`)
+    }, 1500)
+  })
+}
+
 export default function NewHandoverPage() {
   useAuth()
   const router = useRouter()
@@ -28,16 +61,12 @@ export default function NewHandoverPage() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
   const [patientName, setPatientName] = useState('')
   const [pharmacyName, setPharmacyName] = useState('')
-  const [situation, setSituation] = useState('')
-  const [background, setBackground] = useState('')
-  const [assessment, setAssessment] = useState('')
-  const [recommendation, setRecommendation] = useState('')
-  const [temperature, setTemperature] = useState('')
-  const [bloodPressure, setBloodPressure] = useState('')
-  const [pulse, setPulse] = useState('')
-  const [spo2, setSpo2] = useState('')
-  const [medicationAdministered, setMedicationAdministered] = useState('')
-  const [patientCondition, setPatientCondition] = useState('')
+
+  // AI-assisted flow
+  const [rawInput, setRawInput] = useState('')
+  const [generatedDoc, setGeneratedDoc] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)
 
   const handleRequestChange = (value: string) => {
@@ -46,14 +75,22 @@ export default function NewHandoverPage() {
       const request = requestData.find((r) => r.id === value)
       if (request) {
         const patient = patientData.find((p) => p.id === request.patientId)
-        const pharmacy = pharmacyData.find((ph) => ph.id === request.pharmacyId)
         setPatientName(patient?.name ?? request.patientName)
-        setPharmacyName(pharmacy?.name ?? request.pharmacyName)
+        setPharmacyName(request.pharmacyName)
       }
     } else {
       setPatientName('')
       setPharmacyName('')
     }
+  }
+
+  const handleGenerate = async () => {
+    if (!rawInput.trim()) return
+    setIsGenerating(true)
+    const result = await mockAiGenerate(rawInput, patientName || '（患者名）')
+    setGeneratedDoc(result)
+    setIsGenerating(false)
+    setIsEditing(false)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -81,7 +118,7 @@ export default function NewHandoverPage() {
           </Link>
           <div>
             <h1 className="text-lg font-semibold text-white">新規申し送り作成</h1>
-            <p className="text-xs text-gray-400">SBAR形式で夜間対応内容を記録します</p>
+            <p className="text-xs text-gray-400">AIが文書作成をサポートします</p>
           </div>
         </div>
 
@@ -113,9 +150,7 @@ export default function NewHandoverPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="patientName" className="text-gray-300">
-                    患者名
-                  </Label>
+                  <Label htmlFor="patientName" className="text-gray-300">患者名</Label>
                   <Input
                     id="patientName"
                     value={patientName}
@@ -126,9 +161,7 @@ export default function NewHandoverPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pharmacyName" className="text-gray-300">
-                    薬局名
-                  </Label>
+                  <Label htmlFor="pharmacyName" className="text-gray-300">薬局名</Label>
                   <Input
                     id="pharmacyName"
                     value={pharmacyName}
@@ -142,243 +175,147 @@ export default function NewHandoverPage() {
             </CardContent>
           </Card>
 
-          {/* Input Method Tabs */}
-          <Tabs defaultValue="manual" className="space-y-4">
-            <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#111827] p-1">
-              <TabsTrigger
-                value="manual"
-                className="rounded-md border border-[#2a3553] bg-[#111827] px-4 py-2 text-sm text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+          {/* Step 1: Raw Input */}
+          <Card className="border-[#2a3553] bg-[#111827]">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">1</span>
+                対応内容をメモ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-gray-400">
+                箇条書きでOK。AIが読みやすい申し送り文書にまとめます。
+              </p>
+              <Textarea
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                placeholder={`例:\n・22:30頃、施設から発熱の連絡\n・訪問して体温38.2℃確認\n・カロナール500mg投与\n・1時間後に37.5℃まで下降\n・水分摂取促し、経過観察指示`}
+                className="min-h-[150px] border-[#2a3553] bg-[#1a2035] text-gray-200 placeholder:text-gray-500"
+              />
+              <Button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || !rawInput.trim()}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50"
               >
-                手動入力
-              </TabsTrigger>
-              <TabsTrigger
-                value="attachment"
-                className="rounded-md border border-[#2a3553] bg-[#111827] px-4 py-2 text-sm text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
-              >
-                報告書添付
-              </TabsTrigger>
-            </TabsList>
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    AIが文書作成中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    AIで申し送り文書を作成
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
 
-            {/* Manual Input Tab */}
-            <TabsContent value="manual" className="space-y-4">
-              {/* SBAR sections */}
-              <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-white">SBAR</h2>
-                <div className="space-y-4">
-                  <Card className={cn('border', sbarStyles.situation.className)}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="situation" className="text-sm font-semibold text-sky-300">
-                          {sbarStyles.situation.label}
-                        </Label>
-                        <Textarea
-                          id="situation"
-                          value={situation}
-                          onChange={(e) => setSituation(e.target.value)}
-                          placeholder="患者の現在の状態を簡潔に記述してください"
-                          required
-                          className="min-h-[100px] border-sky-500/40 bg-sky-500/10 text-sky-100 placeholder:text-sky-300/40"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={cn('border', sbarStyles.background.className)}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="background" className="text-sm font-semibold text-emerald-300">
-                          {sbarStyles.background.label}
-                        </Label>
-                        <Textarea
-                          id="background"
-                          value={background}
-                          onChange={(e) => setBackground(e.target.value)}
-                          placeholder="既往歴や経緯など背景情報を記述してください"
-                          required
-                          className="min-h-[100px] border-emerald-500/40 bg-emerald-500/10 text-emerald-100 placeholder:text-emerald-300/40"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={cn('border', sbarStyles.assessment.className)}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="assessment" className="text-sm font-semibold text-amber-300">
-                          {sbarStyles.assessment.label}
-                        </Label>
-                        <Textarea
-                          id="assessment"
-                          value={assessment}
-                          onChange={(e) => setAssessment(e.target.value)}
-                          placeholder="評価・判断した内容を記述してください"
-                          required
-                          className="min-h-[100px] border-amber-500/40 bg-amber-500/10 text-amber-100 placeholder:text-amber-300/40"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className={cn('border', sbarStyles.recommendation.className)}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="recommendation" className="text-sm font-semibold text-purple-300">
-                          {sbarStyles.recommendation.label}
-                        </Label>
-                        <Textarea
-                          id="recommendation"
-                          value={recommendation}
-                          onChange={(e) => setRecommendation(e.target.value)}
-                          placeholder="翌朝以降に対応すべき事項を記述してください"
-                          required
-                          className="min-h-[100px] border-purple-500/40 bg-purple-500/10 text-purple-100 placeholder:text-purple-300/40"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+          {/* Step 2: Generated Document */}
+          {generatedDoc && (
+            <Card className="border-indigo-500/30 bg-[#111827]">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm text-white">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">2</span>
+                    生成された申し送り文書
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="h-7 border-[#2a3553] text-xs text-gray-300 hover:bg-[#1a2035]"
+                    >
+                      <Pencil className="mr-1 h-3 w-3" />
+                      {isEditing ? '完了' : '編集'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerate}
+                      className="h-7 border-[#2a3553] text-xs text-gray-300 hover:bg-[#1a2035]"
+                    >
+                      <Sparkles className="mr-1 h-3 w-3" />
+                      再生成
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Vitals */}
-              <Card className="border-[#2a3553] bg-[#111827]">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">バイタルサイン</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="temperature" className="text-gray-300">
-                        体温 (℃)
-                      </Label>
-                      <Input
-                        id="temperature"
-                        value={temperature}
-                        onChange={(e) => setTemperature(e.target.value)}
-                        placeholder="36.8"
-                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bloodPressure" className="text-gray-300">
-                        血圧
-                      </Label>
-                      <Input
-                        id="bloodPressure"
-                        value={bloodPressure}
-                        onChange={(e) => setBloodPressure(e.target.value)}
-                        placeholder="120/70"
-                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pulse" className="text-gray-300">
-                        脈拍 (/分)
-                      </Label>
-                      <Input
-                        id="pulse"
-                        value={pulse}
-                        onChange={(e) => setPulse(e.target.value)}
-                        placeholder="72"
-                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="spo2" className="text-gray-300">
-                        SpO2 (%)
-                      </Label>
-                      <Input
-                        id="spo2"
-                        value={spo2}
-                        onChange={(e) => setSpo2(e.target.value)}
-                        placeholder="98"
-                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
-                      />
-                    </div>
+              </CardHeader>
+              <CardContent>
+                {isEditing ? (
+                  <Textarea
+                    value={generatedDoc}
+                    onChange={(e) => setGeneratedDoc(e.target.value)}
+                    className="min-h-[300px] border-indigo-500/30 bg-[#1a2035] text-gray-200 font-mono text-sm"
+                  />
+                ) : (
+                  <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-4">
+                    <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-200 font-sans">
+                      {generatedDoc}
+                    </pre>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Additional fields */}
-              <Card className="border-[#2a3553] bg-[#111827]">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">追加情報</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="medicationAdministered" className="text-gray-300">
-                      投与薬剤
-                    </Label>
-                    <Input
-                      id="medicationAdministered"
-                      value={medicationAdministered}
-                      onChange={(e) => setMedicationAdministered(e.target.value)}
-                      placeholder="例: アセトアミノフェン 500mg 経口投与"
-                      className="border-[#2a3553] bg-[#1a2035] text-gray-200"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="patientCondition" className="text-gray-300">
-                      患者の状態
-                    </Label>
-                    <Textarea
-                      id="patientCondition"
-                      value={patientCondition}
-                      onChange={(e) => setPatientCondition(e.target.value)}
-                      placeholder="対応後の患者の状態を記述してください"
-                      className="min-h-[80px] border-[#2a3553] bg-[#1a2035] text-gray-200"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {/* Step 3: Attachment */}
+          <Card className="border-[#2a3553] bg-[#111827]">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">3</span>
+                報告書添付（任意）
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <button
+                type="button"
+                onClick={handleFileDrop}
+                className={cn(
+                  'flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition',
+                  uploadedFile
+                    ? 'border-emerald-500/40 bg-emerald-500/10'
+                    : 'border-[#2a3553] bg-[#1a2035] hover:border-indigo-500/40 hover:bg-indigo-500/5'
+                )}
+              >
+                <UploadCloud className={cn('h-8 w-8', uploadedFile ? 'text-emerald-400' : 'text-gray-500')} />
+                {uploadedFile ? (
+                  <>
+                    <p className="mt-2 text-sm font-medium text-emerald-300">{uploadedFile}</p>
+                    <p className="mt-1 text-xs text-gray-400">クリックして変更</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2 text-sm font-medium text-gray-300">
+                      メディックス等で作成した報告書PDFを添付
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      クリックまたはドラッグ&ドロップ
+                    </p>
+                  </>
+                )}
+              </button>
+            </CardContent>
+          </Card>
 
-            {/* Report Attachment Tab */}
-            <TabsContent value="attachment" className="space-y-4">
-              <Card className="border-[#2a3553] bg-[#111827]">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">報告書添付</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <button
-                    type="button"
-                    onClick={handleFileDrop}
-                    className={cn(
-                      'flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition',
-                      uploadedFile
-                        ? 'border-emerald-500/40 bg-emerald-500/10'
-                        : 'border-[#2a3553] bg-[#1a2035] hover:border-indigo-500/40 hover:bg-indigo-500/5'
-                    )}
-                  >
-                    <UploadCloud className={cn('h-10 w-10', uploadedFile ? 'text-emerald-400' : 'text-gray-500')} />
-                    {uploadedFile ? (
-                      <>
-                        <p className="mt-3 text-sm font-medium text-emerald-300">{uploadedFile}</p>
-                        <p className="mt-1 text-xs text-gray-400">クリックして変更</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="mt-3 text-sm font-medium text-gray-300">
-                          メディックス等で作成した報告書PDFを添付
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          クリックまたはドラッグ&ドロップでファイルを選択
-                        </p>
-                      </>
-                    )}
-                  </button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          {/* Submit buttons */}
+          {/* Submit */}
           <div className="flex items-center justify-end gap-3">
             <Link href="/dashboard/handovers">
               <Button type="button" variant="ghost" className="text-gray-300 hover:text-white">
                 キャンセル
               </Button>
             </Link>
-            <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+            <Button
+              type="submit"
+              disabled={!generatedDoc && !uploadedFile}
+              className="bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50"
+            >
               <Save className="mr-1.5 h-4 w-4" />
               保存する
             </Button>

@@ -40,6 +40,7 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [pattern, setPattern] = useState<VisitPattern>(initialPattern)
   const [dayOfWeek, setDayOfWeek] = useState(initialDayOfWeek) // Thursday default
+  const [startWeek, setStartWeek] = useState(1) // 1=第1週開始, 2=第2週開始
   const [customDates, setCustomDates] = useState<Set<string>>(new Set(initialVisitDates ?? []))
 
   // Generate visit dates based on pattern
@@ -55,18 +56,20 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
       if (date.getDay() === dayOfWeek) {
         weekCount++
         if (pattern === 'weekly') {
-          if (weekCount <= 4) { // Max 4 per month
+          if (weekCount <= 4) {
             dates.add(date.toISOString().split('T')[0])
           }
         } else if (pattern === 'biweekly') {
-          if (weekCount % 2 === 1 && weekCount <= 4) {
+          // startWeek: 1=第1,3週, 2=第2,4週
+          const isTargetWeek = startWeek === 1 ? weekCount % 2 === 1 : weekCount % 2 === 0
+          if (isTargetWeek && dates.size < 4) {
             dates.add(date.toISOString().split('T')[0])
           }
         }
       }
     }
     return dates
-  }, [pattern, dayOfWeek, viewYear, viewMonth, customDates])
+  }, [pattern, dayOfWeek, startWeek, viewYear, viewMonth, customDates])
 
   const monthVisitCount = visitDates.size
   const isOverLimit = monthVisitCount > 4
@@ -180,6 +183,31 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
                 >
                   {label}
                 </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Start Week Selector (for biweekly) */}
+        {pattern === 'biweekly' && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400">開始週</p>
+            <div className="flex gap-2">
+              {[1, 2].map((week) => (
+                <Button
+                  key={week}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStartWeek(week)}
+                  className={cn(
+                    'h-8 border text-xs flex-1',
+                    startWeek === week
+                      ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                      : 'border-[#2a3553] bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]'
+                  )}
+                >
+                  第{week === 1 ? '1・3' : '2・4'}週
+                </Button>
               ))}
             </div>
           </div>
