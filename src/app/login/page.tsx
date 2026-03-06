@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
-const IS_DEMO = !process.env.NEXT_PUBLIC_SUPABASE_URL
+// Demo mode: always true unless real Supabase project is configured
+const IS_DEMO = true
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
