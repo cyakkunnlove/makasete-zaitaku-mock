@@ -8,7 +8,8 @@ import type { UserRole } from '@/types/database'
 import {
   Home, ClipboardList, UserCheck, FileText,
   Building2, Users, CreditCard, BarChart3,
-  Shield, Bell, Menu, X, LogOut, Moon
+  Shield, Bell, Menu, X, LogOut, Moon,
+  Settings, MessageCircle, Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -31,14 +32,21 @@ const navItems: NavItem[] = [
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, roles: ['admin', 'pharmacy_admin'] },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, roles: ['admin', 'pharmacy_admin'] },
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, roles: ['admin'] },
+  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, roles: ['admin', 'pharmacist'] },
+  { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, roles: ['admin'] },
+]
+
+const settingsNavItems: NavItem[] = [
+  { href: '/dashboard/settings/notifications', label: '通知設定', icon: <Bell size={20} />, roles: ['admin'] },
+  { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, roles: ['admin'] },
 ]
 
 const mobileNavItems = [
-  { href: '/dashboard', label: 'ホーム', icon: <Home size={20} /> },
-  { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} /> },
-  { href: '/dashboard/assign', label: 'アサイン', icon: <UserCheck size={20} /> },
-  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} /> },
-  { href: '/dashboard/more', label: 'その他', icon: <Menu size={20} /> },
+  { href: '/dashboard', label: 'ホーム', icon: <Home size={20} />, hasBadge: false },
+  { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} />, hasBadge: false },
+  { href: '/dashboard/notifications', label: '通知', icon: <Bell size={20} />, hasBadge: true },
+  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, hasBadge: false },
+  { href: '/dashboard/more', label: 'その他', icon: <Menu size={20} />, hasBadge: false },
 ]
 
 function NightBadge() {
@@ -91,7 +99,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     role ? item.roles.includes(role) : false
   )
 
-  const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'ダッシュボード'
+  const filteredSettings = settingsNavItems.filter(item =>
+    role ? item.roles.includes(role) : false
+  )
+
+  const allNavItems = [...navItems, ...settingsNavItems]
+  const pageTitle = allNavItems.find(item => item.href === pathname)?.label ?? 'ダッシュボード'
+
+  const unreadNotifCount = 3 // Mock unread count
 
   if (loading) {
     return (
@@ -140,6 +155,35 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </Link>
             )
           })}
+
+          {/* Settings section */}
+          {filteredSettings.length > 0 && (
+            <>
+              <div className="pt-4 pb-1 px-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Settings size={12} />
+                  設定
+                </p>
+              </div>
+              {filteredSettings.map((item) => {
+                const active = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                      active
+                        ? 'bg-indigo-600/20 text-indigo-400 font-medium'
+                        : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </>
+          )}
         </nav>
 
         {/* User */}
@@ -193,6 +237,32 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   </Link>
                 )
               })}
+              {filteredSettings.length > 0 && (
+                <>
+                  <div className="pt-4 pb-1 px-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <Settings size={12} />
+                      設定
+                    </p>
+                  </div>
+                  {filteredSettings.map((item) => {
+                    const active = pathname === item.href
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
+                          active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </>
+              )}
             </nav>
           </aside>
         </div>
@@ -209,9 +279,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <span className="text-xs text-emerald-400">LIVE</span>
         </div>
         <div className="ml-auto">
-          <button className="relative p-2 text-gray-400 hover:text-gray-200">
+          <Link href="/dashboard/notifications" className="relative p-2 text-gray-400 hover:text-gray-200 block">
             <Bell size={18} />
-          </button>
+            {unreadNotifCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
+                {unreadNotifCount}
+              </span>
+            )}
+          </Link>
         </div>
       </header>
 
@@ -248,11 +323,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 text-xs py-1 px-3 ${
+                className={`relative flex flex-col items-center gap-0.5 text-xs py-1 px-3 ${
                   active ? 'text-indigo-400' : 'text-gray-500'
                 }`}
               >
-                {item.icon}
+                <span className="relative">
+                  {item.icon}
+                  {item.hasBadge && unreadNotifCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[8px] flex items-center justify-center font-bold">
+                      {unreadNotifCount}
+                    </span>
+                  )}
+                </span>
                 <span>{item.label}</span>
               </Link>
             )

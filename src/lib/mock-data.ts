@@ -527,3 +527,119 @@ export const hourlyDistributionData: HourlyDistribution[] = [
   { hour: '4時', count: 8 },
   { hour: '5時', count: 6 },
 ]
+
+// ─── Notification Logs ───
+export type NotifChannel = 'line' | 'email' | 'push' | 'phone'
+export type NotifStatus = 'sent' | 'delivered' | 'failed' | 'pending'
+
+export interface NotificationLogItem {
+  id: string
+  timestamp: string
+  event: string
+  eventLabel: string
+  channel: NotifChannel
+  recipientName: string
+  recipientContact: string
+  status: NotifStatus
+  errorMessage: string | null
+}
+
+export const notificationLogData: NotificationLogItem[] = [
+  { id: 'NL-001', timestamp: '2026-03-06 00:58:14', event: 'request.created', eventLabel: '新規受電', channel: 'push', recipientName: '田中 直樹', recipientContact: 'tanaka@makasete.jp', status: 'delivered', errorMessage: null },
+  { id: 'NL-002', timestamp: '2026-03-06 00:58:16', event: 'request.created', eventLabel: '新規受電', channel: 'line', recipientName: '田中 直樹', recipientContact: 'U1234567890abcdef', status: 'delivered', errorMessage: null },
+  { id: 'NL-003', timestamp: '2026-03-06 00:46:02', event: 'assignment.created', eventLabel: 'アサイン通知', channel: 'line', recipientName: '佐藤 健一', recipientContact: 'U2345678901abcdef', status: 'delivered', errorMessage: null },
+  { id: 'NL-004', timestamp: '2026-03-06 00:46:05', event: 'assignment.created', eventLabel: 'アサイン通知', channel: 'push', recipientName: '佐藤 健一', recipientContact: 'sato@makasete.jp', status: 'delivered', errorMessage: null },
+  { id: 'NL-005', timestamp: '2026-03-06 00:31:22', event: 'sla.warning', eventLabel: 'SLA警告', channel: 'push', recipientName: '田中 直樹', recipientContact: 'tanaka@makasete.jp', status: 'delivered', errorMessage: null },
+  { id: 'NL-006', timestamp: '2026-03-06 00:28:14', event: 'handover.created', eventLabel: '申し送り作成', channel: 'email', recipientName: '山田 美咲', recipientContact: 'yamada@jonan-ph.jp', status: 'sent', errorMessage: null },
+  { id: 'NL-007', timestamp: '2026-03-06 00:28:16', event: 'handover.created', eventLabel: '申し送り作成', channel: 'line', recipientName: '山田 美咲', recipientContact: 'U3456789012abcdef', status: 'failed', errorMessage: 'LINE user not found or blocked' },
+  { id: 'NL-008', timestamp: '2026-03-06 00:15:40', event: 'assignment.completed', eventLabel: '対応完了', channel: 'push', recipientName: '田中 直樹', recipientContact: 'tanaka@makasete.jp', status: 'delivered', errorMessage: null },
+  { id: 'NL-009', timestamp: '2026-03-06 00:15:42', event: 'assignment.completed', eventLabel: '対応完了', channel: 'line', recipientName: '田中 直樹', recipientContact: 'U1234567890abcdef', status: 'delivered', errorMessage: null },
+  { id: 'NL-010', timestamp: '2026-03-05 23:55:01', event: 'sla.violated', eventLabel: 'SLA違反', channel: 'line', recipientName: '田中 直樹', recipientContact: 'U1234567890abcdef', status: 'delivered', errorMessage: null },
+  { id: 'NL-011', timestamp: '2026-03-05 23:55:03', event: 'sla.violated', eventLabel: 'SLA違反', channel: 'phone', recipientName: '田中 直樹', recipientContact: '090-4400-1022', status: 'pending', errorMessage: null },
+  { id: 'NL-012', timestamp: '2026-03-05 23:40:18', event: 'shift.reminder', eventLabel: 'シフトリマインド', channel: 'line', recipientName: '山口 美咲', recipientContact: 'U4567890123abcdef', status: 'delivered', errorMessage: null },
+  { id: 'NL-013', timestamp: '2026-03-05 23:22:05', event: 'pharmacy.forwarding_on', eventLabel: '転送開始', channel: 'push', recipientName: '小林 恒一', recipientContact: 'kobayashi@minami-ph.jp', status: 'delivered', errorMessage: null },
+  { id: 'NL-014', timestamp: '2026-03-05 23:10:30', event: 'billing.generated', eventLabel: '請求書発行', channel: 'email', recipientName: '山田 美咲', recipientContact: 'yamada@jonan-ph.jp', status: 'failed', errorMessage: 'SMTP connection timeout' },
+  { id: 'NL-015', timestamp: '2026-03-05 22:58:11', event: 'assignment.timeout', eventLabel: 'アサインタイムアウト', channel: 'line', recipientName: '高橋 奈央', recipientContact: 'U5678901234abcdef', status: 'delivered', errorMessage: null },
+]
+
+export const notifChannelLabel: Record<NotifChannel, string> = {
+  line: 'LINE',
+  email: 'メール',
+  push: 'プッシュ',
+  phone: '電話',
+}
+
+export const notifChannelClass: Record<NotifChannel, string> = {
+  line: 'border-green-500/40 bg-green-500/20 text-green-300',
+  email: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+  push: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  phone: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+}
+
+export const notifStatusLabel: Record<NotifStatus, string> = {
+  sent: '送信済',
+  delivered: '配信済',
+  failed: '失敗',
+  pending: '送信待ち',
+}
+
+export const notifStatusClass: Record<NotifStatus, string> = {
+  sent: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+  delivered: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  failed: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  pending: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+}
+
+// ─── LINE Integration Status ───
+export interface LineUserStatus {
+  staffId: string
+  staffName: string
+  role: UserRole
+  lineUserId: string | null
+  linked: boolean
+  linkedAt: string | null
+}
+
+export const lineUserStatuses: LineUserStatus[] = [
+  { staffId: 'ST-01', staffName: '田中 直樹', role: 'admin', lineUserId: 'U1234567890abcdef', linked: true, linkedAt: '2026-01-15 10:30:00' },
+  { staffId: 'ST-02', staffName: '佐藤 健一', role: 'pharmacist', lineUserId: 'U2345678901abcdef', linked: true, linkedAt: '2026-01-20 14:15:00' },
+  { staffId: 'ST-03', staffName: '高橋 奈央', role: 'pharmacist', lineUserId: 'U5678901234abcdef', linked: true, linkedAt: '2026-02-01 09:00:00' },
+  { staffId: 'ST-04', staffName: '山口 美咲', role: 'pharmacist', lineUserId: 'U4567890123abcdef', linked: true, linkedAt: '2026-02-05 11:22:00' },
+  { staffId: 'ST-05', staffName: '山田 美咲', role: 'pharmacy_admin', lineUserId: 'U3456789012abcdef', linked: true, linkedAt: '2026-02-10 16:45:00' },
+  { staffId: 'ST-06', staffName: '小林 恒一', role: 'pharmacy_admin', lineUserId: null, linked: false, linkedAt: null },
+  { staffId: 'ST-07', staffName: '伊藤 真理', role: 'pharmacy_staff', lineUserId: null, linked: false, linkedAt: null },
+  { staffId: 'ST-10', staffName: '佐々木 翔', role: 'pharmacist', lineUserId: 'U6789012345abcdef', linked: true, linkedAt: '2026-02-15 08:30:00' },
+]
+
+// ─── Notification Settings ───
+export interface NotificationSettingItem {
+  event: string
+  eventLabel: string
+  category: string
+  line: boolean
+  email: boolean
+  push: boolean
+  phone: boolean
+}
+
+export const notificationSettingsData: NotificationSettingItem[] = [
+  { event: 'request.created', eventLabel: '新規受電', category: '依頼管理', line: true, email: false, push: true, phone: false },
+  { event: 'request.status_changed', eventLabel: 'ステータス変更', category: '依頼管理', line: false, email: false, push: true, phone: false },
+  { event: 'request.cancelled', eventLabel: '依頼キャンセル', category: '依頼管理', line: true, email: false, push: true, phone: false },
+  { event: 'request.priority_escalated', eventLabel: '優先度エスカレーション', category: '依頼管理', line: true, email: false, push: true, phone: true },
+  { event: 'assignment.created', eventLabel: 'アサイン通知', category: 'アサイン', line: true, email: false, push: true, phone: false },
+  { event: 'assignment.accepted', eventLabel: 'アサイン受諾', category: 'アサイン', line: false, email: false, push: true, phone: false },
+  { event: 'assignment.declined', eventLabel: 'アサイン辞退', category: 'アサイン', line: true, email: false, push: true, phone: false },
+  { event: 'assignment.timeout', eventLabel: 'アサインタイムアウト', category: 'アサイン', line: true, email: false, push: true, phone: true },
+  { event: 'assignment.completed', eventLabel: '対応完了', category: 'アサイン', line: true, email: false, push: true, phone: false },
+  { event: 'sla.violated', eventLabel: 'SLA違反', category: 'SLA監視', line: true, email: false, push: true, phone: true },
+  { event: 'sla.warning', eventLabel: 'SLA警告', category: 'SLA監視', line: true, email: false, push: true, phone: false },
+  { event: 'handover.created', eventLabel: '申し送り作成', category: '申し送り', line: true, email: true, push: false, phone: false },
+  { event: 'handover.unconfirmed', eventLabel: '申し送り未確認', category: '申し送り', line: true, email: true, push: false, phone: false },
+  { event: 'handover.reminder', eventLabel: '確認リマインド', category: '申し送り', line: false, email: true, push: false, phone: false },
+  { event: 'billing.generated', eventLabel: '請求書発行', category: '請求', line: false, email: true, push: false, phone: false },
+  { event: 'billing.overdue', eventLabel: '支払い遅延', category: '請求', line: true, email: true, push: false, phone: false },
+  { event: 'shift.reminder', eventLabel: 'シフトリマインド', category: 'シフト', line: true, email: false, push: true, phone: false },
+  { event: 'shift.changed', eventLabel: 'シフト変更', category: 'シフト', line: true, email: false, push: true, phone: false },
+  { event: 'pharmacy.forwarding_reminder', eventLabel: '転送解除リマインド', category: '加盟薬局', line: true, email: false, push: false, phone: false },
+]

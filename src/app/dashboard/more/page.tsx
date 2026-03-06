@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Building2, Users, CreditCard, BarChart3,
-  Shield, LogOut, Moon, Settings
+  Shield, LogOut, Moon, Settings, Bell,
+  MessageCircle, Calendar
 } from 'lucide-react'
 
 interface MenuItem {
@@ -41,6 +42,13 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
   },
   {
+    href: '/dashboard/shifts',
+    label: 'シフト管理',
+    description: '当番スケジュールの管理',
+    icon: <Calendar size={20} className="text-indigo-400" />,
+    roles: ['admin', 'pharmacist'],
+  },
+  {
     href: '/dashboard/billing',
     label: '請求管理',
     description: '月次請求・入金確認',
@@ -59,6 +67,23 @@ const menuItems: MenuItem[] = [
     label: '監査ログ',
     description: '操作履歴の追跡',
     icon: <Shield size={20} className="text-indigo-400" />,
+    roles: ['admin'],
+  },
+]
+
+const settingsItems: MenuItem[] = [
+  {
+    href: '/dashboard/settings/notifications',
+    label: '通知設定',
+    description: 'イベント毎の通知チャネル設定',
+    icon: <Bell size={20} className="text-indigo-400" />,
+    roles: ['admin'],
+  },
+  {
+    href: '/dashboard/settings/line',
+    label: 'LINE連携',
+    description: 'LINE Messaging API設定',
+    icon: <MessageCircle size={20} className="text-green-400" />,
     roles: ['admin'],
   },
 ]
@@ -111,15 +136,32 @@ export default function MorePage() {
         ))}
       </div>
 
-      {/* Settings & Logout */}
+      {/* Settings section */}
+      {role === 'admin' && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-300 px-1 flex items-center gap-1.5">
+            <Settings size={14} />
+            設定
+          </h3>
+          {settingsItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <Card className="border-[#2a3553] bg-[#1a2035] hover:bg-[#1f2740] transition-colors cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  {item.icon}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">{item.label}</p>
+                    <p className="text-xs text-gray-400">{item.description}</p>
+                  </div>
+                  <span className="text-gray-500 text-lg">&#x203A;</span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Logout */}
       <div className="space-y-2 pt-2">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-gray-400 hover:text-gray-200 hover:bg-[#1a2035] h-12"
-        >
-          <Settings size={18} />
-          <span className="text-sm">システム設定</span>
-        </Button>
         <Button
           variant="ghost"
           onClick={signOut}
