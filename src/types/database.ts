@@ -38,7 +38,8 @@ export interface Pharmacy {
   forwarding_phone: string | null
   forwarding_status: ForwardingStatus
   contract_date: string | null
-  monthly_fee: number
+  saas_monthly_fee: number
+  night_monthly_fee: number
   status: PharmacyStatus
   patient_count: number
   created_at: string
@@ -185,9 +186,10 @@ export interface Billing {
   organization_id: string | null
   pharmacy_id: string | null
   billing_month: string
-  monthly_fee: number
+  saas_fee: number
+  night_fee: number
+  total_fee: number
   tax_amount: number
-  total_amount: number
   status: BillingStatus
   invoiced_at: string | null
   paid_at: string | null

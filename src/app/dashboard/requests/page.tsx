@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
-import type { RequestPriority, RequestStatus } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,21 +34,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { CircleAlert, Clock3, Plus } from 'lucide-react'
-
-interface RequestItem {
-  id: string
-  receivedAt: string
-  patientName: string
-  pharmacyName: string
-  status: RequestStatus
-  priority: RequestPriority
-  assignee: string
-  symptom: string
-  vitalsChange: string
-  consciousness: string
-  urgency: string
-}
+import { Clock3, Plus } from 'lucide-react'
+import {
+  requestData,
+  statusMeta,
+  priorityMeta,
+} from '@/lib/mock-data'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
 
@@ -59,180 +50,10 @@ const tabItems: Array<{ key: TabKey; label: string }> = [
   { key: 'all', label: '全件' },
 ]
 
-const requestFlow = ['受付', 'FAX', 'アサイン', '出発', '到着', '対応中', '完了']
-
-const requestStepIndex: Record<RequestStatus, number> = {
-  received: 0,
-  fax_pending: 0,
-  fax_received: 1,
-  assigning: 2,
-  assigned: 2,
-  checklist: 2,
-  dispatched: 3,
-  arrived: 4,
-  in_progress: 5,
-  completed: 6,
-  cancelled: 0,
-}
-
-const statusMeta: Record<RequestStatus, { label: string; className: string }> = {
-  received: { label: '受付', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' },
-  fax_pending: { label: 'FAX待ち', className: 'border-purple-500/40 bg-purple-500/20 text-purple-300' },
-  fax_received: { label: 'FAX受領', className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' },
-  assigning: { label: 'アサイン中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' },
-  assigned: { label: 'アサイン済', className: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300' },
-  checklist: { label: '確認中', className: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300' },
-  dispatched: { label: '出動中', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' },
-  arrived: { label: '到着', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' },
-  in_progress: { label: '対応中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' },
-  completed: { label: '完了', className: 'border-gray-500/50 bg-gray-500/20 text-gray-300' },
-  cancelled: { label: 'キャンセル', className: 'border-rose-500/40 bg-rose-500/20 text-rose-300' },
-}
-
-const priorityMeta: Record<RequestPriority, { label: string; dot: string; mobileBorder: string }> = {
-  high: { label: '高', dot: 'bg-rose-400', mobileBorder: 'border-l-rose-500' },
-  normal: { label: '中', dot: 'bg-amber-400', mobileBorder: 'border-l-amber-400' },
-  low: { label: '低', dot: 'bg-sky-400', mobileBorder: 'border-l-sky-400' },
-}
-
-const requestData: RequestItem[] = [
-  {
-    id: 'RQ-2401',
-    receivedAt: '22:14',
-    patientName: '田中 優子',
-    pharmacyName: '城南みらい薬局',
-    status: 'received',
-    priority: 'high',
-    assignee: '未割当',
-    symptom: '悪寒と発熱（38.5℃）',
-    vitalsChange: '体温上昇、脈拍110/分',
-    consciousness: '清明',
-    urgency: '高',
-  },
-  {
-    id: 'RQ-2402',
-    receivedAt: '22:28',
-    patientName: '小川 正子',
-    pharmacyName: '港北さくら薬局',
-    status: 'fax_pending',
-    priority: 'normal',
-    assignee: '未割当',
-    symptom: '吐き気と食欲低下',
-    vitalsChange: '血圧100/60まで低下',
-    consciousness: 'やや傾眠',
-    urgency: '中',
-  },
-  {
-    id: 'RQ-2403',
-    receivedAt: '22:46',
-    patientName: '林 恒一',
-    pharmacyName: '神田中央薬局',
-    status: 'assigning',
-    priority: 'high',
-    assignee: '佐藤 健一',
-    symptom: '呼吸苦の訴え',
-    vitalsChange: 'SpO2 91%へ低下',
-    consciousness: '清明',
-    urgency: '高',
-  },
-  {
-    id: 'RQ-2404',
-    receivedAt: '23:05',
-    patientName: '渡辺 美和',
-    pharmacyName: '西新宿いろは薬局',
-    status: 'assigned',
-    priority: 'normal',
-    assignee: '高橋 奈央',
-    symptom: '疼痛コントロール不良',
-    vitalsChange: '痛みスコア上昇',
-    consciousness: '清明',
-    urgency: '中',
-  },
-  {
-    id: 'RQ-2405',
-    receivedAt: '23:22',
-    patientName: '山本 直子',
-    pharmacyName: '世田谷つばさ薬局',
-    status: 'fax_received',
-    priority: 'normal',
-    assignee: '未割当',
-    symptom: '下痢・脱水傾向',
-    vitalsChange: '尿量減少',
-    consciousness: '清明',
-    urgency: '中',
-  },
-  {
-    id: 'RQ-2406',
-    receivedAt: '23:31',
-    patientName: '清水 恒一',
-    pharmacyName: '中野しらさぎ薬局',
-    status: 'in_progress',
-    priority: 'high',
-    assignee: '佐藤 健一',
-    symptom: 'せん妄症状の増悪',
-    vitalsChange: '脈拍増加、発汗',
-    consciousness: '混濁',
-    urgency: '高',
-  },
-  {
-    id: 'RQ-2407',
-    receivedAt: '23:40',
-    patientName: '橋本 和子',
-    pharmacyName: '池袋みどり薬局',
-    status: 'arrived',
-    priority: 'normal',
-    assignee: '高橋 奈央',
-    symptom: '嘔吐後のふらつき',
-    vitalsChange: '血圧92/54',
-    consciousness: '清明',
-    urgency: '中',
-  },
-  {
-    id: 'RQ-2408',
-    receivedAt: '23:52',
-    patientName: '井上 恒一',
-    pharmacyName: '江東あおぞら薬局',
-    status: 'dispatched',
-    priority: 'normal',
-    assignee: '山口 美咲',
-    symptom: '血糖コントロール悪化',
-    vitalsChange: '血糖値312mg/dL',
-    consciousness: '清明',
-    urgency: '中',
-  },
-  {
-    id: 'RQ-2409',
-    receivedAt: '00:03',
-    patientName: '高田 恒一',
-    pharmacyName: '渋谷ひまわり薬局',
-    status: 'completed',
-    priority: 'low',
-    assignee: '山口 美咲',
-    symptom: '軽度発熱',
-    vitalsChange: '体温37.5℃',
-    consciousness: '清明',
-    urgency: '低',
-  },
-  {
-    id: 'RQ-2410',
-    receivedAt: '00:11',
-    patientName: '森田 恒一',
-    pharmacyName: '吉祥寺つばめ薬局',
-    status: 'completed',
-    priority: 'normal',
-    assignee: '佐々木 翔',
-    symptom: '夜間痛の増強',
-    vitalsChange: '疼痛スケール 8/10',
-    consciousness: '清明',
-    urgency: '中',
-  },
-]
-
 export default function RequestsPage() {
   const { role } = useAuth()
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
-  const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null)
   const [formData, setFormData] = useState({
     pharmacy: '',
     patientName: '',
@@ -260,8 +81,6 @@ export default function RequestsPage() {
         return requestData
     }
   }, [activeTab])
-
-  const selectedStep = selectedRequest ? requestStepIndex[selectedRequest.status] : 0
 
   const handleSubmitNewRequest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -314,37 +133,37 @@ export default function RequestsPage() {
           const priority = priorityMeta[request.priority]
 
           return (
-            <Card
-              key={request.id}
-              onClick={() => setSelectedRequest(request)}
-              className={cn(
-                'cursor-pointer border border-[#2a3553] bg-[#1a2035] border-l-4 transition hover:border-indigo-500/60',
-                priority.mobileBorder
-              )}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{request.patientName}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
+            <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
+              <Card
+                className={cn(
+                  'cursor-pointer border border-[#2a3553] bg-[#1a2035] border-l-4 transition hover:border-indigo-500/60',
+                  priority.mobileBorder
+                )}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{request.patientName}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
+                    </div>
+                    <Badge variant="outline" className={cn('border text-xs', status.className)}>
+                      {status.label}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', status.className)}>
-                    {status.label}
-                  </Badge>
-                </div>
 
-                <div className="mt-3 flex items-center justify-between text-xs text-gray-300">
-                  <span className="flex items-center gap-1">
-                    <Clock3 className="h-3.5 w-3.5 text-gray-500" />
-                    {request.receivedAt}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className={cn('h-2 w-2 rounded-full', priority.dot)} />
-                    優先度 {priority.label}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="mt-3 flex items-center justify-between text-xs text-gray-300">
+                    <span className="flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                      {request.receivedAt}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className={cn('h-2 w-2 rounded-full', priority.dot)} />
+                      優先度 {priority.label}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           )
         })}
       </div>
@@ -369,7 +188,7 @@ export default function RequestsPage() {
               return (
                 <TableRow
                   key={request.id}
-                  onClick={() => setSelectedRequest(request)}
+                  onClick={() => {}}
                   className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
                 >
                   <TableCell>
@@ -379,7 +198,11 @@ export default function RequestsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-gray-200">{request.receivedAt}</TableCell>
-                  <TableCell className="text-gray-200">{request.patientName}</TableCell>
+                  <TableCell>
+                    <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
+                      {request.patientName}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-gray-300">{request.pharmacyName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('border text-xs', status.className)}>
@@ -496,90 +319,6 @@ export default function RequestsPage() {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(selectedRequest)} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-3xl">
-          {selectedRequest && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-white">依頼詳細: {selectedRequest.id}</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  {selectedRequest.pharmacyName} / {selectedRequest.patientName}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-5">
-                <div className="overflow-x-auto pb-1">
-                  <div className="flex min-w-[680px] items-center gap-2">
-                    {requestFlow.map((step, index) => {
-                      const reached = index <= selectedStep
-                      return (
-                        <div key={step} className="flex items-center gap-2">
-                          <div className="flex flex-col items-center gap-1">
-                            <div
-                              className={cn(
-                                'flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold',
-                                reached
-                                  ? 'border-indigo-500 bg-indigo-500 text-white'
-                                  : 'border-[#2a3553] bg-[#1a2035] text-gray-400'
-                              )}
-                            >
-                              {index + 1}
-                            </div>
-                            <span className={cn('text-[11px]', reached ? 'text-indigo-300' : 'text-gray-500')}>
-                              {step}
-                            </span>
-                          </div>
-                          {index < requestFlow.length - 1 && (
-                            <div
-                              className={cn(
-                                'h-px w-8',
-                                index < selectedStep ? 'bg-indigo-500' : 'bg-[#2a3553]'
-                              )}
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <Card className="border-[#2a3553] bg-[#1a2035]">
-                  <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs text-gray-400">受付時刻</p>
-                      <p className="mt-1 text-sm text-white">{selectedRequest.receivedAt}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">担当者</p>
-                      <p className="mt-1 text-sm text-white">{selectedRequest.assignee}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">症状</p>
-                      <p className="mt-1 text-sm text-white">{selectedRequest.symptom}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">バイタル変化</p>
-                      <p className="mt-1 text-sm text-white">{selectedRequest.vitalsChange}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">意識レベル</p>
-                      <p className="mt-1 text-sm text-white">{selectedRequest.consciousness}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">緊急度</p>
-                      <p className="mt-1 flex items-center gap-1 text-sm text-white">
-                        <CircleAlert className="h-4 w-4 text-amber-400" />
-                        {selectedRequest.urgency}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
         </DialogContent>
       </Dialog>
     </div>

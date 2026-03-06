@@ -26,86 +26,7 @@ import {
 import { cn } from '@/lib/utils'
 import { FileText, Layers } from 'lucide-react'
 
-interface BillingRecord {
-  id: string
-  invoiceNumber: string
-  pharmacyName: string
-  month: string
-  saasFee: number
-  nighttimeUsage: number
-  tax: number
-  total: number
-  status: BillingStatus
-}
-
-const billingData: BillingRecord[] = [
-  {
-    id: 'BL-01',
-    invoiceNumber: 'INV-2026-03-001',
-    pharmacyName: '城南みらい薬局',
-    month: '2026-02',
-    saasFee: 40000,
-    nighttimeUsage: 62000,
-    tax: 10200,
-    total: 112200,
-    status: 'paid',
-  },
-  {
-    id: 'BL-02',
-    invoiceNumber: 'INV-2026-03-002',
-    pharmacyName: '港北さくら薬局',
-    month: '2026-02',
-    saasFee: 38000,
-    nighttimeUsage: 58000,
-    tax: 9600,
-    total: 105600,
-    status: 'paid',
-  },
-  {
-    id: 'BL-03',
-    invoiceNumber: 'INV-2026-03-003',
-    pharmacyName: '中野しらさぎ薬局',
-    month: '2026-02',
-    saasFee: 35000,
-    nighttimeUsage: 44000,
-    tax: 7900,
-    total: 86900,
-    status: 'unpaid',
-  },
-  {
-    id: 'BL-04',
-    invoiceNumber: 'INV-2026-03-004',
-    pharmacyName: '池袋みどり薬局',
-    month: '2026-02',
-    saasFee: 42000,
-    nighttimeUsage: 51000,
-    tax: 9300,
-    total: 102300,
-    status: 'overdue',
-  },
-  {
-    id: 'BL-05',
-    invoiceNumber: 'INV-2026-03-005',
-    pharmacyName: '西新宿いろは薬局',
-    month: '2026-02',
-    saasFee: 39000,
-    nighttimeUsage: 60000,
-    tax: 9900,
-    total: 108900,
-    status: 'unpaid',
-  },
-  {
-    id: 'BL-06',
-    invoiceNumber: 'INV-2026-03-006',
-    pharmacyName: '世田谷つばさ薬局',
-    month: '2026-02',
-    saasFee: 36000,
-    nighttimeUsage: 47000,
-    tax: 8300,
-    total: 91300,
-    status: 'paid',
-  },
-]
+import { billingData, type BillingRecord } from '@/lib/mock-data'
 
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
@@ -325,7 +246,7 @@ export default function BillingPage() {
                   </div>
                   <div className="flex items-center justify-between text-gray-200">
                     <span>夜間連携利用料</span>
-                    <span>{yen.format(selectedRecord.nighttimeUsage)}</span>
+                    <span>{yen.format(selectedRecord.nightFee)}</span>
                   </div>
                   <div className="flex items-center justify-between text-gray-200">
                     <span>消費税</span>

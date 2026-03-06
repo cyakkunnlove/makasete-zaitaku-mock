@@ -1,0 +1,577 @@
+'use client'
+
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { useAuth } from '@/contexts/auth-context'
+import {
+  requestData,
+  patientData,
+  staffData,
+  statusMeta,
+  priorityMeta,
+  requestFlow,
+  requestStepIndex,
+  checklistTemplates,
+  getRiskClass,
+} from '@/lib/mock-data'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
+import type { ChecklistType, ChecklistItem } from '@/types/database'
+import {
+  ArrowLeft,
+  Clock3,
+  User,
+  Building2,
+  Phone,
+  AlertTriangle,
+  MapPin,
+  CheckCircle2,
+  FileText,
+} from 'lucide-react'
+
+export default function RequestDetailPage() {
+  const params = useParams()
+  useAuth()
+  const id = params.id as string
+
+  const request = requestData.find((r) => r.id === id)
+  const patient = request ? patientData.find((p) => p.id === request.patientId) : null
+  const assignee = request?.assigneeId
+    ? staffData.find((s) => s.id === request.assigneeId)
+    : null
+
+  const [checklistType, setChecklistType] = useState<ChecklistType>('initial')
+  const [checklists, setChecklists] = useState<Record<ChecklistType, ChecklistItem[]>>(() => ({
+    initial: checklistTemplates.initial.map((item) => ({ ...item })),
+    routine: checklistTemplates.routine.map((item) => ({ ...item })),
+    emergency: checklistTemplates.emergency.map((item) => ({ ...item })),
+  }))
+
+  if (!request) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="border-[#2a3553] bg-[#1a2035] p-8 text-center">
+          <CardContent className="space-y-4">
+            <p className="text-lg font-semibold text-white">依頼が見つかりません</p>
+            <p className="text-sm text-gray-400">ID: {id} に該当する依頼データが存在しません。</p>
+            <Link href="/dashboard/requests">
+              <Button variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                依頼一覧へ戻る
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const currentStep = requestStepIndex[request.status]
+  const status = statusMeta[request.status]
+  const priority = priorityMeta[request.priority]
+  const currentChecklist = checklists[checklistType]
+  const checkedCount = currentChecklist.filter((item) => item.checked).length
+  const totalCount = currentChecklist.length
+  const progressPercent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0
+
+  const toggleCheckItem = (index: number) => {
+    setChecklists((prev) => {
+      const updated = { ...prev }
+      updated[checklistType] = prev[checklistType].map((item, i) =>
+        i === index ? { ...item, checked: !item.checked } : item
+      )
+      return updated
+    })
+  }
+
+  const checklistTypeLabels: Record<ChecklistType, string> = {
+    initial: '初回訪問',
+    routine: '定期訪問',
+    emergency: '緊急対応',
+  }
+
+  // Mock timeline events for this request
+  const timelineEvents = [
+    { time: request.receivedAt, label: '受電・依頼受付', done: currentStep >= 0 },
+    { time: '', label: 'FAX受領', done: currentStep >= 1 },
+    { time: '', label: '薬剤師アサイン', done: currentStep >= 2 },
+    { time: '', label: '出動', done: currentStep >= 3 },
+    { time: '', label: '現地到着', done: currentStep >= 4 },
+    { time: '', label: '対応中', done: currentStep >= 5 },
+    { time: '', label: '対応完了', done: currentStep >= 6 },
+  ]
+
+  return (
+    <div className="space-y-4 text-gray-100">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/requests">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
+            <p className="text-xs text-gray-400">
+              {request.receivedDate} {request.receivedAt} 受付
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn('border text-xs', status.className)}>
+            {status.label}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              'border text-xs',
+              request.priority === 'high'
+                ? 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                : request.priority === 'normal'
+                  ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                  : 'border-sky-500/40 bg-sky-500/20 text-sky-300'
+            )}
+          >
+            <span className={cn('mr-1 inline-block h-2 w-2 rounded-full', priority.dot)} />
+            優先度 {priority.label}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Stepper */}
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardContent className="overflow-x-auto p-4">
+          <div className="flex min-w-[600px] items-center justify-between">
+            {requestFlow.map((step, index) => {
+              const reached = index <= currentStep
+              const isCurrent = index === currentStep
+              return (
+                <div key={step} className="flex flex-1 items-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-colors',
+                        isCurrent
+                          ? 'border-indigo-400 bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                          : reached
+                            ? 'border-indigo-500 bg-indigo-500 text-white'
+                            : 'border-[#2a3553] bg-[#0a0e1a] text-gray-500'
+                      )}
+                    >
+                      {reached ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        'text-[11px] whitespace-nowrap',
+                        isCurrent ? 'font-medium text-indigo-300' : reached ? 'text-indigo-400' : 'text-gray-500'
+                      )}
+                    >
+                      {step}
+                    </span>
+                  </div>
+                  {index < requestFlow.length - 1 && (
+                    <div
+                      className={cn(
+                        'mx-1 h-px flex-1',
+                        index < currentStep ? 'bg-indigo-500' : 'bg-[#2a3553]'
+                      )}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info Grid */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Patient Info */}
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm text-white">
+              <User className="h-4 w-4 text-indigo-400" />
+              患者情報
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {patient ? (
+              <>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{patient.name}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">生年月日: {patient.dob}</p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn('border text-xs', getRiskClass(patient.riskScore))}
+                  >
+                    リスク {patient.riskScore}
+                  </Badge>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500" />
+                    <span className="text-gray-300">{patient.address}</span>
+                  </div>
+
+                  <div className="rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 space-y-1.5">
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                      緊急連絡先
+                    </p>
+                    <p className="text-gray-200">
+                      {patient.emergencyContact.name}（{patient.emergencyContact.relation}）
+                    </p>
+                    <div className="flex items-center gap-1.5 text-gray-300">
+                      <Phone className="h-3 w-3 text-gray-500" />
+                      {patient.emergencyContact.phone}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 space-y-1.5">
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                      主治医
+                    </p>
+                    <p className="text-gray-200">
+                      {patient.doctor.name} / {patient.doctor.clinic}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-gray-300">
+                      <Phone className="h-3 w-3 text-gray-500" />
+                      {patient.doctor.phone}
+                    </div>
+                  </div>
+
+                  {patient.allergies && patient.allergies !== 'なし' && (
+                    <div className="flex items-start gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 p-2">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-400" />
+                      <div>
+                        <p className="text-[11px] font-medium text-rose-300">アレルギー</p>
+                        <p className="text-rose-200">{patient.allergies}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {patient.visitNotes && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2">
+                      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                      <div>
+                        <p className="text-[11px] font-medium text-amber-300">訪問時注意事項</p>
+                        <p className="text-amber-200">{patient.visitNotes}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400">患者情報が見つかりません</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Request Details */}
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm text-white">
+              <FileText className="h-4 w-4 text-indigo-400" />
+              依頼詳細
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-gray-400">受付時刻</p>
+                <p className="mt-0.5 flex items-center gap-1 text-gray-200">
+                  <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                  {request.receivedDate} {request.receivedAt}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400">薬局</p>
+                <p className="mt-0.5 flex items-center gap-1 text-gray-200">
+                  <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                  {request.pharmacyName}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs">
+              <div>
+                <p className="text-gray-400">症状</p>
+                <p className="mt-0.5 text-gray-200">{request.symptom}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">バイタル変化</p>
+                <p className="mt-0.5 text-gray-200">{request.vitalsChange}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-400">意識レベル</p>
+                  <p className="mt-0.5 text-gray-200">{request.consciousness}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">緊急度</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-gray-200">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                    {request.urgency}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {request.notes && (
+              <div className="text-xs">
+                <p className="text-gray-400">備考</p>
+                <p className="mt-0.5 text-gray-200">{request.notes}</p>
+              </div>
+            )}
+
+            <div className="text-xs">
+              <p className="text-gray-400">SLAステータス</p>
+              <div className="mt-1">
+                {request.slaMet === null ? (
+                  <Badge
+                    variant="outline"
+                    className="border-gray-500/40 bg-gray-500/20 text-gray-300 text-xs"
+                  >
+                    未計測
+                  </Badge>
+                ) : request.slaMet ? (
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300 text-xs"
+                  >
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    SLA達成
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="border-rose-500/40 bg-rose-500/20 text-rose-300 text-xs"
+                  >
+                    <AlertTriangle className="mr-1 h-3 w-3" />
+                    SLA未達
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Assignee Card */}
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <User className="h-4 w-4 text-indigo-400" />
+            担当薬剤師
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {assignee ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-500/20 text-sm font-semibold text-indigo-300">
+                  {assignee.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{assignee.name}</p>
+                  <p className="text-xs text-gray-400">{assignee.role === 'pharmacist' ? '夜勤薬剤師' : assignee.role}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs text-gray-300">
+                <span className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-gray-500" />
+                  {assignee.phone}
+                </span>
+                <span className="text-gray-400">{assignee.email}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#2a3553] bg-[#0a0e1a] text-gray-500">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-gray-300">未割当</p>
+                <p className="text-xs text-gray-500">薬剤師がまだアサインされていません</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tabs: Checklist / Timeline */}
+      <Tabs defaultValue="checklist" className="space-y-3">
+        <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#111827] p-1">
+          <TabsTrigger
+            value="checklist"
+            className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+          >
+            チェックリスト
+          </TabsTrigger>
+          <TabsTrigger
+            value="timeline"
+            className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+          >
+            タイムライン
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Checklist Tab */}
+        <TabsContent value="checklist">
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-sm text-white">対応チェックリスト</CardTitle>
+                <div className="flex gap-2">
+                  {(Object.keys(checklistTypeLabels) as ChecklistType[]).map((type) => (
+                    <Button
+                      key={type}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setChecklistType(type)}
+                      className={cn(
+                        'h-7 border text-xs',
+                        checklistType === type
+                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                          : 'border-[#2a3553] bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]'
+                      )}
+                    >
+                      {checklistTypeLabels[type]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Progress */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">
+                    完了: {checkedCount} / {totalCount}
+                  </span>
+                  <span className={cn(
+                    'font-medium',
+                    progressPercent === 100 ? 'text-emerald-400' : 'text-indigo-400'
+                  )}>
+                    {progressPercent}%
+                  </span>
+                </div>
+                <Progress
+                  value={progressPercent}
+                  className="h-2 bg-[#0a0e1a]"
+                />
+              </div>
+
+              {/* Checklist Items */}
+              <div className="space-y-2">
+                {currentChecklist.map((item, index) => (
+                  <label
+                    key={`${checklistType}-${index}`}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors',
+                      item.checked
+                        ? 'border-emerald-500/30 bg-emerald-500/10'
+                        : 'border-[#2a3553] bg-[#0a0e1a] hover:border-[#3a4563]'
+                    )}
+                  >
+                    <Checkbox
+                      checked={item.checked}
+                      onCheckedChange={() => toggleCheckItem(index)}
+                      className={cn(
+                        'border-[#2a3553]',
+                        item.checked && 'border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white'
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'text-sm',
+                        item.checked ? 'text-emerald-300 line-through' : 'text-gray-200'
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Timeline Tab */}
+        <TabsContent value="timeline">
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-white">対応タイムライン</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative space-y-0">
+                {timelineEvents.map((event, index) => (
+                  <div key={index} className="relative flex gap-4 pb-6 last:pb-0">
+                    {/* Vertical line */}
+                    {index < timelineEvents.length - 1 && (
+                      <div
+                        className={cn(
+                          'absolute left-[11px] top-6 h-full w-px',
+                          event.done ? 'bg-indigo-500/50' : 'bg-[#2a3553]'
+                        )}
+                      />
+                    )}
+                    {/* Dot */}
+                    <div
+                      className={cn(
+                        'relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border',
+                        event.done
+                          ? 'border-indigo-500 bg-indigo-500 text-white'
+                          : 'border-[#2a3553] bg-[#0a0e1a] text-gray-600'
+                      )}
+                    >
+                      {event.done ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <div className="h-2 w-2 rounded-full bg-gray-600" />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 pt-0.5">
+                      <p
+                        className={cn(
+                          'text-sm',
+                          event.done ? 'font-medium text-white' : 'text-gray-500'
+                        )}
+                      >
+                        {event.label}
+                      </p>
+                      {event.time && event.done && (
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
+                          <Clock3 className="h-3 w-3" />
+                          {request.receivedDate} {event.time}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

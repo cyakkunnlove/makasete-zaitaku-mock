@@ -35,94 +35,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { Plus } from 'lucide-react'
 
+import { staffData, type StaffItem } from '@/lib/mock-data'
+
 type StaffStatus = 'active' | 'inactive'
 
 type RoleFilter = 'all' | 'pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type AddStaffRole = 'pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
-
-interface StaffItem {
-  id: string
-  name: string
-  role: UserRole
-  phone: string
-  email: string
-  status: StaffStatus
-}
-
-const initialStaff: StaffItem[] = [
-  {
-    id: 'ST-01',
-    name: '田中 直樹',
-    role: 'admin',
-    phone: '090-4400-1022',
-    email: 'tanaka.n@makasete.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-02',
-    name: '佐藤 健一',
-    role: 'pharmacist',
-    phone: '090-1122-5566',
-    email: 'sato.k@makasete.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-03',
-    name: '高橋 奈央',
-    role: 'pharmacist',
-    phone: '080-7766-1188',
-    email: 'takahashi.n@makasete.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-04',
-    name: '山口 美咲',
-    role: 'pharmacist',
-    phone: '090-8821-5544',
-    email: 'yamaguchi.m@makasete.jp',
-    status: 'inactive',
-  },
-  {
-    id: 'ST-05',
-    name: '山田 美咲',
-    role: 'pharmacy_admin',
-    phone: '090-3301-7145',
-    email: 'yamada.m@jonan-ph.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-06',
-    name: '小林 恒一',
-    role: 'pharmacy_admin',
-    phone: '080-6142-9021',
-    email: 'kobayashi.k@minami-ph.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-07',
-    name: '伊藤 真理',
-    role: 'pharmacy_staff',
-    phone: '080-2277-6631',
-    email: 'ito.m@jonan-ph.jp',
-    status: 'active',
-  },
-  {
-    id: 'ST-08',
-    name: '木村 恒一',
-    role: 'pharmacy_staff',
-    phone: '070-4377-1991',
-    email: 'kimura.k@kita-ph.jp',
-    status: 'inactive',
-  },
-  {
-    id: 'ST-09',
-    name: '中村 玲子',
-    role: 'pharmacy_staff',
-    phone: '070-6622-8900',
-    email: 'nakamura.r@nishi-ph.jp',
-    status: 'active',
-  },
-]
 
 const roleLabel: Record<UserRole, string> = {
   admin: '管理者',
@@ -152,7 +70,7 @@ const filterItems: Array<{ key: RoleFilter; label: string }> = [
 
 export default function StaffPage() {
   const { role } = useAuth()
-  const [staffMembers, setStaffMembers] = useState<StaffItem[]>(initialStaff)
+  const [staffMembers, setStaffMembers] = useState<StaffItem[]>(staffData)
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({

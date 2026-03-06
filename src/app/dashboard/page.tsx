@@ -15,112 +15,15 @@ import {
   Stethoscope,
   Users,
 } from 'lucide-react'
+import { kpiData, timelineEvents, nightStaff } from '@/lib/mock-data'
 
-const kpis = [
-  {
-    label: '今夜の依頼数',
-    value: '12',
-    trend: '+18%',
-    trendUp: true,
-    icon: ClipboardList,
-  },
-  {
-    label: '対応中',
-    value: '3',
-    trend: '+1件',
-    trendUp: true,
-    icon: Activity,
-  },
-  {
-    label: 'SLA達成率',
-    value: '94.2%',
-    trend: '-0.8pt',
-    trendUp: false,
-    icon: CalendarCheck2,
-  },
-  {
-    label: '加盟薬局数',
-    value: '28',
-    trend: '+2店舗',
-    trendUp: true,
-    icon: Building2,
-  },
-]
+const kpiIcons = [ClipboardList, Activity, CalendarCheck2, Building2]
 
 const quickActions = [
-  {
-    label: '新規依頼登録',
-    description: '受電内容を即時起票',
-    icon: ClipboardList,
-    gradient: 'from-indigo-600/40 to-sky-500/30',
-  },
-  {
-    label: '当番表編集',
-    description: '今週の夜勤シフト調整',
-    icon: CalendarCheck2,
-    gradient: 'from-cyan-600/35 to-indigo-500/30',
-  },
-  {
-    label: 'レポート出力',
-    description: '日次実績をCSV出力',
-    icon: FileOutput,
-    gradient: 'from-emerald-600/30 to-cyan-500/25',
-  },
-  {
-    label: 'システム設定',
-    description: '通知・SLAの設定管理',
-    icon: Settings,
-    gradient: 'from-slate-600/35 to-indigo-500/30',
-  },
-]
-
-const timelineEvents = [
-  {
-    id: 'evt-1',
-    title: '田中優子様の対応が完了しました',
-    time: '00:18',
-    status: '完了',
-    color: 'bg-emerald-400',
-  },
-  {
-    id: 'evt-2',
-    title: '城南みらい薬局より発熱対応依頼を受付',
-    time: '00:09',
-    status: '受付',
-    color: 'bg-sky-400',
-  },
-  {
-    id: 'evt-3',
-    title: '高橋奈央薬剤師が現地で対応中',
-    time: '23:54',
-    status: '対応中',
-    color: 'bg-amber-400',
-  },
-  {
-    id: 'evt-4',
-    title: '神田中央薬局の依頼を佐藤健一薬剤師へアサイン',
-    time: '23:41',
-    status: '対応中',
-    color: 'bg-amber-400',
-  },
-]
-
-const nightStaff = [
-  {
-    name: '佐藤 健一',
-    status: '対応中',
-    assignment: '中野しらさぎ薬局 / 鈴木 博様',
-  },
-  {
-    name: '高橋 奈央',
-    status: '移動中',
-    assignment: '城南みらい薬局 / 小川 正子様',
-  },
-  {
-    name: '山口 美咲',
-    status: '待機中',
-    assignment: '次回アサイン待機',
-  },
+  { label: '新規依頼登録', description: '受電内容を即時起票', icon: ClipboardList, gradient: 'from-indigo-600/40 to-sky-500/30' },
+  { label: '当番表編集', description: '今週の夜勤シフト調整', icon: CalendarCheck2, gradient: 'from-cyan-600/35 to-indigo-500/30' },
+  { label: 'レポート出力', description: '日次実績をCSV出力', icon: FileOutput, gradient: 'from-emerald-600/30 to-cyan-500/25' },
+  { label: 'システム設定', description: '通知・SLAの設定管理', icon: Settings, gradient: 'from-slate-600/35 to-indigo-500/30' },
 ]
 
 const staffStatusClass: Record<string, string> = {
@@ -135,8 +38,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 text-gray-100">
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon
+        {kpiData.map((kpi, index) => {
+          const Icon = kpiIcons[index]
           const TrendIcon = kpi.trendUp ? ArrowUpRight : ArrowDownRight
           return (
             <Card key={kpi.label} className="border-[#2a3553] bg-[#1a2035]">

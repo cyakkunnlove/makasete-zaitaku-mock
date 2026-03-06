@@ -83,7 +83,7 @@ function NightBadge() {
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, role, loading, signOut } = useAuth()
+  const { user, role, loading, signOut, switchRole } = useAuth()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -223,11 +223,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {(['admin', 'pharmacist', 'pharmacy_admin'] as const).map((r) => (
             <button
               key={r}
-              onClick={() => {
-                const ctx = document.querySelector('[data-role-switch]') as HTMLElement | null
-                ctx?.dispatchEvent(new CustomEvent('switch-role', { detail: r }))
-                window.location.reload()
-              }}
+              onClick={() => switchRole(r)}
               className={`px-2 py-0.5 rounded text-xs ${
                 role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
               }`}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,66 +25,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Building2, Plus, Phone, Users } from 'lucide-react'
-
-type PharmacyStatus = 'active' | 'pending' | 'suspended'
-
-interface PharmacyItem {
-  id: string
-  name: string
-  area: string
-  phone: string
-  patientCount: number
-  status: PharmacyStatus
-  forwarding: boolean
-}
-
-const initialPharmacies: PharmacyItem[] = [
-  {
-    id: 'PH-01',
-    name: '城南みらい薬局',
-    area: '世田谷区',
-    phone: '03-3412-2290',
-    patientCount: 84,
-    status: 'active',
-    forwarding: true,
-  },
-  {
-    id: 'PH-02',
-    name: '港北さくら薬局',
-    area: '横浜市港北区',
-    phone: '045-533-1870',
-    patientCount: 62,
-    status: 'active',
-    forwarding: true,
-  },
-  {
-    id: 'PH-03',
-    name: '中野しらさぎ薬局',
-    area: '中野区',
-    phone: '03-5327-2288',
-    patientCount: 47,
-    status: 'pending',
-    forwarding: false,
-  },
-  {
-    id: 'PH-04',
-    name: '池袋みどり薬局',
-    area: '豊島区',
-    phone: '03-5985-6620',
-    patientCount: 53,
-    status: 'suspended',
-    forwarding: false,
-  },
-  {
-    id: 'PH-05',
-    name: '西新宿いろは薬局',
-    area: '新宿区',
-    phone: '03-6279-5180',
-    patientCount: 71,
-    status: 'active',
-    forwarding: true,
-  },
-]
+import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
 const statusClass: Record<PharmacyStatus, string> = {
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
@@ -99,7 +41,7 @@ const statusLabel: Record<PharmacyStatus, string> = {
 
 export default function PharmaciesPage() {
   const { role } = useAuth()
-  const [pharmacies, setPharmacies] = useState<PharmacyItem[]>(initialPharmacies)
+  const [pharmacies, setPharmacies] = useState<PharmacyItem[]>(pharmacyData)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -132,10 +74,16 @@ export default function PharmaciesPage() {
       id: `PH-${Date.now()}`,
       name: formData.name,
       area: formData.area,
+      address: '',
       phone: formData.phone,
+      fax: '',
+      forwardingPhone: '',
       patientCount: Number(formData.patientCount),
       status: formData.status,
       forwarding: false,
+      contractDate: new Date().toISOString().slice(0, 10),
+      saasFee: 30000,
+      nightFee: 100000,
     }
 
     setPharmacies((prev) => [newPharmacy, ...prev])
@@ -204,7 +152,9 @@ export default function PharmaciesPage() {
             <CardContent className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-base font-semibold text-white">{pharmacy.name}</p>
+                  <Link href={`/dashboard/pharmacies/${pharmacy.id}`} className="text-base font-semibold text-white hover:text-indigo-300">
+                    {pharmacy.name}
+                  </Link>
                   <p className="text-xs text-gray-400">{pharmacy.area}</p>
                 </div>
                 <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>
