@@ -1,360 +1,202 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
+  Search,
+  Clock3,
+  MapPin,
+  AlertTriangle,
+  FileText,
+  Phone,
+  ChevronRight,
   Activity,
-  ArrowDownRight,
-  ArrowUpRight,
-  Building2,
-  CalendarCheck2,
-  ClipboardList,
-  FileOutput,
-  Plus,
-  Settings,
-  Stethoscope,
-  Timer,
+  CheckCircle2,
   Users,
+  Moon,
 } from 'lucide-react'
-import { kpiData, timelineEvents, nightStaff } from '@/lib/mock-data'
+import { patientData, getRiskClass } from '@/lib/mock-data'
 
-const kpiIcons = [ClipboardList, Activity, CalendarCheck2, Building2]
-
-const quickActions = [
-  { label: '新規依頼登録', description: '受電内容を即時起票', icon: ClipboardList, gradient: 'from-indigo-600/40 to-sky-500/30' },
-  { label: '当番表編集', description: '今週の夜勤シフト調整', icon: CalendarCheck2, gradient: 'from-cyan-600/35 to-indigo-500/30' },
-  { label: 'レポート出力', description: '日次実績をCSV出力', icon: FileOutput, gradient: 'from-emerald-600/30 to-cyan-500/25' },
-  { label: 'システム設定', description: '通知・SLAの設定管理', icon: Settings, gradient: 'from-slate-600/35 to-indigo-500/30' },
+// Mock: today's scheduled visits (subset of patients with visit times)
+const todayVisits = [
+  { patientId: 'PT-001', scheduledTime: '22:30', status: 'completed' as const, pharmacist: '佐藤 健一' },
+  { patientId: 'PT-004', scheduledTime: '23:00', status: 'in_progress' as const, pharmacist: '佐藤 健一' },
+  { patientId: 'PT-002', scheduledTime: '23:30', status: 'upcoming' as const, pharmacist: '高橋 直人' },
+  { patientId: 'PT-005', scheduledTime: '00:00', status: 'upcoming' as const, pharmacist: '高橋 直人' },
+  { patientId: 'PT-009', scheduledTime: '01:00', status: 'upcoming' as const, pharmacist: '佐藤 健一' },
+  { patientId: 'PT-006', scheduledTime: '02:00', status: 'upcoming' as const, pharmacist: '高橋 直人' },
 ]
 
-const staffStatusClass: Record<string, string> = {
-  待機中: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
-  対応中: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  移動中: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-}
-
-// SLA gauge constants
-const slaRate = 94.2
-const slaTarget = 15
-const avgResponseMin = 11.8
-
-function getSlaColor(rate: number) {
-  if (rate >= 95) return { bar: 'from-emerald-500 to-emerald-400', text: 'text-emerald-400', label: '良好' }
-  if (rate >= 90) return { bar: 'from-amber-500 to-amber-400', text: 'text-amber-400', label: '注意' }
-  return { bar: 'from-rose-500 to-rose-400', text: 'text-rose-400', label: '要改善' }
+const statusConfig = {
+  completed: { label: '完了', className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', icon: CheckCircle2 },
+  in_progress: { label: '対応中', className: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Activity },
+  upcoming: { label: '予定', className: 'bg-sky-500/20 text-sky-300 border-sky-500/30', icon: Clock3 },
 }
 
 export default function DashboardPage() {
-  const { role } = useAuth()
-  const [fabOpen, setFabOpen] = useState(false)
-  const slaColor = getSlaColor(slaRate)
+  useAuth()
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const enrichedVisits = useMemo(() => {
+    return todayVisits.map((visit) => {
+      const patient = patientData.find((p) => p.id === visit.patientId)
+      return { ...visit, patient }
+    })
+  }, [])
+
+  const filteredVisits = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return enrichedVisits
+    return enrichedVisits.filter(
+      (v) =>
+        v.patient?.name.toLowerCase().includes(query) ||
+        v.patient?.pharmacyName.toLowerCase().includes(query) ||
+        v.pharmacist.toLowerCase().includes(query)
+    )
+  }, [searchQuery, enrichedVisits])
+
+  const completedCount = todayVisits.filter((v) => v.status === 'completed').length
+  const inProgressCount = todayVisits.filter((v) => v.status === 'in_progress').length
+  const upcomingCount = todayVisits.filter((v) => v.status === 'upcoming').length
 
   return (
-    <div className="space-y-6 text-gray-100">
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        {kpiData.map((kpi, index) => {
-          const Icon = kpiIcons[index]
-          const TrendIcon = kpi.trendUp ? ArrowUpRight : ArrowDownRight
-          return (
-            <Card key={kpi.label} className="border-[#2a3553] bg-[#1a2035]">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <Icon className="h-5 w-5 text-indigo-400" />
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 text-xs font-medium',
-                      kpi.trendUp ? 'text-emerald-400' : 'text-rose-400'
-                    )}
-                  >
-                    <TrendIcon className="h-3.5 w-3.5" />
-                    {kpi.trend}
-                  </span>
-                </div>
-                <CardDescription className="text-xs text-gray-400">{kpi.label}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold tracking-tight text-white">{kpi.value}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </section>
-
-      {/* Active Requests - Uber Eats Style */}
-      <section className="space-y-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-          <Activity className="h-4 w-4 text-amber-400" />
-          現在対応中
-        </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Active request 1 */}
-          <Card className="border-l-4 border-l-amber-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">田中 優子</p>
-                  <p className="mt-0.5 text-xs text-gray-400">城南みらい薬局</p>
-                </div>
-                <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-1 text-xs font-medium text-amber-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                  対応中
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-gray-400">担当: 佐藤 健一</span>
-                <span className="text-indigo-300">経過 25分</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Active request 2 */}
-          <Card className="border-l-4 border-l-indigo-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">小川 正子</p>
-                  <p className="mt-0.5 text-xs text-gray-400">港北さくら薬局</p>
-                </div>
-                <span className="flex items-center gap-1 rounded-full bg-indigo-500/20 px-2 py-1 text-xs font-medium text-indigo-300">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
-                  移動中
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-gray-400">担当: 高橋 直人</span>
-                <span className="text-indigo-300">経過 8分</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Daily Summary Card */}
-          <Card className="border-[#2a3553] bg-gradient-to-br from-[#1a2035] to-[#151b2e]">
-            <CardContent className="p-4">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">本日の訪問</p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-[#0a0e1a]/60 p-2 text-center">
-                  <p className="text-lg font-bold text-sky-300">12</p>
-                  <p className="text-[10px] text-gray-500">日中</p>
-                </div>
-                <div className="rounded-lg bg-[#0a0e1a]/60 p-2 text-center">
-                  <p className="text-lg font-bold text-amber-300">5</p>
-                  <p className="text-[10px] text-gray-500">夜間</p>
-                </div>
-              </div>
-              <p className="mt-2 text-center text-[10px] text-gray-500">合計 17件</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* SLA Gauge */}
-      <section>
+    <div className="space-y-4 text-gray-100">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
         <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Timer className="h-5 w-5 text-indigo-400" />
-              <CardTitle className="text-base text-white">SLA達成状況</CardTitle>
-              <span
-                className={cn(
-                  'ml-auto rounded-md border px-2 py-0.5 text-xs font-semibold',
-                  slaRate >= 95
-                    ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-                    : slaRate >= 90
-                      ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-                      : 'border-rose-500/40 bg-rose-500/20 text-rose-300'
-                )}
-              >
-                {slaColor.label}
-              </span>
-            </div>
-            <CardDescription className="text-gray-400">
-              折返し{slaTarget}分以内の達成率（今夜）
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Gauge bar */}
-            <div className="space-y-2">
-              <div className="flex items-end justify-between">
-                <span className={cn('text-3xl font-bold tracking-tight', slaColor.text)}>
-                  {slaRate}%
-                </span>
-                <span className="text-sm text-gray-400">目標: 95%</span>
-              </div>
-              <div className="relative h-4 w-full overflow-hidden rounded-full bg-[#111827]">
-                {/* Filled bar */}
-                <div
-                  className={cn(
-                    'absolute inset-y-0 left-0 rounded-full bg-gradient-to-r transition-all duration-700',
-                    slaColor.bar
-                  )}
-                  style={{ width: `${slaRate}%` }}
-                />
-                {/* 95% target marker */}
-                <div
-                  className="absolute inset-y-0 w-0.5 bg-white/50"
-                  style={{ left: '95%' }}
-                  title="目標ライン 95%"
-                />
-              </div>
-              {/* Scale labels */}
-              <div className="flex justify-between text-[10px] text-gray-500">
-                <span>0%</span>
-                <span>50%</span>
-                <span className="text-white/40">95%</span>
-                <span>100%</span>
-              </div>
-            </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-[#2a3553] bg-[#10172b] p-3">
-                <p className="text-xs text-gray-400">今夜の平均応答時間</p>
-                <p className="mt-1 text-lg font-bold text-white">
-                  {avgResponseMin}
-                  <span className="ml-1 text-sm font-normal text-gray-400">分</span>
-                </p>
-              </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#10172b] p-3">
-                <p className="text-xs text-gray-400">SLA目標</p>
-                <p className="mt-1 text-lg font-bold text-white">
-                  {slaTarget}
-                  <span className="ml-1 text-sm font-normal text-gray-400">分以内</span>
-                </p>
-              </div>
-            </div>
+          <CardContent className="p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{completedCount}</p>
+            <p className="text-[10px] text-gray-500">完了</p>
           </CardContent>
         </Card>
-      </section>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-3 text-center">
+            <p className="text-2xl font-bold text-amber-400">{inProgressCount}</p>
+            <p className="text-[10px] text-gray-500">対応中</p>
+          </CardContent>
+        </Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-3 text-center">
+            <p className="text-2xl font-bold text-sky-400">{upcomingCount}</p>
+            <p className="text-[10px] text-gray-500">予定</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {role === 'admin' && (
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-200">クイックアクション（管理者）</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {quickActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <button
-                  key={action.label}
+      {/* Search */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="患者名・薬局名・担当者で検索"
+          className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm"
+        />
+      </div>
+
+      {/* Today's Visit List */}
+      <div className="space-y-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <Moon className="h-4 w-4 text-indigo-400" />
+          今夜の訪問患者
+          <span className="text-xs font-normal text-gray-500">{todayVisits.length}件</span>
+        </h2>
+
+        {filteredVisits.length === 0 && (
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardContent className="p-6 text-center text-sm text-gray-400">
+              該当する訪問予定が見つかりません。
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="space-y-2">
+          {filteredVisits.map((visit) => {
+            const patient = visit.patient
+            if (!patient) return null
+            const config = statusConfig[visit.status]
+            const StatusIcon = config.icon
+            const hasAlert = patient.riskScore >= 7 || (patient.allergies && patient.allergies !== 'なし')
+
+            return (
+              <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
+                <Card
                   className={cn(
-                    'rounded-xl border border-[#2a3553] bg-gradient-to-r p-4 text-left transition hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10',
-                    action.gradient
+                    'cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60',
+                    visit.status === 'in_progress' && 'border-l-4 border-l-amber-500'
                   )}
                 >
-                  <div className="mb-2 flex items-center gap-2 text-indigo-200">
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-semibold">{action.label}</span>
-                  </div>
-                  <p className="text-xs text-gray-300">{action.description}</p>
-                </button>
-              )
-            })}
-          </div>
-        </section>
-      )}
+                  <CardContent className="p-4">
+                    {/* Top Row: Name + Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-base font-semibold text-white truncate">
+                            {patient.name}
+                          </p>
+                          {hasAlert && (
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-gray-400">{patient.pharmacyName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={cn('border text-xs', config.className)}
+                        >
+                          <StatusIcon className="mr-1 h-3 w-3" />
+                          {config.label}
+                        </Badge>
+                      </div>
+                    </div>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card className="border-[#2a3553] bg-[#1a2035] xl:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base text-white">リアルタイムタイムライン</CardTitle>
-            <CardDescription className="text-gray-400">最新イベントを時系列で表示</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {timelineEvents.map((event) => (
-              <div key={event.id} className="flex items-start gap-3">
-                <span className={cn('mt-1.5 h-2.5 w-2.5 rounded-full', event.color)} />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-100">{event.title}</p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
-                    <span>{event.time}</span>
-                    <span>•</span>
-                    <span>{event.status}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                    {/* Info Row */}
+                    <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Clock3 className="h-3 w-3" />
+                        {visit.scheduledTime}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {visit.pharmacist}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn('border text-[10px] px-1.5 py-0', getRiskClass(patient.riskScore))}
+                      >
+                        リスク {patient.riskScore}
+                      </Badge>
+                    </div>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader>
-            <CardTitle className="text-base text-white">夜勤スタッフ</CardTitle>
-            <CardDescription className="text-gray-400">当番薬剤師の稼働状況</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {nightStaff.map((staff) => (
-              <div
-                key={staff.name}
-                className="rounded-lg border border-[#2a3553] bg-[#10172b] p-3"
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4 text-indigo-400" />
-                    <p className="text-sm font-medium text-white">{staff.name}</p>
-                  </div>
-                  <span
-                    className={cn(
-                      'rounded-md border px-2 py-0.5 text-xs font-semibold',
-                      staffStatusClass[staff.status]
+                    {/* Visit Notes Preview */}
+                    {patient.visitNotes && (
+                      <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                        <p className="text-xs text-amber-200/80 line-clamp-2">
+                          {patient.visitNotes.split('\n')[0]}
+                        </p>
+                      </div>
                     )}
-                  >
-                    {staff.status}
-                  </span>
-                </div>
-                <p className="flex items-center gap-1 text-xs text-gray-300">
-                  <Users className="h-3.5 w-3.5 text-gray-500" />
-                  {staff.assignment}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </section>
 
-      {/* FAB - Mobile only */}
-      <button
-        onClick={() => setFabOpen(true)}
-        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-600 active:scale-95 lg:hidden"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-
-      <Dialog open={fabOpen} onOpenChange={setFabOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-white">新規依頼登録</DialogTitle>
-            <DialogDescription className="text-gray-400">夜間受電内容を入力して依頼を起票します。</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">薬局名</p>
-              <Input placeholder="薬局を選択" className="border-[#2a3553] bg-[#1a2035]" />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">患者名</p>
-              <Input placeholder="患者名を入力" className="border-[#2a3553] bg-[#1a2035]" />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">症状</p>
-              <Input placeholder="主訴を入力" className="border-[#2a3553] bg-[#1a2035]" />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setFabOpen(false)} className="text-gray-300">キャンセル</Button>
-            <Button onClick={() => setFabOpen(false)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">依頼を作成</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+                    {/* Allergies */}
+                    {patient.allergies && patient.allergies !== 'なし' && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs text-rose-300">
+                        <AlertTriangle className="h-3 w-3" />
+                        アレルギー: {patient.allergies}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
