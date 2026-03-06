@@ -10,7 +10,6 @@ import {
   staffData,
   statusMeta,
   priorityMeta,
-  requestFlow,
   requestStepIndex,
   checklistTemplates,
   getRiskClass,
@@ -162,7 +161,6 @@ export default function RequestDetailPage() {
             {timelineEvents.map((event, index) => {
               const isCompleted = event.done && index < currentStep
               const isCurrent = index === currentStep && event.done
-              const isPending = !event.done
               return (
                 <div key={index} className="relative flex gap-3 pb-4 last:pb-0">
                   {/* Vertical line */}
