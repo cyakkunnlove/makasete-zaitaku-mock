@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  /* マカセテ在宅: Dark-first theme with Indigo accent */
+  :root {
+    --background: 230 50% 4%;          /* #0a0e1a */
+    --foreground: 210 20% 90%;
+    --card: 225 30% 16%;               /* #1a2035 */
+    --card-foreground: 210 20% 90%;
+    --popover: 228 40% 8%;             /* #11182c */
+    --popover-foreground: 210 20% 90%;
+    --primary: 239 84% 67%;            /* indigo-500 #6366f1 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 25% 18%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 225 25% 18%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 239 84% 67%;             /* indigo-500 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 25% 24%;             /* #2a3553 */
+    --input: 222 25% 24%;
+    --ring: 239 84% 67%;               /* indigo-500 */
+    --chart-1: 239 84% 67%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(230 50% 4%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(222 25% 24%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(222 25% 32%);
+}
