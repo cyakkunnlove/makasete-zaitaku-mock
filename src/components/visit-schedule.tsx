@@ -34,6 +34,13 @@ function formatMonth(year: number, month: number) {
   return `${year}年${month + 1}月`
 }
 
+function formatLocalDateKey(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4, initialVisitDates }: VisitScheduleProps) {
   const today = new Date()
   const [viewYear, setViewYear] = useState(today.getFullYear())
@@ -57,13 +64,13 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
         weekCount++
         if (pattern === 'weekly') {
           if (weekCount <= 4) {
-            dates.add(date.toISOString().split('T')[0])
+            dates.add(formatLocalDateKey(date))
           }
         } else if (pattern === 'biweekly') {
           // startWeek: 1=第1,3週, 2=第2,4週
           const isTargetWeek = startWeek === 1 ? weekCount % 2 === 1 : weekCount % 2 === 0
           if (isTargetWeek && dates.size < 4) {
-            dates.add(date.toISOString().split('T')[0])
+            dates.add(formatLocalDateKey(date))
           }
         }
       }
@@ -271,12 +278,12 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
             {/* Day cells */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
-              const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
               const date = new Date(viewYear, viewMonth, day)
+              const dateStr = formatLocalDateKey(date)
               const isScheduled = visitDates.has(dateStr) && !skippedDates.has(dateStr)
               const isSkipped = visitDates.has(dateStr) && skippedDates.has(dateStr)
               const isCustomSelected = pattern === 'custom' && customDates.has(dateStr)
-              const isToday = dateStr === today.toISOString().split('T')[0]
+              const isToday = dateStr === formatLocalDateKey(today)
               const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
               return (
@@ -324,7 +331,7 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
         <p className="text-[10px] text-gray-500">
           {pattern === 'custom'
             ? '日付をタップして訪問日を選択/解除できます'
-            : '自動生成された日程をタップしてスキップ/復帰できます（月4回上限）'}
+            : '自動生成された日程をタップしてスキップ/復帰できます。第5週への振替はカスタム日で追加対応します。'}
         </p>
       </CardContent>
     </Card>

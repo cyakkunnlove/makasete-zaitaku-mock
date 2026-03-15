@@ -47,14 +47,15 @@ const yen = new Intl.NumberFormat('ja-JP', {
 })
 
 const patientCollectionRecords = [
-  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10' },
-  { id: 'COL-02', patientName: '清水 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12' },
-  { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05' },
+  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10', note: '口座振替完了' },
+  { id: 'COL-02', patientName: '清水 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12', note: '電話フォロー予定' },
+  { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち' },
 ]
 
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
+  const [collectionRecords, setCollectionRecords] = useState(patientCollectionRecords)
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
@@ -63,14 +64,14 @@ export default function BillingPage() {
 
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff'
-      ? patientCollectionRecords.map((r) => ({ total: r.amount, status: r.status }))
+      ? collectionRecords.map((r) => ({ total: r.amount, status: r.status }))
       : records.map((r) => ({ total: r.total, status: r.status }))
     const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
     const collected = source.filter((record) => record.status === 'paid').reduce((sum, record) => sum + record.total, 0)
     const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
 
     return { totalBilled, collected, outstanding }
-  }, [records, role])
+  }, [records, collectionRecords, role])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -82,6 +83,12 @@ export default function BillingPage() {
       prev.map((r) => (r.id === recordId ? { ...r, status: 'paid' as BillingStatus } : r))
     )
     setToastMessage(`${pharmacyName} の入金を確認しました（モック）`)
+    setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  const updateCollectionStatus = (recordId: string, status: BillingStatus) => {
+    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status } : r)))
+    setToastMessage(`回収状況を更新しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
   }
 
@@ -107,16 +114,23 @@ export default function BillingPage() {
                   <TableHead className="text-right text-gray-400">請求額</TableHead>
                   <TableHead className="text-gray-400">期限</TableHead>
                   <TableHead className="text-gray-400">状態</TableHead>
+                  <TableHead className="text-right text-gray-400">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patientCollectionRecords.map((record) => (
+                {collectionRecords.map((record) => (
                   <TableRow key={record.id} className="border-[#2a3553] hover:bg-[#11182c]">
                     <TableCell className="font-medium text-white">{record.patientName}</TableCell>
                     <TableCell className="text-gray-300">{record.month}</TableCell>
                     <TableCell className="text-right text-gray-300">{yen.format(record.amount)}</TableCell>
                     <TableCell className="text-gray-300">{record.dueDate}</TableCell>
                     <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {record.status !== 'paid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200">入金確認</Button>}
+                        {record.status === 'unpaid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'overdue')} className="text-amber-300 hover:bg-amber-500/10 hover:text-amber-200">期限超過へ</Button>}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
