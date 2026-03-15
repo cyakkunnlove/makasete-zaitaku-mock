@@ -52,6 +52,20 @@ const initialPatientCollectionRecords = [
   { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
+const visitChargeHistory = {
+  'PT-001': [
+    { visitId: 'V-001', prescriptionDate: '2026-03-01', visitDate: '2026-03-02', amount: 6400, status: 'paid' as BillingStatus },
+    { visitId: 'V-002', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 6400, status: 'paid' as BillingStatus },
+  ],
+  'PT-004': [
+    { visitId: 'V-003', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 4700, status: 'paid' as BillingStatus },
+    { visitId: 'V-004', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 4700, status: 'unpaid' as BillingStatus },
+  ],
+  'PT-002': [
+    { visitId: 'V-005', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 15600, status: 'overdue' as BillingStatus },
+  ],
+}
+
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
@@ -61,6 +75,7 @@ export default function BillingPage() {
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [toastMessage, setToastMessage] = useState('')
+  const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null)
   const ownPharmacyId = 'PH-01'
 
   const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
@@ -101,6 +116,7 @@ export default function BillingPage() {
       const billedVisits = tasks.filter((task) => task.billable).length
       const collectedVisits = tasks.filter((task) => task.collectionStatus === '入金済').length
       const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
+      const visits = visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []
       return {
         patientId: patient.id,
         patientName: patient.name,
@@ -109,6 +125,7 @@ export default function BillingPage() {
         collectedVisits,
         lastVisitAt: lastVisit?.completedAt ?? '—',
         tasks,
+        visits,
       }
     })
   }, [ownPatients])
@@ -174,8 +191,24 @@ export default function BillingPage() {
                     <p className="text-sm font-medium text-white">{item.patientName}</p>
                     <p className="text-[11px] text-gray-500">最終訪問: {item.lastVisitAt}</p>
                   </div>
-                  <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                    <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '閉じる' : '履歴を見る'}</Button>
+                  </div>
                 </div>
+                {expandedPatientId === item.patientId && (
+                  <div className="mt-3 space-y-2">
+                    {item.visits.map((visit) => (
+                      <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
+                        <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
+                        <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
+                        <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
+                        <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
+                        <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
