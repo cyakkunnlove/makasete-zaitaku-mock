@@ -91,7 +91,19 @@ const settingsItems: MenuItem[] = [
 export default function MorePage() {
   const { user, role, signOut } = useAuth()
 
-  const visibleItems = menuItems.filter((item) => canAccess(role, item.permission))
+  const visibleItems = menuItems
+    .filter((item) => canAccess(role, item.permission))
+    .map((item) => {
+      if (item.href === '/dashboard/billing') {
+        if (role === 'pharmacy_admin' || role === 'pharmacy_staff') {
+          return { ...item, label: '回収管理', description: '患者請求・未回収・入金確認' }
+        }
+        if (role === 'system_admin' || role === 'regional_admin') {
+          return { ...item, label: '加盟店請求', description: '加盟店向け月次請求・入金確認' }
+        }
+      }
+      return item
+    })
   const visibleSettings = settingsItems.filter((item) => canAccess(role, item.permission))
 
   return (

@@ -190,6 +190,34 @@ export function getPatientsByPharmacy(pharmacyId: string) {
   return patientData.filter((patient) => patient.pharmacyId === pharmacyId)
 }
 
+export type DayTaskStatus = 'scheduled' | 'in_progress' | 'completed'
+
+export interface DayTaskItem {
+  id: string
+  patientId: string
+  pharmacyId: string
+  scheduledTime: string
+  visitType: '定期' | '臨時' | '要確認'
+  source: '自動生成' | '手動追加'
+  status: DayTaskStatus
+  handledBy: string | null
+  handledById: string | null
+  handledAt: string | null
+  completedAt: string | null
+  billable: boolean
+  collectionStatus: '未着手' | '請求準備OK' | '回収中' | '入金済'
+  amount: number
+  note: string
+}
+
+export const dayTaskData: DayTaskItem[] = [
+  { id: 'DT-260315-01', patientId: 'PT-001', pharmacyId: 'PH-01', scheduledTime: '10:00', visitType: '定期', source: '自動生成', status: 'completed', handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 10:06', completedAt: '2026-03-15 10:28', billable: true, collectionStatus: '請求準備OK', amount: 12800, note: '定期訪問。服薬状況確認済み。' },
+  { id: 'DT-260315-02', patientId: 'PT-004', pharmacyId: 'PH-01', scheduledTime: '11:30', visitType: '定期', source: '自動生成', status: 'completed', handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 11:34', completedAt: '2026-03-15 11:58', billable: true, collectionStatus: '回収中', amount: 9400, note: 'せん妄後フォロー。家族説明あり。' },
+  { id: 'DT-260315-03', patientId: 'PT-002', pharmacyId: 'PH-01', scheduledTime: '14:00', visitType: '臨時', source: '手動追加', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 15600, note: '臨時往診後の追加確認。' },
+  { id: 'DT-260315-04', patientId: 'PT-005', pharmacyId: 'PH-01', scheduledTime: '15:30', visitType: '定期', source: '自動生成', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 11200, note: '血糖測定器の残量確認。' },
+  { id: 'DT-260315-05', patientId: 'PT-003', pharmacyId: 'PH-01', scheduledTime: '17:30', visitType: '要確認', source: '手動追加', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 0, note: '転倒後フォロー要否の確認。' },
+]
+
 // ─── Requests ───
 export interface RequestItem {
   id: string

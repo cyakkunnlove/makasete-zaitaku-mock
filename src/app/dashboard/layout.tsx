@@ -121,13 +121,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const filteredNav = navItems.filter((item) => canAccess(role, item.permission))
+  const filteredNav = navItems
+    .filter((item) => canAccess(role, item.permission))
+    .map((item) => {
+      if (item.href === '/dashboard/billing') {
+        if (role === 'pharmacy_admin' || role === 'pharmacy_staff') return { ...item, label: '回収管理' }
+        if (role === 'system_admin' || role === 'regional_admin') return { ...item, label: '加盟店請求' }
+      }
+      return item
+    })
 
   const filteredSettings = settingsNavItems.filter((item) => canAccess(role, item.permission))
 
   const visibleMobileNavItems = mobileNavItems.filter((item) => canAccess(role, item.permission))
 
-  const allNavItems = [...navItems, ...settingsNavItems]
+  const allNavItems = [...filteredNav, ...filteredSettings]
   const pageTitle = allNavItems.find(item => item.href === pathname)?.label ?? 'ダッシュボード'
   const currentPermission = getPathPermission(pathname)
 

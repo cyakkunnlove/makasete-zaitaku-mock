@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -24,10 +25,10 @@ import {
   Stethoscope,
   FileImage,
   Shield,
+  RotateCcw,
+  Receipt,
 } from 'lucide-react'
-import { getAttentionFlags, getAttentionFlagClass, kpiData, nightStaff, getPatientsByPharmacy } from '@/lib/mock-data'
-
-// ─── Mock Data ───
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, kpiData, nightStaff, type DayTaskItem } from '@/lib/mock-data'
 
 const mockFaxes = [
   { id: 'FAX-001', requestId: 'RQ-2401', from: '城南みらい薬局', patientName: '田中 優子', receivedAt: '22:15', status: 'confirmed' as const, patientId: 'PT-001' },
@@ -53,15 +54,43 @@ const staffStatusClass: Record<string, string> = {
 }
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
+const DAY_PHARMACIST_NAME = '小林 薫'
+const DAY_PHARMACIST_ID = 'ST-DAY-01'
+const UNDO_WINDOW_MS = 8000
 
-// ─── Regional Admin Dashboard ───
+function formatMockTimestamp(time: string) {
+  return `2026-03-15 ${time}`
+}
+
+function taskStatusMeta(status: DayTaskItem['status']) {
+  switch (status) {
+    case 'completed':
+      return { label: '対応完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
+    case 'in_progress':
+      return { label: '対応中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+    default:
+      return { label: '未着手', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
+  }
+}
+
+function collectionStatusMeta(status: DayTaskItem['collectionStatus']) {
+  switch (status) {
+    case '入金済':
+      return { className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
+    case '回収中':
+      return { className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+    case '請求準備OK':
+      return { className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' }
+    default:
+      return { className: 'border-gray-500/40 bg-gray-500/20 text-gray-300' }
+  }
+}
 
 function RegionalAdminDashboard() {
   const slaRate = 94.2
 
   return (
     <div className="space-y-4">
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpiData.map((kpi, index) => {
           const Icon = kpiIcons[index]
@@ -86,7 +115,6 @@ function RegionalAdminDashboard() {
         })}
       </div>
 
-      {/* SLA */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
@@ -97,7 +125,7 @@ function RegionalAdminDashboard() {
         <CardContent>
           <div className="flex items-end gap-3">
             <span className="text-3xl font-bold text-amber-400">{slaRate}%</span>
-            <span className="text-sm text-gray-500 pb-1">目標: 95%</span>
+            <span className="pb-1 text-sm text-gray-500">目標: 95%</span>
           </div>
           <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-[#111827]">
             <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400" style={{ width: `${slaRate}%` }} />
@@ -105,7 +133,6 @@ function RegionalAdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Night Staff */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
@@ -147,13 +174,13 @@ function SystemAdminDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-gray-300">
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
             <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
           </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
             <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
           </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
             <span>地域テナント数</span><span className="font-semibold text-white">3</span>
           </div>
           <p className="text-xs text-gray-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
@@ -163,17 +190,6 @@ function SystemAdminDashboard() {
   )
 }
 
-// ─── Pharmacy/Admin Dashboard ───
-
-// Mock: today's scheduled visits for this pharmacy
-const pharmacyTodayVisits = [
-  { patientId: 'PT-001', scheduledTime: '10:00', visitType: '定期', status: 'completed' as const, source: '自動生成', assignedTo: '小林 薫' },
-  { patientId: 'PT-004', scheduledTime: '11:30', visitType: '定期', status: 'completed' as const, source: '自動生成', assignedTo: '小林 薫' },
-  { patientId: 'PT-002', scheduledTime: '14:00', visitType: '臨時', status: 'upcoming' as const, source: '手動追加', assignedTo: '小林 薫' },
-  { patientId: 'PT-005', scheduledTime: '15:30', visitType: '定期', status: 'upcoming' as const, source: '自動生成', assignedTo: '小林 薫' },
-  { patientId: 'PT-003', scheduledTime: '17:30', visitType: '要確認', status: 'upcoming' as const, source: '手動追加', assignedTo: '小林 薫' },
-]
-
 const nightSearchCandidates = [
   { id: 'PT-001', patientName: '田中 優子', pharmacyName: '城南みらい薬局', regionName: '東京南部', distanceKm: 4.2, etaMin: 11, matchScore: 96, reason: '加盟店一致 / 生年月日一致 / 処方薬一致' },
   { id: 'PT-007', patientName: '山本 直子', pharmacyName: '世田谷つばさ薬局', regionName: '東京南部', distanceKm: 6.8, etaMin: 17, matchScore: 74, reason: 'リージョン一致 / 氏名類似 / 症状文脈一致' },
@@ -182,22 +198,33 @@ const nightSearchCandidates = [
 
 function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: boolean }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [dayTasks, setDayTasks] = useState(dayTaskData)
+  const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const ownPharmacyId = 'PH-01'
   const ownPatients = useMemo(() => getPatientsByPharmacy(ownPharmacyId), [ownPharmacyId])
 
+  useEffect(() => {
+    if (!undoTarget) return
+    const timeout = window.setTimeout(() => setUndoTarget((current) => (current?.taskId === undoTarget.taskId ? null : current)), Math.max(undoTarget.expiresAt - Date.now(), 0))
+    return () => window.clearTimeout(timeout)
+  }, [undoTarget])
+
   const enrichedVisits = useMemo(() => {
-    return pharmacyTodayVisits
-      .filter((visit) => ownPatients.some((p) => p.id === visit.patientId))
-      .map((visit) => {
-        const patient = ownPatients.find((p) => p.id === visit.patientId)
-        return { ...visit, patient }
+    return dayTasks
+      .filter((task) => ownPatients.some((p) => p.id === task.patientId))
+      .map((task) => {
+        const patient = ownPatients.find((p) => p.id === task.patientId)
+        return { ...task, patient }
       })
-  }, [ownPatients])
+  }, [dayTasks, ownPatients])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     if (!query) return enrichedVisits
-    return enrichedVisits.filter((v) => v.patient?.name.toLowerCase().includes(query))
+    return enrichedVisits.filter((visit) => {
+      const haystacks = [visit.patient?.name ?? '', visit.patient?.address ?? '', visit.note]
+      return haystacks.some((value) => value.toLowerCase().includes(query))
+    })
   }, [searchQuery, enrichedVisits])
 
   const filteredMasterPatients = useMemo(() => {
@@ -206,12 +233,53 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
     return ownPatients.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query))
   }, [searchQuery, ownPatients])
 
-  const completedCount = pharmacyTodayVisits.filter((v) => v.status === 'completed').length
-  const upcomingCount = pharmacyTodayVisits.filter((v) => v.status === 'upcoming').length
+  const completedCount = dayTasks.filter((task) => task.status === 'completed').length
+  const inProgressCount = dayTasks.filter((task) => task.status === 'in_progress').length
+  const scheduledCount = dayTasks.filter((task) => task.status === 'scheduled').length
+  const billableReadyCount = dayTasks.filter((task) => task.billable).length
+
+  const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
+    const current = dayTasks.find((task) => task.id === taskId)
+    if (!current) return
+    const next = updater(current)
+    setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
+    setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
+  }
+
+  const handleStartTask = (taskId: string, time: string) => {
+    commitTaskChange(taskId, (task) => ({
+      ...task,
+      status: 'in_progress',
+      handledBy: DAY_PHARMACIST_NAME,
+      handledById: DAY_PHARMACIST_ID,
+      handledAt: formatMockTimestamp(time),
+      completedAt: null,
+      billable: false,
+      collectionStatus: '未着手',
+    }), '対応開始を反映しました')
+  }
+
+  const handleCompleteTask = (taskId: string, time: string) => {
+    commitTaskChange(taskId, (task) => ({
+      ...task,
+      status: 'completed',
+      handledBy: task.handledBy ?? DAY_PHARMACIST_NAME,
+      handledById: task.handledById ?? DAY_PHARMACIST_ID,
+      handledAt: task.handledAt ?? formatMockTimestamp(time),
+      completedAt: formatMockTimestamp(time),
+      billable: task.amount > 0,
+      collectionStatus: task.amount > 0 ? '請求準備OK' : '未着手',
+    }), '対応完了を反映しました')
+  }
+
+  const handleUndo = () => {
+    if (!undoTarget) return
+    setDayTasks((prev) => prev.map((task) => (task.id === undoTarget.taskId ? undoTarget.previous : task)))
+    setUndoTarget(null)
+  }
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
@@ -227,96 +295,157 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         </Card>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-sky-400">{upcomingCount}</p>
-            <p className="text-[10px] text-gray-500">未訪問</p>
+            <p className="text-2xl font-bold text-amber-300">{isDayPharmacist ? inProgressCount : scheduledCount}</p>
+            <p className="text-[10px] text-gray-500">{isDayPharmacist ? '対応中' : '未訪問'}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="患者名で検索"
-          className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm"
-        />
+        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
       </div>
 
       {isDayPharmacist ? (
-        <Tabs defaultValue="today" className="space-y-3">
-          <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
-            <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の患者</TabsTrigger>
-            <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者マスタ</TabsTrigger>
-          </TabsList>
+        <>
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
+                <p className="text-xs text-gray-400">「対応する」→「対応完了」で handled-by / handled-at / billable を更新。操作後 {UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
+                {undoTarget && (
+                  <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    取り消す
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="today" className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-              <Building2 className="h-4 w-4 text-indigo-400" />
-              今日の対応患者
-              <span className="text-xs font-normal text-gray-500">自動生成 + 手動追加</span>
-            </h2>
-            <div className="space-y-2">
-              {filteredVisits.map((visit) => {
-                const patient = visit.patient
-                if (!patient) return null
-                const isCompleted = visit.status === 'completed'
-                return (
-                  <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
-                    <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className={cn('text-sm font-semibold', isCompleted ? 'text-gray-400 line-through' : 'text-white')}>{patient.name}</p>
+          {undoTarget && (
+            <Card className="border-amber-500/30 bg-amber-500/10">
+              <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-amber-100">
+                <span>{undoTarget.actionLabel}。短時間だけ元に戻せます。</span>
+                <span className="text-xs text-amber-200/80">billing / 回収管理に反映する想定の mock 連携です。</span>
+              </CardContent>
+            </Card>
+          )}
+
+          <Tabs defaultValue="today" className="space-y-3">
+            <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
+              <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の患者フロー</TabsTrigger>
+              <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者マスタ</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="today" className="space-y-2">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                <Building2 className="h-4 w-4 text-indigo-400" />
+                今日の対応患者
+                <span className="text-xs font-normal text-gray-500">自動生成 + 手動追加</span>
+              </h2>
+              <div className="space-y-2">
+                {filteredVisits.map((visit) => {
+                  const patient = visit.patient
+                  if (!patient) return null
+                  const status = taskStatusMeta(visit.status)
+                  const collection = collectionStatusMeta(visit.collectionStatus)
+                  const canStart = visit.status === 'scheduled'
+                  const canComplete = visit.status === 'in_progress'
+                  return (
+                    <Card key={visit.id} className="border-[#2a3553] bg-[#1a2035]">
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-white hover:text-indigo-300">
+                                {patient.name}
+                              </Link>
+                              <Badge variant="outline" className={cn('border text-[10px]', status.className)}>{status.label}</Badge>
                               <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
                                 {visit.source}
                               </Badge>
-                              <Badge variant="outline" className="border-[#2a3553] text-gray-300 text-[10px]">{visit.visitType}</Badge>
+                              <Badge variant="outline" className="border-[#2a3553] text-[10px] text-gray-300">{visit.visitType}</Badge>
                             </div>
-                            <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                            <p className="mt-1 text-[11px] text-indigo-300">担当: {visit.assignedTo} / {visit.scheduledTime}</p>
+                            <p className="mt-1 text-xs text-gray-500">{patient.address}</p>
+                            <p className="mt-1 text-[11px] text-gray-400">予定 {visit.scheduledTime} / {visit.note}</p>
                           </div>
-                          {isCompleted ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <Clock3 className="h-4 w-4 text-gray-500" />}
+                          <div className="text-right text-xs text-gray-400">
+                            <p>担当者: {visit.handledBy ?? '未対応'}</p>
+                            <p>着手: {visit.handledAt ?? '—'}</p>
+                            <p>完了: {visit.completedAt ?? '—'}</p>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          </TabsContent>
 
-          <TabsContent value="master" className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-              <Users className="h-4 w-4 text-indigo-400" />
-              自局患者マスタ
-              <span className="text-xs font-normal text-gray-500">PH-01 の患者のみ</span>
-            </h2>
-            <div className="space-y-2">
-              {filteredMasterPatients.map((patient) => {
-                const flags = getAttentionFlags(patient)
-                return (
-                  <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
-                    <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white">{patient.name}</p>
-                            <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                            <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+                            <p className="text-[10px] text-gray-500">handled-by</p>
+                            <p className="mt-1 text-sm text-white">{visit.handledBy ?? '未設定'}</p>
+                          </div>
+                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+                            <p className="text-[10px] text-gray-500">handled-at</p>
+                            <p className="mt-1 text-sm text-white">{visit.handledAt ?? '未設定'}</p>
+                          </div>
+                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+                            <p className="text-[10px] text-gray-500">billable / 回収連携</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className={cn('border text-[10px]', visit.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
+                                {visit.billable ? '請求対象' : '未計上'}
+                              </Badge>
+                              <Badge variant="outline" className={cn('border text-[10px]', collection.className)}>{visit.collectionStatus}</Badge>
+                            </div>
                           </div>
                         </div>
-                        {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0,3).map((flag)=><Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button size="sm" onClick={() => handleStartTask(visit.id, visit.scheduledTime)} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+                            対応する
+                          </Button>
+                          <Button size="sm" onClick={() => handleCompleteTask(visit.id, visit.scheduledTime)} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
+                            対応完了
+                          </Button>
+                          <span className="text-[11px] text-gray-500">対応完了後は pharmacy_staff の回収管理で請求候補として扱う想定です。</span>
+                        </div>
                       </CardContent>
                     </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          </TabsContent>
-        </Tabs>
+                  )
+                })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="master" className="space-y-2">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+                <Users className="h-4 w-4 text-indigo-400" />
+                自局患者マスタ
+                <span className="text-xs font-normal text-gray-500">PH-01 の患者のみ</span>
+              </h2>
+              <div className="space-y-2">
+                {filteredMasterPatients.map((patient) => {
+                  const flags = getAttentionFlags(patient)
+                  return (
+                    <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
+                      <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-white">{patient.name}</p>
+                              <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
+                              <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
+                            </div>
+                          </div>
+                          {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </>
       ) : (
         <div className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
@@ -330,18 +459,18 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
               if (!patient) return null
               const isCompleted = visit.status === 'completed'
               return (
-                <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
+                <Link key={visit.id} href={`/dashboard/patients/${visit.patientId}`}>
                   <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <p className={cn('text-sm font-semibold', isCompleted ? 'text-gray-400 line-through' : 'text-white')}>{patient.name}</p>
                             <Badge variant="outline" className={cn('border text-[10px]', visit.visitType === '臨時' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-[#2a3553] text-gray-400')}>{visit.visitType}</Badge>
                           </div>
                           <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex shrink-0 items-center gap-2">
                           <span className="text-sm font-medium text-gray-300">{visit.scheduledTime}</span>
                           {isCompleted ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <Clock3 className="h-4 w-4 text-gray-500" />}
                         </div>
@@ -369,11 +498,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
                     <p className="text-sm font-medium text-white">{req.patientName}</p>
                     <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs',
-                    req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                    req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                    'bg-sky-500/20 text-sky-300 border-sky-500/30'
-                  )}>
+                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-sky-500/20 text-sky-300 border-sky-500/30')}>
                     {req.status}
                   </Badge>
                 </div>
@@ -382,11 +507,32 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
           ))}
         </div>
       )}
+
+      {isDayPharmacist && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-white">
+              <Receipt className="h-4 w-4 text-indigo-400" />
+              回収管理への引き渡しメモ
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs text-gray-300">
+            {dayTasks.filter((task) => task.billable).map((task) => {
+              const patient = ownPatients.find((item) => item.id === task.patientId)
+              return (
+                <div key={task.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <p className="font-medium text-white">{patient?.name ?? task.patientId}</p>
+                  <p className="mt-1 text-gray-400">handled-by: {task.handledBy} / handled-at: {task.completedAt ?? task.handledAt}</p>
+                  <p className="mt-1 text-gray-400">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
-
-// ─── Night Pharmacist Dashboard ───
 
 function PharmacistDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -426,8 +572,8 @@ function PharmacistDashboard() {
       <div className="space-y-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-300"><FileImage className="h-4 w-4" />未確認の処方箋FAX</h2>
         {mockFaxes.filter((f) => f.status === 'unread').map((fax) => (
-          <Card key={fax.id} className="border-l-4 border-l-rose-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4 space-y-1">
+          <Card key={fax.id} className="border-b-[#2a3553] border-l-4 border-l-rose-500 border-r-[#2a3553] border-t-[#2a3553] bg-[#1a2035]">
+            <CardContent className="space-y-1 p-4">
               <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-white">{fax.from}</p><Badge variant="outline" className={cn('border text-xs', faxStatusConfig[fax.status].className)}>{faxStatusConfig[fax.status].label}</Badge></div>
               <p className="text-xs text-gray-400">{fax.receivedAt}受信 / 照合前</p>
               <p className="text-[11px] text-gray-500">このFAXを起点に患者候補を検索して確定します。</p>
@@ -442,8 +588,8 @@ function PharmacistDashboard() {
           <Card key={candidate.id} className={cn('border-[#2a3553] bg-[#1a2035]', candidate.matchScore >= 80 && 'border-l-4 border-l-emerald-500')}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-white">{candidate.patientName}</p>
                     <Badge variant="outline" className={cn('border text-[10px]', candidate.matchScore >= 80 ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : candidate.matchScore >= 60 ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
                       一致度 {candidate.matchScore}%
@@ -452,7 +598,7 @@ function PharmacistDashboard() {
                   <p className="mt-1 text-xs text-gray-400">{candidate.pharmacyName} / {candidate.regionName}</p>
                   <p className="mt-1 text-[11px] text-gray-500">{candidate.reason}</p>
                 </div>
-                <div className="text-right text-xs text-gray-400 shrink-0">
+                <div className="shrink-0 text-right text-xs text-gray-400">
                   <p>{candidate.distanceKm}km</p>
                   <p>約{candidate.etaMin}分</p>
                 </div>
@@ -464,8 +610,6 @@ function PharmacistDashboard() {
     </div>
   )
 }
-
-// ─── Main Dashboard (Role Router) ───
 
 export default function DashboardPage() {
   const { role, loading } = useAuth()
