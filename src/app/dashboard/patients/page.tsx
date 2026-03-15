@@ -19,22 +19,29 @@ import { Search } from 'lucide-react'
 import { patientData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 
 export default function PatientsPage() {
-  useAuth()
+  const { role } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+
+  const visiblePatients = useMemo(() => {
+    if (role === 'day_pharmacist' || role === 'pharmacy_admin' || role === 'pharmacy_staff') {
+      return patientData.filter((patient) => patient.pharmacyId === 'PH-01')
+    }
+    return patientData
+  }, [role])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return patientData
+    if (!query) return visiblePatients
 
-    return patientData.filter((patient) => patient.name.toLowerCase().includes(query))
-  }, [searchQuery])
+    return visiblePatients.filter((patient) => patient.name.toLowerCase().includes(query))
+  }, [searchQuery, visiblePatients])
 
   return (
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">在宅患者の基本情報・注意事項を確認</p>
+          <p className="text-xs text-gray-400">{role === 'day_pharmacist' ? '自局患者マスタを確認（PH-01のみ）' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">
