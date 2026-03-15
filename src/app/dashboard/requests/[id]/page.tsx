@@ -22,7 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
-import type { ChecklistType, ChecklistItem } from '@/types/database'
+import type { ChecklistType, ChecklistItem, RequestStatus } from '@/types/database'
 import {
   ArrowLeft,
   Clock3,
@@ -34,6 +34,19 @@ import {
   CheckCircle2,
   FileText,
 } from 'lucide-react'
+
+function getAdminDisplayStatus(status: RequestStatus, patientId: string | null) {
+  if (status === 'completed') {
+    return { label: '完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return { label: '対応中', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
+  }
+  if (patientId) {
+    return { label: '患者特定済', className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' }
+  }
+  return { label: '受付', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+}
 
 export default function RequestDetailPage() {
   const params = useParams()
@@ -75,7 +88,7 @@ export default function RequestDetailPage() {
   }
 
   const currentStep = requestStepIndex[request.status]
-  const status = statusMeta[request.status]
+  const status = isAdmin ? getAdminDisplayStatus(request.status, request.patientId) : statusMeta[request.status]
   const priority = priorityMeta[request.priority]
   const attentionFlags = patient ? getAttentionFlags(patient) : []
   const currentChecklist = checklists[checklistType]
@@ -102,17 +115,29 @@ export default function RequestDetailPage() {
   const linkedAt = request.patientLinkedAt ? request.patientLinkedAt.split(' ')[1] : ''
   const patientResolved = Boolean(request.patientId)
 
-  // Mock timeline events for this request (Uber Eats style)
-  const timelineEvents = [
-    { time: request.receivedAt, label: '受電・依頼受付', done: true, userName: '事務局' },
-    { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
-    { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
-    { time: currentStep >= 2 ? '23:15' : '', label: '薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
-    { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
-    { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
-    { time: currentStep >= 5 ? '23:35' : '', label: '対応中', done: currentStep >= 5, userName: assignee?.name ?? '' },
-    { time: currentStep >= 6 ? '00:05' : '', label: '対応完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
-  ]
+  // Mock timeline events for this request
+  const timelineEvents = isAdmin
+    ? [
+        { time: request.receivedAt, label: '受付', done: true, userName: '事務局' },
+        { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
+        {
+          time: currentStep >= 3 ? '23:18' : currentStep >= 2 ? '23:15' : '',
+          label: '対応開始',
+          done: currentStep >= 2,
+          userName: assignee?.name ?? '',
+        },
+        { time: currentStep >= 6 ? '00:05' : '', label: '完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
+      ]
+    : [
+        { time: request.receivedAt, label: '受電・依頼受付', done: true, userName: '事務局' },
+        { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
+        { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
+        { time: currentStep >= 2 ? '23:15' : '', label: '薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
+        { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
+        { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
+        { time: currentStep >= 5 ? '23:35' : '', label: '対応中', done: currentStep >= 5, userName: assignee?.name ?? '' },
+        { time: currentStep >= 6 ? '00:05' : '', label: '対応完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
+      ]
 
   return (
     <div className="space-y-4 text-gray-100">
@@ -134,7 +159,7 @@ export default function RequestDetailPage() {
               {request.receivedDate} {request.receivedAt} 受付
             </p>
             {isAdmin && (
-              <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 患者詳細・FAX原本・申し送り本文は非表示</p>
+              <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 受付→患者特定→対応開始→完了 の流れで表示。患者詳細・FAX原本・申し送り本文は非表示</p>
             )}
           </div>
         </div>

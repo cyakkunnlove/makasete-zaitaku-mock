@@ -46,11 +46,36 @@ import type { RequestStatus } from '@/types/database'
 type TabKey = 'received' | 'active' | 'completed' | 'all'
 
 const tabItems: Array<{ key: TabKey; label: string }> = [
-  { key: 'received', label: '受付中(5)' },
+  { key: 'received', label: '受付/特定(5)' },
   { key: 'active', label: '対応中(3)' },
   { key: 'completed', label: '完了(24)' },
   { key: 'all', label: '全件' },
 ]
+
+function getAdminStatus(status: RequestStatus, patientId: string | null) {
+  if (status === 'completed') {
+    return {
+      label: '完了',
+      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+    }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return {
+      label: '対応中',
+      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+    }
+  }
+  if (patientId) {
+    return {
+      label: '患者特定済',
+      className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+    }
+  }
+  return {
+    label: '受付',
+    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  }
+}
 
 const terminalStatuses: RequestStatus[] = ['completed', 'cancelled']
 
@@ -162,7 +187,7 @@ export default function RequestsPage() {
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
         {filteredRequests.map((request) => {
-          const status = statusMeta[request.status]
+          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const slaInfo = getSlaInfo(request.slaMet, request.status)
           const patientLabel = isAdmin
@@ -170,7 +195,6 @@ export default function RequestsPage() {
               ? '患者特定済'
               : '患者未特定'
             : request.patientName ?? '患者未特定'
-          const isUnlinked = !request.patientId
 
           return (
             <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
@@ -185,11 +209,6 @@ export default function RequestsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-white">{patientLabel}</p>
-                        {isUnlinked && (
-                          <Badge variant="outline" className="border-purple-500/40 bg-purple-500/20 text-purple-300 text-[10px]">
-                            未特定
-                          </Badge>
-                        )}
                       </div>
                       <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
                     </div>
@@ -239,11 +258,14 @@ export default function RequestsPage() {
           </TableHeader>
           <TableBody>
             {filteredRequests.map((request) => {
-              const status = statusMeta[request.status]
+              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
               const slaInfo = getSlaInfo(request.slaMet, request.status)
-              const patientLabel = request.patientName ?? '患者未特定'
-              const isUnlinked = !request.patientId
+              const patientLabel = isAdmin
+                ? request.patientId
+                  ? '患者特定済'
+                  : '患者未特定'
+                : request.patientName ?? '患者未特定'
 
               return (
                 <TableRow
@@ -262,11 +284,6 @@ export default function RequestsPage() {
                     <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
                       <span className="inline-flex items-center gap-2">
                         {patientLabel}
-                        {isUnlinked && (
-                          <Badge variant="outline" className="border-purple-500/40 bg-purple-500/20 text-purple-300 text-[10px]">
-                            未特定
-                          </Badge>
-                        )}
                       </span>
                     </Link>
                   </TableCell>
