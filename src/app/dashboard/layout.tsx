@@ -11,6 +11,13 @@ import {
   Settings, MessageCircle, Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
 
@@ -311,20 +318,44 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Demo banner */}
-      <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-xs">
-        <span className="text-amber-300 font-medium">🎭 デモモード</span>
-        <span className="text-gray-400">ロール切替:</span>
-        {(['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'] as const).map((r) => (
-          <button
-            key={r}
-            onClick={() => switchRole(r)}
-            className={`px-2 py-0.5 rounded text-xs ${
-              role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            {r}
-          </button>
-        ))}
+      <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs">
+        <div className="hidden md:flex items-center gap-3">
+          <span className="text-amber-300 font-medium">🎭 デモモード</span>
+          <span className="text-gray-400">ロール切替:</span>
+          <div className="flex flex-wrap gap-2">
+            {(['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => switchRole(r)}
+                className={`px-2 py-0.5 rounded text-xs ${
+                  role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:hidden space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-300 font-medium">🎭 デモモード</span>
+            <span className="text-gray-400">ロール切替</span>
+          </div>
+          <Select value={role ?? undefined} onValueChange={switchRole}>
+            <SelectTrigger className="h-8 border-amber-500/30 bg-[#1a2035] text-xs text-gray-100">
+              <SelectValue placeholder="ロールを選択" />
+            </SelectTrigger>
+            <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+              <SelectItem value="system_admin">system_admin</SelectItem>
+              <SelectItem value="regional_admin">regional_admin</SelectItem>
+              <SelectItem value="pharmacy_admin">pharmacy_admin</SelectItem>
+              <SelectItem value="day_pharmacist">day_pharmacist</SelectItem>
+              <SelectItem value="night_pharmacist">night_pharmacist</SelectItem>
+              <SelectItem value="pharmacy_staff">pharmacy_staff</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Main content */}
