@@ -37,7 +37,8 @@ import {
 
 export default function RequestDetailPage() {
   const params = useParams()
-  useAuth()
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const id = params.id as string
 
   const request = requestData.find((r) => r.id === id)
@@ -132,10 +133,13 @@ export default function RequestDetailPage() {
             <p className="text-xs text-gray-400">
               {request.receivedDate} {request.receivedAt} 受付
             </p>
+            {isAdmin && (
+              <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 患者詳細・FAX原本・申し送り本文は非表示</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {needsFaxReview && (
+          {needsFaxReview && !isAdmin && (
             <Link href={`/dashboard/requests/${request.id}/fax`}>
               <Button className="h-8 bg-indigo-500 text-white hover:bg-indigo-500/90">
                 FAX確認・患者特定
@@ -247,11 +251,41 @@ export default function RequestDetailPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm text-white">
               <User className="h-4 w-4 text-indigo-400" />
-              患者情報
+              {isAdmin ? '患者特定状況' : '患者情報'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {patient ? (
+            {isAdmin ? (
+              <div className="space-y-3 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-400">患者状態</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'border text-xs',
+                      patient
+                        ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                        : 'border-purple-500/40 bg-purple-500/20 text-purple-300'
+                    )}
+                  >
+                    {patient ? '患者特定済' : '患者未特定'}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="text-gray-400">加盟店</p>
+                    <p className="mt-1 text-gray-200">{request.pharmacyName}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">患者ID</p>
+                    <p className="mt-1 text-gray-200">{request.patientId ?? '未設定'}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  運営管理ロールでは氏名・住所・連絡先・医療情報・FAX原本は表示しません。
+                </p>
+              </div>
+            ) : patient ? (
               <>
                 <div className="flex items-start justify-between">
                   <div>

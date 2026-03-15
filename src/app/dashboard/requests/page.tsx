@@ -83,6 +83,7 @@ function getSlaInfo(slaMet: boolean | null, status: RequestStatus) {
 export default function RequestsPage() {
   const router = useRouter()
   const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -164,7 +165,11 @@ export default function RequestsPage() {
           const status = statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const slaInfo = getSlaInfo(request.slaMet, request.status)
-          const patientLabel = request.patientName ?? '患者未特定'
+          const patientLabel = isAdmin
+            ? request.patientId
+              ? '患者特定済'
+              : '患者未特定'
+            : request.patientName ?? '患者未特定'
           const isUnlinked = !request.patientId
 
           return (
@@ -225,7 +230,7 @@ export default function RequestsPage() {
             <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
               <TableHead className="text-gray-400">優先度</TableHead>
               <TableHead className="text-gray-400">受付時刻</TableHead>
-              <TableHead className="text-gray-400">患者名</TableHead>
+              <TableHead className="text-gray-400">{isAdmin ? '患者特定' : '患者名'}</TableHead>
               <TableHead className="text-gray-400">薬局名</TableHead>
               <TableHead className="text-gray-400">ステータス</TableHead>
               <TableHead className="text-gray-400">SLA</TableHead>
