@@ -49,6 +49,19 @@ export const MOCK_USERS: Record<string, User> = {
     created_at: '2026-02-01T00:00:00Z',
     updated_at: '2026-03-05T00:00:00Z',
   },
+  pharmacy_staff: {
+    id: 'mock-pharm-staff-001',
+    organization_id: 'org-001',
+    pharmacy_id: 'PH-01',
+    role: 'pharmacy_staff',
+    full_name: '伊藤 真理',
+    phone: '080-2277-6631',
+    email: 'ito@jonan-ph.jp',
+    line_user_id: null,
+    is_active: true,
+    created_at: '2026-02-01T00:00:00Z',
+    updated_at: '2026-03-05T00:00:00Z',
+  },
 }
 
 export const DEMO_ROLE = 'admin'

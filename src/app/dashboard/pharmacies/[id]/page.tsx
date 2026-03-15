@@ -47,6 +47,7 @@ const yen = new Intl.NumberFormat('ja-JP')
 
 export default function PharmacyDetailPage() {
   useAuth()
+  useAuth()
   const params = useParams()
   const id = params.id as string
 

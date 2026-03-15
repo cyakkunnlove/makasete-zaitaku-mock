@@ -45,6 +45,7 @@ function calculateAge(dob: string): number {
 
 export default function PatientDetailPage() {
   useAuth()
+  useAuth()
   const params = useParams()
   const id = params.id as string
 

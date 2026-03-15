@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
-import type { UserRole } from '@/types/database'
 import {
   Home, ClipboardList, UserCheck, FileText,
   Building2, Users, CreditCard, BarChart3,
@@ -12,42 +11,61 @@ import {
   Settings, MessageCircle, Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AccessDenied } from '@/components/access-denied'
+import { canAccess, type PermissionKey } from '@/lib/rbac'
 
 interface NavItem {
   href: string
   label: string
   icon: React.ReactNode
-  roles: UserRole[]
+  permission: PermissionKey
   badge?: number
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', label: 'ダッシュボード', icon: <Home size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/requests', label: '依頼管理', icon: <ClipboardList size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/assign', label: 'アサイン', icon: <UserCheck size={20} />, roles: ['admin'] },
-  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/pharmacies', label: '加盟店管理', icon: <Building2 size={20} />, roles: ['admin'] },
-  { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, roles: ['admin'] },
-  { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, roles: ['pharmacy_admin'] },
-  { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, roles: ['admin'] },
-  { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, roles: ['admin'] },
-  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, roles: ['admin'] },
-  { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, roles: ['admin'] },
+  { href: '/dashboard', label: 'ダッシュボード', icon: <Home size={20} />, permission: 'dashboard' },
+  { href: '/dashboard/requests', label: '依頼管理', icon: <ClipboardList size={20} />, permission: 'requests' },
+  { href: '/dashboard/assign', label: 'アサイン', icon: <UserCheck size={20} />, permission: 'assign' },
+  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, permission: 'handovers' },
+  { href: '/dashboard/pharmacies', label: '加盟店管理', icon: <Building2 size={20} />, permission: 'pharmacies' },
+  { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, permission: 'staff' },
+  { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, permission: 'patients' },
+  { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
+  { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
+  { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, permission: 'audit' },
+  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, permission: 'shifts' },
+  { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, permission: 'notifications' },
 ]
 
 const settingsNavItems: NavItem[] = [
-  { href: '/dashboard/settings/notifications', label: '通知設定', icon: <Bell size={20} />, roles: ['admin'] },
-  { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, roles: ['admin'] },
+  { href: '/dashboard/settings/notifications', label: '通知設定', icon: <Bell size={20} />, permission: 'settings' },
+  { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, permission: 'settings' },
 ]
 
-const mobileNavItems = [
-  { href: '/dashboard', label: 'ホーム', icon: <Home size={20} />, hasBadge: false },
-  { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} />, hasBadge: false },
-  { href: '/dashboard/patients', label: '患者', icon: <Users size={20} />, hasBadge: false },
-  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, hasBadge: false },
-  { href: '/dashboard/more', label: 'その他', icon: <Menu size={20} />, hasBadge: false },
+const mobileNavItems: NavItem[] = [
+  { href: '/dashboard', label: 'ホーム', icon: <Home size={20} />, permission: 'dashboard' },
+  { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} />, permission: 'requests' },
+  { href: '/dashboard/patients', label: '患者', icon: <Users size={20} />, permission: 'patients' },
+  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, permission: 'handovers' },
+  { href: '/dashboard/more', label: 'その他', icon: <Menu size={20} />, permission: 'more' },
 ]
+
+function getPathPermission(pathname: string): PermissionKey {
+  if (pathname.startsWith('/dashboard/settings/')) return 'settings'
+  if (pathname.startsWith('/dashboard/requests')) return 'requests'
+  if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
+  if (pathname.startsWith('/dashboard/patients')) return 'patients'
+  if (pathname.startsWith('/dashboard/pharmacies')) return 'pharmacies'
+  if (pathname.startsWith('/dashboard/staff')) return 'staff'
+  if (pathname.startsWith('/dashboard/billing')) return 'billing'
+  if (pathname.startsWith('/dashboard/reports')) return 'reports'
+  if (pathname.startsWith('/dashboard/audit')) return 'audit'
+  if (pathname.startsWith('/dashboard/notifications')) return 'notifications'
+  if (pathname.startsWith('/dashboard/assign')) return 'assign'
+  if (pathname.startsWith('/dashboard/shifts')) return 'shifts'
+  if (pathname.startsWith('/dashboard/more')) return 'more'
+  return 'dashboard'
+}
 
 function NightBadge() {
   const [isNight, setIsNight] = useState(false)
@@ -95,16 +113,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const filteredNav = navItems.filter(item =>
-    role ? item.roles.includes(role) : false
-  )
+  const filteredNav = navItems.filter((item) => canAccess(role, item.permission))
 
-  const filteredSettings = settingsNavItems.filter(item =>
-    role ? item.roles.includes(role) : false
-  )
+  const filteredSettings = settingsNavItems.filter((item) => canAccess(role, item.permission))
+
+  const visibleMobileNavItems = mobileNavItems.filter((item) => canAccess(role, item.permission))
 
   const allNavItems = [...navItems, ...settingsNavItems]
   const pageTitle = allNavItems.find(item => item.href === pathname)?.label ?? 'ダッシュボード'
+  const currentPermission = getPathPermission(pathname)
 
   const unreadNotifCount = 3 // Mock unread count
 
@@ -279,14 +296,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <span className="text-xs text-emerald-400">LIVE</span>
         </div>
         <div className="ml-auto">
-          <Link href="/dashboard/notifications" className="relative p-2 text-gray-400 hover:text-gray-200 block">
-            <Bell size={18} />
-            {unreadNotifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
-                {unreadNotifCount}
-              </span>
-            )}
-          </Link>
+          {canAccess(role, 'notifications') && (
+            <Link href="/dashboard/notifications" className="relative p-2 text-gray-400 hover:text-gray-200 block">
+              <Bell size={18} />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
+                  {unreadNotifCount}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
       </header>
 
@@ -309,13 +328,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">
-        {children}
+        {canAccess(role, currentPermission) ? (
+          children
+        ) : (
+          <AccessDenied description="現在のロールではこの画面を閲覧できません。必要な業務だけに絞って表示しています。" />
+        )}
       </main>
 
       {/* Bottom Nav - Mobile */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-[#2a3553] z-20 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around h-14">
-          {mobileNavItems.map((item) => {
+          {visibleMobileNavItems.map((item) => {
             const active = pathname === item.href
             return (
               <Link
@@ -327,11 +350,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               >
                 <span className="relative">
                   {item.icon}
-                  {item.hasBadge && unreadNotifCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[8px] flex items-center justify-center font-bold">
-                      {unreadNotifCount}
-                    </span>
-                  )}
                 </span>
                 <span>{item.label}</span>
               </Link>
