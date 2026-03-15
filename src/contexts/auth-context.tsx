@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (IS_DEMO) {
       // Demo mode: use mock user
-      setUser(MOCK_USERS[DEMO_ROLE] ?? MOCK_USERS.admin)
+      setUser(MOCK_USERS[DEMO_ROLE] ?? MOCK_USERS.regional_admin)
       setLoading(false)
       return
     }

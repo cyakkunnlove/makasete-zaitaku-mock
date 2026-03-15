@@ -10,7 +10,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { staffData } from '@/lib/mock-data'
 import type { ShiftType } from '@/types/database'
 
-const pharmacists = staffData.filter((s) => s.role === 'pharmacist')
+const pharmacists = staffData.filter((s) => s.role === 'night_pharmacist')
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日']
 
@@ -83,12 +83,12 @@ export default function ShiftsPage() {
     })
   }, [])
 
-  if (role !== 'admin' && role !== 'pharmacist') {
+  if (role !== 'regional_admin' && role !== 'night_pharmacist') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
           <CardTitle className="text-base text-white">シフト管理</CardTitle>
-          <CardDescription className="text-gray-400">このページは管理者または薬剤師のみ閲覧できます。</CardDescription>
+          <CardDescription className="text-gray-400">このページは管理者または夜間薬剤師のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -144,7 +144,7 @@ export default function ShiftsPage() {
             <thead>
               <tr>
                 <th className="sticky left-0 z-10 bg-[#1a2035] p-3 text-left text-xs font-medium text-gray-400">
-                  薬剤師
+                  夜間薬剤師
                 </th>
                 {weekDates.map((d, i) => {
                   const dateKey = fmt(d)

@@ -108,7 +108,7 @@ function getSlaInfo(slaMet: boolean | null, status: RequestStatus) {
 export default function RequestsPage() {
   const router = useRouter()
   const { role } = useAuth()
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'regional_admin'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -120,7 +120,7 @@ export default function RequestsPage() {
     urgency: '',
   })
 
-  const canCreateRequest = role !== 'pharmacist'
+  const canCreateRequest = role !== 'night_pharmacist'
 
   const filteredRequests = useMemo(() => {
     switch (activeTab) {

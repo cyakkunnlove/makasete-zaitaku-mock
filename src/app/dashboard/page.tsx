@@ -22,6 +22,7 @@ import {
   Timer,
   Stethoscope,
   FileImage,
+  Shield,
 } from 'lucide-react'
 import { patientData, getAttentionFlags, getAttentionFlagClass, kpiData, nightStaff } from '@/lib/mock-data'
 
@@ -67,9 +68,9 @@ const staffStatusClass: Record<string, string> = {
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 
-// ─── Admin Dashboard ───
+// ─── Regional Admin Dashboard ───
 
-function AdminDashboard() {
+function RegionalAdminDashboard() {
   const slaRate = 94.2
 
   return (
@@ -149,7 +150,34 @@ function AdminDashboard() {
   )
 }
 
-// ─── Pharmacy Staff Dashboard ───
+function SystemAdminDashboard() {
+  return (
+    <div className="space-y-4">
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Shield className="h-4 w-4 text-indigo-400" />
+            システム監視
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-gray-300">
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+            <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+          </div>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+            <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+          </div>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 flex items-center justify-between">
+            <span>地域テナント数</span><span className="font-semibold text-white">3</span>
+          </div>
+          <p className="text-xs text-gray-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ─── Pharmacy/Admin Dashboard ───
 
 // Mock: today's scheduled visits for this pharmacy
 const pharmacyTodayVisits = [
@@ -506,7 +534,7 @@ export default function DashboardPage() {
             <div className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs leading-6">
               <p>確認ポイント:</p>
               <ul className="list-disc pl-5">
-                <li>デモモードなら上部のロール切替から <strong>admin</strong> / <strong>pharmacist</strong> / <strong>pharmacy_admin</strong> を選ぶ</li>
+                <li>デモモードなら上部のロール切替から <strong>regional_admin</strong> / <strong>night_pharmacist</strong> / <strong>pharmacy_admin</strong> などを選ぶ</li>
                 <li>本番モードなら users テーブルの role が入っているか確認する</li>
               </ul>
             </div>
@@ -518,9 +546,10 @@ export default function DashboardPage() {
 
   return (
     <div className="text-gray-100">
-      {role === 'admin' && <AdminDashboard />}
-      {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && <PharmacyDashboard />}
-      {role === 'pharmacist' && <PharmacistDashboard />}
+      {role === 'system_admin' && <SystemAdminDashboard />}
+      {role === 'regional_admin' && <RegionalAdminDashboard />}
+      {(role === 'pharmacy_admin' || role === 'pharmacy_staff' || role === 'day_pharmacist') && <PharmacyDashboard />}
+      {role === 'night_pharmacist' && <PharmacistDashboard />}
     </div>
   )
 }

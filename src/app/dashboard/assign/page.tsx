@@ -117,7 +117,7 @@ export default function AssignPage() {
     checklistTemplate.map((label) => ({ label, checked: false }))
   )
 
-  const canEditSchedule = role === 'admin'
+  const canEditSchedule = role === 'regional_admin'
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -159,7 +159,7 @@ export default function AssignPage() {
               <table className="min-w-[860px] w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#2a3553]">
-                    <th className="px-2 py-2 text-left text-gray-400">薬剤師</th>
+                    <th className="px-2 py-2 text-left text-gray-400">夜間薬剤師</th>
                     {weekDays.map((day) => (
                       <th key={day.id} className="px-2 py-2 text-center text-gray-400">
                         {day.label}
@@ -209,7 +209,7 @@ export default function AssignPage() {
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader>
             <CardTitle className="text-base text-white">保留中アサイン</CardTitle>
-            <CardDescription className="text-gray-400">未アサイン依頼に担当薬剤師を割り当て</CardDescription>
+            <CardDescription className="text-gray-400">未アサイン依頼に担当夜間薬剤師を割り当て</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingAssignments.map((assignment) => (
@@ -273,7 +273,7 @@ export default function AssignPage() {
       <section className="space-y-4">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader>
-            <CardTitle className="text-base text-white">薬剤師 受諾/辞退ビュー</CardTitle>
+            <CardTitle className="text-base text-white">夜間薬剤師 受諾/辞退ビュー</CardTitle>
             <CardDescription className="text-gray-400">
               アサイン通知後10分以内に回答してください
             </CardDescription>

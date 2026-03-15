@@ -23,7 +23,7 @@ const channelHeaders = [
 
 export default function NotificationSettingsPage() {
   const { role } = useAuth()
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'regional_admin'
   const [settings, setSettings] = useState<NotificationSettingItem[]>(notificationSettingsData)
   const [toast, setToast] = useState<string | null>(null)
   const [expandedEscalation, setExpandedEscalation] = useState<string | null>(null)

@@ -88,7 +88,7 @@ export default function BillingPage() {
           <p className="text-xs text-gray-400">加盟店ごとの月次請求と回収状況を確認</p>
         </div>
 
-        {role === 'admin' && (
+        {role === 'regional_admin' && (
           <Button
             onClick={() => setBatchDialogOpen(true)}
             className="bg-indigo-500 text-white hover:bg-indigo-500/90"
@@ -165,7 +165,7 @@ export default function BillingPage() {
                   <FileText className="h-4 w-4" />
                   請求書PDFプレビュー
                 </Button>
-                {role === 'admin' && record.status !== 'paid' && (
+                {role === 'regional_admin' && record.status !== 'paid' && (
                   <Button
                     size="sm"
                     onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)}
@@ -223,7 +223,7 @@ export default function BillingPage() {
                       >
                         PDFプレビュー
                       </Button>
-                      {role === 'admin' && record.status !== 'paid' && (
+                      {role === 'regional_admin' && record.status !== 'paid' && (
                         <Button
                           size="sm"
                           variant="ghost"

@@ -10,11 +10,24 @@ import type {
 
 // ─── Users ───
 export const MOCK_USERS: Record<string, User> = {
-  admin: {
-    id: 'mock-admin-001',
+  system_admin: {
+    id: 'mock-system-admin-001',
     organization_id: 'org-001',
     pharmacy_id: null,
-    role: 'admin',
+    role: 'system_admin',
+    full_name: '加藤 琢也',
+    phone: '090-0000-0001',
+    email: 'sysadmin@makasete.jp',
+    line_user_id: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-03-05T00:00:00Z',
+  },
+  regional_admin: {
+    id: 'mock-regional-admin-001',
+    organization_id: 'org-001',
+    pharmacy_id: null,
+    role: 'regional_admin',
     full_name: '田中 直樹',
     phone: '090-4400-1022',
     email: 'tanaka@makasete.jp',
@@ -23,17 +36,30 @@ export const MOCK_USERS: Record<string, User> = {
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-03-05T00:00:00Z',
   },
-  pharmacist: {
-    id: 'mock-pharmacist-001',
+  night_pharmacist: {
+    id: 'mock-night-pharmacist-001',
     organization_id: 'org-001',
     pharmacy_id: null,
-    role: 'pharmacist',
+    role: 'night_pharmacist',
     full_name: '佐藤 健一',
     phone: '090-1122-5566',
     email: 'sato@makasete.jp',
     line_user_id: null,
     is_active: true,
     created_at: '2026-01-15T00:00:00Z',
+    updated_at: '2026-03-05T00:00:00Z',
+  },
+  day_pharmacist: {
+    id: 'mock-day-pharmacist-001',
+    organization_id: 'org-001',
+    pharmacy_id: 'PH-01',
+    role: 'day_pharmacist',
+    full_name: '小林 薫',
+    phone: '090-5522-1188',
+    email: 'kobayashi@jonan-ph.jp',
+    line_user_id: null,
+    is_active: true,
+    created_at: '2026-02-01T00:00:00Z',
     updated_at: '2026-03-05T00:00:00Z',
   },
   pharmacy_admin: {
@@ -64,7 +90,7 @@ export const MOCK_USERS: Record<string, User> = {
   },
 }
 
-export const DEMO_ROLE = 'admin'
+export const DEMO_ROLE = 'regional_admin'
 
 // ─── Staff ───
 export interface StaffItem {
@@ -77,16 +103,16 @@ export interface StaffItem {
 }
 
 export const staffData: StaffItem[] = [
-  { id: 'ST-01', name: '田中 直樹', role: 'admin', phone: '090-4400-1022', email: 'tanaka.n@makasete.jp', status: 'active' },
-  { id: 'ST-02', name: '佐藤 健一', role: 'pharmacist', phone: '090-1122-5566', email: 'sato.k@makasete.jp', status: 'active' },
-  { id: 'ST-03', name: '高橋 奈央', role: 'pharmacist', phone: '080-7766-1188', email: 'takahashi.n@makasete.jp', status: 'active' },
-  { id: 'ST-04', name: '山口 美咲', role: 'pharmacist', phone: '090-8821-5544', email: 'yamaguchi.m@makasete.jp', status: 'inactive' },
+  { id: 'ST-01', name: '田中 直樹', role: 'regional_admin', phone: '090-4400-1022', email: 'tanaka.n@makasete.jp', status: 'active' },
+  { id: 'ST-02', name: '佐藤 健一', role: 'night_pharmacist', phone: '090-1122-5566', email: 'sato.k@makasete.jp', status: 'active' },
+  { id: 'ST-03', name: '高橋 奈央', role: 'night_pharmacist', phone: '080-7766-1188', email: 'takahashi.n@makasete.jp', status: 'active' },
+  { id: 'ST-04', name: '山口 美咲', role: 'night_pharmacist', phone: '090-8821-5544', email: 'yamaguchi.m@makasete.jp', status: 'inactive' },
   { id: 'ST-05', name: '山田 美咲', role: 'pharmacy_admin', phone: '090-3301-7145', email: 'yamada.m@jonan-ph.jp', status: 'active' },
   { id: 'ST-06', name: '小林 恒一', role: 'pharmacy_admin', phone: '080-6142-9021', email: 'kobayashi.k@minami-ph.jp', status: 'active' },
   { id: 'ST-07', name: '伊藤 真理', role: 'pharmacy_staff', phone: '080-2277-6631', email: 'ito.m@jonan-ph.jp', status: 'active' },
   { id: 'ST-08', name: '木村 恒一', role: 'pharmacy_staff', phone: '070-4377-1991', email: 'kimura.k@kita-ph.jp', status: 'inactive' },
   { id: 'ST-09', name: '中村 玲子', role: 'pharmacy_staff', phone: '070-6622-8900', email: 'nakamura.r@nishi-ph.jp', status: 'active' },
-  { id: 'ST-10', name: '佐々木 翔', role: 'pharmacist', phone: '080-4488-2255', email: 'sasaki.s@makasete.jp', status: 'active' },
+  { id: 'ST-10', name: '佐々木 翔', role: 'night_pharmacist', phone: '080-4488-2255', email: 'sasaki.s@makasete.jp', status: 'active' },
 ]
 
 // ─── Pharmacies ───
@@ -734,14 +760,14 @@ export interface LineUserStatus {
 }
 
 export const lineUserStatuses: LineUserStatus[] = [
-  { staffId: 'ST-01', staffName: '田中 直樹', role: 'admin', lineUserId: 'U1234567890abcdef', linked: true, linkedAt: '2026-01-15 10:30:00' },
-  { staffId: 'ST-02', staffName: '佐藤 健一', role: 'pharmacist', lineUserId: 'U2345678901abcdef', linked: true, linkedAt: '2026-01-20 14:15:00' },
-  { staffId: 'ST-03', staffName: '高橋 奈央', role: 'pharmacist', lineUserId: 'U5678901234abcdef', linked: true, linkedAt: '2026-02-01 09:00:00' },
-  { staffId: 'ST-04', staffName: '山口 美咲', role: 'pharmacist', lineUserId: 'U4567890123abcdef', linked: true, linkedAt: '2026-02-05 11:22:00' },
+  { staffId: 'ST-01', staffName: '田中 直樹', role: 'regional_admin', lineUserId: 'U1234567890abcdef', linked: true, linkedAt: '2026-01-15 10:30:00' },
+  { staffId: 'ST-02', staffName: '佐藤 健一', role: 'night_pharmacist', lineUserId: 'U2345678901abcdef', linked: true, linkedAt: '2026-01-20 14:15:00' },
+  { staffId: 'ST-03', staffName: '高橋 奈央', role: 'night_pharmacist', lineUserId: 'U5678901234abcdef', linked: true, linkedAt: '2026-02-01 09:00:00' },
+  { staffId: 'ST-04', staffName: '山口 美咲', role: 'night_pharmacist', lineUserId: 'U4567890123abcdef', linked: true, linkedAt: '2026-02-05 11:22:00' },
   { staffId: 'ST-05', staffName: '山田 美咲', role: 'pharmacy_admin', lineUserId: 'U3456789012abcdef', linked: true, linkedAt: '2026-02-10 16:45:00' },
   { staffId: 'ST-06', staffName: '小林 恒一', role: 'pharmacy_admin', lineUserId: null, linked: false, linkedAt: null },
   { staffId: 'ST-07', staffName: '伊藤 真理', role: 'pharmacy_staff', lineUserId: null, linked: false, linkedAt: null },
-  { staffId: 'ST-10', staffName: '佐々木 翔', role: 'pharmacist', lineUserId: 'U6789012345abcdef', linked: true, linkedAt: '2026-02-15 08:30:00' },
+  { staffId: 'ST-10', staffName: '佐々木 翔', role: 'night_pharmacist', lineUserId: 'U6789012345abcdef', linked: true, linkedAt: '2026-02-15 08:30:00' },
 ]
 
 // ─── Notification Settings ───

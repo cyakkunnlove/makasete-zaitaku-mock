@@ -212,7 +212,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-200 truncate">{user?.full_name}</p>
-              <p className="text-xs text-gray-500 capitalize">{role}</p>
+              <p className="text-xs text-gray-500">{role}</p>
             </div>
           </div>
           <Button
@@ -314,7 +314,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-xs">
         <span className="text-amber-300 font-medium">🎭 デモモード</span>
         <span className="text-gray-400">ロール切替:</span>
-        {(['admin', 'pharmacist', 'pharmacy_admin', 'pharmacy_staff'] as const).map((r) => (
+        {(['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'] as const).map((r) => (
           <button
             key={r}
             onClick={() => switchRole(r)}

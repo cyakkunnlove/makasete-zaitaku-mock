@@ -12,7 +12,7 @@ import { lineUserStatuses } from '@/lib/mock-data'
 
 export default function LineSettingsPage() {
   const { role } = useAuth()
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'regional_admin'
   const [toast, setToast] = useState<string | null>(null)
   const [channelId, setChannelId] = useState('1234567890')
   const [channelSecret, setChannelSecret] = useState('••••••••••••••••')

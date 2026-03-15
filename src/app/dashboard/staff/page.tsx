@@ -45,21 +45,25 @@ import {
 
 type StaffStatus = 'active' | 'inactive'
 
-type RoleFilter = 'all' | 'pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
-type AddStaffRole = 'pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type RoleFilter = 'all' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type AddStaffRole = 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type PageTab = 'staff' | 'shift'
 
 const roleLabel: Record<UserRole, string> = {
-  admin: '管理者',
-  pharmacist: '薬剤師',
+  system_admin: 'システム管理者',
+  regional_admin: '地域管理者',
   pharmacy_admin: '薬局管理者',
+  day_pharmacist: '日中薬剤師',
+  night_pharmacist: '夜間薬剤師',
   pharmacy_staff: '薬局スタッフ',
 }
 
 const roleClass: Record<UserRole, string> = {
-  admin: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
-  pharmacist: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  system_admin: 'border-violet-500/40 bg-violet-500/20 text-violet-300',
+  regional_admin: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
   pharmacy_admin: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+  day_pharmacist: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
+  night_pharmacist: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   pharmacy_staff: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
 }
 
@@ -70,7 +74,7 @@ const statusClass: Record<StaffStatus, string> = {
 
 const filterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
-  { key: 'pharmacist', label: '薬剤師' },
+  { key: 'night_pharmacist', label: '夜間薬剤師' },
   { key: 'pharmacy_admin', label: '薬局管理者' },
   { key: 'pharmacy_staff', label: '薬局スタッフ' },
 ]
@@ -95,7 +99,7 @@ export default function StaffPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    role: 'pharmacist' as AddStaffRole,
+    role: 'night_pharmacist' as AddStaffRole,
     phone: '',
     email: '',
     status: 'active' as StaffStatus,
@@ -125,7 +129,7 @@ export default function StaffPage() {
     setDialogOpen(false)
     setFormData({
       name: '',
-      role: 'pharmacist',
+      role: 'night_pharmacist',
       phone: '',
       email: '',
       status: 'active',
@@ -146,7 +150,7 @@ export default function StaffPage() {
     return shifts.find((s) => s.pharmacistId === pharmacistId && s.shiftDate === date)
   }
 
-  if (role !== 'admin') {
+  if (role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
@@ -301,7 +305,7 @@ export default function StaffPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableHead className="min-w-[120px] text-gray-400">薬剤師</TableHead>
+                    <TableHead className="min-w-[120px] text-gray-400">夜間薬剤師</TableHead>
                     {weekDays.map((day) => (
                       <TableHead
                         key={day.date}
@@ -441,7 +445,7 @@ export default function StaffPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="pharmacist">薬剤師</SelectItem>
+                    <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>
                     <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>
                     <SelectItem value="pharmacy_staff">薬局スタッフ</SelectItem>
                   </SelectContent>

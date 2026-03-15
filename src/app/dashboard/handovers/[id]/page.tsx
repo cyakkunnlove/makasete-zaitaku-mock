@@ -97,7 +97,7 @@ export default function HandoverDetailPage() {
             <div className="flex items-start gap-2">
               <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
               <div>
-                <p className="text-xs text-gray-400">担当薬剤師</p>
+                <p className="text-xs text-gray-400">担当夜間薬剤師</p>
                 <p className="text-sm text-white">{handover.pharmacistName}</p>
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function HandoverDetailPage() {
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-amber-300">この申し送りはまだ確認されていません</p>
-                {(role === 'pharmacy_admin' || role === 'admin') && (
+                {(role === 'pharmacy_admin' || role === 'regional_admin') && (
                   <Button
                     onClick={handleConfirm}
                     className="bg-emerald-600 text-white hover:bg-emerald-600/90"

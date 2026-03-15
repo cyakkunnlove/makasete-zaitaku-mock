@@ -153,7 +153,7 @@ export default function NotificationsPage() {
               {log.errorMessage && (
                 <p className="text-xs text-rose-400 bg-rose-500/10 rounded px-2 py-1">{log.errorMessage}</p>
               )}
-              {log.status === 'failed' && role === 'admin' && (
+              {log.status === 'failed' && role === 'regional_admin' && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -182,7 +182,7 @@ export default function NotificationsPage() {
                   <th className="text-left px-4 py-3 font-medium">宛先</th>
                   <th className="text-left px-4 py-3 font-medium">ステータス</th>
                   <th className="text-left px-4 py-3 font-medium">エラー</th>
-                  {role === 'admin' && <th className="text-left px-4 py-3 font-medium">操作</th>}
+                  {role === 'regional_admin' && <th className="text-left px-4 py-3 font-medium">操作</th>}
                 </tr>
               </thead>
               <tbody>
@@ -211,7 +211,7 @@ export default function NotificationsPage() {
                     <td className="px-4 py-3 text-xs text-rose-400 max-w-[200px] truncate">
                       {log.errorMessage ?? '-'}
                     </td>
-                    {role === 'admin' && (
+                    {role === 'regional_admin' && (
                       <td className="px-4 py-3">
                         {log.status === 'failed' && (
                           <Button

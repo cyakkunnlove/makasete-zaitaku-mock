@@ -63,7 +63,7 @@ export default function AuditPage() {
     })
   }, [actionFilter, userFilter, endDate, startDate])
 
-  if (role !== 'admin') {
+  if (role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>

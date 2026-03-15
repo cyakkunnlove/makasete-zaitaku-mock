@@ -51,7 +51,7 @@ function getAdminDisplayStatus(status: RequestStatus, patientId: string | null) 
 export default function RequestDetailPage() {
   const params = useParams()
   const { role } = useAuth()
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'regional_admin'
   const id = params.id as string
 
   const request = requestData.find((r) => r.id === id)
@@ -132,7 +132,7 @@ export default function RequestDetailPage() {
         { time: request.receivedAt, label: '受電・依頼受付', done: true, userName: '事務局' },
         { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
         { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
-        { time: currentStep >= 2 ? '23:15' : '', label: '薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
+        { time: currentStep >= 2 ? '23:15' : '', label: '夜間薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
         { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
         { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
         { time: currentStep >= 5 ? '23:35' : '', label: '対応中', done: currentStep >= 5, userName: assignee?.name ?? '' },
@@ -494,7 +494,7 @@ export default function RequestDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <User className="h-4 w-4 text-indigo-400" />
-            担当薬剤師
+            担当夜間薬剤師
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -506,7 +506,7 @@ export default function RequestDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">{assignee.name}</p>
-                  <p className="text-xs text-gray-400">{assignee.role === 'pharmacist' ? '夜勤薬剤師' : assignee.role}</p>
+                  <p className="text-xs text-gray-400">{assignee.role === 'night_pharmacist' ? '夜勤夜間薬剤師' : assignee.role}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-4 text-xs text-gray-300">
@@ -524,7 +524,7 @@ export default function RequestDetailPage() {
               </div>
               <div>
                 <p className="text-gray-300">未割当</p>
-                <p className="text-xs text-gray-500">薬剤師がまだアサインされていません</p>
+                <p className="text-xs text-gray-500">夜間薬剤師がまだアサインされていません</p>
               </div>
             </div>
           )}
