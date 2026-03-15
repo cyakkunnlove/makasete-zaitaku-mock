@@ -317,8 +317,7 @@ function PharmacistDashboard() {
     return enrichedVisits.filter(
       (v) =>
         v.patient?.name.toLowerCase().includes(query) ||
-        v.patient?.pharmacyName.toLowerCase().includes(query) ||
-        v.pharmacist.toLowerCase().includes(query)
+        v.patient?.pharmacyName.toLowerCase().includes(query)
     )
   }, [searchQuery, enrichedVisits])
 
@@ -365,22 +364,21 @@ function PharmacistDashboard() {
             未確認の処方箋FAX
           </h2>
           {mockFaxes.filter((f) => f.status === 'unread').map((fax) => (
-            <Link key={fax.id} href={`/dashboard/requests/${fax.requestId}/fax`}>
-              <Card className="cursor-pointer border-l-4 border-l-rose-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035] transition hover:border-r-indigo-500/60">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/30">
-                    <FileImage className="h-5 w-5 text-rose-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">{fax.patientName}</p>
-                    <p className="text-xs text-gray-400">{fax.from} • {fax.receivedAt}受信</p>
-                  </div>
-                  <Badge variant="outline" className={cn('border text-xs shrink-0', faxStatusConfig[fax.status].className)}>
-                    {faxStatusConfig[fax.status].label}
-                  </Badge>
-                </CardContent>
-              </Card>
-            </Link>
+            <Card key={fax.id} className="border-l-4 border-l-rose-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
+              <CardContent className="flex items-center gap-3 p-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/30">
+                  <FileImage className="h-5 w-5 text-rose-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{fax.patientName}</p>
+                  <p className="text-xs text-gray-400">{fax.from} • {fax.receivedAt}受信</p>
+                  <p className="mt-1 text-[11px] text-rose-300">FAX原本確認は事務局側で対応</p>
+                </div>
+                <Badge variant="outline" className={cn('border text-xs shrink-0', faxStatusConfig[fax.status].className)}>
+                  {faxStatusConfig[fax.status].label}
+                </Badge>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -391,7 +389,7 @@ function PharmacistDashboard() {
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="患者名・薬局名・担当者で検索"
+          placeholder="患者名・薬局名で検索"
           className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm"
         />
       </div>
@@ -422,55 +420,54 @@ function PharmacistDashboard() {
             const hasAlert = attentionFlags.some((flag) => flag.tone === 'danger' || flag.tone === 'warning')
 
             return (
-              <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
-                <Card
-                  className={cn(
-                    'cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60',
-                    visit.status === 'in_progress' && 'border-l-4 border-l-amber-500'
+              <Card
+                key={visit.patientId}
+                className={cn(
+                  'border-[#2a3553] bg-[#1a2035]',
+                  visit.status === 'in_progress' && 'border-l-4 border-l-amber-500'
+                )}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-white truncate">{patient.name}</p>
+                        {hasAlert && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />}
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-400">{patient.pharmacyName}</p>
+                    </div>
+                    <Badge variant="outline" className={cn('border text-xs shrink-0', config.className)}>
+                      <StatusIcon className="mr-1 h-3 w-3" />
+                      {config.label}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Clock3 className="h-3 w-3" />
+                      {visit.scheduledTime}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {visit.pharmacist}
+                    </span>
+                  </div>
+
+                  {attentionFlags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {attentionFlags.slice(0, 4).map((flag) => (
+                        <Badge
+                          key={flag.key}
+                          variant="outline"
+                          className={cn('border text-[10px] px-1.5 py-0', getAttentionFlagClass(flag.tone))}
+                        >
+                          {flag.label}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-semibold text-white truncate">{patient.name}</p>
-                          {hasAlert && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />}
-                        </div>
-                        <p className="mt-0.5 text-xs text-gray-400">{patient.pharmacyName}</p>
-                      </div>
-                      <Badge variant="outline" className={cn('border text-xs shrink-0', config.className)}>
-                        <StatusIcon className="mr-1 h-3 w-3" />
-                        {config.label}
-                      </Badge>
-                    </div>
-
-                    <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Clock3 className="h-3 w-3" />
-                        {visit.scheduledTime}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {visit.pharmacist}
-                      </span>
-                    </div>
-
-                    {attentionFlags.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {attentionFlags.slice(0, 4).map((flag) => (
-                          <Badge
-                            key={flag.key}
-                            variant="outline"
-                            className={cn('border text-[10px] px-1.5 py-0', getAttentionFlagClass(flag.tone))}
-                          >
-                            {flag.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
+                </CardContent>
+              </Card>
             )
           })}
         </div>
