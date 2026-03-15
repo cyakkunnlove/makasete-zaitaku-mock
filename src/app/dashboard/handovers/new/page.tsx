@@ -74,8 +74,8 @@ export default function NewHandoverPage() {
     if (value && value !== 'none') {
       const request = requestData.find((r) => r.id === value)
       if (request) {
-        const patient = patientData.find((p) => p.id === request.patientId)
-        setPatientName(patient?.name ?? request.patientName)
+        const patient = request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+        setPatientName(patient?.name ?? request.patientName ?? '')
         setPharmacyName(request.pharmacyName)
       }
     } else {

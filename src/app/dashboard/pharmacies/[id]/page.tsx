@@ -26,7 +26,8 @@ import {
   billingData,
   requestData,
   statusMeta,
-  getRiskClass,
+  getAttentionFlags,
+  getAttentionFlagClass,
   type PharmacyItem,
 } from '@/lib/mock-data'
 
@@ -251,12 +252,17 @@ export default function PharmacyDetailPage() {
                         <p className="text-sm font-medium text-white">{patient.name}</p>
                         <p className="text-xs text-gray-400">{patient.dob}</p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn('border text-xs', getRiskClass(patient.riskScore))}
-                      >
-                        Risk {patient.riskScore}
-                      </Badge>
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {getAttentionFlags(patient).slice(0, 2).map((flag) => (
+                          <Badge
+                            key={flag.key}
+                            variant="outline"
+                            className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}
+                          >
+                            {flag.label}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </Link>

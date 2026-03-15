@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Search } from 'lucide-react'
-import { patientData, getRiskClass } from '@/lib/mock-data'
+import { patientData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 
 export default function PatientsPage() {
   useAuth()
@@ -59,7 +59,9 @@ export default function PatientsPage() {
       {filteredPatients.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
-            {filteredPatients.map((patient) => (
+            {filteredPatients.map((patient) => {
+              const attentionFlags = getAttentionFlags(patient)
+              return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
                   className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60"
@@ -70,16 +72,22 @@ export default function PatientsPage() {
                         <p className="text-base font-semibold text-white">{patient.name}</p>
                         <p className="text-xs text-gray-400">生年月日: {patient.dob}</p>
                       </div>
-                      <Badge variant="outline" className={cn('border text-xs', getRiskClass(patient.riskScore))}>
-                        リスク {patient.riskScore}
-                      </Badge>
                     </div>
                     <p className="mt-3 text-xs text-gray-300">{patient.address}</p>
                     <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
+                    {attentionFlags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {attentionFlags.slice(0, 3).map((flag) => (
+                          <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>
+                            {flag.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>
-            ))}
+            )})}
           </div>
 
           <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
@@ -94,11 +102,13 @@ export default function PatientsPage() {
                     <TableHead className="text-gray-400">生年月日</TableHead>
                     <TableHead className="text-gray-400">住所</TableHead>
                     <TableHead className="text-gray-400">薬局</TableHead>
-                    <TableHead className="text-right text-gray-400">リスク</TableHead>
+                    <TableHead className="text-gray-400">注意フラグ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient) => (
+                  {filteredPatients.map((patient) => {
+                    const attentionFlags = getAttentionFlags(patient)
+                    return (
                     <TableRow
                       key={patient.id}
                       className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
@@ -111,16 +121,21 @@ export default function PatientsPage() {
                       <TableCell className="text-gray-300">{patient.dob}</TableCell>
                       <TableCell className="text-gray-300">{patient.address}</TableCell>
                       <TableCell className="text-indigo-300">{patient.pharmacyName}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant="outline"
-                          className={cn('border text-xs', getRiskClass(patient.riskScore))}
-                        >
-                          {patient.riskScore}
-                        </Badge>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1.5">
+                          {attentionFlags.slice(0, 3).map((flag) => (
+                            <Badge
+                              key={flag.key}
+                              variant="outline"
+                              className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}
+                            >
+                              {flag.label}
+                            </Badge>
+                          ))}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </CardContent>

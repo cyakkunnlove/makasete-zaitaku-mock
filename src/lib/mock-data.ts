@@ -127,6 +127,12 @@ export interface PatientRecord {
   status: 'active' | 'inactive'
 }
 
+export interface AttentionFlag {
+  key: string
+  label: string
+  tone: 'warning' | 'danger' | 'info'
+}
+
 export const patientData: PatientRecord[] = [
   { id: 'PT-001', name: '田中 優子', dob: '1948-06-12', address: '東京都世田谷区上馬2-14-6', pharmacyId: 'PH-01', pharmacyName: '城南みらい薬局', riskScore: 8, emergencyContact: { name: '田中 恒一', relation: '長男', phone: '090-1234-5678' }, doctor: { name: '鈴木 恒一', clinic: '世田谷在宅クリニック', phone: '03-3412-1101' }, medicalHistory: '慢性心不全、2型糖尿病、肺炎既往', allergies: 'ペニシリン系抗菌薬', currentMeds: 'フロセミド、メトホルミン、アムロジピン', visitNotes: '【暗証番号】オートロック暗証番号: 4721（エントランス）→ 502号室\n【ペット】小型犬（チワワ）あり。吠えるため訪問10分前に家族へ電話連絡必須\n【配薬場所】リビングテーブル上の薬ケースに配薬\n【お届け方法】夜間は玄関チャイムを鳴らさず、ドアノックで対応', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '慢性心不全、2型糖尿病', status: 'active' },
   { id: 'PT-002', name: '小川 正子', dob: '1942-11-02', address: '神奈川県横浜市港北区篠原西町18-4', pharmacyId: 'PH-02', pharmacyName: '港北さくら薬局', riskScore: 6, emergencyContact: { name: '小川 真理', relation: '長女', phone: '080-4455-2233' }, doctor: { name: '山口 恒一', clinic: '港北ホームケア診療所', phone: '045-509-8181' }, medicalHistory: '関節リウマチ、慢性腎不全', allergies: 'なし', currentMeds: 'プレドニゾロン、アセトアミノフェン', visitNotes: '【アクセス】エレベーターなし3階。階段狭いため荷物は最小限に\n【転倒リスク】転倒歴あり（2025年12月）。廊下に手すりなし、スリッパ滑りやすい\n【配薬場所】台所カウンター上のお薬カレンダーに配薬', insuranceInfo: '後期高齢者医療 1割負担', diseaseName: '関節リウマチ、慢性腎不全', status: 'active' },
@@ -143,11 +149,11 @@ export const patientData: PatientRecord[] = [
 // ─── Requests ───
 export interface RequestItem {
   id: string
-  patientId: string
+  patientId: string | null
   pharmacyId: string
   receivedAt: string
   receivedDate: string
-  patientName: string
+  patientName: string | null
   pharmacyName: string
   status: RequestStatus
   priority: RequestPriority
@@ -159,6 +165,9 @@ export interface RequestItem {
   urgency: string
   notes: string
   slaMet: boolean | null
+  faxImageUrl?: string | null
+  patientLinkedAt?: string | null
+  patientLinkedBy?: string | null
   timelineEvents: { status: string; timestamp: string; userName: string; note?: string }[]
 }
 
@@ -166,7 +175,7 @@ export const requestData: RequestItem[] = [
   { id: 'RQ-2401', patientId: 'PT-001', pharmacyId: 'PH-01', receivedAt: '22:14', receivedDate: '2026-03-05', patientName: '田中 優子', pharmacyName: '城南みらい薬局', status: 'received', priority: 'high', assignee: '未割当', assigneeId: null, symptom: '悪寒と発熱（38.5℃）', vitalsChange: '体温上昇、脈拍110/分', consciousness: '清明', urgency: '高', notes: '家族より電話あり。食事摂取困難。', slaMet: null, timelineEvents: [
     { status: 'received', timestamp: '2026-03-05 22:14', userName: '田中 直樹', note: '受電・依頼受付' },
   ] },
-  { id: 'RQ-2402', patientId: 'PT-002', pharmacyId: 'PH-02', receivedAt: '22:28', receivedDate: '2026-03-05', patientName: '小川 正子', pharmacyName: '港北さくら薬局', status: 'fax_pending', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '吐き気と食欲低下', vitalsChange: '血圧100/60まで低下', consciousness: 'やや傾眠', urgency: '中', notes: '', slaMet: null, timelineEvents: [
+  { id: 'RQ-2402', patientId: null, pharmacyId: 'PH-02', receivedAt: '22:28', receivedDate: '2026-03-05', patientName: null, pharmacyName: '港北さくら薬局', status: 'fax_pending', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '吐き気と食欲低下', vitalsChange: '血圧100/60まで低下', consciousness: 'やや傾眠', urgency: '中', notes: '患者未特定。FAX原本確認待ち。', slaMet: null, faxImageUrl: '/mock/fax/RQ-2402.pdf', patientLinkedAt: null, patientLinkedBy: null, timelineEvents: [
     { status: 'received', timestamp: '2026-03-05 22:28', userName: '田中 直樹', note: '受電・依頼受付' },
     { status: 'fax_pending', timestamp: '2026-03-05 22:30', userName: '田中 直樹', note: 'FAX送信依頼' },
   ] },
@@ -180,7 +189,7 @@ export const requestData: RequestItem[] = [
     { status: 'fax_received', timestamp: '2026-03-05 23:10', userName: '田中 直樹', note: 'FAX受領' },
     { status: 'assigned', timestamp: '2026-03-05 23:14', userName: '高橋 奈央', note: 'アサイン受諾' },
   ] },
-  { id: 'RQ-2405', patientId: 'PT-007', pharmacyId: 'PH-06', receivedAt: '23:22', receivedDate: '2026-03-05', patientName: '山本 直子', pharmacyName: '世田谷つばさ薬局', status: 'fax_received', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '下痢・脱水傾向', vitalsChange: '尿量減少', consciousness: '清明', urgency: '中', notes: '', slaMet: null, timelineEvents: [
+  { id: 'RQ-2405', patientId: null, pharmacyId: 'PH-06', receivedAt: '23:22', receivedDate: '2026-03-05', patientName: null, pharmacyName: '世田谷つばさ薬局', status: 'fax_received', priority: 'normal', assignee: '未割当', assigneeId: null, symptom: '下痢・脱水傾向', vitalsChange: '尿量減少', consciousness: '清明', urgency: '中', notes: 'FAX受領済み。患者候補の照合待ち。', slaMet: null, faxImageUrl: '/mock/fax/RQ-2405.pdf', patientLinkedAt: null, patientLinkedBy: null, timelineEvents: [
     { status: 'received', timestamp: '2026-03-05 23:22', userName: '田中 直樹', note: '受電・依頼受付' },
     { status: 'fax_received', timestamp: '2026-03-05 23:28', userName: '田中 直樹', note: 'FAX受領確認' },
   ] },
@@ -430,10 +439,51 @@ export const requestStepIndex: Record<RequestStatus, number> = {
   cancelled: 0,
 }
 
-export function getRiskClass(score: number) {
-  if (score <= 3) return 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-  if (score <= 6) return 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-  return 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+export function getAttentionFlags(patient: PatientRecord): AttentionFlag[] {
+  const flags: AttentionFlag[] = []
+  const notes = patient.visitNotes ?? ''
+
+  const push = (key: string, label: string, tone: AttentionFlag['tone']) => {
+    if (!flags.find((flag) => flag.key === key)) {
+      flags.push({ key, label, tone })
+    }
+  }
+
+  if (notes.includes('暗証番号') || notes.includes('キーボックス') || notes.includes('オートロック')) {
+    push('security_code', '暗証番号あり', 'warning')
+  }
+  if (notes.includes('家族') || notes.includes('同席')) {
+    push('family_contact', '家族連絡要', 'info')
+  }
+  if (notes.includes('認知症') || notes.includes('せん妄') || notes.includes('徘徊')) {
+    push('cognitive', '認知症対応注意', 'danger')
+  }
+  if (patient.allergies && patient.allergies !== 'なし') {
+    push('allergy', 'アレルギーあり', 'danger')
+  }
+  if (notes.includes('医療機器') || notes.includes('酸素') || notes.includes('血糖測定器')) {
+    push('equipment', '医療機器あり', 'info')
+  }
+  if (notes.includes('配薬場所')) {
+    push('delivery_spot', '配薬場所指定', 'info')
+  }
+  if (notes.includes('夜間') || notes.includes('チャイム') || notes.includes('ドアノック')) {
+    push('night_caution', '夜間注意', 'warning')
+  }
+  if (notes.includes('ペット') || notes.includes('犬') || notes.includes('猫')) {
+    push('pet', 'ペット注意', 'warning')
+  }
+  if (notes.includes('駐車') || notes.includes('来客用P')) {
+    push('parking', '駐車情報あり', 'info')
+  }
+
+  return flags
+}
+
+export function getAttentionFlagClass(tone: AttentionFlag['tone']) {
+  if (tone === 'danger') return 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+  if (tone === 'warning') return 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+  return 'border-sky-500/40 bg-sky-500/20 text-sky-300'
 }
 
 export const sbarStyles = {
@@ -494,6 +544,9 @@ export type AuditActionType =
   | 'billing_generate'
   | 'export_csv'
   | 'pharmacy_update'
+  | 'fax_opened'
+  | 'patient_search'
+  | 'patient_linked'
 
 export interface AuditEntry {
   id: string
@@ -511,6 +564,9 @@ export const auditLogData: AuditEntry[] = [
   { id: 'AL-004', timestamp: '2026-03-05 00:41:03', user: '田中 直樹', action: 'staff_update', target: 'ST-09', details: 'スタッフ状態を active に変更。連絡先情報を更新。' },
   { id: 'AL-005', timestamp: '2026-03-05 00:38:55', user: '小林 恒一', action: 'login', target: '管理画面', details: 'MFA認証を伴う管理画面ログインに成功。' },
   { id: 'AL-006', timestamp: '2026-03-05 00:31:19', user: '中村 玲子', action: 'request_update', target: 'RQ-2412', details: 'FAX受領時刻を登録し、ステータスを fax_received に更新。' },
+  { id: 'AL-006A', timestamp: '2026-03-05 00:30:10', user: '佐藤 健一', action: 'fax_opened', target: 'RQ-2405', details: 'FAX原本を開き、患者照合を開始。' },
+  { id: 'AL-006B', timestamp: '2026-03-05 00:30:48', user: '佐藤 健一', action: 'patient_search', target: 'RQ-2405', details: '患者名・DOB・薬局名で候補検索を実行。' },
+  { id: 'AL-006C', timestamp: '2026-03-05 00:31:04', user: '佐藤 健一', action: 'patient_linked', target: 'RQ-2403', details: 'FAX内容を患者 PT-009（林 恒一）へ確定紐付け。' },
   { id: 'AL-007', timestamp: '2026-03-05 00:24:11', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-03', details: '転送設定を OFF から ON に変更。' },
   { id: 'AL-008', timestamp: '2026-03-05 00:16:29', user: '高橋 奈央', action: 'request_update', target: 'RQ-2407', details: 'ステータスを completed に更新。対応完了メモを追記。' },
   { id: 'AL-009', timestamp: '2026-03-05 00:09:04', user: '山口 美咲', action: 'handover_confirm', target: 'HO-260302', details: '申し送り確認とバイタル再評価メモを登録。' },
@@ -533,6 +589,9 @@ export const auditActionLabel: Record<AuditActionType, string> = {
   billing_generate: '請求生成',
   export_csv: 'CSV出力',
   pharmacy_update: '加盟店更新',
+  fax_opened: 'FAX閲覧',
+  patient_search: '患者検索',
+  patient_linked: '患者紐付け',
 }
 
 export const auditActionClass: Record<AuditActionType, string> = {
@@ -543,6 +602,9 @@ export const auditActionClass: Record<AuditActionType, string> = {
   billing_generate: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
   export_csv: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   pharmacy_update: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
+  fax_opened: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  patient_search: 'border-purple-500/40 bg-purple-500/20 text-purple-300',
+  patient_linked: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
 }
 
 // Unique users from audit logs for user filter

@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   role: UserRole | null
   loading: boolean
+  isDemo: boolean
   signOut: () => Promise<void>
   switchRole: (role: string) => void
 }
@@ -16,11 +17,12 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   loading: true,
+  isDemo: true,
   signOut: async () => {},
   switchRole: () => {},
 })
 
-const IS_DEMO = !process.env.NEXT_PUBLIC_SUPABASE_URL
+const IS_DEMO = true
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, role: user?.role ?? null, loading, signOut, switchRole }}>
+    <AuthContext.Provider value={{ user, role: user?.role ?? null, loading, isDemo: IS_DEMO, signOut, switchRole }}>
       {children}
     </AuthContext.Provider>
   )

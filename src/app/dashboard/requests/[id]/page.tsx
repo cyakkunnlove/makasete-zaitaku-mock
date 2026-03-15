@@ -12,7 +12,8 @@ import {
   priorityMeta,
   requestStepIndex,
   checklistTemplates,
-  getRiskClass,
+  getAttentionFlags,
+  getAttentionFlagClass,
 } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -40,7 +41,8 @@ export default function RequestDetailPage() {
   const id = params.id as string
 
   const request = requestData.find((r) => r.id === id)
-  const patient = request ? patientData.find((p) => p.id === request.patientId) : null
+  const patient = request && request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+  const needsFaxReview = request ? ['fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status) : false
   const assignee = request?.assigneeId
     ? staffData.find((s) => s.id === request.assigneeId)
     : null
@@ -74,6 +76,7 @@ export default function RequestDetailPage() {
   const currentStep = requestStepIndex[request.status]
   const status = statusMeta[request.status]
   const priority = priorityMeta[request.priority]
+  const attentionFlags = patient ? getAttentionFlags(patient) : []
   const currentChecklist = checklists[checklistType]
   const checkedCount = currentChecklist.filter((item) => item.checked).length
   const totalCount = currentChecklist.length
@@ -95,10 +98,14 @@ export default function RequestDetailPage() {
     emergency: '緊急対応',
   }
 
+  const linkedAt = request.patientLinkedAt ? request.patientLinkedAt.split(' ')[1] : ''
+  const patientResolved = Boolean(request.patientId)
+
   // Mock timeline events for this request (Uber Eats style)
   const timelineEvents = [
-    { time: request.receivedAt, label: '受電・依頼受付', done: currentStep >= 0, userName: '事務局' },
+    { time: request.receivedAt, label: '受電・依頼受付', done: true, userName: '事務局' },
     { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
+    { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
     { time: currentStep >= 2 ? '23:15' : '', label: '薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
     { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
     { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
@@ -128,6 +135,13 @@ export default function RequestDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {needsFaxReview && (
+            <Link href={`/dashboard/requests/${request.id}/fax`}>
+              <Button className="h-8 bg-indigo-500 text-white hover:bg-indigo-500/90">
+                FAX確認・患者特定
+              </Button>
+            </Link>
+          )}
           <Badge variant="outline" className={cn('border text-xs', status.className)}>
             {status.label}
           </Badge>
@@ -244,12 +258,19 @@ export default function RequestDetailPage() {
                     <p className="text-sm font-semibold text-white">{patient.name}</p>
                     <p className="mt-0.5 text-xs text-gray-400">生年月日: {patient.dob}</p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={cn('border text-xs', getRiskClass(patient.riskScore))}
-                  >
-                    リスク {patient.riskScore}
-                  </Badge>
+                  {attentionFlags.length > 0 && (
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {attentionFlags.slice(0, 3).map((flag) => (
+                        <Badge
+                          key={flag.key}
+                          variant="outline"
+                          className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}
+                        >
+                          {flag.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 text-xs">
@@ -306,7 +327,15 @@ export default function RequestDetailPage() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-400">患者情報が見つかりません</p>
+              <div className="space-y-3 rounded-md border border-purple-500/30 bg-purple-500/10 p-3 text-sm text-purple-100">
+                <p className="font-medium">患者未特定の仮案件です</p>
+                <p className="text-xs text-purple-200/80">FAX原本を確認し、患者検索から候補を照合して確定します。</p>
+                <Link href={`/dashboard/requests/${request.id}/fax`}>
+                  <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+                    FAX確認・患者特定へ進む
+                  </Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>

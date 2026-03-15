@@ -24,15 +24,15 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'ダッシュボード', icon: <Home size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
   { href: '/dashboard/requests', label: '依頼管理', icon: <ClipboardList size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/assign', label: 'アサイン', icon: <UserCheck size={20} />, roles: ['admin', 'pharmacist'] },
-  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacist'] },
+  { href: '/dashboard/assign', label: 'アサイン', icon: <UserCheck size={20} />, roles: ['admin'] },
+  { href: '/dashboard/handovers', label: '申し送り', icon: <FileText size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
   { href: '/dashboard/pharmacies', label: '加盟店管理', icon: <Building2 size={20} />, roles: ['admin'] },
   { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, roles: ['admin'] },
   { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, roles: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'] },
-  { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, roles: ['admin', 'pharmacy_admin'] },
-  { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, roles: ['admin', 'pharmacy_admin'] },
+  { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, roles: ['pharmacy_admin'] },
+  { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, roles: ['admin'] },
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, roles: ['admin'] },
-  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, roles: ['admin', 'pharmacist'] },
+  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, roles: ['admin'] },
   { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, roles: ['admin'] },
 ]
 
@@ -291,23 +291,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Demo banner */}
-      {!process.env.NEXT_PUBLIC_SUPABASE_URL && (
-        <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-xs">
-          <span className="text-amber-300 font-medium">🎭 デモモード</span>
-          <span className="text-gray-400">ロール切替:</span>
-          {(['admin', 'pharmacist', 'pharmacy_admin'] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => switchRole(r)}
-              className={`px-2 py-0.5 rounded text-xs ${
-                role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-xs">
+        <span className="text-amber-300 font-medium">🎭 デモモード</span>
+        <span className="text-gray-400">ロール切替:</span>
+        {(['admin', 'pharmacist', 'pharmacy_admin', 'pharmacy_staff'] as const).map((r) => (
+          <button
+            key={r}
+            onClick={() => switchRole(r)}
+            className={`px-2 py-0.5 rounded text-xs ${
+              role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
 
       {/* Main content */}
       <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">

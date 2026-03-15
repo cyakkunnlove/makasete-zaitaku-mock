@@ -164,6 +164,8 @@ export default function RequestsPage() {
           const status = statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const slaInfo = getSlaInfo(request.slaMet, request.status)
+          const patientLabel = request.patientName ?? '患者未特定'
+          const isUnlinked = !request.patientId
 
           return (
             <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
@@ -176,7 +178,14 @@ export default function RequestsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">{request.patientName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white">{patientLabel}</p>
+                        {isUnlinked && (
+                          <Badge variant="outline" className="border-purple-500/40 bg-purple-500/20 text-purple-300 text-[10px]">
+                            未特定
+                          </Badge>
+                        )}
+                      </div>
                       <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -228,6 +237,8 @@ export default function RequestsPage() {
               const status = statusMeta[request.status]
               const priority = priorityMeta[request.priority]
               const slaInfo = getSlaInfo(request.slaMet, request.status)
+              const patientLabel = request.patientName ?? '患者未特定'
+              const isUnlinked = !request.patientId
 
               return (
                 <TableRow
@@ -244,7 +255,14 @@ export default function RequestsPage() {
                   <TableCell className="text-gray-200">{request.receivedAt}</TableCell>
                   <TableCell>
                     <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
-                      {request.patientName}
+                      <span className="inline-flex items-center gap-2">
+                        {patientLabel}
+                        {isUnlinked && (
+                          <Badge variant="outline" className="border-purple-500/40 bg-purple-500/20 text-purple-300 text-[10px]">
+                            未特定
+                          </Badge>
+                        )}
+                      </span>
                     </Link>
                   </TableCell>
                   <TableCell className="text-gray-300">{request.pharmacyName}</TableCell>

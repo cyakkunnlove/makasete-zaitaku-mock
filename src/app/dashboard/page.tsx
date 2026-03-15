@@ -23,7 +23,7 @@ import {
   Stethoscope,
   FileImage,
 } from 'lucide-react'
-import { patientData, getRiskClass, kpiData, nightStaff } from '@/lib/mock-data'
+import { patientData, getAttentionFlags, getAttentionFlagClass, kpiData, nightStaff } from '@/lib/mock-data'
 
 // ─── Mock Data ───
 
@@ -37,9 +37,9 @@ const todayVisits = [
 ]
 
 const mockFaxes = [
-  { id: 'FAX-001', from: '城南みらい薬局', patientName: '田中 優子', receivedAt: '22:15', status: 'confirmed' as const, patientId: 'PT-001' },
-  { id: 'FAX-002', from: '中野しらさぎ薬局', patientName: '清水 恒一', receivedAt: '22:45', status: 'unread' as const, patientId: 'PT-004' },
-  { id: 'FAX-003', from: '港北さくら薬局', patientName: '小川 正子', receivedAt: '23:10', status: 'unread' as const, patientId: 'PT-002' },
+  { id: 'FAX-001', requestId: 'RQ-2401', from: '城南みらい薬局', patientName: '田中 優子', receivedAt: '22:15', status: 'confirmed' as const, patientId: 'PT-001' },
+  { id: 'FAX-002', requestId: 'RQ-2406', from: '中野しらさぎ薬局', patientName: '清水 恒一', receivedAt: '22:45', status: 'unread' as const, patientId: 'PT-004' },
+  { id: 'FAX-003', requestId: 'RQ-2402', from: '港北さくら薬局', patientName: '小川 正子', receivedAt: '23:10', status: 'unread' as const, patientId: 'PT-002' },
 ]
 
 const mockPharmacyRequests = [
@@ -365,7 +365,7 @@ function PharmacistDashboard() {
             未確認の処方箋FAX
           </h2>
           {mockFaxes.filter((f) => f.status === 'unread').map((fax) => (
-            <Link key={fax.id} href={`/dashboard/patients/${fax.patientId}`}>
+            <Link key={fax.id} href={`/dashboard/requests/${fax.requestId}/fax`}>
               <Card className="cursor-pointer border-l-4 border-l-rose-500 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035] transition hover:border-r-indigo-500/60">
                 <CardContent className="flex items-center gap-3 p-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/30">
@@ -418,7 +418,8 @@ function PharmacistDashboard() {
             if (!patient) return null
             const config = visitStatusConfig[visit.status]
             const StatusIcon = config.icon
-            const hasAlert = patient.riskScore >= 7 || (patient.allergies && patient.allergies !== 'なし')
+            const attentionFlags = getAttentionFlags(patient)
+            const hasAlert = attentionFlags.some((flag) => flag.tone === 'danger' || flag.tone === 'warning')
 
             return (
               <Link key={visit.patientId} href={`/dashboard/patients/${visit.patientId}`}>
@@ -452,21 +453,19 @@ function PharmacistDashboard() {
                         <Users className="h-3 w-3" />
                         {visit.pharmacist}
                       </span>
-                      <Badge variant="outline" className={cn('border text-[10px] px-1.5 py-0', getRiskClass(patient.riskScore))}>
-                        リスク {patient.riskScore}
-                      </Badge>
                     </div>
 
-                    {patient.visitNotes && (
-                      <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-                        <p className="text-xs text-amber-200/80 line-clamp-2">{patient.visitNotes.split('\n')[0]}</p>
-                      </div>
-                    )}
-
-                    {patient.allergies && patient.allergies !== 'なし' && (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs text-rose-300">
-                        <AlertTriangle className="h-3 w-3" />
-                        アレルギー: {patient.allergies}
+                    {attentionFlags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {attentionFlags.slice(0, 4).map((flag) => (
+                          <Badge
+                            key={flag.key}
+                            variant="outline"
+                            className={cn('border text-[10px] px-1.5 py-0', getAttentionFlagClass(flag.tone))}
+                          >
+                            {flag.label}
+                          </Badge>
+                        ))}
                       </div>
                     )}
                   </CardContent>
@@ -483,7 +482,42 @@ function PharmacistDashboard() {
 // ─── Main Dashboard (Role Router) ───
 
 export default function DashboardPage() {
-  const { role } = useAuth()
+  const { role, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="text-gray-100">
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-6 text-sm text-gray-400">ダッシュボードを読み込み中...</CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!role) {
+    return (
+      <div className="text-gray-100">
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-200">
+              <AlertTriangle className="h-5 w-5" />
+              ロール情報が取得できていません
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-amber-100/90">
+            <p>現在のユーザーに role が入っていないため、ダッシュボードの内容を表示できません。</p>
+            <div className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs leading-6">
+              <p>確認ポイント:</p>
+              <ul className="list-disc pl-5">
+                <li>デモモードなら上部のロール切替から <strong>admin</strong> / <strong>pharmacist</strong> / <strong>pharmacy_admin</strong> を選ぶ</li>
+                <li>本番モードなら users テーブルの role が入っているか確認する</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="text-gray-100">

@@ -99,6 +99,9 @@ export default function AuditPage() {
                   <SelectItem value="billing_generate">請求生成</SelectItem>
                   <SelectItem value="export_csv">CSV出力</SelectItem>
                   <SelectItem value="pharmacy_update">加盟店更新</SelectItem>
+                  <SelectItem value="fax_opened">FAX閲覧</SelectItem>
+                  <SelectItem value="patient_search">患者検索</SelectItem>
+                  <SelectItem value="patient_linked">患者紐付け</SelectItem>
                 </SelectContent>
               </Select>
             </div>

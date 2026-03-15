@@ -12,7 +12,8 @@ import {
   requestData,
   handoverData,
   pharmacyData,
-  getRiskClass,
+  getAttentionFlags,
+  getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
@@ -40,18 +41,6 @@ function calculateAge(dob: string): number {
     age--
   }
   return age
-}
-
-function getRiskBarColor(score: number): string {
-  if (score <= 3) return 'bg-emerald-500'
-  if (score <= 6) return 'bg-amber-500'
-  return 'bg-rose-500'
-}
-
-function getRiskBarTrack(score: number): string {
-  if (score <= 3) return 'bg-emerald-500/20'
-  if (score <= 6) return 'bg-amber-500/20'
-  return 'bg-rose-500/20'
 }
 
 export default function PatientDetailPage() {
@@ -97,6 +86,7 @@ export default function PatientDetailPage() {
 
   const age = calculateAge(patient.dob)
   const hasAllergies = patient.allergies !== 'なし'
+  const attentionFlags = getAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
 
   return (
@@ -123,9 +113,15 @@ export default function PatientDetailPage() {
               >
                 {patient.status === 'active' ? '利用中' : '休止'}
               </Badge>
-              <Badge variant="outline" className={cn('border text-xs', getRiskClass(patient.riskScore))}>
-                リスク {patient.riskScore}
-              </Badge>
+              {attentionFlags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {attentionFlags.slice(0, 4).map((flag) => (
+                    <Badge key={flag.key} variant="outline" className={cn('border text-xs', getAttentionFlagClass(flag.tone))}>
+                      {flag.label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <p className="text-xs text-gray-400">{patient.id}</p>
           </div>
@@ -316,43 +312,26 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Risk Score visual */}
+      {/* Attention flags */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <AlertTriangle className="h-4 w-4 text-amber-400" />
-            リスクスコア
+            注意フラグ
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
-            <span
-              className={cn(
-                'flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold',
-                getRiskBarTrack(patient.riskScore),
-                patient.riskScore <= 3
-                  ? 'text-emerald-300'
-                  : patient.riskScore <= 6
-                    ? 'text-amber-300'
-                    : 'text-rose-300'
-              )}
-            >
-              {patient.riskScore}
-            </span>
-            <div className="flex-1">
-              <div className={cn('h-3 w-full rounded-full', getRiskBarTrack(patient.riskScore))}>
-                <div
-                  className={cn('h-3 rounded-full transition-all', getRiskBarColor(patient.riskScore))}
-                  style={{ width: `${patient.riskScore * 10}%` }}
-                />
-              </div>
-              <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-                <span>0 (低)</span>
-                <span>5 (中)</span>
-                <span>10 (高)</span>
-              </div>
+          {attentionFlags.length === 0 ? (
+            <p className="text-sm text-gray-400">注意フラグはありません。</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {attentionFlags.map((flag) => (
+                <Badge key={flag.key} variant="outline" className={cn('border text-xs', getAttentionFlagClass(flag.tone))}>
+                  {flag.label}
+                </Badge>
+              ))}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
