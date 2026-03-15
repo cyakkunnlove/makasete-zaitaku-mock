@@ -46,6 +46,12 @@ const yen = new Intl.NumberFormat('ja-JP', {
   maximumFractionDigits: 0,
 })
 
+const patientCollectionRecords = [
+  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10' },
+  { id: 'COL-02', patientName: '清水 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12' },
+  { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05' },
+]
+
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
@@ -56,16 +62,15 @@ export default function BillingPage() {
   const [toastMessage, setToastMessage] = useState('')
 
   const summary = useMemo(() => {
-    const totalBilled = records.reduce((sum, record) => sum + record.total, 0)
-    const collected = records
-      .filter((record) => record.status === 'paid')
-      .reduce((sum, record) => sum + record.total, 0)
-    const outstanding = records
-      .filter((record) => record.status !== 'paid')
-      .reduce((sum, record) => sum + record.total, 0)
+    const source = role === 'pharmacy_staff'
+      ? patientCollectionRecords.map((r) => ({ total: r.amount, status: r.status }))
+      : records.map((r) => ({ total: r.total, status: r.status }))
+    const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
+    const collected = source.filter((record) => record.status === 'paid').reduce((sum, record) => sum + record.total, 0)
+    const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
 
     return { totalBilled, collected, outstanding }
-  }, [records])
+  }, [records, role])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -78,6 +83,48 @@ export default function BillingPage() {
     )
     setToastMessage(`${pharmacyName} の入金を確認しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  if (role === 'pharmacy_staff') {
+    return (
+      <div className="space-y-4 text-gray-100">
+        <div>
+          <h1 className="text-lg font-semibold text-white">回収管理</h1>
+          <p className="text-xs text-gray-400">患者への請求・未回収・入金確認を管理</p>
+        </div>
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">回収済み</CardDescription><CardTitle className="text-xl text-emerald-300">{yen.format(summary.collected)}</CardTitle></CardHeader></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">未回収</CardDescription><CardTitle className="text-xl text-amber-300">{yen.format(summary.outstanding)}</CardTitle></CardHeader></Card>
+        </section>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
+                  <TableHead className="text-gray-400">患者名</TableHead>
+                  <TableHead className="text-gray-400">対象月</TableHead>
+                  <TableHead className="text-right text-gray-400">請求額</TableHead>
+                  <TableHead className="text-gray-400">期限</TableHead>
+                  <TableHead className="text-gray-400">状態</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {patientCollectionRecords.map((record) => (
+                  <TableRow key={record.id} className="border-[#2a3553] hover:bg-[#11182c]">
+                    <TableCell className="font-medium text-white">{record.patientName}</TableCell>
+                    <TableCell className="text-gray-300">{record.month}</TableCell>
+                    <TableCell className="text-right text-gray-300">{yen.format(record.amount)}</TableCell>
+                    <TableCell className="text-gray-300">{record.dueDate}</TableCell>
+                    <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

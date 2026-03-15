@@ -352,32 +352,33 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         </div>
       )}
 
-      {/* FAX Status */}
-      <div className="space-y-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-          <FileImage className="h-4 w-4 text-indigo-400" />
-          送信済みFAX
-        </h2>
-        {mockPharmacyRequests.map((req) => (
-          <Card key={req.id} className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">{req.patientName}</p>
-                  <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
+      {!isDayPharmacist && (
+        <div className="space-y-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+            <FileImage className="h-4 w-4 text-indigo-400" />
+            送信済みFAX
+          </h2>
+          {mockPharmacyRequests.map((req) => (
+            <Card key={req.id} className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">{req.patientName}</p>
+                    <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
+                  </div>
+                  <Badge variant="outline" className={cn('border text-xs',
+                    req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                    req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                    'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                  )}>
+                    {req.status}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className={cn('border text-xs',
-                  req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                  req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                  'bg-sky-500/20 text-sky-300 border-sky-500/30'
-                )}>
-                  {req.status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
