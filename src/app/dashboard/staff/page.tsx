@@ -108,10 +108,17 @@ export default function StaffPage() {
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
 
+  const visibleStaffMembers = useMemo(() => {
+    if (role === 'pharmacy_admin') {
+      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff', 'day_pharmacist'].includes(member.role) && member.email.endsWith('@jonan-ph.jp'))
+    }
+    return staffMembers
+  }, [role, staffMembers])
+
   const filteredStaff = useMemo(() => {
-    if (activeFilter === 'all') return staffMembers
-    return staffMembers.filter((member) => member.role === activeFilter)
-  }, [activeFilter, staffMembers])
+    if (activeFilter === 'all') return visibleStaffMembers
+    return visibleStaffMembers.filter((member) => member.role === activeFilter)
+  }, [activeFilter, visibleStaffMembers])
 
   const handleAddStaff = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -119,7 +126,7 @@ export default function StaffPage() {
     const newStaff: StaffItem = {
       id: `ST-${Date.now()}`,
       name: formData.name,
-      role: formData.role,
+      role: role === 'pharmacy_admin' && formData.role === 'night_pharmacist' ? 'pharmacy_staff' : formData.role,
       phone: formData.phone,
       email: formData.email,
       status: formData.status,
@@ -150,7 +157,7 @@ export default function StaffPage() {
     return shifts.find((s) => s.pharmacistId === pharmacistId && s.shiftDate === date)
   }
 
-  if (role !== 'regional_admin') {
+  if (role !== 'regional_admin' && role !== 'pharmacy_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
@@ -165,8 +172,8 @@ export default function StaffPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">スタッフ管理</h1>
-          <p className="text-xs text-gray-400">スタッフ情報とシフトを管理</p>
+          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? 'スタッフ管理' : '自店スタッフ管理'}</h1>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? 'スタッフ情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
         </div>
 
         {pageTab === 'staff' && (
@@ -181,7 +188,8 @@ export default function StaffPage() {
       </div>
 
       {/* Page-level tabs */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      
+      {role === 'regional_admin' && (<Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="p-4">
           <Tabs value={pageTab} onValueChange={(value) => setPageTab(value as PageTab)}>
             <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#11182c] p-1">
@@ -202,10 +210,10 @@ export default function StaffPage() {
             </TabsList>
           </Tabs>
         </CardContent>
-      </Card>
+      </Card>)}
 
       {/* ===== Staff List Tab ===== */}
-      {pageTab === 'staff' && (
+      {(role === 'pharmacy_admin' || pageTab === 'staff') && (
         <>
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardContent className="p-4">
@@ -283,7 +291,7 @@ export default function StaffPage() {
       )}
 
       {/* ===== Shift Management Tab ===== */}
-      {pageTab === 'shift' && (
+      {role === 'regional_admin' && pageTab === 'shift' && (
         <>
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardHeader className="pb-2">

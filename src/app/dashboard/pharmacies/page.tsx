@@ -84,7 +84,7 @@ function getForwardingSummary(setting: ForwardingSetting) {
 }
 
 export default function PharmaciesPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const [pharmacies, setPharmacies] = useState<PharmacyItem[]>(pharmacyData)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [forwardingSettings, setForwardingSettings] = useState<Record<string, ForwardingSetting>>(initialForwardingSettings)
@@ -96,13 +96,20 @@ export default function PharmaciesPage() {
     status: 'pending' as PharmacyStatus,
   })
 
+  const visiblePharmacies = useMemo(() => {
+    if (role === 'pharmacy_admin' && user?.pharmacy_id) {
+      return pharmacies.filter((pharmacy) => pharmacy.id === user.pharmacy_id)
+    }
+    return pharmacies
+  }, [pharmacies, role, user?.pharmacy_id])
+
   const summary = useMemo(() => {
-    const total = pharmacies.length
-    const active = pharmacies.filter((pharmacy) => pharmacy.status === 'active').length
-    const autoManaged = Object.values(forwardingSettings).filter((setting) => setting.mode === 'auto').length
+    const total = visiblePharmacies.length
+    const active = visiblePharmacies.filter((pharmacy) => pharmacy.status === 'active').length
+    const autoManaged = visiblePharmacies.filter((pharmacy) => forwardingSettings[pharmacy.id]?.mode === 'auto').length
 
     return { total, active, autoManaged }
-  }, [pharmacies, forwardingSettings])
+  }, [visiblePharmacies, forwardingSettings])
 
   const updateForwardingMode = (id: string, mode: ForwardingMode) => {
     setForwardingSettings((prev) => ({
@@ -160,14 +167,16 @@ export default function PharmaciesPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">加盟店管理</h1>
-          <p className="text-xs text-gray-400">加盟薬局の契約状態と転送運用を管理</p>
+          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '加盟店管理' : '自店設定'}</h1>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟薬局の契約状態と転送運用を管理' : '自店の転送運用と基本設定を確認'}</p>
         </div>
 
-        <Button onClick={() => setDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
-          <Plus className="h-4 w-4" />
-          加盟店を追加
-        </Button>
+        {role === 'regional_admin' && (
+          <Button onClick={() => setDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+            <Plus className="h-4 w-4" />
+            加盟店を追加
+          </Button>
+        )}
       </div>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -192,7 +201,7 @@ export default function PharmaciesPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {pharmacies.map((pharmacy) => {
+        {visiblePharmacies.map((pharmacy) => {
           const setting = forwardingSettings[pharmacy.id] ?? { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' }
           const forwarding = getForwardingSummary(setting)
 
