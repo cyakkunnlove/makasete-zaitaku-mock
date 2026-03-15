@@ -52,6 +52,7 @@ const mobileNavItems: NavItem[] = [
 
 function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/settings/')) return 'settings'
+  if (pathname.startsWith('/dashboard/requests/')) return 'requestDetail'
   if (pathname.startsWith('/dashboard/requests')) return 'requests'
   if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
   if (pathname.startsWith('/dashboard/patients')) return 'patients'

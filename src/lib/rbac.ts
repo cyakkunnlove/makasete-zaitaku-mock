@@ -3,6 +3,7 @@ import type { UserRole } from '@/types/database'
 export type PermissionKey =
   | 'dashboard'
   | 'requests'
+  | 'requestDetail'
   | 'assign'
   | 'handovers'
   | 'pharmacies'
@@ -19,6 +20,7 @@ export type PermissionKey =
 export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
   dashboard: ['admin', 'pharmacy_admin', 'pharmacy_staff', 'pharmacist'],
   requests: ['admin', 'pharmacy_admin', 'pharmacy_staff'],
+  requestDetail: ['pharmacy_admin', 'pharmacy_staff'],
   assign: ['admin'],
   handovers: ['pharmacy_admin'],
   pharmacies: ['admin'],
