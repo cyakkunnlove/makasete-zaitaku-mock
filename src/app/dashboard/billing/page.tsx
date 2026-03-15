@@ -95,6 +95,24 @@ export default function BillingPage() {
     return [...dayTaskCollectionRecords, ...manualOnly]
   }, [collectionRecords, dayTaskCollectionRecords])
 
+  const patientVisitHistory = useMemo(() => {
+    return ownPatients.map((patient) => {
+      const tasks = dayTaskData.filter((task) => task.patientId === patient.id)
+      const billedVisits = tasks.filter((task) => task.billable).length
+      const collectedVisits = tasks.filter((task) => task.collectionStatus === '入金済').length
+      const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
+      return {
+        patientId: patient.id,
+        patientName: patient.name,
+        visitCount: tasks.length,
+        billedVisits,
+        collectedVisits,
+        lastVisitAt: lastVisit?.completedAt ?? '—',
+        tasks,
+      }
+    })
+  }, [ownPatients])
+
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff'
       ? mergedCollectionRecords.filter((r) => r.billable).map((r) => ({ total: r.amount, status: r.status }))
@@ -128,7 +146,7 @@ export default function BillingPage() {
       <div className="space-y-4 text-gray-100">
         <div>
           <h1 className="text-lg font-semibold text-white">回収管理</h1>
-          <p className="text-xs text-gray-400">day task の handled-by / handled-at / billable と紐づいた回収候補を管理</p>
+          <p className="text-xs text-gray-400">在宅薬局の訪問実績・算定金額・回収状況を患者別に管理</p>
         </div>
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
@@ -138,8 +156,28 @@ export default function BillingPage() {
 
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-gray-300">
-            <span>day_pharmacist の完了タスクが billable になると、ここで linked task として見える想定です。</span>
-            <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">mock linkage</Badge>
+            <span>在宅訪問の点数・請求額・回収状況を、day task と患者別履歴の両方から確認できます。</span>
+            <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">BtoC collection</Badge>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white">患者別 回収到達状況</CardTitle>
+            <CardDescription className="text-gray-400">どこまでの訪問分を請求・回収できているかを一覧化</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {patientVisitHistory.map((item) => (
+              <div key={item.patientId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">{item.patientName}</p>
+                    <p className="text-[11px] text-gray-500">最終訪問: {item.lastVisitAt}</p>
+                  </div>
+                  <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -149,9 +187,9 @@ export default function BillingPage() {
               <TableHeader>
                 <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
                   <TableHead className="text-gray-400">患者名</TableHead>
-                  <TableHead className="text-gray-400">day task</TableHead>
-                  <TableHead className="text-gray-400">handled-by / at</TableHead>
-                  <TableHead className="text-gray-400">billable</TableHead>
+                  <TableHead className="text-gray-400">訪問回 / task</TableHead>
+                  <TableHead className="text-gray-400">対応者 / 時刻</TableHead>
+                  <TableHead className="text-gray-400">算定・請求対象</TableHead>
                   <TableHead className="text-right text-gray-400">請求額</TableHead>
                   <TableHead className="text-gray-400">状態</TableHead>
                   <TableHead className="text-right text-gray-400">操作</TableHead>
@@ -166,15 +204,19 @@ export default function BillingPage() {
                         <Link2 className="h-3.5 w-3.5 text-indigo-300" />
                         {record.linkedTaskId}
                       </div>
+                      <p className="mt-1 text-[11px] text-gray-500">訪問回: {record.linkedTaskId?.slice(-2)}</p>
                     </TableCell>
                     <TableCell className="text-xs text-gray-300">
                       <p>{record.handledBy ?? '未対応'}</p>
                       <p className="text-gray-500">{record.handledAt ?? '—'}</p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={cn('border text-xs', record.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                        {record.billable ? '請求対象' : '未計上'}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className={cn('border text-xs', record.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
+                          {record.billable ? '請求対象' : '未計上'}
+                        </Badge>
+                        <p className="text-[11px] text-gray-500">在宅訪問 管理料/薬剤料ベースのモック算定</p>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right text-gray-300">
                       <Input type="number" value={record.amount} onChange={(e) => setCollectionRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, amount: Number(e.target.value) || 0 } : r))} className="h-8 w-28 border-[#2a3553] bg-[#11182c] text-right" disabled={!record.billable} />
