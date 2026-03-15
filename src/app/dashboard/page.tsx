@@ -25,7 +25,7 @@ import {
   FileImage,
   Shield,
 } from 'lucide-react'
-import { patientData, getAttentionFlags, getAttentionFlagClass, kpiData, nightStaff } from '@/lib/mock-data'
+import { getAttentionFlags, getAttentionFlagClass, kpiData, nightStaff, getPatientsByPharmacy } from '@/lib/mock-data'
 
 // ─── Mock Data ───
 
@@ -182,13 +182,17 @@ const nightSearchCandidates = [
 
 function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: boolean }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const ownPharmacyId = 'PH-01'
+  const ownPatients = useMemo(() => getPatientsByPharmacy(ownPharmacyId), [ownPharmacyId])
 
   const enrichedVisits = useMemo(() => {
-    return pharmacyTodayVisits.map((visit) => {
-      const patient = patientData.find((p) => p.id === visit.patientId)
-      return { ...visit, patient }
-    })
-  }, [])
+    return pharmacyTodayVisits
+      .filter((visit) => ownPatients.some((p) => p.id === visit.patientId))
+      .map((visit) => {
+        const patient = ownPatients.find((p) => p.id === visit.patientId)
+        return { ...visit, patient }
+      })
+  }, [ownPatients])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -198,10 +202,9 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
 
   const filteredMasterPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    const ownPatients = patientData.filter((p) => p.pharmacyId === 'PH-01')
     if (!query) return ownPatients
     return ownPatients.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query))
-  }, [searchQuery])
+  }, [searchQuery, ownPatients])
 
   const completedCount = pharmacyTodayVisits.filter((v) => v.status === 'completed').length
   const upcomingCount = pharmacyTodayVisits.filter((v) => v.status === 'upcoming').length
@@ -212,7 +215,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-white">{pharmacyTodayVisits.length}</p>
+            <p className="text-2xl font-bold text-white">{enrichedVisits.length}</p>
             <p className="text-[10px] text-gray-500">本日合計</p>
           </CardContent>
         </Card>
@@ -319,7 +322,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
           <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
             <Building2 className="h-4 w-4 text-indigo-400" />
             本日の訪問予定
-            <span className="text-xs font-normal text-gray-500">{pharmacyTodayVisits.length}件</span>
+            <span className="text-xs font-normal text-gray-500">{enrichedVisits.length}件</span>
           </h2>
           <div className="space-y-2">
             {filteredVisits.map((visit) => {

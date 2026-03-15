@@ -185,6 +185,11 @@ export const patientData: PatientRecord[] = [
   { id: 'PT-010', name: '高田 恒一', dob: '1960-02-25', address: '東京都渋谷区神宮前2-18-5', pharmacyId: 'PH-09', pharmacyName: '渋谷ひまわり薬局', riskScore: 3, emergencyContact: { name: '高田 由美', relation: '妻', phone: '080-1122-3344' }, doctor: { name: '木村 恒一', clinic: '渋谷在宅内科', phone: '03-5774-3300' }, medicalHistory: '高血圧、軽度糖尿病', allergies: 'なし', currentMeds: 'アムロジピン、メトホルミン', visitNotes: '【暗証番号】オートロック: 1234。エレベーターで3階\n【配薬場所】キッチンカウンター上のお薬ボックス\n【ペット】猫1匹（室内飼い）。ドア開閉時の脱走注意', insuranceInfo: '協会けんぽ 3割負担', diseaseName: '高血圧、軽度糖尿病', status: 'active' },
 ]
 
+
+export function getPatientsByPharmacy(pharmacyId: string) {
+  return patientData.filter((patient) => patient.pharmacyId === pharmacyId)
+}
+
 // ─── Requests ───
 export interface RequestItem {
   id: string

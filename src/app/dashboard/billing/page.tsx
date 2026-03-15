@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils'
 import { CheckCircle, FileText, Layers } from 'lucide-react'
 
-import { billingData, type BillingRecord } from '@/lib/mock-data'
+import { billingData, patientData, type BillingRecord } from '@/lib/mock-data'
 
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
@@ -46,7 +46,7 @@ const yen = new Intl.NumberFormat('ja-JP', {
   maximumFractionDigits: 0,
 })
 
-const patientCollectionRecords = [
+const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10', note: '口座振替完了' },
   { id: 'COL-02', patientName: '清水 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12', note: '電話フォロー予定' },
   { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち' },
@@ -55,23 +55,29 @@ const patientCollectionRecords = [
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
-  const [collectionRecords, setCollectionRecords] = useState(patientCollectionRecords)
+  const [collectionRecords, setCollectionRecords] = useState(initialPatientCollectionRecords)
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [toastMessage, setToastMessage] = useState('')
+  const ownPharmacyId = 'PH-01'
+
+  const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
+  const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
+
+  const scopedCollectionRecords = useMemo(() => collectionRecords.filter((record) => ownPatientNames.has(record.patientName)), [collectionRecords, ownPatientNames])
 
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff'
-      ? collectionRecords.map((r) => ({ total: r.amount, status: r.status }))
+      ? scopedCollectionRecords.map((r) => ({ total: r.amount, status: r.status }))
       : records.map((r) => ({ total: r.total, status: r.status }))
     const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
     const collected = source.filter((record) => record.status === 'paid').reduce((sum, record) => sum + record.total, 0)
     const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
 
     return { totalBilled, collected, outstanding }
-  }, [records, collectionRecords, role])
+  }, [records, scopedCollectionRecords, role])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -118,11 +124,18 @@ export default function BillingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {collectionRecords.map((record) => (
+                {scopedCollectionRecords.map((record) => (
                   <TableRow key={record.id} className="border-[#2a3553] hover:bg-[#11182c]">
                     <TableCell className="font-medium text-white">{record.patientName}</TableCell>
                     <TableCell className="text-gray-300">{record.month}</TableCell>
-                    <TableCell className="text-right text-gray-300">{yen.format(record.amount)}</TableCell>
+                    <TableCell className="text-right text-gray-300">
+                      <Input
+                        type="number"
+                        value={record.amount}
+                        onChange={(e) => setCollectionRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, amount: Number(e.target.value) || 0 } : r))}
+                        className="h-8 w-28 border-[#2a3553] bg-[#11182c] text-right"
+                      />
+                    </TableCell>
                     <TableCell className="text-gray-300">{record.dueDate}</TableCell>
                     <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
                     <TableCell className="text-right">
