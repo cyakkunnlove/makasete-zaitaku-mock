@@ -101,6 +101,8 @@ export default function BillingPage() {
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [toastMessage, setToastMessage] = useState('')
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null)
+  const [collapsedPatientIds, setCollapsedPatientIds] = useState<Set<string>>(new Set())
+  const [selectedVisitKey, setSelectedVisitKey] = useState<string | null>(null)
   const ownPharmacyId = 'PH-01'
 
   const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
@@ -187,6 +189,20 @@ export default function BillingPage() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
+  const togglePatientCard = (patientId: string) => {
+    setCollapsedPatientIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(patientId)) {
+        next.delete(patientId)
+      } else {
+        next.add(patientId)
+      }
+      return next
+    })
+    setExpandedPatientId((prev) => (prev === patientId ? null : prev))
+    setSelectedVisitKey((prev) => (prev?.startsWith(`${patientId}:`) ? null : prev))
+  }
+
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className="space-y-4 text-gray-100">
@@ -225,10 +241,13 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
-                      <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '閉じる' : '詳細を見る'}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '詳細を閉じる' : '詳細を見る'}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => togglePatientCard(item.patientId)} className="text-gray-300 hover:bg-white/5 hover:text-white">{collapsedPatientIds.has(item.patientId) ? '開く' : '閉じる'}</Button>
                     </div>
                   </div>
 
+                  {!collapsedPatientIds.has(item.patientId) && (
+                    <>
                   <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
                     <p className="mb-2 text-xs text-gray-400">{item.calendarYear}年{item.calendarMonth + 1}月</p>
                     <div className="mb-1 grid grid-cols-7 gap-1">
@@ -244,10 +263,17 @@ export default function BillingPage() {
                         const day = i + 1
                         const dateKey = `${item.calendarYear}-${String(item.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                         const visit = visitMap.get(dateKey)
+                        const visitKey = `${item.patientId}:${dateKey}`
+                        const actionable = visit && visit.status !== 'paid'
                         return (
-                          <div key={dateKey} className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'bg-[#11182c] text-gray-600')}>
+                          <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => { if (actionable) { setExpandedPatientId(item.patientId); setSelectedVisitKey(selectedVisitKey === visitKey ? null : visitKey) } }}
+                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'bg-[#11182c] text-gray-600', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60')}
+                          >
                             {day}
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -260,16 +286,47 @@ export default function BillingPage() {
 
                   {expandedPatientId === item.patientId && (
                     <div className="mt-3 space-y-2">
-                      {item.visits.map((visit) => (
-                        <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
-                          <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
-                          <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
-                          <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
-                          <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
-                          <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
-                        </div>
-                      ))}
+                      {item.visits.map((visit) => {
+                        return (
+                          <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
+                            <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
+                            <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
+                            <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
+                            <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
+                            <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
+                          </div>
+                        )
+                      })}
+
+                      {(() => {
+                        const selectedVisit = item.visits.find((visit) => `${item.patientId}:${visit.visitDate}` === selectedVisitKey)
+                        if (!selectedVisit || selectedVisit.status === 'paid') return null
+                        return (
+                          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium text-white">未回収対応フロー</p>
+                                <p className="text-xs text-gray-400">{selectedVisit.visitDate} / {yen.format(selectedVisit.amount)}</p>
+                              </div>
+                              <Badge variant="outline" className={cn('border text-xs', statusClass[selectedVisit.status])}>{statusLabel[selectedVisit.status]}</Badge>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                              <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">患者へ連絡</Button>
+                              <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再請求メモ作成</Button>
+                              {selectedVisit.status === 'unpaid' ? (
+                                <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-600/90">期限超過へ</Button>
+                              ) : (
+                                <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">対応完了にする</Button>
+                              )}
+                            </div>
+                            <p className="mt-3 text-[11px] text-gray-400">未回収・期限超過の日付セルを押すと、この処理導線が下に表示されます。</p>
+                          </div>
+                        )
+                      })()}
                     </div>
+                  )}
+
+                  </>
                   )}
                 </div>
               )
