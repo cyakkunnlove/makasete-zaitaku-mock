@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import type { BillingStatus } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
@@ -108,6 +108,10 @@ export default function BillingPage() {
   const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
 
+  useEffect(() => {
+    setCollapsedPatientIds((prev) => (prev.size > 0 ? prev : new Set(ownPatients.map((patient) => patient.id))))
+  }, [ownPatients])
+
   const dayTaskCollectionRecords = useMemo(() => {
     return dayTaskData
       .filter((task) => task.pharmacyId === ownPharmacyId)
@@ -199,7 +203,7 @@ export default function BillingPage() {
       }
       return next
     })
-    setExpandedPatientId((prev) => (prev === patientId ? null : prev))
+    setExpandedPatientId((prev) => (prev === patientId ? null : patientId))
     setSelectedVisitKey((prev) => (prev?.startsWith(`${patientId}:`) ? null : prev))
   }
 
@@ -234,6 +238,11 @@ export default function BillingPage() {
               const visitMap = new Map(item.visits.map((visit) => [visit.visitDate, visit]))
               return (
                 <div key={item.patientId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <button
+                    type="button"
+                    onClick={() => togglePatientCard(item.patientId)}
+                    className="w-full text-left"
+                  >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-medium text-white">{item.patientName}</p>
@@ -241,10 +250,10 @@ export default function BillingPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
-                      <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '詳細を閉じる' : '詳細を見る'}</Button>
-                      <Button size="sm" variant="ghost" onClick={() => togglePatientCard(item.patientId)} className="text-gray-300 hover:bg-white/5 hover:text-white">{collapsedPatientIds.has(item.patientId) ? '開く' : '閉じる'}</Button>
+                      <span className="text-xs text-gray-400">{collapsedPatientIds.has(item.patientId) ? 'タップで開く' : 'タップで閉じる'}</span>
                     </div>
                   </div>
+                  </button>
 
                   {!collapsedPatientIds.has(item.patientId) && (
                     <>
@@ -310,7 +319,24 @@ export default function BillingPage() {
                               </div>
                               <Badge variant="outline" className={cn('border text-xs', statusClass[selectedVisit.status])}>{statusLabel[selectedVisit.status]}</Badge>
                             </div>
-                            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                <p className="text-[11px] text-gray-500">STEP 1</p>
+                                <p className="mt-1 text-sm text-white">患者へ連絡</p>
+                                <p className="mt-1 text-[11px] text-gray-400">入金予定日・支払方法を確認</p>
+                              </div>
+                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                <p className="text-[11px] text-gray-500">STEP 2</p>
+                                <p className="mt-1 text-sm text-white">再請求メモ作成</p>
+                                <p className="mt-1 text-[11px] text-gray-400">連絡結果と次回フォロー日を残す</p>
+                              </div>
+                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                <p className="text-[11px] text-gray-500">STEP 3</p>
+                                <p className="mt-1 text-sm text-white">状態更新</p>
+                                <p className="mt-1 text-[11px] text-gray-400">未回収→期限超過 or 対応完了</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
                               <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">患者へ連絡</Button>
                               <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再請求メモ作成</Button>
                               {selectedVisit.status === 'unpaid' ? (
