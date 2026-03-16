@@ -77,6 +77,25 @@ function getAdminStatus(status: RequestStatus, patientId: string | null) {
   }
 }
 
+function getPharmacyStatus(status: RequestStatus) {
+  if (status === 'completed') {
+    return {
+      label: '完了',
+      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+    }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return {
+      label: '対応中',
+      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+    }
+  }
+  return {
+    label: '対応準備中',
+    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  }
+}
+
 const terminalStatuses: RequestStatus[] = ['completed', 'cancelled']
 
 function getSlaInfo(slaMet: boolean | null, status: RequestStatus) {
@@ -109,6 +128,8 @@ export default function RequestsPage() {
   const router = useRouter()
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
+  const isPharmacyAdmin = role === 'pharmacy_admin'
+  const ownPharmacyId = 'PH-01'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -122,22 +143,29 @@ export default function RequestsPage() {
 
   const canCreateRequest = role !== 'night_pharmacist'
 
+  const visibleRequests = useMemo(() => {
+    if (isPharmacyAdmin) {
+      return requestData.filter((request) => request.pharmacyId === ownPharmacyId)
+    }
+    return requestData
+  }, [isPharmacyAdmin])
+
   const filteredRequests = useMemo(() => {
     switch (activeTab) {
       case 'received':
-        return requestData.filter((request) =>
+        return visibleRequests.filter((request) =>
           ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(
             request.status
           )
         )
       case 'active':
-        return requestData.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status))
+        return visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status))
       case 'completed':
-        return requestData.filter((request) => request.status === 'completed')
+        return visibleRequests.filter((request) => request.status === 'completed')
       default:
-        return requestData
+        return visibleRequests
     }
-  }, [activeTab])
+  }, [activeTab, visibleRequests])
 
   const handleSubmitNewRequest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -149,7 +177,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">夜間受電依頼の進行状況をリアルタイムで管理</p>
+          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -163,9 +191,17 @@ export default function RequestsPage() {
         )}
       </div>
 
+      {isPharmacyAdmin && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">今夜の自局依頼</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応準備中</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+        </div>
+      )}
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">依頼ステータス</CardTitle>
+          <CardTitle className="text-base text-white">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
@@ -187,17 +223,19 @@ export default function RequestsPage() {
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
         {filteredRequests.map((request) => {
-          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : statusMeta[request.status]
+          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const slaInfo = getSlaInfo(request.slaMet, request.status)
           const patientLabel = isAdmin
             ? request.patientId
               ? '患者特定済'
               : '患者未特定'
-            : request.patientName ?? '患者未特定'
+            : isPharmacyAdmin
+              ? request.id
+              : request.patientName ?? '患者未特定'
 
           return (
-            <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
+            <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
                   'cursor-pointer border border-[#2a3553] bg-[#1a2035] border-l-4 transition hover:border-indigo-500/60',
@@ -249,29 +287,31 @@ export default function RequestsPage() {
             <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
               <TableHead className="text-gray-400">優先度</TableHead>
               <TableHead className="text-gray-400">受付時刻</TableHead>
-              <TableHead className="text-gray-400">{isAdmin ? '患者特定' : '患者名'}</TableHead>
+              <TableHead className="text-gray-400">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
               <TableHead className="text-gray-400">薬局名</TableHead>
               <TableHead className="text-gray-400">ステータス</TableHead>
               <TableHead className="text-gray-400">SLA</TableHead>
-              <TableHead className="text-gray-400">担当者</TableHead>
+              <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '担当者'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRequests.map((request) => {
-              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : statusMeta[request.status]
+              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
               const slaInfo = getSlaInfo(request.slaMet, request.status)
               const patientLabel = isAdmin
                 ? request.patientId
                   ? '患者特定済'
                   : '患者未特定'
-                : request.patientName ?? '患者未特定'
+                : isPharmacyAdmin
+                  ? request.id
+                  : request.patientName ?? '患者未特定'
 
               return (
                 <TableRow
                   key={request.id}
-                  onClick={() => router.push(`/dashboard/requests/${request.id}`)}
-                  className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
+                  onClick={() => { if (!isPharmacyAdmin) router.push(`/dashboard/requests/${request.id}`) }}
+                  className={cn('border-[#2a3553] hover:bg-[#11182c]', !isPharmacyAdmin && 'cursor-pointer')}
                 >
                   <TableCell>
                     <span className="inline-flex items-center gap-2">
@@ -281,11 +321,15 @@ export default function RequestsPage() {
                   </TableCell>
                   <TableCell className="text-gray-200">{request.receivedAt}</TableCell>
                   <TableCell>
-                    <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
-                      <span className="inline-flex items-center gap-2">
-                        {patientLabel}
-                      </span>
-                    </Link>
+                    {isPharmacyAdmin ? (
+                      <span className="inline-flex items-center gap-2 text-gray-200">{patientLabel}</span>
+                    ) : (
+                      <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
+                        <span className="inline-flex items-center gap-2">
+                          {patientLabel}
+                        </span>
+                      </Link>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-300">{request.pharmacyName}</TableCell>
                   <TableCell>
@@ -303,7 +347,7 @@ export default function RequestsPage() {
                       <span className="text-xs text-gray-500">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-gray-300">{request.assignee}</TableCell>
+                  <TableCell className="text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : request.assignee}</TableCell>
                 </TableRow>
               )
             })}
