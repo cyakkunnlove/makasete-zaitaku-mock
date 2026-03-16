@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
+import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
 
@@ -45,6 +45,28 @@ const yen = new Intl.NumberFormat('ja-JP', {
   currency: 'JPY',
   maximumFractionDigits: 0,
 })
+
+function getMonthDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  return { firstDay, daysInMonth }
+}
+
+function parseIsoDateParts(dateStr: string) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return { year, month, day }
+}
+
+function statusCalendarClass(status: BillingStatus) {
+  switch (status) {
+    case 'paid':
+      return 'bg-emerald-500 text-white'
+    case 'unpaid':
+      return 'bg-amber-500 text-[#11182c]'
+    case 'overdue':
+      return 'bg-rose-500 text-white'
+  }
+}
 
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
@@ -116,10 +138,12 @@ export default function BillingPage() {
   const patientVisitHistory = useMemo(() => {
     return ownPatients.map((patient) => {
       const tasks = dayTaskData.filter((task) => task.patientId === patient.id)
-      const billedVisits = tasks.filter((task) => task.billable).length
-      const collectedVisits = tasks.filter((task) => task.collectionStatus === '入金済').length
-      const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
       const visits = visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []
+      const billedVisits = visits.length
+      const collectedVisits = visits.filter((visit) => visit.status === 'paid').length
+      const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
+      const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? '2026-03-01'
+      const { year, month } = parseIsoDateParts(calendarMonth)
       return {
         patientId: patient.id,
         patientName: patient.name,
@@ -129,6 +153,8 @@ export default function BillingPage() {
         lastVisitAt: lastVisit?.completedAt ?? '—',
         tasks,
         visits,
+        calendarYear: year,
+        calendarMonth: month - 1,
       }
     })
   }, [ownPatients])
@@ -183,37 +209,71 @@ export default function BillingPage() {
 
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">患者別 回収到達状況</CardTitle>
-            <CardDescription className="text-gray-400">どこまでの訪問分を請求・回収できているかを一覧化</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-sm text-white"><CalendarDays className="h-4 w-4 text-indigo-400" />患者別 回収到達状況</CardTitle>
+            <CardDescription className="text-gray-400">訪問日ごとの回収状況をカレンダーで確認できます</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {patientVisitHistory.map((item) => (
-              <div key={item.patientId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-white">{item.patientName}</p>
-                    <p className="text-[11px] text-gray-500">最終訪問: {item.lastVisitAt}</p>
+          <CardContent className="space-y-3">
+            {patientVisitHistory.map((item) => {
+              const { firstDay, daysInMonth } = getMonthDays(item.calendarYear, item.calendarMonth)
+              const visitMap = new Map(item.visits.map((visit) => [visit.visitDate, visit]))
+              return (
+                <div key={item.patientId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-white">{item.patientName}</p>
+                      <p className="text-[11px] text-gray-500">最終訪問: {item.lastVisitAt}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                      <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '閉じる' : '詳細を見る'}</Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
-                    <Button size="sm" variant="ghost" onClick={() => setExpandedPatientId(expandedPatientId === item.patientId ? null : item.patientId)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">{expandedPatientId === item.patientId ? '閉じる' : '履歴を見る'}</Button>
+
+                  <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                    <p className="mb-2 text-xs text-gray-400">{item.calendarYear}年{item.calendarMonth + 1}月</p>
+                    <div className="mb-1 grid grid-cols-7 gap-1">
+                      {['日', '月', '火', '水', '木', '金', '土'].map((label, i) => (
+                        <div key={label} className={cn('text-center text-[10px] py-1', i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-gray-500')}>
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${item.patientId}-${i}`} className="h-10" />)}
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const day = i + 1
+                        const dateKey = `${item.calendarYear}-${String(item.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                        const visit = visitMap.get(dateKey)
+                        return (
+                          <div key={dateKey} className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'bg-[#11182c] text-gray-600')}>
+                            {day}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-gray-500">
+                      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />回収済み</span>
+                      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-amber-500" />未回収</span>
+                      <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-rose-500" />期限超過</span>
+                    </div>
                   </div>
+
+                  {expandedPatientId === item.patientId && (
+                    <div className="mt-3 space-y-2">
+                      {item.visits.map((visit) => (
+                        <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
+                          <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
+                          <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
+                          <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
+                          <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
+                          <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {expandedPatientId === item.patientId && (
-                  <div className="mt-3 space-y-2">
-                    {item.visits.map((visit) => (
-                      <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
-                        <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
-                        <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
-                        <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
-                        <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
-                        <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
 
