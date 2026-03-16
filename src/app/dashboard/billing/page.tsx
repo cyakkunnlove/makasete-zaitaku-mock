@@ -310,42 +310,72 @@ export default function BillingPage() {
                       {(() => {
                         const selectedVisit = item.visits.find((visit) => `${item.patientId}:${visit.visitDate}` === selectedVisitKey)
                         if (!selectedVisit || selectedVisit.status === 'paid') return null
+                        const isOverdue = selectedVisit.status === 'overdue'
                         return (
-                          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                          <div className={cn('rounded-lg p-4', isOverdue ? 'border border-rose-500/30 bg-rose-500/10' : 'border border-amber-500/30 bg-amber-500/10')}>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div>
-                                <p className="text-sm font-medium text-white">未回収対応フロー</p>
+                                <p className="text-sm font-medium text-white">{isOverdue ? '期限超過対応フロー' : '未回収対応フロー'}</p>
                                 <p className="text-xs text-gray-400">{selectedVisit.visitDate} / {yen.format(selectedVisit.amount)}</p>
                               </div>
                               <Badge variant="outline" className={cn('border text-xs', statusClass[selectedVisit.status])}>{statusLabel[selectedVisit.status]}</Badge>
                             </div>
                             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                <p className="text-[11px] text-gray-500">STEP 1</p>
-                                <p className="mt-1 text-sm text-white">患者へ連絡</p>
-                                <p className="mt-1 text-[11px] text-gray-400">入金予定日・支払方法を確認</p>
-                              </div>
-                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                <p className="text-[11px] text-gray-500">STEP 2</p>
-                                <p className="mt-1 text-sm text-white">再請求メモ作成</p>
-                                <p className="mt-1 text-[11px] text-gray-400">連絡結果と次回フォロー日を残す</p>
-                              </div>
-                              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                <p className="text-[11px] text-gray-500">STEP 3</p>
-                                <p className="mt-1 text-sm text-white">状態更新</p>
-                                <p className="mt-1 text-[11px] text-gray-400">未回収→期限超過 or 対応完了</p>
-                              </div>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">患者へ連絡</Button>
-                              <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再請求メモ作成</Button>
-                              {selectedVisit.status === 'unpaid' ? (
-                                <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-600/90">期限超過へ</Button>
+                              {isOverdue ? (
+                                <>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 1</p>
+                                    <p className="mt-1 text-sm text-white">再督促</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">最終督促日と相手の反応を残す</p>
+                                  </div>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 2</p>
+                                    <p className="mt-1 text-sm text-white">管理者確認</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">長期滞留なら管理者判断に上げる</p>
+                                  </div>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 3</p>
+                                    <p className="mt-1 text-sm text-white">状態更新</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">督促継続 or 対応完了へ更新</p>
+                                  </div>
+                                </>
                               ) : (
-                                <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">対応完了にする</Button>
+                                <>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 1</p>
+                                    <p className="mt-1 text-sm text-white">患者へ連絡</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">入金予定日・支払方法を確認</p>
+                                  </div>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 2</p>
+                                    <p className="mt-1 text-sm text-white">再請求メモ作成</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">連絡結果と次回フォロー日を残す</p>
+                                  </div>
+                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                                    <p className="text-[11px] text-gray-500">STEP 3</p>
+                                    <p className="mt-1 text-sm text-white">状態更新</p>
+                                    <p className="mt-1 text-[11px] text-gray-400">未回収→期限超過 or 対応完了</p>
+                                  </div>
+                                </>
                               )}
                             </div>
-                            <p className="mt-3 text-[11px] text-gray-400">未回収・期限超過の日付セルを押すと、この処理導線が下に表示されます。</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {isOverdue ? (
+                                <>
+                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再督促する</Button>
+                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">管理者確認へ</Button>
+                                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">対応完了にする</Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">患者へ連絡</Button>
+                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再請求メモ作成</Button>
+                                  <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-600/90">期限超過へ</Button>
+                                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>
+                                </>
+                              )}
+                            </div>
+                            <p className="mt-3 text-[11px] text-gray-400">未回収・期限超過の日付セルを押すと、その状態に応じた処理導線が下に表示されます。</p>
                           </div>
                         )
                       })()}
