@@ -48,8 +48,8 @@ const yen = new Intl.NumberFormat('ja-JP', {
 
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
-  { id: 'COL-02', patientName: '清水 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
-  { id: 'COL-03', patientName: '小川 正子', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
+  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
+  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
 const visitChargeHistory = {
@@ -57,12 +57,15 @@ const visitChargeHistory = {
     { visitId: 'V-001', prescriptionDate: '2026-03-01', visitDate: '2026-03-02', amount: 6400, status: 'paid' as BillingStatus },
     { visitId: 'V-002', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 6400, status: 'paid' as BillingStatus },
   ],
-  'PT-004': [
+  'PT-011': [
     { visitId: 'V-003', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 4700, status: 'paid' as BillingStatus },
     { visitId: 'V-004', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 4700, status: 'unpaid' as BillingStatus },
   ],
-  'PT-002': [
+  'PT-012': [
     { visitId: 'V-005', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 15600, status: 'overdue' as BillingStatus },
+  ],
+  'PT-013': [
+    { visitId: 'V-006', prescriptionDate: '2026-03-12', visitDate: '2026-03-13', amount: 11200, status: 'unpaid' as BillingStatus },
   ],
 }
 
