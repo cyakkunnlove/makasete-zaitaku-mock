@@ -131,7 +131,7 @@ export default function BillingPage() {
   }, [ownPatients])
 
   const summary = useMemo(() => {
-    const source = role === 'pharmacy_staff'
+    const source = role === 'pharmacy_staff' || role === 'pharmacy_admin'
       ? mergedCollectionRecords.filter((r) => r.billable).map((r) => ({ total: r.amount, status: r.status }))
       : records.map((r) => ({ total: r.total, status: r.status }))
     const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
@@ -158,7 +158,7 @@ export default function BillingPage() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
-  if (role === 'pharmacy_staff') {
+  if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className="space-y-4 text-gray-100">
         <div>
