@@ -247,7 +247,7 @@ export default function BillingPage() {
         amount: record.amount,
         status: 'unpaid' as BillingStatus,
         dueDate: '2026-03-25',
-        note: `未請求から請求済みに送付: ${record.note}`,
+        note: `請求処理へ回した訪問: ${record.note}`,
         linkedTaskId: record.linkedTaskId,
         handledBy: record.staffName,
         handledAt: `${record.visitDate} 18:00`,
@@ -256,7 +256,7 @@ export default function BillingPage() {
       ...prev,
     ])
     setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
-    setToastMessage(`${record.patientName} の未請求を回収管理へ送りました（モック）`)
+    setToastMessage(`${record.patientName} を請求処理に回しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
   }
 
@@ -279,7 +279,7 @@ export default function BillingPage() {
       <div className="space-y-4 text-gray-100">
         <div>
           <h1 className="text-lg font-semibold text-white">回収管理</h1>
-          <p className="text-xs text-gray-400">在宅薬局の訪問実績・算定金額・回収状況を患者別に管理</p>
+          <p className="text-xs text-gray-400">請求処理が終わった訪問について、入金確認や督促を行います</p>
         </div>
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
@@ -296,14 +296,14 @@ export default function BillingPage() {
 
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">未請求一覧</CardTitle>
-            <CardDescription className="text-gray-400">訪問実績から上がってきた請求待ちデータを確認して、請求処理へ送るレーンです</CardDescription>
+            <CardTitle className="text-sm text-white">請求処理が必要な訪問一覧</CardTitle>
+            <CardDescription className="text-gray-400">対応完了した訪問を確認して、請求処理へ回すための一覧です</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
                 <p className="text-2xl font-bold text-white">{unbilledVisitRecords.length}</p>
-                <p className="text-[10px] text-gray-500">未請求候補</p>
+                <p className="text-[10px] text-gray-500">請求処理が必要</p>
               </div>
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-300">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
@@ -338,7 +338,7 @@ export default function BillingPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">内容確認</Button>
                       <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">金額補正</Button>
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求済みに送る</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求処理に回す</Button>
                     </div>
                   </div>
                 ))}

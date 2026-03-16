@@ -429,7 +429,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
-                <p className="text-xs text-gray-400">「対応する」→「対応完了」で handled-by / handled-at / billable を更新。操作後 {UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。</p>
+                <p className="text-xs text-gray-400">今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 {UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
@@ -524,7 +524,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
                           <Button size="sm" onClick={() => handleCompleteTask(visit.id, visit.scheduledTime)} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
                             対応完了
                           </Button>
-                          <span className="text-[11px] text-gray-500">対応完了後は pharmacy_staff の回収管理で請求候補として扱う想定です。</span>
+                          <span className="text-[11px] text-gray-500">対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。</span>
                         </div>
                       </CardContent>
                     </Card>
