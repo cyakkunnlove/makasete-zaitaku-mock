@@ -48,10 +48,21 @@ function getAdminDisplayStatus(status: RequestStatus, patientId: string | null) 
   return { label: '受付', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
 }
 
+function getPharmacyDisplayStatus(status: RequestStatus) {
+  if (status === 'completed') {
+    return { label: '完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return { label: '対応中', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
+  }
+  return { label: '対応準備中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+}
+
 export default function RequestDetailPage() {
   const params = useParams()
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
+  const isPharmacyAdmin = role === 'pharmacy_admin'
   const id = params.id as string
 
   const request = requestData.find((r) => r.id === id)
@@ -88,7 +99,7 @@ export default function RequestDetailPage() {
   }
 
   const currentStep = requestStepIndex[request.status]
-  const status = isAdmin ? getAdminDisplayStatus(request.status, request.patientId) : statusMeta[request.status]
+  const status = isAdmin ? getAdminDisplayStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyDisplayStatus(request.status) : statusMeta[request.status]
   const priority = priorityMeta[request.priority]
   const attentionFlags = patient ? getAttentionFlags(patient) : []
   const currentChecklist = checklists[checklistType]
@@ -114,6 +125,82 @@ export default function RequestDetailPage() {
 
   const linkedAt = request.patientLinkedAt ? request.patientLinkedAt.split(' ')[1] : ''
   const patientResolved = Boolean(request.patientId)
+
+  if (isPharmacyAdmin) {
+    const latestEvent = request.timelineEvents[request.timelineEvents.length - 1]
+    return (
+      <div className="space-y-4 text-gray-100">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/requests">
+            <Button variant="outline" size="icon" className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
+            <p className="text-xs text-gray-400">自局依頼の進行状況サマリー</p>
+          </div>
+        </div>
+
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-sm font-medium text-white">{request.pharmacyName}</p>
+              <p className="text-xs text-gray-400">受付 {request.receivedDate} {request.receivedAt}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
+              <Badge variant="outline" className={cn('border text-xs', request.priority === 'high' ? 'border-rose-500/40 bg-rose-500/20 text-rose-300' : request.priority === 'normal' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-sky-500/40 bg-sky-500/20 text-sky-300')}>
+                <span className={cn('mr-1 inline-block h-2 w-2 rounded-full', priority.dot)} />優先度 {priority.label}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-white">薬局向け状況</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <span className="text-gray-400">現在の状況</span>
+                <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <p className="text-xs text-gray-500">最終更新</p>
+                <p className="mt-1 text-gray-200">{latestEvent?.timestamp ?? `${request.receivedDate} ${request.receivedAt}`}</p>
+                <p className="mt-1 text-xs text-gray-400">{latestEvent?.note ?? '依頼受付済み'}</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <p className="text-xs text-gray-500">担当状況</p>
+                <p className="mt-1 text-gray-200">{assignee ? `${assignee.name} が対応中` : '担当調整中'}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-white">朝の確認メモ</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-gray-300">
+              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <p className="text-xs text-gray-500">確認したいこと</p>
+                <p className="mt-1 text-gray-200">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
+              </div>
+              {request.notes && (
+                <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                  <p className="text-xs text-gray-500">共有メモ</p>
+                  <p className="mt-1 text-gray-200">{request.notes}</p>
+                </div>
+              )}
+              <p className="text-xs text-gray-500">薬局管理者画面では、患者詳細・FAX原本・内部アサイン工程は表示しません。</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   // Mock timeline events for this request
   const timelineEvents = isAdmin
@@ -532,14 +619,16 @@ export default function RequestDetailPage() {
       </Card>
 
       {/* Tabs: Checklist / Timeline */}
-      <Tabs defaultValue="checklist" className="space-y-3">
+      <Tabs defaultValue={isAdmin ? 'timeline' : 'checklist'} className="space-y-3">
         <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#111827] p-1">
-          <TabsTrigger
-            value="checklist"
-            className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
-          >
-            チェックリスト
-          </TabsTrigger>
+          {!isAdmin && (
+            <TabsTrigger
+              value="checklist"
+              className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+            >
+              チェックリスト
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="timeline"
             className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
@@ -548,8 +637,8 @@ export default function RequestDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Checklist Tab */}
-        <TabsContent value="checklist">
+        {/* Checklist Tab - hidden for admin */}
+        {!isAdmin && <TabsContent value="checklist">
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -627,7 +716,7 @@ export default function RequestDetailPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* Timeline Tab */}
         <TabsContent value="timeline">

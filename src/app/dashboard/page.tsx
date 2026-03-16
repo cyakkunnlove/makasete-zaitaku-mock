@@ -28,7 +28,7 @@ import {
   RotateCcw,
   Receipt,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, kpiData, nightStaff, type DayTaskItem } from '@/lib/mock-data'
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
 
 const mockFaxes = [
   { id: 'FAX-001', requestId: 'RQ-2401', from: '城南みらい薬局', patientName: '田中 優子', receivedAt: '22:15', status: 'confirmed' as const, patientId: 'PT-001' },
@@ -88,6 +88,10 @@ function collectionStatusMeta(status: DayTaskItem['collectionStatus']) {
 
 function RegionalAdminDashboard() {
   const slaRate = 94.2
+  const delayedRequests = requestData.filter((request) => ['fax_received', 'assigning', 'assigned'].includes(request.status)).length
+  const unassignedRequests = requestData.filter((request) => !request.assigneeId && request.status !== 'completed' && request.status !== 'cancelled').length
+  const urgentActiveRequests = requestData.filter((request) => request.priority === 'high' && ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+  const unconfirmedHandovers = handoverData.filter((handover) => !handover.confirmed).length
 
   return (
     <div className="space-y-4">
@@ -114,6 +118,35 @@ function RegionalAdminDashboard() {
           )
         })}
       </div>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            今すぐ確認したい案件
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
+              <p className="text-[10px] text-rose-200/80">高優先・対応中</p>
+              <p className="mt-1 text-2xl font-bold text-rose-300">{urgentActiveRequests}</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-[10px] text-amber-200/80">停滞気味案件</p>
+              <p className="mt-1 text-2xl font-bold text-amber-300">{delayedRequests}</p>
+            </div>
+            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
+              <p className="text-[10px] text-indigo-200/80">未割当</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-300">{unassignedRequests}</p>
+            </div>
+            <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
+              <p className="text-[10px] text-cyan-200/80">未確認申し送り</p>
+              <p className="mt-1 text-2xl font-bold text-cyan-300">{unconfirmedHandovers}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
@@ -197,6 +230,8 @@ const nightSearchCandidates = [
 ]
 
 function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: boolean }) {
+  const { role } = useAuth()
+  const isPharmacyAdmin = role === 'pharmacy_admin'
   const [searchQuery, setSearchQuery] = useState('')
   const [dayTasks, setDayTasks] = useState(dayTaskData)
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
@@ -237,6 +272,11 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
   const inProgressCount = dayTasks.filter((task) => task.status === 'in_progress').length
   const scheduledCount = dayTasks.filter((task) => task.status === 'scheduled').length
   const billableReadyCount = dayTasks.filter((task) => task.billable).length
+  const ownRequests = useMemo(() => requestData.filter((request) => request.pharmacyId === ownPharmacyId), [ownPharmacyId])
+  const ownRequestReadyCount = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
+  const ownRequestActiveCount = ownRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+  const ownRequestCompletedCount = ownRequests.filter((request) => request.status === 'completed').length
+  const ownPendingHandovers = useMemo(() => handoverData.filter((handover) => handover.pharmacyId === ownPharmacyId && !handover.confirmed), [ownPharmacyId])
 
   const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = dayTasks.find((task) => task.id === taskId)
@@ -280,6 +320,66 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
 
   return (
     <div className="space-y-4">
+      {isPharmacyAdmin && !isDayPharmacist && (
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-white">{ownRequests.length}</p>
+                <p className="text-[10px] text-gray-500">今夜の自局依頼</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-amber-300">{ownRequestReadyCount}</p>
+                <p className="text-[10px] text-gray-500">対応準備中</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-sky-300">{ownRequestActiveCount}</p>
+                <p className="text-[10px] text-gray-500">対応中</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="text-sm font-semibold text-white">自局の朝確認</p>
+                <p className="text-xs text-gray-400">申し送り・完了件数・未完了件数だけ先に把握できるようにしています。</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">完了 {ownRequestCompletedCount}件</Badge>
+                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">未確認申し送り {ownPendingHandovers.length}件</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {ownPendingHandovers.length > 0 && (
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-white">朝確認が必要な申し送り</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {ownPendingHandovers.map((handover) => (
+                  <div key={handover.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-white">{handover.patientName}</p>
+                        <p className="text-[11px] text-gray-500">{handover.timestamp} / {handover.pharmacistName}</p>
+                      </div>
+                      <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">未確認</Badge>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-300">{handover.recommendation}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
