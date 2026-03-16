@@ -126,7 +126,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     .map((item) => {
       if (item.href === '/dashboard/billing') {
         if (role === 'pharmacy_admin' || role === 'pharmacy_staff') return { ...item, label: '回収管理' }
-        if (role === 'system_admin' || role === 'regional_admin') return { ...item, label: '加盟店請求' }
+        if (role === 'system_admin') return { ...item, label: '加盟店請求' }
       }
       return item
     })

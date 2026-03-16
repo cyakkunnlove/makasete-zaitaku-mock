@@ -98,7 +98,7 @@ export default function MorePage() {
         if (role === 'pharmacy_admin' || role === 'pharmacy_staff') {
           return { ...item, label: '回収管理', description: '患者請求・未回収・入金確認' }
         }
-        if (role === 'system_admin' || role === 'regional_admin') {
+        if (role === 'system_admin') {
           return { ...item, label: '加盟店請求', description: '加盟店向け月次請求・入金確認' }
         }
       }

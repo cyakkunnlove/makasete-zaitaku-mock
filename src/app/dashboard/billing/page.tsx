@@ -279,7 +279,7 @@ export default function BillingPage() {
           <p className="text-xs text-gray-400">加盟店ごとの月次請求と回収状況を確認</p>
         </div>
 
-        {role === 'regional_admin' && (
+        {role === 'system_admin' && (
           <Button onClick={() => setBatchDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
             <Layers className="h-4 w-4" />
             一括請求書生成
