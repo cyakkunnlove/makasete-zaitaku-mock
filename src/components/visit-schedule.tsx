@@ -50,8 +50,8 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
   const [startWeek, setStartWeek] = useState(1) // 1=第1週開始, 2=第2週開始
   const [customDates, setCustomDates] = useState<Set<string>>(new Set(initialVisitDates ?? []))
 
-  // Generate visit dates based on pattern
-  const visitDates = useMemo(() => {
+  // Generate all candidate dates based on pattern
+  const candidateDates = useMemo(() => {
     if (pattern === 'custom') return customDates
 
     const dates = new Set<string>()
@@ -63,13 +63,11 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
       if (date.getDay() === dayOfWeek) {
         weekCount++
         if (pattern === 'weekly') {
-          if (weekCount <= 4) {
-            dates.add(formatLocalDateKey(date))
-          }
+          dates.add(formatLocalDateKey(date))
         } else if (pattern === 'biweekly') {
-          // startWeek: 1=第1,3週, 2=第2,4週
+          // startWeek: 1=第1,3,5週 / 2=第2,4週
           const isTargetWeek = startWeek === 1 ? weekCount % 2 === 1 : weekCount % 2 === 0
-          if (isTargetWeek && dates.size < 4) {
+          if (isTargetWeek) {
             dates.add(formatLocalDateKey(date))
           }
         }
@@ -78,7 +76,7 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
     return dates
   }, [pattern, dayOfWeek, startWeek, viewYear, viewMonth, customDates])
 
-  const monthVisitCount = visitDates.size
+  const monthVisitCount = candidateDates.size
   const isOverLimit = monthVisitCount > 4
 
   const toggleDate = (dateStr: string) => {
@@ -90,6 +88,8 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
     }
     setCustomDates(next)
   }
+
+  const [manualIncludedDates, setManualIncludedDates] = useState<Set<string>>(new Set())
 
   const { firstDay, daysInMonth } = getMonthDays(viewYear, viewMonth)
 
@@ -111,30 +111,61 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
     }
   }
 
-  // For auto-generated patterns, allow skipping individual dates
+  // For auto-generated patterns, default to first 4 active dates and allow manual swap within monthly 4-visit limit
   const [skippedDates, setSkippedDates] = useState<Set<string>>(new Set())
+  const defaultActiveDates = useMemo(() => {
+    if (pattern === 'custom') return candidateDates
+    return new Set(Array.from(candidateDates).slice(0, 4))
+  }, [candidateDates, pattern])
+
+  const effectiveDates = useMemo(() => {
+    if (pattern === 'custom') return candidateDates
+    const dates = new Set<string>()
+    defaultActiveDates.forEach((d) => {
+      if (!skippedDates.has(d)) dates.add(d)
+    })
+    manualIncludedDates.forEach((d) => {
+      if (candidateDates.has(d)) dates.add(d)
+    })
+    return dates
+  }, [candidateDates, defaultActiveDates, skippedDates, manualIncludedDates, pattern])
+
   const toggleSkip = (dateStr: string) => {
     if (pattern === 'custom') {
       toggleDate(dateStr)
       return
     }
-    const next = new Set(skippedDates)
-    if (next.has(dateStr)) {
-      next.delete(dateStr)
-    } else {
-      next.add(dateStr)
-    }
-    setSkippedDates(next)
-  }
 
-  const effectiveDates = useMemo(() => {
-    if (pattern === 'custom') return visitDates
-    const dates = new Set<string>()
-    visitDates.forEach((d) => {
-      if (!skippedDates.has(d)) dates.add(d)
-    })
-    return dates
-  }, [visitDates, skippedDates, pattern])
+    const isCurrentlyActive = effectiveDates.has(dateStr)
+    const isDefaultActive = defaultActiveDates.has(dateStr)
+    const isManualIncluded = manualIncludedDates.has(dateStr)
+
+    if (isCurrentlyActive) {
+      if (isDefaultActive) {
+        const nextSkipped = new Set(skippedDates)
+        nextSkipped.add(dateStr)
+        setSkippedDates(nextSkipped)
+      }
+      if (isManualIncluded) {
+        const nextManual = new Set(manualIncludedDates)
+        nextManual.delete(dateStr)
+        setManualIncludedDates(nextManual)
+      }
+      return
+    }
+
+    if (!candidateDates.has(dateStr) || effectiveCount >= 4) return
+
+    const nextSkipped = new Set(skippedDates)
+    nextSkipped.delete(dateStr)
+    setSkippedDates(nextSkipped)
+
+    if (!defaultActiveDates.has(dateStr)) {
+      const nextManual = new Set(manualIncludedDates)
+      nextManual.add(dateStr)
+      setManualIncludedDates(nextManual)
+    }
+  }
 
   const effectiveCount = effectiveDates.size
 
@@ -280,8 +311,9 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
               const day = i + 1
               const date = new Date(viewYear, viewMonth, day)
               const dateStr = formatLocalDateKey(date)
-              const isScheduled = visitDates.has(dateStr) && !skippedDates.has(dateStr)
-              const isSkipped = visitDates.has(dateStr) && skippedDates.has(dateStr)
+              const isCandidate = candidateDates.has(dateStr)
+              const isScheduled = pattern === 'custom' ? customDates.has(dateStr) : effectiveDates.has(dateStr)
+              const isSkipped = pattern !== 'custom' && isCandidate && !effectiveDates.has(dateStr)
               const isCustomSelected = pattern === 'custom' && customDates.has(dateStr)
               const isToday = dateStr === formatLocalDateKey(today)
               const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -331,7 +363,7 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
         <p className="text-[10px] text-gray-500">
           {pattern === 'custom'
             ? '日付をタップして訪問日を選択/解除できます'
-            : '自動生成された日程をタップしてスキップ/復帰できます。第5週への振替はカスタム日で追加対応します。'}
+            : '同じ曜日が5回ある月は、候補日の中から4回まで選択できます。ON/OFFを切り替えて今月の4回を調整してください。'}
         </p>
       </CardContent>
     </Card>
