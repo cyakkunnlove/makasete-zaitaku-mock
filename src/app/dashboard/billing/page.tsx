@@ -103,6 +103,7 @@ export default function BillingPage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null)
   const [collapsedPatientIds, setCollapsedPatientIds] = useState<Set<string>>(new Set())
   const [selectedVisitKey, setSelectedVisitKey] = useState<string | null>(null)
+  const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const ownPharmacyId = 'PH-01'
 
   const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
@@ -185,7 +186,8 @@ export default function BillingPage() {
         }
       })
       .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
-  }, [mergedCollectionRecords, ownPharmacyId])
+      .filter((record) => !processedUnbilledIds.has(record.id))
+  }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds])
 
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff' || role === 'pharmacy_admin'
@@ -212,6 +214,36 @@ export default function BillingPage() {
   const updateCollectionStatus = (recordId: string, status: BillingStatus) => {
     setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status } : r)))
     setToastMessage(`回収状況を更新しました（モック）`)
+    setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  const sendUnbilledToCollections = (record: {
+    id: string
+    linkedTaskId: string
+    patientName: string
+    amount: number
+    note: string
+    staffName: string
+    visitDate: string
+  }) => {
+    setCollectionRecords((prev) => [
+      {
+        id: `COL-${record.linkedTaskId}`,
+        patientName: record.patientName,
+        month: record.visitDate.slice(0, 7),
+        amount: record.amount,
+        status: 'unpaid' as BillingStatus,
+        dueDate: '2026-03-25',
+        note: `未請求から請求済みに送付: ${record.note}`,
+        linkedTaskId: record.linkedTaskId,
+        handledBy: record.staffName,
+        handledAt: `${record.visitDate} 18:00`,
+        billable: true,
+      },
+      ...prev,
+    ])
+    setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
+    setToastMessage(`${record.patientName} の未請求を回収管理へ送りました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
   }
 
@@ -293,7 +325,7 @@ export default function BillingPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">内容確認</Button>
                       <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">金額補正</Button>
-                      <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求済みに送る</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求済みに送る</Button>
                     </div>
                   </div>
                 ))}
