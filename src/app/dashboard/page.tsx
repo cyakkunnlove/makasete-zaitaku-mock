@@ -57,6 +57,7 @@ const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const DAY_PHARMACIST_NAME = '小林 薫'
 const DAY_PHARMACIST_ID = 'ST-DAY-01'
 const UNDO_WINDOW_MS = 8000
+const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 
 function formatMockTimestamp(time: string) {
   return `2026-03-15 ${time}`
@@ -237,6 +238,22 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const ownPharmacyId = 'PH-01'
   const ownPatients = useMemo(() => getPatientsByPharmacy(ownPharmacyId), [ownPharmacyId])
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as DayTaskItem[]
+        if (Array.isArray(parsed) && parsed.length > 0) setDayTasks(parsed)
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DAY_TASK_STORAGE_KEY, JSON.stringify(dayTasks))
+    } catch {}
+  }, [dayTasks])
 
   useEffect(() => {
     if (!undoTarget) return

@@ -28,6 +28,8 @@ import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
 
+const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
+
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   unpaid: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
@@ -95,6 +97,7 @@ export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const [collectionRecords, setCollectionRecords] = useState(initialPatientCollectionRecords)
+  const [sharedDayTasks, setSharedDayTasks] = useState(dayTaskData)
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
@@ -113,8 +116,18 @@ export default function BillingPage() {
     setCollapsedPatientIds((prev) => (prev.size > 0 ? prev : new Set(ownPatients.map((patient) => patient.id))))
   }, [ownPatients])
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) setSharedDayTasks(parsed)
+      }
+    } catch {}
+  }, [])
+
   const dayTaskCollectionRecords = useMemo(() => {
-    return dayTaskData
+    return sharedDayTasks
       .filter((task) => task.pharmacyId === ownPharmacyId)
       .map((task) => {
         const patient = patientData.find((item) => item.id === task.patientId)
@@ -135,7 +148,7 @@ export default function BillingPage() {
         }
       })
       .filter((record) => ownPatientNames.has(record.patientName))
-  }, [ownPatientNames, ownPharmacyId])
+  }, [ownPatientNames, ownPharmacyId, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -167,7 +180,7 @@ export default function BillingPage() {
   }, [ownPatients])
 
   const unbilledVisitRecords = useMemo(() => {
-    return dayTaskData
+    return sharedDayTasks
       .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
       .map((task) => {
         const patient = patientData.find((item) => item.id === task.patientId)
@@ -187,7 +200,7 @@ export default function BillingPage() {
       })
       .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
       .filter((record) => !processedUnbilledIds.has(record.id))
-  }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds])
+  }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds, sharedDayTasks])
 
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff' || role === 'pharmacy_admin'
