@@ -165,6 +165,28 @@ export default function BillingPage() {
     })
   }, [ownPatients])
 
+  const unbilledVisitRecords = useMemo(() => {
+    return dayTaskData
+      .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
+      .map((task) => {
+        const patient = patientData.find((item) => item.id === task.patientId)
+        return {
+          id: `UNB-${task.id}`,
+          linkedTaskId: task.id,
+          patientId: task.patientId,
+          patientName: patient?.name ?? task.patientId,
+          visitDate: task.completedAt?.slice(0, 10) ?? '2026-03-15',
+          prescriptionDate: task.completedAt?.slice(0, 10) ?? '2026-03-15',
+          visitType: task.visitType,
+          staffName: task.handledBy ?? '未設定',
+          amount: task.amount,
+          status: task.collectionStatus === '請求準備OK' ? 'ready' : 'review',
+          note: task.note,
+        }
+      })
+      .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
+  }, [mergedCollectionRecords, ownPharmacyId])
+
   const summary = useMemo(() => {
     const source = role === 'pharmacy_staff' || role === 'pharmacy_admin'
       ? mergedCollectionRecords.filter((r) => r.billable).map((r) => ({ total: r.amount, status: r.status }))
@@ -222,8 +244,61 @@ export default function BillingPage() {
 
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-gray-300">
-            <span>在宅訪問の点数・請求額・回収状況を、day task と患者別履歴の両方から確認できます。</span>
+            <span>在宅訪問の点数・請求額・回収状況を、未請求 → 回収管理まで一連で確認できます。</span>
             <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">BtoC collection</Badge>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white">未請求一覧</CardTitle>
+            <CardDescription className="text-gray-400">訪問実績から上がってきた請求待ちデータを確認して、請求処理へ送るレーンです</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
+                <p className="text-2xl font-bold text-white">{unbilledVisitRecords.length}</p>
+                <p className="text-[10px] text-gray-500">未請求候補</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-300">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
+                <p className="text-[10px] text-gray-500">請求化OK</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
+                <p className="text-2xl font-bold text-amber-300">{unbilledVisitRecords.filter((record) => record.status === 'review').length}</p>
+                <p className="text-[10px] text-gray-500">確認待ち</p>
+              </div>
+            </div>
+
+            {unbilledVisitRecords.length === 0 ? (
+              <p className="py-4 text-center text-xs text-gray-500">未請求候補はありません。患者詳細または day task から訪問実績を登録するとここに載ります。</p>
+            ) : (
+              <div className="space-y-2">
+                {unbilledVisitRecords.map((record) => (
+                  <div key={record.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-white">{record.patientName}</p>
+                        <p className="mt-1 text-xs text-gray-400">訪問日 {record.visitDate} / 処方日 {record.prescriptionDate} / {record.visitType}</p>
+                        <p className="mt-1 text-xs text-gray-500">担当: {record.staffName} / task: {record.linkedTaskId}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={cn('border text-[10px]', record.status === 'ready' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
+                          {record.status === 'ready' ? '請求化OK' : '確認待ち'}
+                        </Badge>
+                        <Badge variant="outline" className="border-[#2a3553] text-gray-300">{yen.format(record.amount)}</Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">{record.note}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">内容確認</Button>
+                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">金額補正</Button>
+                      <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求済みに送る</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
