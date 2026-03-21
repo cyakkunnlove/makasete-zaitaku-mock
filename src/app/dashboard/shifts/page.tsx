@@ -98,8 +98,8 @@ export default function ShiftsPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">シフト管理</h1>
-          <p className="text-xs text-gray-400">夜勤当番スケジュールの確認と編集</p>
+          <h1 className="text-lg font-semibold text-white">夜間シフト管理</h1>
+          <p className="text-xs text-gray-400">夜間対応スタッフの当番スケジュールを確認・編集</p>
         </div>
         <div className="flex items-center gap-1">
           <CalendarDays className="h-4 w-4 text-indigo-400" />

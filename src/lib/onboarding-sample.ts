@@ -1,0 +1,27 @@
+import type { DiagnosticAnswers } from '@/types/onboarding'
+
+export const SAMPLE_ONBOARDING_ANSWERS: DiagnosticAnswers = {
+  A1: 'decided',
+  A3: 'mid',
+  A4: 'willing',
+  B1: 'decided',
+  B2: 'mid',
+  B4: 'mid',
+  B5: 'conditional',
+  B8: 'mid',
+  C1: 'mid',
+  C4: 'low',
+  C5: 'low',
+  C7: 'draft',
+  C8: 'draft',
+  D1: 'mid',
+  D2: 'mid',
+  D3: 'mid',
+  D5: 'low',
+  E1: 'mid',
+  E4: 'mid',
+  E5: 'low',
+  E6: 'mid',
+  F1: 'low',
+  F2: 'low',
+}

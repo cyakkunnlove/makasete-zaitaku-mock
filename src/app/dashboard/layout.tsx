@@ -8,7 +8,7 @@ import {
   Home, ClipboardList, UserCheck, FileText,
   Building2, Users, CreditCard, BarChart3,
   Shield, Bell, Menu, X, LogOut, Moon,
-  Settings, MessageCircle, Calendar
+  Settings, MessageCircle, Calendar, Route
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, permission: 'audit' },
   { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, permission: 'shifts' },
   { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, permission: 'notifications' },
+  { href: '/dashboard/onboarding', label: '導入診断', icon: <Route size={20} />, permission: 'onboarding' },
 ]
 
 const settingsNavItems: NavItem[] = [
@@ -69,6 +70,7 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/reports')) return 'reports'
   if (pathname.startsWith('/dashboard/audit')) return 'audit'
   if (pathname.startsWith('/dashboard/notifications')) return 'notifications'
+  if (pathname.startsWith('/dashboard/onboarding')) return 'onboarding'
   if (pathname.startsWith('/dashboard/assign')) return 'assign'
   if (pathname.startsWith('/dashboard/shifts')) return 'shifts'
   if (pathname.startsWith('/dashboard/more')) return 'more'

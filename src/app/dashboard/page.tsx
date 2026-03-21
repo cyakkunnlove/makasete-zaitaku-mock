@@ -27,6 +27,7 @@ import {
   Shield,
   RotateCcw,
   Receipt,
+  Route,
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
 
@@ -145,6 +146,29 @@ function RegionalAdminDashboard() {
               <p className="text-[10px] text-cyan-200/80">未確認申し送り</p>
               <p className="mt-1 text-2xl font-bold text-cyan-300">{unconfirmedHandovers}</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Route className="h-4 w-4 text-indigo-400" />
+            導入診断（新規モジュール）
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-300">
+            田中社長ヒアリングを反映した導入診断フォームの最小版を実装済み。診断→GO/NOT YET/STOP判定まで確認できます。
+          </p>
+          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+            <div>
+              <p className="text-sm font-medium text-white">次の確認ポイント</p>
+              <p className="text-xs text-gray-500">質問文・判定理由・ロードマップ接続の妥当性をレビュー</p>
+            </div>
+            <Link href="/dashboard/onboarding">
+              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">開く</Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

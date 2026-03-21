@@ -172,8 +172,8 @@ export default function StaffPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? 'スタッフ管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? 'スタッフ情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
+          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '夜間スタッフ管理' : '自店スタッフ管理'}</h1>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
         </div>
 
         {pageTab === 'staff' && (

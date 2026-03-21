@@ -23,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 const IS_DEMO = true
+const DEMO_ROLE_STORAGE_KEY = 'makasete-demo-role'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -30,13 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (IS_DEMO) {
-      // Demo mode: use mock user
-      setUser(MOCK_USERS[DEMO_ROLE] ?? MOCK_USERS.regional_admin)
+      const savedRole = typeof window !== 'undefined' ? window.localStorage.getItem(DEMO_ROLE_STORAGE_KEY) : null
+      const initialRole = savedRole && MOCK_USERS[savedRole] ? savedRole : DEMO_ROLE
+      setUser(MOCK_USERS[initialRole] ?? MOCK_USERS.regional_admin)
       setLoading(false)
       return
     }
 
-    // Production: use Supabase auth
     async function getUser() {
       try {
         const { createClient } = await import('@/lib/supabase/client')
@@ -65,12 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       await supabase.auth.signOut()
+    } else if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(DEMO_ROLE_STORAGE_KEY)
     }
     setUser(null)
   }
 
   const switchRole = (roleKey: string) => {
     if (IS_DEMO && MOCK_USERS[roleKey]) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(DEMO_ROLE_STORAGE_KEY, roleKey)
+      }
       setUser(MOCK_USERS[roleKey])
     }
   }
