@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
+import { getUnifiedRoleLabel } from '@/lib/mock-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -116,7 +117,7 @@ export default function MorePage() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-white">{user?.full_name ?? 'ゲスト'}</p>
-              <p className="text-xs text-gray-400 capitalize">{role ?? '未ログイン'}</p>
+              <p className="text-xs text-gray-400">{role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
             <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg px-2.5 py-1.5">

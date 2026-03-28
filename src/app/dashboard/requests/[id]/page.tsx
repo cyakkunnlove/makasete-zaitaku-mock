@@ -593,7 +593,7 @@ export default function RequestDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">{assignee.name}</p>
-                  <p className="text-xs text-gray-400">{assignee.role === 'night_pharmacist' ? '夜勤夜間薬剤師' : assignee.role}</p>
+                  <p className="text-xs text-gray-400">{assignee.role === 'night_pharmacist' ? 'Night Pharmacist' : assignee.role}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-4 text-xs text-gray-300">

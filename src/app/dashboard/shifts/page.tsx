@@ -72,7 +72,10 @@ export default function ShiftsPage() {
     })
   }
 
+  const canEdit = role === 'regional_admin'
+
   const toggleShift = useCallback((staffId: string, dateKey: string) => {
+    if (!canEdit) return
     setShifts((prev) => {
       const current = prev[staffId]?.[dateKey] ?? null
       const next: ShiftType | null = current === null ? 'primary' : current === 'primary' ? 'backup' : null
@@ -81,7 +84,7 @@ export default function ShiftsPage() {
         [staffId]: { ...prev[staffId], [dateKey]: next },
       }
     })
-  }, [])
+  }, [canEdit])
 
   if (role !== 'regional_admin' && role !== 'night_pharmacist') {
     return (
@@ -99,7 +102,7 @@ export default function ShiftsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">夜間シフト管理</h1>
-          <p className="text-xs text-gray-400">夜間対応スタッフの当番スケジュールを確認・編集</p>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '夜間対応スタッフの当番スケジュールを確認・編集' : '自分の夜間当番スケジュールを確認'}</p>
         </div>
         <div className="flex items-center gap-1">
           <CalendarDays className="h-4 w-4 text-indigo-400" />

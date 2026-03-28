@@ -23,7 +23,7 @@ export default function HandoversPage() {
   )
 
   const handleConfirm = (id: string) => {
-    if (role !== 'pharmacy_admin' && role !== 'regional_admin') return
+    if (role !== 'pharmacy_admin') return
     setConfirmedIds((prev) => new Set(prev).add(id))
   }
 
@@ -133,7 +133,7 @@ export default function HandoversPage() {
                       {handover.confirmedAt ? `確認日時: ${handover.confirmedAt}` : '未確認の申し送りです'}
                     </p>
 
-                    {(role === 'pharmacy_admin' || role === 'regional_admin') && !isConfirmed && (
+                    {role === 'pharmacy_admin' && !isConfirmed && (
                       <Button
                         size="sm"
                         onClick={() => handleConfirm(handover.id)}

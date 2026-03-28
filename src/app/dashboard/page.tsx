@@ -55,8 +55,8 @@ const staffStatusClass: Record<string, string> = {
 }
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
-const DAY_PHARMACIST_NAME = '小林 薫'
-const DAY_PHARMACIST_ID = 'ST-DAY-01'
+const PHARMACY_STAFF_NAME = '小林 薫'
+const PHARMACY_STAFF_ID = 'ST-DAY-01'
 const UNDO_WINDOW_MS = 8000
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 
@@ -254,7 +254,7 @@ const nightSearchCandidates = [
   { id: 'PT-006', patientName: '渡辺 美和', pharmacyName: '西新宿いろは薬局', regionName: '東京西部', distanceKm: 12.4, etaMin: 28, matchScore: 42, reason: 'リージョン外候補 / 距離超過気味' },
 ]
 
-function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: boolean }) {
+function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { role } = useAuth()
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const [searchQuery, setSearchQuery] = useState('')
@@ -331,8 +331,8 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
     commitTaskChange(taskId, (task) => ({
       ...task,
       status: 'in_progress',
-      handledBy: DAY_PHARMACIST_NAME,
-      handledById: DAY_PHARMACIST_ID,
+      handledBy: PHARMACY_STAFF_NAME,
+      handledById: PHARMACY_STAFF_ID,
       handledAt: formatMockTimestamp(time),
       completedAt: null,
       billable: false,
@@ -344,8 +344,8 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
     commitTaskChange(taskId, (task) => ({
       ...task,
       status: 'completed',
-      handledBy: task.handledBy ?? DAY_PHARMACIST_NAME,
-      handledById: task.handledById ?? DAY_PHARMACIST_ID,
+      handledBy: task.handledBy ?? PHARMACY_STAFF_NAME,
+      handledById: task.handledById ?? PHARMACY_STAFF_ID,
       handledAt: task.handledAt ?? formatMockTimestamp(time),
       completedAt: formatMockTimestamp(time),
       billable: task.amount > 0,
@@ -361,7 +361,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
 
   return (
     <div className="space-y-4">
-      {isPharmacyAdmin && !isDayPharmacist && (
+      {isPharmacyAdmin && !isPharmacyStaff && (
         <>
           <div className="grid grid-cols-3 gap-3">
             <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -436,8 +436,8 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         </Card>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-amber-300">{isDayPharmacist ? inProgressCount : scheduledCount}</p>
-            <p className="text-[10px] text-gray-500">{isDayPharmacist ? '対応中' : '未訪問'}</p>
+            <p className="text-2xl font-bold text-amber-300">{isPharmacyStaff ? inProgressCount : scheduledCount}</p>
+            <p className="text-[10px] text-gray-500">{isPharmacyStaff ? '対応中' : '未訪問'}</p>
           </CardContent>
         </Card>
       </div>
@@ -447,7 +447,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
       </div>
 
-      {isDayPharmacist ? (
+      {isPharmacyStaff ? (
         <>
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -625,7 +625,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         </div>
       )}
 
-      {!isDayPharmacist && (
+      {!isPharmacyStaff && (
         <div className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
             <FileImage className="h-4 w-4 text-indigo-400" />
@@ -649,7 +649,7 @@ function PharmacyDashboard({ isDayPharmacist = false }: { isDayPharmacist?: bool
         </div>
       )}
 
-      {isDayPharmacist && (
+      {isPharmacyStaff && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm text-white">
@@ -794,7 +794,7 @@ export default function DashboardPage() {
     <div className="text-gray-100">
       {role === 'system_admin' && <SystemAdminDashboard />}
       {role === 'regional_admin' && <RegionalAdminDashboard />}
-      {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && <PharmacyDashboard isDayPharmacist={role === 'pharmacy_staff'} />}
+      {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && <PharmacyDashboard isPharmacyStaff={role === 'pharmacy_staff'} />}
       {role === 'night_pharmacist' && <PharmacistDashboard />}
     </div>
   )

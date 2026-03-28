@@ -8,7 +8,7 @@ import {
   MessageCircle, Copy, Send, CheckCircle2,
   XCircle, Shield, ExternalLink
 } from 'lucide-react'
-import { lineUserStatuses } from '@/lib/mock-data'
+import { getUnifiedRoleLabel, lineUserStatuses } from '@/lib/mock-data'
 
 export default function LineSettingsPage() {
   const { role } = useAuth()
@@ -202,7 +202,7 @@ export default function LineSettingsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-200">{user.staffName}</p>
-                  <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                  <p className="text-xs text-gray-500">{getUnifiedRoleLabel(user.role)}</p>
                 </div>
                 {user.linked ? (
                   <CheckCircle2 size={16} className="text-green-400 shrink-0" />
@@ -229,7 +229,7 @@ export default function LineSettingsPage() {
                 {lineUserStatuses.map(user => (
                   <tr key={user.staffId} className="border-b border-[#2a3553]/50 hover:bg-[#1a2035]/50">
                     <td className="px-3 py-2.5 text-gray-200">{user.staffName}</td>
-                    <td className="px-3 py-2.5 text-gray-400 capitalize">{user.role}</td>
+                    <td className="px-3 py-2.5 text-gray-400">{getUnifiedRoleLabel(user.role)}</td>
                     <td className="px-3 py-2.5 text-gray-500 font-mono text-xs">
                       {user.lineUserId ?? '-'}
                     </td>
