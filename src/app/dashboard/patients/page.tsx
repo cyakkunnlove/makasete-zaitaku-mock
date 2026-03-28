@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { Search, Phone, MapPin, GripVertical } from 'lucide-react'
+import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
 import { patientData, pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 
 export default function PatientsPage() {
@@ -76,6 +76,13 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-4 text-gray-100">
+      {isDayContext && (
+        <Link href="/dashboard/patients/new" className="fixed bottom-24 right-4 z-20 lg:bottom-6 lg:right-6">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-500">
+            <Plus className="h-6 w-6" />
+          </span>
+        </Link>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">患者情報</h1>
