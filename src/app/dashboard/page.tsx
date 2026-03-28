@@ -31,12 +31,6 @@ import {
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
 
-const mockFaxes = [
-  { id: 'FAX-001', requestId: 'RQ-2401', from: '城南みらい薬局', patientName: '田中 優子', receivedAt: '22:15', status: 'confirmed' as const, patientId: 'PT-001' },
-  { id: 'FAX-002', requestId: 'RQ-2406', from: '中野しらさぎ薬局', patientName: '清水 恒一', receivedAt: '22:45', status: 'unread' as const, patientId: 'PT-004' },
-  { id: 'FAX-003', requestId: 'RQ-2402', from: '港北さくら薬局', patientName: '小川 正子', receivedAt: '23:10', status: 'unread' as const, patientId: 'PT-002' },
-]
-
 const mockPharmacyRequests = [
   { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
   { id: 'REQ-0308-002', patientName: '清水 恒一', status: '対応中', time: '23:00', pharmacist: '佐藤 健一' },
@@ -242,12 +236,6 @@ function SystemAdminDashboard() {
     </div>
   )
 }
-
-const nightSearchCandidates = [
-  { id: 'PT-001', patientName: '田中 優子', pharmacyName: '城南みらい薬局', regionName: '東京南部', distanceKm: 4.2, etaMin: 11, matchScore: 96, reason: '加盟店一致 / 生年月日一致 / 処方薬一致' },
-  { id: 'PT-007', patientName: '山本 直子', pharmacyName: '世田谷つばさ薬局', regionName: '東京南部', distanceKm: 6.8, etaMin: 17, matchScore: 74, reason: 'リージョン一致 / 氏名類似 / 症状文脈一致' },
-  { id: 'PT-006', patientName: '渡辺 美和', pharmacyName: '西新宿いろは薬局', regionName: '東京西部', distanceKm: 12.4, etaMin: 28, matchScore: 42, reason: 'リージョン外候補 / 距離超過気味' },
-]
 
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { role } = useAuth()
@@ -671,16 +659,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 }
 
 function PharmacistDashboard() {
-  const unreadFaxCount = mockFaxes.filter((f) => f.status === 'unread').length
-  const candidateCount = nightSearchCandidates.length
-
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-rose-400">{unreadFaxCount}</p><p className="text-[10px] text-gray-500">未確認FAX</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-indigo-300">{candidateCount}</p><p className="text-[10px] text-gray-500">照合候補</p></CardContent></Card>
-      </div>
-
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間患者検索</CardTitle></CardHeader>
         <CardContent className="space-y-3">
