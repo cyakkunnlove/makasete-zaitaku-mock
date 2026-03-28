@@ -292,9 +292,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return ownPatients.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query))
   }, [searchQuery, ownPatients])
 
-  const completedCount = dayTasks.filter((task) => task.status === 'completed').length
-  const inProgressCount = dayTasks.filter((task) => task.status === 'in_progress').length
-  const scheduledCount = dayTasks.filter((task) => task.status === 'scheduled').length
   const billableReadyCount = dayTasks.filter((task) => task.billable).length
   const ownRequests = useMemo(() => requestData.filter((request) => request.pharmacyId === ownPharmacyId), [ownPharmacyId])
   const ownRequestReadyCount = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
@@ -404,27 +401,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-white">{enrichedVisits.length}</p>
-            <p className="text-[10px] text-gray-500">本日合計</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{completedCount}</p>
-            <p className="text-[10px] text-gray-500">訪問済</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-amber-300">{isPharmacyStaff ? inProgressCount : scheduledCount}</p>
-            <p className="text-[10px] text-gray-500">{isPharmacyStaff ? '対応中' : '未訪問'}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
@@ -438,8 +414,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
                 <p className="text-xs text-gray-400">今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 {UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
+                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {dayTasks.filter((task) => task.handledById === PHARMACY_STAFF_ID).length}件</Badge>
+                <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">更新あり / 手動同期</Button>
+                <Link href="/dashboard/patients/new">
+                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">患者登録</Button>
+                </Link>
                 {undoTarget && (
                   <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
                     <RotateCcw className="h-3.5 w-3.5" />
@@ -447,6 +428,18 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   </Button>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-white">患者登録・編集の考え方（モック）</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-gray-300">
+              <p>Pharmacy Admin / Pharmacy Staff のどちらでも患者登録・編集可能。</p>
+              <p>登録項目は「基本情報 / 緊急連絡先 / 主治医情報 / 臨床情報 / 訪問時注意事項 / 保険情報」を想定。</p>
+              <p>保存は禁止せず、訪問回数超過時は <span className="text-amber-300">超過警告</span> を表示。</p>
+              <p>編集時は「最終更新者」「最終更新時刻」を保持し、手動更新で他スタッフの変更を反映する想定。</p>
             </CardContent>
           </Card>
 
@@ -558,6 +551,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                               <p className="text-sm font-semibold text-white">{patient.name}</p>
                               <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
                               <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
+                              <p className="mt-1 text-[11px] text-amber-300">今月の訪問回数: 4回中4回（超過時も保存可 / 警告表示のみ）</p>
                             </div>
                           </div>
                           {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
