@@ -23,7 +23,7 @@ export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const isNightPharmacist = role === 'night_pharmacist'
-  const isDayContext = role === 'day_pharmacist' || role === 'pharmacy_admin' || role === 'pharmacy_staff'
+  const isDayContext = role === 'pharmacy_admin' || role === 'pharmacy_staff'
 
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
@@ -79,7 +79,7 @@ export default function PatientsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">{role === 'day_pharmacist' ? '自局患者マスタを確認（PH-01のみ）' : isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : '在宅患者の基本情報・注意事項を確認'}</p>
+          <p className="text-xs text-gray-400">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">

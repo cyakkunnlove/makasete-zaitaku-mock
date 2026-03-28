@@ -794,7 +794,7 @@ export default function DashboardPage() {
     <div className="text-gray-100">
       {role === 'system_admin' && <SystemAdminDashboard />}
       {role === 'regional_admin' && <RegionalAdminDashboard />}
-      {(role === 'pharmacy_admin' || role === 'pharmacy_staff' || role === 'day_pharmacist') && <PharmacyDashboard isDayPharmacist={role === 'day_pharmacist' || role === 'pharmacy_staff'} />}
+      {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && <PharmacyDashboard isDayPharmacist={role === 'pharmacy_staff'} />}
       {role === 'night_pharmacist' && <PharmacistDashboard />}
     </div>
   )

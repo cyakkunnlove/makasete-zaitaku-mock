@@ -19,14 +19,14 @@ export type PermissionKey =
   | 'more'
 
 export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
-  dashboard: ['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'],
+  dashboard: ['system_admin', 'regional_admin', 'pharmacy_admin', 'night_pharmacist', 'pharmacy_staff'],
   requests: ['regional_admin', 'pharmacy_admin'],
   requestDetail: ['regional_admin', 'pharmacy_admin'],
   assign: ['regional_admin'],
   handovers: ['pharmacy_admin'],
   pharmacies: ['regional_admin'],
   staff: ['regional_admin', 'pharmacy_admin'],
-  patients: ['pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'],
+  patients: ['pharmacy_admin', 'night_pharmacist', 'pharmacy_staff'],
   billing: ['system_admin', 'pharmacy_admin', 'pharmacy_staff'],
   reports: ['regional_admin'],
   audit: ['system_admin'],
@@ -34,7 +34,7 @@ export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
   notifications: ['system_admin', 'regional_admin'],
   onboarding: ['system_admin', 'regional_admin', 'pharmacy_admin'],
   settings: ['system_admin', 'regional_admin', 'pharmacy_admin'],
-  more: ['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'],
+  more: ['system_admin', 'regional_admin', 'pharmacy_admin', 'night_pharmacist', 'pharmacy_staff'],
 }
 
 export function canAccess(role: UserRole | null | undefined, permission: PermissionKey) {

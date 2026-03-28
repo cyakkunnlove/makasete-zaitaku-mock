@@ -53,7 +53,6 @@ const roleLabel: Record<UserRole, string> = {
   system_admin: 'System Admin',
   regional_admin: 'Regional Admin',
   pharmacy_admin: 'Pharmacy Admin',
-  day_pharmacist: 'Pharmacy Staff',
   night_pharmacist: 'Night Pharmacist',
   pharmacy_staff: 'Pharmacy Staff',
 }
@@ -62,7 +61,6 @@ const roleClass: Record<UserRole, string> = {
   system_admin: 'border-violet-500/40 bg-violet-500/20 text-violet-300',
   regional_admin: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
   pharmacy_admin: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
-  day_pharmacist: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
   night_pharmacist: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   pharmacy_staff: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
 }
@@ -110,7 +108,7 @@ export default function StaffPage() {
 
   const visibleStaffMembers = useMemo(() => {
     if (role === 'pharmacy_admin') {
-      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff', 'day_pharmacist'].includes(member.role) && member.email.endsWith('@jonan-ph.jp'))
+      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith('@jonan-ph.jp'))
     }
     return staffMembers
   }, [role, staffMembers])

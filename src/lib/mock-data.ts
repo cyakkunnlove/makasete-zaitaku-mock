@@ -49,19 +49,6 @@ export const MOCK_USERS: Record<string, User> = {
     created_at: '2026-01-15T00:00:00Z',
     updated_at: '2026-03-05T00:00:00Z',
   },
-  day_pharmacist: {
-    id: 'mock-day-pharmacist-001',
-    organization_id: 'org-001',
-    pharmacy_id: 'PH-01',
-    role: 'day_pharmacist',
-    full_name: '小林 薫',
-    phone: '090-5522-1188',
-    email: 'kobayashi@jonan-ph.jp',
-    line_user_id: null,
-    is_active: true,
-    created_at: '2026-02-01T00:00:00Z',
-    updated_at: '2026-03-05T00:00:00Z',
-  },
   pharmacy_admin: {
     id: 'mock-pharm-admin-001',
     organization_id: 'org-001',
@@ -100,7 +87,6 @@ export function getUnifiedRoleLabel(role: UserRole): string {
       return 'Regional Admin'
     case 'pharmacy_admin':
       return 'Pharmacy Admin'
-    case 'day_pharmacist':
     case 'pharmacy_staff':
       return 'Pharmacy Staff'
     case 'night_pharmacist':

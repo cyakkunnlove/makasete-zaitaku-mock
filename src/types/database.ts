@@ -1,4 +1,4 @@
-export type UserRole = 'system_admin' | 'regional_admin' | 'pharmacy_admin' | 'day_pharmacist' | 'night_pharmacist' | 'pharmacy_staff'
+export type UserRole = 'system_admin' | 'regional_admin' | 'pharmacy_admin' | 'night_pharmacist' | 'pharmacy_staff'
 export type RequestStatus =
   | 'received' | 'fax_pending' | 'fax_received' | 'assigning'
   | 'assigned' | 'checklist' | 'dispatched' | 'arrived'
