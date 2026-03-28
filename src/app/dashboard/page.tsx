@@ -238,8 +238,6 @@ function SystemAdminDashboard() {
 }
 
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
-  const { role } = useAuth()
-  const isPharmacyAdmin = role === 'pharmacy_admin'
   const [searchQuery, setSearchQuery] = useState('')
   const [dayTasks, setDayTasks] = useState(dayTaskData)
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
@@ -293,11 +291,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [searchQuery, ownPatients])
 
   const billableReadyCount = dayTasks.filter((task) => task.billable).length
-  const ownRequests = useMemo(() => requestData.filter((request) => request.pharmacyId === ownPharmacyId), [ownPharmacyId])
-  const ownRequestReadyCount = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
-  const ownRequestActiveCount = ownRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
-  const ownRequestCompletedCount = ownRequests.filter((request) => request.status === 'completed').length
-  const ownPendingHandovers = useMemo(() => handoverData.filter((handover) => handover.pharmacyId === ownPharmacyId && !handover.confirmed), [ownPharmacyId])
 
   const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = dayTasks.find((task) => task.id === taskId)
@@ -341,66 +334,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   return (
     <div className="space-y-4">
-      {isPharmacyAdmin && !isPharmacyStaff && (
-        <>
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-white">{ownRequests.length}</p>
-                <p className="text-[10px] text-gray-500">今夜の自局依頼</p>
-              </CardContent>
-            </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-amber-300">{ownRequestReadyCount}</p>
-                <p className="text-[10px] text-gray-500">対応準備中</p>
-              </CardContent>
-            </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-sky-300">{ownRequestActiveCount}</p>
-                <p className="text-[10px] text-gray-500">対応中</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div>
-                <p className="text-sm font-semibold text-white">自局の朝確認</p>
-                <p className="text-xs text-gray-400">申し送り・完了件数・未完了件数だけ先に把握できるようにしています。</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">完了 {ownRequestCompletedCount}件</Badge>
-                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">未確認申し送り {ownPendingHandovers.length}件</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {ownPendingHandovers.length > 0 && (
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white">朝確認が必要な申し送り</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {ownPendingHandovers.map((handover) => (
-                  <div key={handover.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium text-white">{handover.patientName}</p>
-                        <p className="text-[11px] text-gray-500">{handover.timestamp} / {handover.pharmacistName}</p>
-                      </div>
-                      <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">未確認</Badge>
-                    </div>
-                    <p className="mt-2 text-xs text-gray-300">{handover.recommendation}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />

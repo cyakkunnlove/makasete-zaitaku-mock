@@ -130,6 +130,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     completed: 5,
     inProgress: 2,
   }
+  const pharmacyAdminStats = {
+    requests: 6,
+    preparing: 3,
+    inProgress: 2,
+  }
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -209,6 +214,25 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </div>
               <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
                 <p className="text-base font-bold text-amber-300">{pharmacyStaffStats.inProgress}</p>
+                <p className="text-[10px] text-gray-500">対応中</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {role === 'pharmacy_admin' && (
+          <div className="px-4 pt-3">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
+                <p className="text-base font-bold text-white">{pharmacyAdminStats.requests}</p>
+                <p className="text-[10px] text-gray-500">支給依頼</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
+                <p className="text-base font-bold text-indigo-300">{pharmacyAdminStats.preparing}</p>
+                <p className="text-[10px] text-gray-500">対応準備中</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
+                <p className="text-base font-bold text-amber-300">{pharmacyAdminStats.inProgress}</p>
                 <p className="text-[10px] text-gray-500">対応中</p>
               </div>
             </div>
