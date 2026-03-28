@@ -13,8 +13,8 @@ const DEMO_ROLE_STORAGE_KEY = 'makasete-demo-role'
 
 const roleOptions = [
   { value: 'system_admin', label: 'System Admin', destination: '/dashboard' },
-  { value: 'regional_admin', label: 'Regional Admin', destination: '/dashboard/onboarding' },
-  { value: 'pharmacy_admin', label: 'Pharmacy Admin', destination: '/dashboard/onboarding' },
+  { value: 'regional_admin', label: 'Regional Admin', destination: '/dashboard' },
+  { value: 'pharmacy_admin', label: 'Pharmacy Admin', destination: '/dashboard' },
   { value: 'pharmacy_staff', label: 'Pharmacy Staff', destination: '/dashboard' },
   { value: 'night_pharmacist', label: 'Night Pharmacist', destination: '/dashboard/night-patients' },
 ]
