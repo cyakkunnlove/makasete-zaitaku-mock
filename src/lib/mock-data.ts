@@ -92,6 +92,24 @@ export const MOCK_USERS: Record<string, User> = {
 
 export const DEMO_ROLE = 'regional_admin'
 
+export function getUnifiedRoleLabel(role: UserRole): string {
+  switch (role) {
+    case 'system_admin':
+      return 'System Admin'
+    case 'regional_admin':
+      return 'Regional Admin'
+    case 'pharmacy_admin':
+      return 'Pharmacy Admin'
+    case 'day_pharmacist':
+    case 'pharmacy_staff':
+      return 'Pharmacy Staff'
+    case 'night_pharmacist':
+      return 'Night Pharmacist'
+    default:
+      return role
+  }
+}
+
 // ─── Staff ───
 export interface StaffItem {
   id: string

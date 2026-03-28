@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
+import { getUnifiedRoleLabel } from '@/lib/mock-data'
 
 interface NavItem {
   href: string
@@ -337,7 +338,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <span className="text-amber-300 font-medium">🎭 デモモード</span>
           <span className="text-gray-400">ロール切替:</span>
           <div className="flex flex-wrap gap-2">
-            {(['system_admin', 'regional_admin', 'pharmacy_admin', 'day_pharmacist', 'night_pharmacist', 'pharmacy_staff'] as const).map((r) => (
+            {(['system_admin', 'regional_admin', 'pharmacy_admin', 'pharmacy_staff', 'night_pharmacist'] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => switchRole(r)}
@@ -345,7 +346,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
                 }`}
               >
-                {r}
+                {getUnifiedRoleLabel(r)}
               </button>
             ))}
           </div>
@@ -361,12 +362,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <SelectValue placeholder="ロールを選択" />
             </SelectTrigger>
             <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-              <SelectItem value="system_admin">system_admin</SelectItem>
-              <SelectItem value="regional_admin">regional_admin</SelectItem>
-              <SelectItem value="pharmacy_admin">pharmacy_admin</SelectItem>
-              <SelectItem value="day_pharmacist">day_pharmacist</SelectItem>
-              <SelectItem value="night_pharmacist">night_pharmacist</SelectItem>
-              <SelectItem value="pharmacy_staff">pharmacy_staff</SelectItem>
+              <SelectItem value="system_admin">System Admin</SelectItem>
+              <SelectItem value="regional_admin">Regional Admin</SelectItem>
+              <SelectItem value="pharmacy_admin">Pharmacy Admin</SelectItem>
+              <SelectItem value="pharmacy_staff">Pharmacy Staff</SelectItem>
+              <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>
             </SelectContent>
           </Select>
         </div>

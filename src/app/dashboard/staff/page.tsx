@@ -50,12 +50,12 @@ type AddStaffRole = 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type PageTab = 'staff' | 'shift'
 
 const roleLabel: Record<UserRole, string> = {
-  system_admin: 'システム管理者',
-  regional_admin: '地域管理者',
-  pharmacy_admin: '薬局管理者',
-  day_pharmacist: '日中薬剤師',
-  night_pharmacist: '夜間薬剤師',
-  pharmacy_staff: '薬局スタッフ',
+  system_admin: 'System Admin',
+  regional_admin: 'Regional Admin',
+  pharmacy_admin: 'Pharmacy Admin',
+  day_pharmacist: 'Pharmacy Staff',
+  night_pharmacist: 'Night Pharmacist',
+  pharmacy_staff: 'Pharmacy Staff',
 }
 
 const roleClass: Record<UserRole, string> = {
@@ -74,9 +74,9 @@ const statusClass: Record<StaffStatus, string> = {
 
 const filterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
-  { key: 'night_pharmacist', label: '夜間薬剤師' },
-  { key: 'pharmacy_admin', label: '薬局管理者' },
-  { key: 'pharmacy_staff', label: '薬局スタッフ' },
+  { key: 'night_pharmacist', label: 'Night Pharmacist' },
+  { key: 'pharmacy_admin', label: 'Pharmacy Admin' },
+  { key: 'pharmacy_staff', label: 'Pharmacy Staff' },
 ]
 
 const weekDays = [
@@ -453,9 +453,9 @@ export default function StaffPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>
-                    <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>
-                    <SelectItem value="pharmacy_staff">薬局スタッフ</SelectItem>
+                    <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>
+                    <SelectItem value="pharmacy_admin">Pharmacy Admin</SelectItem>
+                    <SelectItem value="pharmacy_staff">Pharmacy Staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
