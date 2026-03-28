@@ -43,10 +43,8 @@ const staffStatusClass: Record<string, string> = {
 }
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
-const PHARMACY_STAFF_NAME = '小林 薫'
-const PHARMACY_STAFF_ID = 'ST-DAY-01'
 const UNDO_WINDOW_MS = 8000
-const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
+const DAY_TASK_STORAGE_KEY = 'makasete-day-flow:PH-01:2026-03-28'
 
 function formatMockTimestamp(time: string) {
   return `2026-03-15 ${time}`
@@ -267,6 +265,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [searchQuery, ownPatients])
 
   const billableReadyCount = dayTasks.filter((task) => task.billable).length
+  const orderedVisits = useMemo(() => [...filteredVisits].sort((a, b) => a.sortOrder - b.sortOrder), [filteredVisits])
+  const pharmacyStaffHandledCounts = useMemo(() => {
+    const counts = new Map<string, { name: string; count: number }>()
+    dayTasks.forEach((task) => {
+      if (!task.handledById || !task.handledBy) return
+      const current = counts.get(task.handledById) ?? { name: task.handledBy, count: 0 }
+      current.count += 1
+      counts.set(task.handledById, current)
+    })
+    return Array.from(counts.values())
+  }, [dayTasks])
 
   const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = dayTasks.find((task) => task.id === taskId)
@@ -280,8 +289,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     commitTaskChange(taskId, (task) => ({
       ...task,
       status: 'in_progress',
-      handledBy: PHARMACY_STAFF_NAME,
-      handledById: PHARMACY_STAFF_ID,
+      handledBy: '伊藤 真理',
+      handledById: 'ST-07',
       handledAt: formatMockTimestamp(time),
       completedAt: null,
       billable: false,
@@ -293,8 +302,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     commitTaskChange(taskId, (task) => ({
       ...task,
       status: 'completed',
-      handledBy: task.handledBy ?? PHARMACY_STAFF_NAME,
-      handledById: task.handledById ?? PHARMACY_STAFF_ID,
+      handledBy: task.handledBy ?? '伊藤 真理',
+      handledById: task.handledById ?? 'ST-07',
       handledAt: task.handledAt ?? formatMockTimestamp(time),
       completedAt: formatMockTimestamp(time),
       billable: task.amount > 0,
@@ -306,6 +315,41 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     if (!undoTarget) return
     setDayTasks((prev) => prev.map((task) => (task.id === undoTarget.taskId ? undoTarget.previous : task)))
     setUndoTarget(null)
+  }
+
+  const handlePlanTask = (taskId: string) => {
+    const current = dayTasks.find((task) => task.id === taskId)
+    if (!current) return
+    const nextActionLabel = current.planningStatus === 'planned' ? '担当予定を解除しました' : '担当予定に設定しました'
+    commitTaskChange(taskId, (task) => ({
+      ...task,
+      planningStatus: task.planningStatus === 'planned' ? 'unplanned' : 'planned',
+      plannedBy: task.planningStatus === 'planned' ? null : '伊藤 真理',
+      plannedById: task.planningStatus === 'planned' ? null : 'ST-07',
+      plannedAt: task.planningStatus === 'planned' ? null : '2026-03-28 12:00',
+      updatedAt: '2026-03-28 12:00',
+      updatedById: 'ST-07',
+    }), nextActionLabel)
+  }
+
+  const moveTask = (taskId: string, direction: 'up' | 'down') => {
+    setDayTasks((prev) => {
+      const items = [...prev].sort((a, b) => a.sortOrder - b.sortOrder)
+      const index = items.findIndex((item) => item.id === taskId)
+      if (index === -1) return prev
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= items.length) return prev
+      const current = items[index]
+      const target = items[targetIndex]
+      const temp = current.sortOrder
+      current.sortOrder = target.sortOrder
+      target.sortOrder = temp
+      current.updatedAt = '2026-03-28 12:05'
+      current.updatedById = 'ST-07'
+      target.updatedAt = '2026-03-28 12:05'
+      target.updatedById = 'ST-07'
+      return items
+    })
   }
 
   return (
@@ -325,7 +369,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {dayTasks.filter((task) => task.handledById === PHARMACY_STAFF_ID).length}件</Badge>
+                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {dayTasks.filter((task) => task.handledById === 'ST-07').length}件</Badge>
                 <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">更新あり / 手動同期</Button>
                 <Link href="/dashboard/patients/new">
                   <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">患者登録</Button>
@@ -342,13 +386,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-white">患者登録・編集の考え方（モック）</CardTitle>
+              <CardTitle className="text-sm text-white">スタッフ別の本日対応件数（モック）</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-xs text-gray-300">
-              <p>Pharmacy Admin / Pharmacy Staff のどちらでも患者登録・編集可能。</p>
-              <p>登録項目は「基本情報 / 緊急連絡先 / 主治医情報 / 臨床情報 / 訪問時注意事項 / 保険情報」を想定。</p>
-              <p>保存は禁止せず、訪問回数超過時は <span className="text-amber-300">超過警告</span> を表示。</p>
-              <p>編集時は「最終更新者」「最終更新時刻」を保持し、手動更新で他スタッフの変更を反映する想定。</p>
+            <CardContent className="flex flex-wrap gap-2">
+              {pharmacyStaffHandledCounts.map((item) => (
+                <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
+              ))}
             </CardContent>
           </Card>
 
@@ -374,7 +417,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <span className="text-xs font-normal text-gray-500">自動生成 + 手動追加</span>
               </h2>
               <div className="space-y-2">
-                {filteredVisits.map((visit) => {
+                {orderedVisits.map((visit) => {
                   const patient = visit.patient
                   if (!patient) return null
                   const status = taskStatusMeta(visit.status)
@@ -427,6 +470,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handlePlanTask(visit.id)} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+                            {visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'up')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
+                          <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'down')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
                           <Button size="sm" onClick={() => handleStartTask(visit.id, visit.scheduledTime)} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
                             対応する
                           </Button>
@@ -435,6 +483,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           </Button>
                           <span className="text-[11px] text-gray-500">対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。</span>
                         </div>
+                        {(visit.planningStatus === 'planned' || visit.updatedAt) && (
+                          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                            {visit.planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">対応予定: {visit.plannedBy}</span>}
+                            {visit.updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">更新: {visit.updatedAt}</span>}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )
@@ -481,7 +535,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <span className="text-xs font-normal text-gray-500">{enrichedVisits.length}件</span>
           </h2>
           <div className="space-y-2">
-            {filteredVisits.map((visit) => {
+            {orderedVisits.map((visit) => {
               const patient = visit.patient
               if (!patient) return null
               const isCompleted = visit.status === 'completed'

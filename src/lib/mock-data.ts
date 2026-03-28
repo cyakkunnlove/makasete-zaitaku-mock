@@ -203,10 +203,16 @@ export interface DayTaskItem {
   id: string
   patientId: string
   pharmacyId: string
+  flowDate: string
+  sortOrder: number
   scheduledTime: string
   visitType: '定期' | '臨時' | '要確認'
   source: '自動生成' | '手動追加'
   status: DayTaskStatus
+  planningStatus: 'unplanned' | 'planned'
+  plannedBy: string | null
+  plannedById: string | null
+  plannedAt: string | null
   handledBy: string | null
   handledById: string | null
   handledAt: string | null
@@ -215,14 +221,16 @@ export interface DayTaskItem {
   collectionStatus: '未着手' | '請求準備OK' | '回収中' | '入金済'
   amount: number
   note: string
+  updatedAt: string | null
+  updatedById: string | null
 }
 
 export const dayTaskData: DayTaskItem[] = [
-  { id: 'DT-260315-01', patientId: 'PT-001', pharmacyId: 'PH-01', scheduledTime: '10:00', visitType: '定期', source: '自動生成', status: 'completed', handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 10:06', completedAt: '2026-03-15 10:28', billable: true, collectionStatus: '請求準備OK', amount: 12800, note: '定期訪問。服薬状況確認済み。' },
-  { id: 'DT-260315-02', patientId: 'PT-011', pharmacyId: 'PH-01', scheduledTime: '11:30', visitType: '定期', source: '自動生成', status: 'completed', handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 11:34', completedAt: '2026-03-15 11:58', billable: true, collectionStatus: '回収中', amount: 9400, note: '不穏後フォロー。家族説明あり。' },
-  { id: 'DT-260315-03', patientId: 'PT-012', pharmacyId: 'PH-01', scheduledTime: '14:00', visitType: '臨時', source: '手動追加', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 15600, note: '疼痛増悪後の追加確認。' },
-  { id: 'DT-260315-04', patientId: 'PT-013', pharmacyId: 'PH-01', scheduledTime: '15:30', visitType: '定期', source: '自動生成', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 11200, note: '血糖測定器の残量確認。' },
-  { id: 'DT-260315-05', patientId: 'PT-001', pharmacyId: 'PH-01', scheduledTime: '17:30', visitType: '要確認', source: '手動追加', status: 'scheduled', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 0, note: '転倒後フォロー要否の確認。' },
+  { id: 'DT-260315-01', patientId: 'PT-001', pharmacyId: 'PH-01', flowDate: '2026-03-28', sortOrder: 1, scheduledTime: '10:00', visitType: '定期', source: '自動生成', status: 'completed', planningStatus: 'unplanned', plannedBy: null, plannedById: null, plannedAt: null, handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 10:06', completedAt: '2026-03-15 10:28', billable: true, collectionStatus: '請求準備OK', amount: 12800, note: '定期訪問。服薬状況確認済み。', updatedAt: '2026-03-28 09:10', updatedById: 'ST-07' },
+  { id: 'DT-260315-02', patientId: 'PT-011', pharmacyId: 'PH-01', flowDate: '2026-03-28', sortOrder: 2, scheduledTime: '11:30', visitType: '定期', source: '自動生成', status: 'completed', planningStatus: 'unplanned', plannedBy: null, plannedById: null, plannedAt: null, handledBy: '小林 薫', handledById: 'ST-DAY-01', handledAt: '2026-03-15 11:34', completedAt: '2026-03-15 11:58', billable: true, collectionStatus: '回収中', amount: 9400, note: '不穏後フォロー。家族説明あり。', updatedAt: '2026-03-28 10:05', updatedById: 'ST-07' },
+  { id: 'DT-260315-03', patientId: 'PT-012', pharmacyId: 'PH-01', flowDate: '2026-03-28', sortOrder: 3, scheduledTime: '14:00', visitType: '臨時', source: '手動追加', status: 'scheduled', planningStatus: 'planned', plannedBy: '伊藤 真理', plannedById: 'ST-07', plannedAt: '2026-03-28 09:45', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 15600, note: '疼痛増悪後の追加確認。', updatedAt: '2026-03-28 09:45', updatedById: 'ST-07' },
+  { id: 'DT-260315-04', patientId: 'PT-013', pharmacyId: 'PH-01', flowDate: '2026-03-28', sortOrder: 4, scheduledTime: '15:30', visitType: '定期', source: '自動生成', status: 'scheduled', planningStatus: 'unplanned', plannedBy: null, plannedById: null, plannedAt: null, handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 11200, note: '血糖測定器の残量確認。', updatedAt: '2026-03-28 08:55', updatedById: 'ST-05' },
+  { id: 'DT-260315-05', patientId: 'PT-001', pharmacyId: 'PH-01', flowDate: '2026-03-28', sortOrder: 5, scheduledTime: '17:30', visitType: '要確認', source: '手動追加', status: 'scheduled', planningStatus: 'planned', plannedBy: '山田 美咲', plannedById: 'ST-05', plannedAt: '2026-03-28 11:20', handledBy: null, handledById: null, handledAt: null, completedAt: null, billable: false, collectionStatus: '未着手', amount: 0, note: '転倒後フォロー要否の確認。', updatedAt: '2026-03-28 11:20', updatedById: 'ST-05' },
 ]
 
 // ─── Requests ───
