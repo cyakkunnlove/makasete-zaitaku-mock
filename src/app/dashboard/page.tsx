@@ -43,11 +43,6 @@ const mockPharmacyRequests = [
   { id: 'REQ-0308-003', patientName: '小川 正子', status: 'FAX送信済', time: '23:10', pharmacist: '未アサイン' },
 ]
 
-const faxStatusConfig = {
-  unread: { label: '未確認', className: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-  confirmed: { label: '確認済', className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-}
-
 const staffStatusClass: Record<string, string> = {
   待機中: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
   対応中: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
@@ -676,78 +671,26 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 }
 
 function PharmacistDashboard() {
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const filteredCandidates = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return nightSearchCandidates
-    return nightSearchCandidates.filter((c) =>
-      c.patientName.toLowerCase().includes(query) ||
-      c.pharmacyName.toLowerCase().includes(query) ||
-      c.regionName.toLowerCase().includes(query)
-    )
-  }, [searchQuery])
-
   const unreadFaxCount = mockFaxes.filter((f) => f.status === 'unread').length
-  const matchedCount = nightSearchCandidates.filter((c) => c.matchScore >= 80).length
+  const candidateCount = nightSearchCandidates.length
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-rose-400">{unreadFaxCount}</p><p className="text-[10px] text-gray-500">未確認FAX</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-indigo-300">{filteredCandidates.length}</p><p className="text-[10px] text-gray-500">候補患者</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-emerald-400">{matchedCount}</p><p className="text-[10px] text-gray-500">高一致候補</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-2 text-center"><p className="text-xl font-bold text-indigo-300">{candidateCount}</p><p className="text-[10px] text-gray-500">照合候補</p></CardContent></Card>
       </div>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間専用患者検索</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間患者検索</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-gray-400">通常の患者マスタ一覧は表示しません。FAX内容をもとに、加盟店・リージョン・距離条件で候補を絞り込みます。</p>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名 / 加盟店 / リージョンで候補検索" className="border-[#2a3553] bg-[#11182c] pl-9 text-sm" />
-          </div>
+          <p className="text-sm text-gray-300">通知を受けたら、夜間患者検索から患者を検索して照合してください。</p>
+          <p className="text-xs text-gray-500">Night Pharmacist には全患者一覧を出さず、必要時に検索起点で患者詳細へ進む設計です。</p>
+          <Link href="/dashboard/night-patients">
+            <Button className="bg-indigo-600 text-white hover:bg-indigo-500">夜間患者検索を開く</Button>
+          </Link>
         </CardContent>
       </Card>
-
-      <div className="space-y-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-300"><FileImage className="h-4 w-4" />未確認の処方箋FAX</h2>
-        {mockFaxes.filter((f) => f.status === 'unread').map((fax) => (
-          <Card key={fax.id} className="border-b-[#2a3553] border-l-4 border-l-rose-500 border-r-[#2a3553] border-t-[#2a3553] bg-[#1a2035]">
-            <CardContent className="space-y-1 p-4">
-              <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-white">{fax.from}</p><Badge variant="outline" className={cn('border text-xs', faxStatusConfig[fax.status].className)}>{faxStatusConfig[fax.status].label}</Badge></div>
-              <p className="text-xs text-gray-400">{fax.receivedAt}受信 / 照合前</p>
-              <p className="text-[11px] text-gray-500">このFAXを起点に患者候補を検索して確定します。</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200"><Users className="h-4 w-4 text-indigo-400" />候補患者一覧</h2>
-        {filteredCandidates.map((candidate) => (
-          <Card key={candidate.id} className={cn('border-[#2a3553] bg-[#1a2035]', candidate.matchScore >= 80 && 'border-l-4 border-l-emerald-500')}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{candidate.patientName}</p>
-                    <Badge variant="outline" className={cn('border text-[10px]', candidate.matchScore >= 80 ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : candidate.matchScore >= 60 ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                      一致度 {candidate.matchScore}%
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-400">{candidate.pharmacyName} / {candidate.regionName}</p>
-                  <p className="mt-1 text-[11px] text-gray-500">{candidate.reason}</p>
-                </div>
-                <div className="shrink-0 text-right text-xs text-gray-400">
-                  <p>{candidate.distanceKm}km</p>
-                  <p>約{candidate.etaMin}分</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   )
 }
@@ -780,7 +723,7 @@ export default function DashboardPage() {
             <div className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs leading-6">
               <p>確認ポイント:</p>
               <ul className="list-disc pl-5">
-                <li>デモモードなら上部のロール切替から <strong>regional_admin</strong> / <strong>night_pharmacist</strong> / <strong>pharmacy_admin</strong> などを選ぶ</li>
+                <li>デモモードなら上部のロール切替から <strong>Regional Admin</strong> / <strong>Night Pharmacist</strong> / <strong>Pharmacy Admin</strong> などを選ぶ</li>
                 <li>本番モードなら users テーブルの role が入っているか確認する</li>
               </ul>
             </div>
