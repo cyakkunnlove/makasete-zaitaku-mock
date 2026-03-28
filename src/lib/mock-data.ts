@@ -652,7 +652,7 @@ export const auditLogData: AuditEntry[] = [
   { id: 'AL-010', timestamp: '2026-03-04 23:59:57', user: '田中 直樹', action: 'export_csv', target: '実績レポート', details: '2026-02の実績CSVをエクスポート。' },
   { id: 'AL-011', timestamp: '2026-03-04 23:51:26', user: '伊藤 真理', action: 'request_update', target: 'RQ-2405', details: '患者連絡履歴を追加し優先度を normal に維持。' },
   { id: 'AL-012', timestamp: '2026-03-04 23:44:02', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-05', details: '加盟店ステータスを pending から active に変更。' },
-  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', action: 'login', target: '管理画面', details: '薬局スタッフ権限でログイン。' },
+  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', action: 'login', target: '管理画面', details: 'Pharmacy Staff 権限でログイン。' },
   { id: 'AL-014', timestamp: '2026-03-04 23:19:42', user: '山田 美咲', action: 'request_update', target: 'RQ-2403', details: '主訴を修正し、既往歴リンクを添付。' },
   { id: 'AL-015', timestamp: '2026-03-04 23:12:27', user: '小林 恒一', action: 'staff_update', target: 'ST-08', details: 'スタッフ状態を inactive に変更。退職予定登録。' },
   { id: 'AL-016', timestamp: '2026-03-04 22:58:33', user: '田中 直樹', action: 'billing_generate', target: '請求管理', details: '再発行対応としてINV-2026-03-004を単体再生成。' },
