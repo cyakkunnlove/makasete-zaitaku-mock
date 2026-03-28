@@ -15,19 +15,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { Search } from 'lucide-react'
-import { patientData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { Search, Phone, MapPin, GripVertical } from 'lucide-react'
+import { patientData, pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 
 export default function PatientsPage() {
   const { role } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
 
+  const isNightPharmacist = role === 'night_pharmacist'
+  const isDayContext = role === 'day_pharmacist' || role === 'pharmacy_admin' || role === 'pharmacy_staff'
+
   const visiblePatients = useMemo(() => {
-    if (role === 'day_pharmacist' || role === 'pharmacy_admin' || role === 'pharmacy_staff') {
+    if (isDayContext) {
       return patientData.filter((patient) => patient.pharmacyId === 'PH-01')
     }
     return patientData
-  }, [role])
+  }, [isDayContext])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -36,12 +39,47 @@ export default function PatientsPage() {
     return visiblePatients.filter((patient) => patient.name.toLowerCase().includes(query))
   }, [searchQuery, visiblePatients])
 
+  const orderedPatients = useMemo(() => {
+    const ownPharmacyId = 'PH-01'
+    if (!isDayContext) return filteredPatients
+
+    return [...filteredPatients].sort((a, b) => {
+      const aIndex = a.pharmacyId === ownPharmacyId ? 0 : 1
+      const bIndex = b.pharmacyId === ownPharmacyId ? 0 : 1
+      if (aIndex !== bIndex) return aIndex - bIndex
+      return a.name.localeCompare(b.name, 'ja')
+    })
+  }, [filteredPatients, isDayContext])
+
+  if (isNightPharmacist) {
+    return (
+      <div className="space-y-4 text-gray-100">
+        <div>
+          <h1 className="text-lg font-semibold text-white">患者情報</h1>
+          <p className="text-xs text-gray-400">夜間薬剤師は患者一覧ではなく検索起点で患者にアクセスします。</p>
+        </div>
+
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader>
+            <CardTitle className="text-base text-white">夜間患者検索へ移動</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-gray-300">
+            <p>夜間では全患者一覧を表示せず、必要時に検索して患者詳細へ入る設計にしています。</p>
+            <Link href="/dashboard/night-patients">
+              <span className="inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">夜間患者検索を開く</span>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">{role === 'day_pharmacist' ? '自局患者マスタを確認（PH-01のみ）' : '在宅患者の基本情報・注意事項を確認'}</p>
+          <p className="text-xs text-gray-400">{role === 'day_pharmacist' ? '自局患者マスタを確認（PH-01のみ）' : isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">
@@ -66,8 +104,9 @@ export default function PatientsPage() {
       {filteredPatients.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
-            {filteredPatients.map((patient) => {
+            {orderedPatients.map((patient) => {
               const attentionFlags = getAttentionFlags(patient)
+              const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacyId)
               return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
@@ -75,12 +114,38 @@ export default function PatientsPage() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-base font-semibold text-white">{patient.name}</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
+                          <p className="text-base font-semibold text-white">{patient.name}</p>
+                        </div>
                         <p className="text-xs text-gray-400">生年月日: {patient.dob}</p>
                       </div>
                     </div>
-                    <p className="mt-3 text-xs text-gray-300">{patient.address}</p>
+                    <div className="mt-3 space-y-2 text-xs">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-gray-300 hover:text-indigo-300"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-indigo-400" />
+                        {patient.address}
+                      </a>
+                      {pharmacy?.phone && (
+                        <div>
+                          <a
+                            href={`tel:${pharmacy.phone}`}
+                            className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {pharmacy.phone}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                     <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
                     {attentionFlags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -113,21 +178,48 @@ export default function PatientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient) => {
+                  {orderedPatients.map((patient) => {
                     const attentionFlags = getAttentionFlags(patient)
+                    const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacyId)
                     return (
                     <TableRow
                       key={patient.id}
                       className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
                     >
                       <TableCell className="font-medium text-white">
-                        <Link href={`/dashboard/patients/${patient.id}`} className="hover:text-indigo-300">
-                          {patient.name}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
+                          <Link href={`/dashboard/patients/${patient.id}`} className="hover:text-indigo-300">
+                            {patient.name}
+                          </Link>
+                        </div>
                       </TableCell>
                       <TableCell className="text-gray-300">{patient.dob}</TableCell>
-                      <TableCell className="text-gray-300">{patient.address}</TableCell>
-                      <TableCell className="text-indigo-300">{patient.pharmacyName}</TableCell>
+                      <TableCell className="text-gray-300">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 hover:text-indigo-300"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MapPin className="h-3.5 w-3.5 text-indigo-400" />
+                          {patient.address}
+                        </a>
+                      </TableCell>
+                      <TableCell className="space-y-1">
+                        <p className="text-indigo-300">{patient.pharmacyName}</p>
+                        {pharmacy?.phone && (
+                          <a
+                            href={`tel:${pharmacy.phone}`}
+                            className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {pharmacy.phone}
+                          </a>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">
                           {attentionFlags.slice(0, 3).map((flag) => (

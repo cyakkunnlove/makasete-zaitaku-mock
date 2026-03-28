@@ -8,7 +8,7 @@ import {
   Home, ClipboardList, UserCheck, FileText,
   Building2, Users, CreditCard, BarChart3,
   Shield, Bell, Menu, X, LogOut, Moon,
-  Settings, MessageCircle, Calendar, Route
+  Settings, MessageCircle, Calendar, Route, Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/pharmacies', label: '加盟店管理', icon: <Building2 size={20} />, permission: 'pharmacies' },
   { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, permission: 'staff' },
   { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, permission: 'patients' },
+  { href: '/dashboard/night-patients', label: '夜間患者検索', icon: <Search size={20} />, permission: 'patients' },
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, permission: 'audit' },
@@ -63,6 +64,7 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/requests/')) return 'requestDetail'
   if (pathname.startsWith('/dashboard/requests')) return 'requests'
   if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
+  if (pathname.startsWith('/dashboard/night-patients')) return 'patients'
   if (pathname.startsWith('/dashboard/patients')) return 'patients'
   if (pathname.startsWith('/dashboard/pharmacies')) return 'pharmacies'
   if (pathname.startsWith('/dashboard/staff')) return 'staff'
@@ -173,7 +175,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {filteredNav.map((item) => {
+          {filteredNav
+          .filter((item) => !(role === 'night_pharmacist' && item.href === '/dashboard/patients'))
+          .map((item) => {
             const active = pathname === item.href
             return (
               <Link

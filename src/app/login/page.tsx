@@ -15,7 +15,7 @@ const roleOptions = [
   { value: 'regional_admin', label: 'regional_admin / 地域管理者', destination: '/dashboard/onboarding' },
   { value: 'pharmacy_admin', label: 'pharmacy_admin / 薬局管理者', destination: '/dashboard/onboarding' },
   { value: 'day_pharmacist', label: 'day_pharmacist / 日中薬剤師', destination: '/dashboard' },
-  { value: 'night_pharmacist', label: 'night_pharmacist / 夜間薬剤師', destination: '/dashboard' },
+  { value: 'night_pharmacist', label: 'night_pharmacist / 夜間薬剤師', destination: '/dashboard/night-patients' },
   { value: 'system_admin', label: 'system_admin / システム管理者', destination: '/dashboard' },
 ]
 
