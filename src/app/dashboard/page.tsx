@@ -27,6 +27,7 @@ import {
   Shield,
   RotateCcw,
   Receipt,
+  GripVertical,
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
 
@@ -45,6 +46,7 @@ const staffStatusClass: Record<string, string> = {
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
 const DAY_TASK_STORAGE_KEY = 'makasete-day-flow:PH-01:2026-03-28'
+const DAY_TASK_SHARED_STORAGE_KEY = 'makasete-day-flow:shared:PH-01:2026-03-28'
 
 function formatMockTimestamp(time: string) {
   return `2026-03-15 ${time}`
@@ -212,27 +214,66 @@ function SystemAdminDashboard() {
 }
 
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
+  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [dayTasks, setDayTasks] = useState(dayTaskData)
+  const [draftDayTasks, setDraftDayTasks] = useState(dayTaskData)
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
+  const [hasOrderDraft, setHasOrderDraft] = useState(false)
+  const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
+  const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const ownPharmacyId = 'PH-01'
   const ownPatients = useMemo(() => getPatientsByPharmacy(ownPharmacyId), [ownPharmacyId])
 
   useEffect(() => {
     try {
+      const sharedRaw = window.localStorage.getItem(DAY_TASK_SHARED_STORAGE_KEY)
+      if (sharedRaw) {
+        const parsed = JSON.parse(sharedRaw) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
+        if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+          setDayTasks(parsed.tasks)
+          setDraftDayTasks(parsed.tasks)
+          setLastOrderSavedAt(parsed.savedAt ?? null)
+          setLastOrderSavedBy(parsed.savedBy ?? null)
+          return
+        }
+      }
+
       const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as DayTaskItem[]
-        if (Array.isArray(parsed) && parsed.length > 0) setDayTasks(parsed)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDayTasks(parsed)
+          setDraftDayTasks(parsed)
+        }
       }
     } catch {}
   }, [])
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(DAY_TASK_STORAGE_KEY, JSON.stringify(dayTasks))
+      window.localStorage.setItem(DAY_TASK_STORAGE_KEY, JSON.stringify(draftDayTasks))
     } catch {}
-  }, [dayTasks])
+  }, [draftDayTasks])
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== DAY_TASK_SHARED_STORAGE_KEY || !event.newValue) return
+      try {
+        const parsed = JSON.parse(event.newValue) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
+        if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+          setDayTasks(parsed.tasks)
+          setDraftDayTasks(parsed.tasks)
+          setHasOrderDraft(false)
+          setLastOrderSavedAt(parsed.savedAt ?? null)
+          setLastOrderSavedBy(parsed.savedBy ?? null)
+        }
+      } catch {}
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   useEffect(() => {
     if (!undoTarget) return
@@ -241,13 +282,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [undoTarget])
 
   const enrichedVisits = useMemo(() => {
-    return dayTasks
+    return draftDayTasks
       .filter((task) => ownPatients.some((p) => p.id === task.patientId))
       .map((task) => {
         const patient = ownPatients.find((p) => p.id === task.patientId)
         return { ...task, patient }
       })
-  }, [dayTasks, ownPatients])
+  }, [draftDayTasks, ownPatients])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -264,23 +305,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return ownPatients.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query))
   }, [searchQuery, ownPatients])
 
-  const billableReadyCount = dayTasks.filter((task) => task.billable).length
+  const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
   const orderedVisits = useMemo(() => [...filteredVisits].sort((a, b) => a.sortOrder - b.sortOrder), [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>()
-    dayTasks.forEach((task) => {
+    draftDayTasks.forEach((task) => {
       if (!task.handledById || !task.handledBy) return
       const current = counts.get(task.handledById) ?? { name: task.handledBy, count: 0 }
       current.count += 1
       counts.set(task.handledById, current)
     })
     return Array.from(counts.values())
-  }, [dayTasks])
+  }, [draftDayTasks])
 
   const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
-    const current = dayTasks.find((task) => task.id === taskId)
+    const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
     const next = updater(current)
+    setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
   }
@@ -313,12 +355,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const handleUndo = () => {
     if (!undoTarget) return
+    setDraftDayTasks((prev) => prev.map((task) => (task.id === undoTarget.taskId ? undoTarget.previous : task)))
     setDayTasks((prev) => prev.map((task) => (task.id === undoTarget.taskId ? undoTarget.previous : task)))
     setUndoTarget(null)
   }
 
   const handlePlanTask = (taskId: string) => {
-    const current = dayTasks.find((task) => task.id === taskId)
+    const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
     const nextActionLabel = current.planningStatus === 'planned' ? '担当予定を解除しました' : '担当予定に設定しました'
     commitTaskChange(taskId, (task) => ({
@@ -333,7 +376,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }
 
   const moveTask = (taskId: string, direction: 'up' | 'down') => {
-    setDayTasks((prev) => {
+    setDraftDayTasks((prev) => {
       const items = [...prev].sort((a, b) => a.sortOrder - b.sortOrder)
       const index = items.findIndex((item) => item.id === taskId)
       if (index === -1) return prev
@@ -344,12 +387,50 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       const temp = current.sortOrder
       current.sortOrder = target.sortOrder
       target.sortOrder = temp
-      current.updatedAt = '2026-03-28 12:05'
+      current.updatedAt = '2026-03-29 12:47'
       current.updatedById = 'ST-07'
-      target.updatedAt = '2026-03-28 12:05'
+      target.updatedAt = '2026-03-29 12:47'
       target.updatedById = 'ST-07'
-      return items
+      setHasOrderDraft(true)
+      return [...items]
     })
+  }
+
+  const reorderTaskByDrag = (draggedTaskId: string, targetTaskId: string) => {
+    if (draggedTaskId === targetTaskId) return
+    setDraftDayTasks((prev) => {
+      const items = [...prev].sort((a, b) => a.sortOrder - b.sortOrder)
+      const fromIndex = items.findIndex((item) => item.id === draggedTaskId)
+      const toIndex = items.findIndex((item) => item.id === targetTaskId)
+      if (fromIndex === -1 || toIndex === -1) return prev
+      const [moved] = items.splice(fromIndex, 1)
+      items.splice(toIndex, 0, moved)
+      const normalized = items.map((item, index) => ({
+        ...item,
+        sortOrder: index + 1,
+        updatedAt: '2026-03-29 12:54',
+        updatedById: 'ST-07',
+      }))
+      setHasOrderDraft(true)
+      return normalized
+    })
+  }
+
+  const handleSaveOrder = () => {
+    const savedAt = '2026-03-29 12:47'
+    const savedBy = user?.full_name ?? '伊藤 真理'
+    setDayTasks(draftDayTasks)
+    setHasOrderDraft(false)
+    setLastOrderSavedAt(savedAt)
+    setLastOrderSavedBy(savedBy)
+    try {
+      window.localStorage.setItem(DAY_TASK_SHARED_STORAGE_KEY, JSON.stringify({ tasks: draftDayTasks, savedAt, savedBy }))
+    } catch {}
+  }
+
+  const handleResetOrderDraft = () => {
+    setDraftDayTasks(dayTasks)
+    setHasOrderDraft(false)
   }
 
   return (
@@ -369,8 +450,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {dayTasks.filter((task) => task.handledById === 'ST-07').length}件</Badge>
-                <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">更新あり / 手動同期</Button>
+                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {draftDayTasks.filter((task) => task.handledById === 'ST-07').length}件</Badge>
+                {hasOrderDraft ? (
+                  <>
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">未保存の順番変更あり</Badge>
+                    <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
+                    <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">元に戻す</Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">他スタッフ反映済み</Button>
+                )}
                 <Link href="/dashboard/patients/new">
                   <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">患者登録</Button>
                 </Link>
@@ -388,10 +477,18 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-white">スタッフ別の本日対応件数（モック）</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {pharmacyStaffHandledCounts.map((item) => (
-                <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
-              ))}
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {pharmacyStaffHandledCounts.map((item) => (
+                  <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">並び順はドラッグハンドル風UI + 保存ボタンで共有反映</span>
+                {lastOrderSavedBy && lastOrderSavedAt && (
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">最終保存: {lastOrderSavedBy} / {lastOrderSavedAt}</span>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -425,7 +522,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   const canStart = visit.status === 'scheduled'
                   const canComplete = visit.status === 'in_progress'
                   return (
-                    <Card key={visit.id} className="border-[#2a3553] bg-[#1a2035]">
+                    <Card
+                      key={visit.id}
+                      draggable
+                      onDragStart={() => setDraggingTaskId(visit.id)}
+                      onDragEnd={() => setDraggingTaskId(null)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => {
+                        if (!draggingTaskId) return
+                        reorderTaskByDrag(draggingTaskId, visit.id)
+                        setDraggingTaskId(null)
+                      }}
+                      className={cn('border-[#2a3553] bg-[#1a2035]', draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60')}
+                    >
                       <CardContent className="space-y-3 p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
@@ -473,6 +582,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           <Button size="sm" variant="outline" onClick={() => handlePlanTask(visit.id)} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
                             {visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
                           </Button>
+                          <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
+                            <GripVertical className="h-3.5 w-3.5 text-gray-500" />
+                            ドラッグで並び替え
+                          </span>
                           <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'up')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
                           <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'down')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
                           <Button size="sm" onClick={() => handleStartTask(visit.id, visit.scheduledTime)} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">

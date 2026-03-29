@@ -241,7 +241,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {filteredNav
-          .filter((item) => !(role === 'night_pharmacist' && item.href === '/dashboard/patients'))
+          .filter((item) => {
+            if (role === 'night_pharmacist' && item.href === '/dashboard/patients') return false
+            if ((role === 'pharmacy_staff' || role === 'pharmacy_admin') && item.href === '/dashboard/night-patients') return false
+            return true
+          })
           .map((item) => {
             const active = pathname === item.href
             return (
