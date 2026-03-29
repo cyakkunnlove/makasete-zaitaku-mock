@@ -628,8 +628,9 @@ function PharmacyDayTaskCard({
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
-  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate }))
-  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate }))
+  const [flowDate, setFlowDate] = useState(MOCK_FLOW_DATE)
+  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
+  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
@@ -639,7 +640,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
-  const [flowDate, setFlowDate] = useState(MOCK_FLOW_DATE)
   const ownPharmacyId = 'PH-01'
   const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
 
