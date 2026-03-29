@@ -467,6 +467,25 @@ function PharmacyDayTaskCardActions({
   )
 }
 
+function PharmacyDayTaskCardMetaChips({
+  planningStatus,
+  plannedBy,
+  updatedAt,
+}: {
+  planningStatus: DayTaskItem['planningStatus']
+  plannedBy: string | null
+  updatedAt: string | null
+}) {
+  if (!(planningStatus === 'planned' || updatedAt)) return null
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+      {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">対応予定: {plannedBy}</span>}
+      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">更新: {updatedAt}</span>}
+    </div>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -848,12 +867,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
                           onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
                         />
-                        {(visit.planningStatus === 'planned' || visit.updatedAt) && (
-                          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                            {visit.planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">対応予定: {visit.plannedBy}</span>}
-                            {visit.updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">更新: {visit.updatedAt}</span>}
-                          </div>
-                        )}
+                        <PharmacyDayTaskCardMetaChips
+                          planningStatus={visit.planningStatus}
+                          plannedBy={visit.plannedBy}
+                          updatedAt={visit.updatedAt}
+                        />
                       </CardContent>
                     </Card>
                   )
