@@ -274,6 +274,39 @@ function PharmacyDashboardHeaderCard({
   )
 }
 
+function PharmacyDashboardSummaryCard({
+  summaryTitle,
+  pharmacyStaffHandledCounts,
+  summarySupportText,
+  saveStateBadge,
+}: {
+  summaryTitle: string
+  pharmacyStaffHandledCounts: { name: string; count: number }[]
+  summarySupportText: string
+  saveStateBadge: string | null
+}) {
+  return (
+    <Card className="border-[#2a3553] bg-[#1a2035]">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {pharmacyStaffHandledCounts.map((item) => (
+            <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+          <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
+          {saveStateBadge && (
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -558,24 +591,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             handleUndo={handleUndo}
           />
 
-          <Card className="border-[#2a3553] bg-[#1a2035]">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {pharmacyStaffHandledCounts.map((item) => (
-                  <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
-                {saveStateBadge && (
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <PharmacyDashboardSummaryCard
+            summaryTitle={summaryTitle}
+            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+            summarySupportText={summarySupportText}
+            saveStateBadge={saveStateBadge}
+          />
 
           {saveToast && (
             <Card className="border-emerald-500/30 bg-emerald-500/10">
