@@ -352,6 +352,44 @@ function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
   )
 }
 
+function PharmacyDayTaskCardHeader({
+  visit,
+  patientName,
+  patientAddress,
+  statusClassName,
+  statusLabel,
+}: {
+  visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
+  patientName: string
+  patientAddress: string
+  statusClassName: string
+  statusLabel: string
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-white hover:text-indigo-300">
+            {patientName}
+          </Link>
+          <Badge variant="outline" className={cn('border text-[10px]', statusClassName)}>{statusLabel}</Badge>
+          <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
+            {visit.source}
+          </Badge>
+          <Badge variant="outline" className="border-[#2a3553] text-[10px] text-gray-300">{visit.visitType}</Badge>
+        </div>
+        <p className="mt-1 text-xs text-gray-500">{patientAddress}</p>
+        <p className="mt-1 text-[11px] text-gray-400">予定 {visit.scheduledTime} / {visit.note}</p>
+      </div>
+      <div className="text-right text-xs text-gray-400">
+        <p>担当者: {visit.handledBy ?? '未対応'}</p>
+        <p>着手: {visit.handledAt ?? '—'}</p>
+        <p>完了: {visit.completedAt ?? '—'}</p>
+      </div>
+    </div>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -707,27 +745,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       )}
                     >
                       <CardContent className="space-y-3 p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-white hover:text-indigo-300">
-                                {patient.name}
-                              </Link>
-                              <Badge variant="outline" className={cn('border text-[10px]', status.className)}>{status.label}</Badge>
-                              <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
-                                {visit.source}
-                              </Badge>
-                              <Badge variant="outline" className="border-[#2a3553] text-[10px] text-gray-300">{visit.visitType}</Badge>
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">{patient.address}</p>
-                            <p className="mt-1 text-[11px] text-gray-400">予定 {visit.scheduledTime} / {visit.note}</p>
-                          </div>
-                          <div className="text-right text-xs text-gray-400">
-                            <p>担当者: {visit.handledBy ?? '未対応'}</p>
-                            <p>着手: {visit.handledAt ?? '—'}</p>
-                            <p>完了: {visit.completedAt ?? '—'}</p>
-                          </div>
-                        </div>
+                        <PharmacyDayTaskCardHeader
+                          visit={visit}
+                          patientName={patient.name}
+                          patientAddress={patient.address}
+                          statusClassName={status.className}
+                          statusLabel={status.label}
+                        />
 
                         <div className="grid gap-2 sm:grid-cols-3">
                           <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
