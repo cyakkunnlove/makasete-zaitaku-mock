@@ -11,10 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import {
   Search,
-  Clock3,
   AlertTriangle,
   Activity,
-  CheckCircle2,
   Users,
   Moon,
   Building2,
@@ -899,206 +897,126 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
       </div>
 
-      {isPharmacyStaff ? (
-        <>
-          <PharmacyDashboardHeaderCard
-            flowDescription={flowDescription}
-            billableReadyCount={billableReadyCount}
-            primarySummaryBadge={primarySummaryBadge}
-            hasOrderDraft={hasOrderDraft}
-            handleSaveOrder={handleSaveOrder}
-            handleResetOrderDraft={handleResetOrderDraft}
-            orderDraftBadgeText={orderDraftBadgeText}
-            orderSavedButtonText={orderSavedButtonText}
-            resetOrderButtonText={resetOrderButtonText}
-            createPatientButtonText={createPatientButtonText}
-            undoTarget={undoTarget}
-            handleUndo={handleUndo}
+      <>
+        <PharmacyDashboardHeaderCard
+          flowDescription={flowDescription}
+          billableReadyCount={billableReadyCount}
+          primarySummaryBadge={primarySummaryBadge}
+          hasOrderDraft={hasOrderDraft}
+          handleSaveOrder={handleSaveOrder}
+          handleResetOrderDraft={handleResetOrderDraft}
+          orderDraftBadgeText={orderDraftBadgeText}
+          orderSavedButtonText={orderSavedButtonText}
+          resetOrderButtonText={resetOrderButtonText}
+          createPatientButtonText={createPatientButtonText}
+          undoTarget={undoTarget}
+          handleUndo={handleUndo}
+        />
+
+        <PharmacyDashboardSummaryCard
+          summaryTitle={summaryTitle}
+          pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+          summarySupportText={summarySupportText}
+          saveStateBadge={saveStateBadge}
+          adminWarningText={adminWarningText}
+        />
+
+        {saveToast && (
+          <PharmacyDashboardNoticeCard
+            tone="success"
+            message={saveToast}
+            subtext="shared mock save"
           />
+        )}
 
-          <PharmacyDashboardSummaryCard
-            summaryTitle={summaryTitle}
-            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
-            summarySupportText={summarySupportText}
-            saveStateBadge={saveStateBadge}
-            adminWarningText={adminWarningText}
+        {undoTarget && (
+          <PharmacyDashboardNoticeCard
+            tone="warning"
+            message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
+            subtext="billing / 回収管理に反映する想定の mock 連携です。"
           />
+        )}
 
-          {saveToast && (
-            <PharmacyDashboardNoticeCard
-              tone="success"
-              message={saveToast}
-              subtext="shared mock save"
-            />
-          )}
+        <PharmacyDashboardTabs>
+          <TabsContent value="today" className="space-y-2">
+            <PharmacyTodaySectionHeading countLabel={isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'} />
+            <div className="space-y-2">
+              {draggingTaskId && (
+                <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                  青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
+                </div>
+              )}
+              {orderedVisits.map((visit) => {
+                const patient = visit.patient
+                if (!patient) return null
+                const status = taskStatusMeta(visit.status)
+                const collection = collectionStatusMeta(visit.collectionStatus)
+                const canStart = visit.status === 'scheduled'
+                const canComplete = visit.status === 'in_progress'
+                return (
+                  <PharmacyDayTaskCard
+                    key={visit.id}
+                    visit={visit}
+                    patient={patient}
+                    statusClassName={status.className}
+                    statusLabel={status.label}
+                    collectionClassName={collection.className}
+                    draggingTaskId={draggingTaskId}
+                    dragOverTaskId={dragOverTaskId}
+                    setDraggingTaskId={setDraggingTaskId}
+                    setDragOverTaskId={setDragOverTaskId}
+                    onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
+                    canStart={canStart}
+                    canComplete={canComplete}
+                    canMoveUp={visit.status !== 'completed'}
+                    canMoveDown={visit.status !== 'completed'}
+                    onPlanToggle={() => handlePlanTask(visit.id)}
+                    onMoveUp={() => moveTask(visit.id, 'up')}
+                    onMoveDown={() => moveTask(visit.id, 'down')}
+                    onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
+                    onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
+                    completionHelpText={completionHelpText}
+                    plannedLabelPrefix={plannedLabelPrefix}
+                    updatedLabelPrefix={updatedLabelPrefix}
+                    planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+                    reorderHintText={reorderHintText}
+                  />
+                )
+              })}
+            </div>
+          </TabsContent>
 
-          {undoTarget && (
-            <PharmacyDashboardNoticeCard
-              tone="warning"
-              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
-              subtext="billing / 回収管理に反映する想定の mock 連携です。"
-            />
-          )}
-
-          <PharmacyDashboardTabs>
-            <TabsContent value="today" className="space-y-2">
-              <PharmacyTodaySectionHeading countLabel="自動生成 + 手動追加" />
-              <div className="space-y-2">
-                {draggingTaskId && (
-                  <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
-                    青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
-                  </div>
-                )}
-                {orderedVisits.map((visit) => {
-                  const patient = visit.patient
-                  if (!patient) return null
-                  const status = taskStatusMeta(visit.status)
-                  const collection = collectionStatusMeta(visit.collectionStatus)
-                  const canStart = visit.status === 'scheduled'
-                  const canComplete = visit.status === 'in_progress'
-                  return (
-                    <PharmacyDayTaskCard
-                      key={visit.id}
-                      visit={visit}
-                      patient={patient}
-                      statusClassName={status.className}
-                      statusLabel={status.label}
-                      collectionClassName={collection.className}
-                      draggingTaskId={draggingTaskId}
-                      dragOverTaskId={dragOverTaskId}
-                      setDraggingTaskId={setDraggingTaskId}
-                      setDragOverTaskId={setDragOverTaskId}
-                      onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
-                      canStart={canStart}
-                      canComplete={canComplete}
-                      canMoveUp={visit.status !== 'completed'}
-                      canMoveDown={visit.status !== 'completed'}
-                      onPlanToggle={() => handlePlanTask(visit.id)}
-                      onMoveUp={() => moveTask(visit.id, 'up')}
-                      onMoveDown={() => moveTask(visit.id, 'down')}
-                      onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
-                      onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
-                      completionHelpText={completionHelpText}
-                      plannedLabelPrefix={plannedLabelPrefix}
-                      updatedLabelPrefix={updatedLabelPrefix}
-                      planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
-                      reorderHintText={reorderHintText}
-                    />
-                  )
-                })}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="master" className="space-y-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-                <Users className="h-4 w-4 text-indigo-400" />
-                自局患者マスタ
-                <span className="text-xs font-normal text-gray-500">PH-01 の患者のみ</span>
-              </h2>
-              <div className="space-y-2">
-                {filteredMasterPatients.map((patient) => {
-                  const flags = getAttentionFlags(patient)
-                  return (
-                    <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
-                      <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-white">{patient.name}</p>
-                              <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                              <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
-                              <p className="mt-1 text-[11px] text-amber-300">今月の訪問回数: 4回中4回（超過時も保存可 / 警告表示のみ）</p>
-                            </div>
+          <TabsContent value="master" className="space-y-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+              <Users className="h-4 w-4 text-indigo-400" />
+              自局患者マスタ
+              <span className="text-xs font-normal text-gray-500">PH-01 の患者のみ</span>
+            </h2>
+            <div className="space-y-2">
+              {filteredMasterPatients.map((patient) => {
+                const flags = getAttentionFlags(patient)
+                return (
+                  <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
+                    <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-white">{patient.name}</p>
+                            <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
+                            <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
+                            <p className="mt-1 text-[11px] text-amber-300">今月の訪問回数: 4回中4回（超過時も保存可 / 警告表示のみ）</p>
                           </div>
-                          {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  )
-                })}
-              </div>
-            </TabsContent>
-          </PharmacyDashboardTabs>
-        </>
-      ) : (
-        <>
-          <PharmacyDashboardHeaderCard
-            flowDescription={flowDescription}
-            billableReadyCount={billableReadyCount}
-            primarySummaryBadge={primarySummaryBadge}
-            hasOrderDraft={hasOrderDraft}
-            handleSaveOrder={handleSaveOrder}
-            handleResetOrderDraft={handleResetOrderDraft}
-            orderDraftBadgeText={orderDraftBadgeText}
-            orderSavedButtonText={orderSavedButtonText}
-            resetOrderButtonText={resetOrderButtonText}
-            createPatientButtonText={createPatientButtonText}
-            undoTarget={undoTarget}
-            handleUndo={handleUndo}
-          />
-
-          <PharmacyDashboardSummaryCard
-            summaryTitle={summaryTitle}
-            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
-            summarySupportText={summarySupportText}
-            saveStateBadge={saveStateBadge}
-            adminWarningText={adminWarningText}
-          />
-
-          {saveToast && (
-            <PharmacyDashboardNoticeCard
-              tone="success"
-              message={saveToast}
-              subtext="shared mock save"
-            />
-          )}
-
-          {undoTarget && (
-            <PharmacyDashboardNoticeCard
-              tone="warning"
-              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
-              subtext="billing / 回収管理に反映する想定の mock 連携です。"
-            />
-          )}
-
-        <div className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-            <Building2 className="h-4 w-4 text-indigo-400" />
-            本日の訪問予定
-            <span className="text-xs font-normal text-gray-500">{enrichedVisits.length}件</span>
-          </h2>
-          <div className="space-y-2">
-            {orderedVisits.map((visit) => {
-              const patient = visit.patient
-              if (!patient) return null
-              const isCompleted = visit.status === 'completed'
-              return (
-                <Link key={visit.id} href={`/dashboard/patients/${visit.patientId}`}>
-                  <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className={cn('text-sm font-semibold', isCompleted ? 'text-gray-400 line-through' : 'text-white')}>{patient.name}</p>
-                            <Badge variant="outline" className={cn('border text-[10px]', visit.visitType === '臨時' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-[#2a3553] text-gray-400')}>{visit.visitType}</Badge>
-                          </div>
-                          <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className="text-sm font-medium text-gray-300">{visit.scheduledTime}</span>
-                          {isCompleted ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <Clock3 className="h-4 w-4 text-gray-500" />}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-        </>
-      )}
-
+                        {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+          </TabsContent>
+        </PharmacyDashboardTabs>
+      </>
       {!isPharmacyStaff && (
         <div className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
