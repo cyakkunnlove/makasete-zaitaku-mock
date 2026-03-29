@@ -29,10 +29,10 @@ export default function NightPatientDetailPage() {
   const patient = useMemo(() => patientData.find((p) => p.id === id), [id])
   const patientHandovers = useMemo(() => handoverData.filter((h) => h.patientId === id).slice(0, 3), [id])
 
-  if (role !== 'night_pharmacist') {
+  if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-        <CardContent className="p-6 text-sm text-gray-400">この画面は夜間薬剤師専用です。</CardContent>
+        <CardContent className="p-6 text-sm text-gray-400">この画面はNight PharmacistまたはRegional Adminのみ利用できます。</CardContent>
       </Card>
     )
   }
@@ -58,7 +58,7 @@ export default function NightPatientDetailPage() {
         </Link>
         <div>
           <h1 className="text-lg font-semibold text-white">夜間患者詳細</h1>
-          <p className="text-xs text-gray-400">夜間対応に必要な情報のみ表示しています。</p>
+          <p className="text-xs text-gray-400">検索起点の専用詳細画面です。閲覧ログと権限制御を前提に運用します。</p>
         </div>
       </div>
 
@@ -169,6 +169,9 @@ export default function NightPatientDetailPage() {
           <CardTitle className="text-sm text-white">夜間対応メモ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-100">
+            この画面では検索・閲覧・対応結果保存を監査対象にする想定です。異常時の通知先は System Admin / Regional Admin。
+          </div>
           <Textarea
             value={nightNote}
             onChange={(e) => setNightNote(e.target.value)}

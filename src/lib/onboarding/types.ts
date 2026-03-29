@@ -1,5 +1,8 @@
-// 診断軸のキー
-export type AxisKey = 'vision' | 'role' | 'education' | 'operations' | 'night'
+// 診断軸のキー（6軸に拡張）
+export type AxisKey = 'vision' | 'role' | 'equipment' | 'education' | 'operations' | 'night'
+
+// 本気度レベル
+export type CommitmentLevel = 'basic' | 'moderate' | 'full'
 
 // トーン（UI表示用）
 export type Tone = 'default' | 'good' | 'warn' | 'info'
@@ -10,6 +13,7 @@ export type AxisScore = {
   subject: string
   score: number
   fullMark: number
+  weight: number // 重み付け
 }
 
 // 選択肢
@@ -26,6 +30,17 @@ export type AssessmentQuestion = {
   question: string
   help: string
   options: Option[]
+  weight: number // 重要度（1-3）
+}
+
+// 本気度診断質問
+export type CommitmentQuestion = {
+  id: string
+  question: string
+  options: {
+    label: string
+    level: CommitmentLevel
+  }[]
 }
 
 // タスク
@@ -41,13 +56,14 @@ export type TaskItem = {
   relatedContentId: string
   nextAction: string
   successMetric: string
+  commitmentLevels: CommitmentLevel[] // どの本気度で表示するか
 }
 
 // 教材
 export type LearningItem = {
   id: string
   title: string
-  type: '動画' | 'テンプレ' | '資料'
+  type: '動画' | 'テンプレ' | '資料' | 'チェックリスト'
   target: string
   description: string
   duration: string
@@ -57,6 +73,9 @@ export type LearningItem = {
   previewMeta: string
   previewLines: string[]
   ctaLabel: string
+  category: 'phase0' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'template' | 'knowledge-system' | 'knowledge-kasan' | 'knowledge-materials' | 'skill-aseptic' | 'skill-pump' | 'skill-compatibility' | 'skill-narcotic' // 導入ステージ別 + 基礎知識・臨床スキル細分化カテゴリ
+  commitmentLevels: CommitmentLevel[]
+  downloadUrl?: string // テンプレートPDFのURL
 }
 
 // チェックリスト
@@ -109,4 +128,24 @@ export type PhaseInfo = {
   label: string
   summary: string
   tone: Tone
+}
+
+// 本気度別ロードマップ
+export type RoadmapByCommitment = {
+  level: CommitmentLevel
+  label: string
+  description: string
+  targetPhase: number
+  features: string[]
+  nightSupport: boolean
+}
+
+// つまずきポイント
+export type StumblingPoint = {
+  id: string
+  category: string
+  title: string
+  description: string
+  difficulty: 'high' | 'medium' | 'low'
+  relatedLearningIds: string[]
 }

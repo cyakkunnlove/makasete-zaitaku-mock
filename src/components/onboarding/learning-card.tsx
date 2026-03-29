@@ -49,12 +49,23 @@ export function LearningCard({ item, className }: LearningCardProps) {
           ))}
         </ul>
       </div>
-      <Link
-        href={`/onboarding/learning/${item.id}`}
-        className="inline-flex w-full items-center justify-center rounded-full bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-      >
-        {item.ctaLabel}
-      </Link>
+      <div className="flex gap-2">
+        <Link
+          href={`/onboarding/learning/${item.id}`}
+          className="inline-flex flex-1 items-center justify-center rounded-full bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
+          詳細を見る
+        </Link>
+        {item.downloadUrl && (
+          <a
+            href={item.downloadUrl}
+            download
+            className="inline-flex items-center justify-center rounded-full border border-blue-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
+          >
+            📥 DL
+          </a>
+        )}
+      </div>
     </article>
   )
 }

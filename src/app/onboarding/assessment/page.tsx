@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   assessmentQuestions,
@@ -10,13 +10,19 @@ import {
   calculateReadiness,
   getPhaseInfo,
   getTopGap,
+  getCommitmentLabel,
   type AxisKey,
+  type CommitmentLevel,
 } from '@/lib/onboarding'
 import { Pill } from '@/components/onboarding'
 import { cn } from '@/lib/utils'
 
-export default function AssessmentPage() {
+function AssessmentContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const commitmentParam = searchParams.get('commitment') as CommitmentLevel | null
+  const commitment = commitmentParam ?? 'moderate'
+
   const [answers, setAnswers] = useState<Record<AxisKey, number>>(defaultAnswers)
 
   const axisScores = calculateAxisScores(answers)
@@ -34,12 +40,17 @@ export default function AssessmentPage() {
       <header className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">3分診断</h1>
+            <h1 className="text-xl font-bold text-gray-900">6軸診断</h1>
             <p className="text-sm text-gray-600">
-              5問だけ選ぶと、次にやることが見えます。
+              6つの軸で在宅導入状態を診断します。
             </p>
           </div>
-          <Pill tone="warn">5問</Pill>
+          <div className="flex gap-2">
+            <Pill tone="warn">6問</Pill>
+            <Pill tone={commitment === 'full' ? 'good' : commitment === 'moderate' ? 'warn' : 'info'}>
+              {getCommitmentLabel(commitment)}
+            </Pill>
+          </div>
         </div>
         <div className="rounded-xl bg-blue-50 p-4">
           <div className="mb-2 flex items-center justify-between">
@@ -47,17 +58,36 @@ export default function AssessmentPage() {
               <p className="text-xs text-gray-500">いま見えている段階</p>
               <p className="font-bold text-gray-900">{phaseInfo.label}</p>
             </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500">準備率</p>
+              <p className="font-bold text-blue-600">{readiness}%</p>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">
-            迷ったら近いものを選べばOKです。
-          </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
             <span>最優先: {topGap.subject}</span>
             <span>•</span>
-            <span>あとで現在地に反映</span>
+            <span>重み: {topGap.weight === 3 ? '高' : topGap.weight === 2 ? '中' : '低'}</span>
           </div>
         </div>
       </header>
+
+      {/* 軸の説明 */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 font-bold text-gray-900">6つの診断軸</h2>
+        <p className="mb-4 text-sm text-gray-600">
+          特に「体制・役割分担」と「夜間対応」が重要です。
+        </p>
+        <div className="grid gap-2 md:grid-cols-3">
+          {assessmentQuestions.map((q) => (
+            <div key={q.id} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+              <span className="font-medium text-gray-900">{q.category}</span>
+              <Pill tone={q.weight === 3 ? 'warn' : q.weight === 2 ? 'info' : 'default'}>
+                重要度{q.weight}
+              </Pill>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* 質問リスト */}
       <section className="space-y-4">
@@ -71,7 +101,12 @@ export default function AssessmentPage() {
               className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
             >
               <div className="mb-3 flex items-center justify-between">
-                <Pill tone="info">Q{qIndex + 1}</Pill>
+                <div className="flex items-center gap-2">
+                  <Pill tone="info">Q{qIndex + 1}</Pill>
+                  <Pill tone={question.weight === 3 ? 'warn' : question.weight === 2 ? 'info' : 'default'}>
+                    重要度{question.weight}
+                  </Pill>
+                </div>
                 <Pill tone={selected.score >= 4 ? 'good' : selected.score >= 2.5 ? 'warn' : 'info'}>
                   {selected.score.toFixed(1)} / 5
                 </Pill>
@@ -86,7 +121,7 @@ export default function AssessmentPage() {
                 <summary className="cursor-pointer text-sm text-blue-600 hover:underline">
                   ヒントを見る
                 </summary>
-                <p className="mt-2 text-sm text-gray-600">{question.help}</p>
+                <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-gray-700">{question.help}</p>
               </details>
               <div className="space-y-2">
                 {question.options.map((option, optIndex) => (
@@ -109,6 +144,9 @@ export default function AssessmentPage() {
                         {option.score.toFixed(1)}
                       </span>
                     </div>
+                    {selectedIndex === optIndex && (
+                      <p className="mt-2 text-sm text-gray-600">{option.detail}</p>
+                    )}
                   </button>
                 ))}
               </div>
@@ -118,10 +156,16 @@ export default function AssessmentPage() {
       </section>
 
       {/* 結果確認ボタン */}
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-3">
+        <Link
+          href="/onboarding/commitment"
+          className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-50"
+        >
+          戻る
+        </Link>
         <button
           type="button"
-          onClick={() => router.push('/onboarding/result')}
+          onClick={() => router.push(`/onboarding/result?commitment=${commitment}`)}
           className="rounded-full bg-blue-600 px-8 py-3 font-semibold text-white transition hover:bg-blue-700"
         >
           現在地を確認する
@@ -150,5 +194,13 @@ export default function AssessmentPage() {
         </div>
       </nav>
     </div>
+  )
+}
+
+export default function AssessmentPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">読み込み中...</div>}>
+      <AssessmentContent />
+    </Suspense>
   )
 }

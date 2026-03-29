@@ -78,7 +78,7 @@ export default function AuditPage() {
     <div className="space-y-4 text-gray-100">
       <div>
         <h1 className="text-lg font-semibold text-white">監査ログ</h1>
-        <p className="text-xs text-gray-400">操作履歴を時系列で確認し、詳細を監査</p>
+        <p className="text-xs text-gray-400">操作履歴を時系列で確認し、患者検索・閲覧・電話・地図・拒否アクセスも監査</p>
       </div>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -102,6 +102,10 @@ export default function AuditPage() {
                   <SelectItem value="fax_opened">FAX閲覧</SelectItem>
                   <SelectItem value="patient_search">患者検索</SelectItem>
                   <SelectItem value="patient_linked">患者紐付け</SelectItem>
+                  <SelectItem value="patient_view">患者閲覧</SelectItem>
+                  <SelectItem value="patient_phone_open">患者電話</SelectItem>
+                  <SelectItem value="patient_map_open">地図表示</SelectItem>
+                  <SelectItem value="access_denied">拒否アクセス</SelectItem>
                 </SelectContent>
               </Select>
             </div>

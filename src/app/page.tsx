@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const entryCards = [
   {
-    title: '任せて在宅',
+    title: 'MAKASETE',
     subtitle: 'これから在宅を始めたい方へ',
     description: '導入診断、伴走、教育、ロードマップで、初回受入までを支援します。',
     href: '/onboarding',
@@ -16,7 +16,7 @@ const entryCards = [
     tone: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300',
   },
   {
-    title: 'オマカセ在宅',
+    title: 'OMAKASE',
     subtitle: '在宅運用をもっと安定させたい方へ',
     description: '夜間・緊急対応を含む運用支援で、断らない体制づくりを支えます。',
     href: '/dashboard',
@@ -48,7 +48,7 @@ export default function Home() {
               必要な支援をひとつの入口から。
             </h1>
             <p className="mt-4 max-w-3xl text-sm text-gray-400 lg:text-base">
-              これから始めたい薬局には「任せて在宅」。すでに運用していて夜間や緊急対応を強化したい薬局には「オマカセ在宅」。
+              これから始めたい薬局には「MAKASETE」。すでに運用していて夜間や緊急対応を強化したい薬局には「OMAKASE」。
               ご利用中の方は「アプリ」からそのまま管理画面へ進めます。
             </p>
           </div>
@@ -89,13 +89,13 @@ export default function Home() {
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
           <Card className="border-[#2a3553] bg-[#111827]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white"><Route className="h-4 w-4 text-indigo-400" />任せて在宅</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white"><Route className="h-4 w-4 text-indigo-400" />MAKASETE</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-gray-400">導入診断、伴走、教育、ロードマップ、添削など、在宅を始める前後の整理を支援します。</CardContent>
           </Card>
           <Card className="border-[#2a3553] bg-[#111827]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white"><Moon className="h-4 w-4 text-emerald-400" />オマカセ在宅</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white"><Moon className="h-4 w-4 text-emerald-400" />OMAKASE</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-gray-400">夜間・緊急対応を含む運用支援で、断らない体制づくりと現場負荷の軽減を支えます。</CardContent>
           </Card>
@@ -107,23 +107,15 @@ export default function Home() {
           </Card>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-[#2a3553] bg-[#111827] p-6">
-          <h2 className="text-lg font-semibold text-white">今後のログイン方針</h2>
-          <p className="mt-2 text-sm text-gray-400">
-            現在は Supabase 未接続のため、簡易ログインでロールを選んで確認できる状態にしています。
-            今後はこの入口ページから認証し、契約・権限に応じて各モジュールへ振り分けます。
-          </p>
-        </div>
-
         <div className="mt-8 flex flex-wrap gap-3">
           <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => router.push('/login')}>
-            ロールを選んでログイン
-          </Button>
-          <Button variant="ghost" className="text-gray-400 hover:bg-[#11182c] hover:text-gray-200" onClick={() => router.push('/dashboard')}>
-            デモダッシュボードを見る
+            ログイン
           </Button>
           <Button variant="ghost" className="text-gray-400 hover:bg-[#11182c] hover:text-gray-200" onClick={() => router.push('/onboarding')}>
-            任せて在宅を見る
+            MAKASETEを見る
+          </Button>
+          <Button variant="ghost" className="text-gray-400 hover:bg-[#11182c] hover:text-gray-200" onClick={() => router.push('/dashboard')}>
+            OMAKASEを見る
           </Button>
         </div>
       </div>

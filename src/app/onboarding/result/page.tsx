@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import {
   defaultAnswers,
+  defaultCommitmentLevel,
   calculateAxisScores,
   calculateReadiness,
   getPhaseInfo,
@@ -11,10 +14,17 @@ import {
   getTopStrength,
   getPhaseReasons,
   getNextActions,
+  getCommitmentLabel,
+  getRoadmapByCommitment,
+  type CommitmentLevel,
 } from '@/lib/onboarding'
 import { Pill, OnboardingRadarChart } from '@/components/onboarding'
 
-export default function ResultPage() {
+function ResultContent() {
+  const searchParams = useSearchParams()
+  const commitmentParam = searchParams.get('commitment') as CommitmentLevel | null
+  const commitment = commitmentParam ?? defaultCommitmentLevel
+
   const axisScores = calculateAxisScores(defaultAnswers)
   const readiness = calculateReadiness(axisScores)
   const phaseInfo = getPhaseInfo(readiness)
@@ -22,7 +32,8 @@ export default function ResultPage() {
   const topGap = getTopGap(axisScores)
   const topStrength = getTopStrength(axisScores)
   const phaseReasons = getPhaseReasons(defaultAnswers)
-  const nextActions = getNextActions(topGap)
+  const nextActions = getNextActions(topGap, commitment)
+  const roadmap = getRoadmapByCommitment(commitment)
 
   return (
     <div className="space-y-6">
@@ -35,9 +46,23 @@ export default function ResultPage() {
               診断結果を、次に何をすればいいかが分かる順に並べています。
             </p>
           </div>
-          <Pill tone={phaseInfo.tone}>{phaseInfo.label}</Pill>
+          <div className="flex flex-col gap-1 text-right">
+            <Pill tone={phaseInfo.tone}>{phaseInfo.label}</Pill>
+            <Pill tone={commitment === 'full' ? 'good' : commitment === 'moderate' ? 'warn' : 'info'}>
+              {getCommitmentLabel(commitment)}
+            </Pill>
+          </div>
         </div>
       </header>
+
+      {/* 導入成功の定義 */}
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <h2 className="mb-2 font-bold text-gray-900">🎯 導入成功 = 初回患者受入（Phase 3 到達）</h2>
+        <p className="text-sm text-gray-700">
+          体制が整っていない状態で受けると対応ができず、紹介が途絶えるリスクがあります。
+          まず体制を整えてから初回受入へ進みましょう。
+        </p>
+      </section>
 
       {/* 結果サマリー */}
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -55,10 +80,15 @@ export default function ResultPage() {
             <div className="flex gap-2">
               <span className="text-gray-500">いちばん先に整える点:</span>
               <span className="font-semibold text-gray-900">{topGap.subject}</span>
+              <Pill tone="warn">重要度{topGap.weight}</Pill>
             </div>
             <div className="flex gap-2">
               <span className="text-gray-500">次に進む条件:</span>
               <span className="font-semibold text-gray-900">{currentPhase.gate}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-gray-500">目標:</span>
+              <span className="font-semibold text-gray-900">{roadmap.label}</span>
             </div>
           </div>
         </div>
@@ -66,41 +96,47 @@ export default function ResultPage() {
         {/* レーダーチャート */}
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-2">
-            <p className="text-xs text-gray-500">5軸のバランス</p>
+            <p className="text-xs text-gray-500">6軸のバランス（重み付き）</p>
             <p className="font-bold text-gray-900">どこが詰まりやすいかを確認</p>
           </div>
           <OnboardingRadarChart data={axisScores} compact />
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
             {axisScores.map((item) => (
               <div key={item.key} className="flex justify-between rounded-lg bg-gray-50 px-2 py-1">
                 <span className="text-gray-600">{item.subject}</span>
-                <span className="font-semibold text-gray-900">{item.score.toFixed(1)}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-gray-900">{item.score.toFixed(1)}</span>
+                  <span className="text-xs text-gray-400">×{item.weight}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 次にやること */}
+      {/* 次にやること（田中社長の順序に基づく） */}
       <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
         <h2 className="mb-3 font-bold text-gray-900">次に何をすればいいか</h2>
+        <p className="mb-4 text-sm text-gray-600">
+          進め方: オーナー方針決定 → スタッフ教育 → 体制構築 → 営業・獲得
+        </p>
         <ol className="mb-4 list-inside list-decimal space-y-2 text-sm text-gray-700">
-          {nextActions.map((action) => (
-            <li key={action}>{action}</li>
+          {nextActions.map((action, i) => (
+            <li key={i}>{action}</li>
           ))}
         </ol>
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/onboarding/tasks"
+            href={`/onboarding/tasks?commitment=${commitment}`}
             className="rounded-full bg-blue-600 px-6 py-2.5 font-semibold text-white transition hover:bg-blue-700"
           >
             今週やることを決める
           </Link>
           <Link
-            href="/onboarding/support"
+            href={`/onboarding/roadmap?commitment=${commitment}`}
             className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-50"
           >
-            伴走担当に相談する
+            ロードマップを見る
           </Link>
         </div>
       </section>
@@ -112,7 +148,12 @@ export default function ResultPage() {
           {phaseReasons.map((reason) => (
             <div key={reason.category} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-semibold text-gray-900">{reason.category}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">{reason.category}</span>
+                  <Pill tone={reason.weight === 3 ? 'warn' : reason.weight === 2 ? 'info' : 'default'}>
+                    重要度{reason.weight}
+                  </Pill>
+                </div>
                 <Pill tone={reason.score >= 4 ? 'good' : reason.score >= 2.5 ? 'warn' : 'info'}>
                   {reason.score.toFixed(1)} / 5
                 </Pill>
@@ -146,5 +187,13 @@ export default function ResultPage() {
         </div>
       </nav>
     </div>
+  )
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">読み込み中...</div>}>
+      <ResultContent />
+    </Suspense>
   )
 }

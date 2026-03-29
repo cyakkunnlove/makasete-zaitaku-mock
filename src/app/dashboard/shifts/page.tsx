@@ -86,12 +86,12 @@ export default function ShiftsPage() {
     })
   }, [canEdit])
 
-  if (role !== 'regional_admin' && role !== 'night_pharmacist') {
+  if (role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
           <CardTitle className="text-base text-white">シフト管理</CardTitle>
-          <CardDescription className="text-gray-400">このページは管理者または夜間薬剤師のみ閲覧できます。</CardDescription>
+          <CardDescription className="text-gray-400">このページはRegional Adminのみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -102,7 +102,7 @@ export default function ShiftsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">夜間シフト管理</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '夜間対応スタッフの当番スケジュールを確認・編集' : '自分の夜間当番スケジュールを確認'}</p>
+          <p className="text-xs text-gray-400">夜間対応スタッフの当番スケジュールを確認・編集</p>
         </div>
         <div className="flex items-center gap-1">
           <CalendarDays className="h-4 w-4 text-indigo-400" />

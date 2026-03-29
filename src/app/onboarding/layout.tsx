@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '任せて在宅 | 導入支援',
+  title: 'MAKASETE | 導入支援',
   description: '在宅薬局の導入から初回受入までを伴走支援するアプリ',
 }
 

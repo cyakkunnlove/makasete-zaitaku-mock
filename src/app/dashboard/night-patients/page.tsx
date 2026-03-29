@@ -37,10 +37,10 @@ export default function NightPatientsPage() {
     })
   }, [query])
 
-  if (role !== 'night_pharmacist') {
+  if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-        <CardContent className="p-6 text-sm text-gray-400">この画面は夜間薬剤師専用です。</CardContent>
+        <CardContent className="p-6 text-sm text-gray-400">この画面はNight PharmacistまたはRegional Adminのみ利用できます。</CardContent>
       </Card>
     )
   }
@@ -63,7 +63,7 @@ export default function NightPatientsPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="患者ID・氏名・生年月日・薬局名で検索"
+            placeholder="氏名・生年月日を主に、患者ID・薬局名でも検索"
             className="border-[#2a3553] bg-[#11182c] text-gray-100"
           />
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
@@ -115,7 +115,7 @@ export default function NightPatientsPage() {
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="p-4 text-xs text-gray-400">
-          検索キーは MVP として「患者ID / 氏名 / 生年月日 / 薬局名」を採用。電話番号検索は患者本人番号の設計後に再検討します。
+          検索キーは MVP として「氏名 / 生年月日」を主軸に、「患者ID / 薬局名」を補助で採用。電話番号は患者本人への連絡用情報として保持し、検索主軸にはしません。
         </CardContent>
       </Card>
     </div>

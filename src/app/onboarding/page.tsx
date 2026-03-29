@@ -1,209 +1,407 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import {
-  storeProfile,
-  checklistItems,
-  supportItems,
-  learningItems,
-  tasks,
   defaultAnswers,
+  commitmentQuestions,
+  assessmentQuestions,
   calculateAxisScores,
   calculateReadiness,
   getPhaseInfo,
+  getPhaseById,
+  getTopGap,
+  getTasksByCommitment,
+  getCommitmentLabel,
+  // getNextActions,
+  phaseOrder,
+  type AxisKey,
+  type CommitmentLevel,
 } from '@/lib/onboarding'
-import {
-  Pill,
-  SupportCard,
-} from '@/components/onboarding'
+import { Pill, OnboardingRadarChart } from '@/components/onboarding'
+import { cn } from '@/lib/utils'
+
+type AppState = 'welcome' | 'commitment' | 'assessment' | 'dashboard'
 
 export default function OnboardingHomePage() {
-  const axisScores = calculateAxisScores(defaultAnswers)
+  const [state, setState] = useState<AppState>('welcome')
+  const [commitment, setCommitment] = useState<CommitmentLevel | null>(null)
+  const [commitmentAnswers, setCommitmentAnswers] = useState<Record<string, CommitmentLevel>>({})
+  const [assessmentAnswers, setAssessmentAnswers] = useState<Record<AxisKey, number>>(defaultAnswers)
+
+  // 本気度を計算
+  const determineCommitment = (): CommitmentLevel => {
+    const levels = Object.values(commitmentAnswers)
+    const counts = {
+      basic: levels.filter((l) => l === 'basic').length,
+      moderate: levels.filter((l) => l === 'moderate').length,
+      full: levels.filter((l) => l === 'full').length,
+    }
+    if (counts.full >= counts.moderate && counts.full >= counts.basic) return 'full'
+    if (counts.moderate >= counts.basic) return 'moderate'
+    return 'basic'
+  }
+
+  const axisScores = calculateAxisScores(assessmentAnswers)
   const readiness = calculateReadiness(axisScores)
   const phaseInfo = getPhaseInfo(readiness)
-  const mustDoTasks = tasks.filter((task) => task.status !== '完了').slice(0, 2)
-  const firstLearning = learningItems[0]
+  const currentPhase = getPhaseById(phaseInfo.phaseId)
+  const nextPhase = getPhaseById(Math.min(phaseInfo.phaseId + 1, phaseOrder.length - 1))
+  const topGap = getTopGap(axisScores)
+  const resolvedCommitment = commitment ?? 'moderate'
+  const tasks = getTasksByCommitment(resolvedCommitment)
+  const activeTasks = tasks.filter((t) => t.status !== '完了').slice(0, 3)
+  // const nextActions = getNextActions(topGap, resolvedCommitment)
 
-  const quickStartSteps = [
-    {
-      icon: '🩺',
-      label: '3分診断',
-      title: 'いまの詰まりをつかむ',
-      body: '5問だけでOK',
-      link: '/onboarding/assessment',
-      cta: '診断する',
-    },
-    {
-      icon: '📍',
-      label: '現在地',
-      title: 'どの段階か見る',
-      body: '次の1歩がわかる',
-      link: '/onboarding/result',
-      cta: '現在地を見る',
-    },
-    {
-      icon: '✅',
-      label: '今週の1件',
-      title: '最初にやることを決める',
-      body: '会議前の優先を絞る',
-      link: '/onboarding/tasks',
-      cta: '今週を見る',
-    },
-  ]
+  // ========== ウェルカム画面 ==========
+  if (state === 'welcome') {
+    return (
+      <div className="space-y-6">
+        <header className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-center text-white shadow-lg">
+          <p className="mb-2 text-sm font-medium text-blue-200">MAKASETE</p>
+          <h1 className="mb-3 text-2xl font-bold">ようこそ</h1>
+          <p className="mb-2 text-base text-blue-100">
+            在宅導入を一緒に進めていきましょう。
+          </p>
+          <p className="text-sm text-blue-200">
+            まず、あなたの薬局の状況をかんたんに確認します。
+          </p>
+        </header>
 
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-center font-bold text-gray-900">はじめに3つのステップを進めます</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { step: '1', title: 'コースを選ぶ', desc: '在宅をどの規模で考えているか、2問で確認します。', time: '1分' },
+              { step: '2', title: '現在地を知る', desc: '6つの質問で、今どこにいて何が足りないかがわかります。', time: '2分' },
+              { step: '3', title: '始める', desc: 'あなたの薬局に合った進め方とタスクが表示されます。', time: '' },
+            ].map((s) => (
+              <div key={s.step} className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+                <p className="mb-2 text-2xl font-bold text-blue-300">{s.step}</p>
+                <h3 className="font-bold text-gray-900">{s.title}</h3>
+                <p className="mt-1 text-sm text-gray-600">{s.desc}</p>
+                {s.time && <p className="mt-2 text-xs text-gray-400">約{s.time}</p>}
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setState('commitment')}
+              className="rounded-full bg-blue-600 px-8 py-3 font-semibold text-white transition hover:bg-blue-700"
+            >
+              はじめる →
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  // ========== コース選択 ==========
+  if (state === 'commitment') {
+    const allAnswered = commitmentQuestions.every((q) => commitmentAnswers[q.id])
+    return (
+      <div className="space-y-6">
+        <header className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg">
+          <div className="mb-2 flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold">1</span>
+            <span className="text-sm text-blue-200">ステップ 1 / 3</span>
+          </div>
+          <h1 className="text-xl font-bold">コースを選ぶ</h1>
+          <p className="mt-1 text-sm text-blue-100">在宅をどのくらいの規模で考えていますか？</p>
+        </header>
+
+        <section className="space-y-4">
+          {commitmentQuestions.map((question, qIndex) => (
+            <div key={question.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="mb-1 text-xs text-gray-500">質問 {qIndex + 1}</p>
+              <h2 className="mb-4 font-bold text-gray-900">{question.question}</h2>
+              <div className="space-y-2">
+                {question.options.map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => setCommitmentAnswers((prev) => ({ ...prev, [question.id]: option.level }))}
+                    className={cn(
+                      'w-full rounded-xl border p-4 text-left transition',
+                      commitmentAnswers[question.id] === option.level
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 bg-white hover:border-blue-300'
+                    )}
+                  >
+                    <span className="font-medium text-gray-900">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setState('welcome')}
+            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            戻る
+          </button>
+          <button
+            type="button"
+            disabled={!allAnswered}
+            onClick={() => {
+              const level = determineCommitment()
+              setCommitment(level)
+              setState('assessment')
+            }}
+            className={cn(
+              'rounded-full px-8 py-3 font-semibold text-white transition',
+              allAnswered ? 'bg-blue-600 hover:bg-blue-700' : 'cursor-not-allowed bg-gray-300'
+            )}
+          >
+            次へ →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ========== 6軸診断 ==========
+  if (state === 'assessment') {
+    return (
+      <div className="space-y-6">
+        <header className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg">
+          <div className="mb-2 flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold">2</span>
+            <span className="text-sm text-blue-200">ステップ 2 / 3</span>
+          </div>
+          <h1 className="text-xl font-bold">現在地を知る</h1>
+          <p className="mt-1 text-sm text-blue-100">6つの質問に答えて、今の状況を確認しましょう。</p>
+          {commitment && (
+            <div className="mt-3">
+              <Pill tone={commitment === 'full' ? 'good' : commitment === 'moderate' ? 'warn' : 'info'}>
+                {getCommitmentLabel(commitment)}
+              </Pill>
+            </div>
+          )}
+        </header>
+
+        <section className="space-y-4">
+          {assessmentQuestions.map((question, qIndex) => {
+            const selectedIndex = assessmentAnswers[question.id]
+            return (
+              <div key={question.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-3">
+                  <p className="text-xs text-gray-500">質問 {qIndex + 1} / 6 — {question.category}</p>
+                </div>
+                <h2 className="mb-4 font-bold text-gray-900">{question.question}</h2>
+                <details className="mb-3">
+                  <summary className="cursor-pointer text-sm text-blue-600 hover:underline">ヒント</summary>
+                  <p className="mt-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">{question.help}</p>
+                </details>
+                <div className="space-y-2">
+                  {question.options.map((option, optIndex) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setAssessmentAnswers((prev) => ({ ...prev, [question.id]: optIndex }))}
+                      className={cn(
+                        'w-full rounded-xl border p-4 text-left transition',
+                        selectedIndex === optIndex
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 bg-white hover:border-blue-300'
+                      )}
+                    >
+                      <span className="font-medium text-gray-900">{option.label}</span>
+                      {selectedIndex === optIndex && (
+                        <p className="mt-1 text-sm text-gray-600">{option.detail}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </section>
+
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setState('commitment')}
+            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            戻る
+          </button>
+          <button
+            type="button"
+            onClick={() => setState('dashboard')}
+            className="rounded-full bg-blue-600 px-8 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            結果を見る →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ========== ダッシュボード ==========
   return (
     <div className="space-y-6">
-      {/* ヒーロー */}
+      {/* ヘッダー */}
       <header className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-lg">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-blue-200">
-          任せて在宅 / 新規薬局オンボーディング
-        </p>
-        <h1 className="mb-2 text-2xl font-bold">
-          {storeProfile.name} のスタート画面
-        </h1>
-        <p className="mb-4 text-sm text-blue-100">
-          読む前に動けるように、最初の3ステップだけ前に出しています。
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Pill tone="good">⏱ {storeProfile.firstActionTime}で現在地がわかる</Pill>
-          <Pill tone="info">📍 {phaseInfo.label}</Pill>
+        <p className="mb-1 text-xs font-medium text-blue-200">MAKASETE</p>
+        <h1 className="text-xl font-bold">導入ダッシュボード</h1>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Pill tone={phaseInfo.tone}>{currentPhase.icon} {currentPhase.shortLabel}</Pill>
+          <Pill tone={resolvedCommitment === 'full' ? 'good' : resolvedCommitment === 'moderate' ? 'warn' : 'info'}>
+            {getCommitmentLabel(resolvedCommitment)}
+          </Pill>
         </div>
       </header>
 
-      {/* クイックスタート */}
+      {/* 現在地 */}
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
-          最初の3ステップ
+        <h2 className="mb-4 font-bold text-gray-900">あなたの薬局の現在地</h2>
+        <div className="mb-4 grid gap-4 md:grid-cols-2">
+          <div>
+            <div className="mb-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+              <p className="mb-1 text-xs text-gray-500">現在のフェーズ</p>
+              <p className="text-lg font-bold text-gray-900">{currentPhase.icon} {currentPhase.title}</p>
+              <p className="mt-1 text-sm text-gray-600">{currentPhase.summary}</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 p-4">
+              <p className="mb-1 text-xs text-gray-500">いちばん先に整えるポイント</p>
+              <p className="font-bold text-gray-900">{topGap.subject}</p>
+              <p className="text-sm text-gray-600">スコア {topGap.score.toFixed(1)} / 5</p>
+            </div>
+          </div>
+          <div>
+            <OnboardingRadarChart data={axisScores} compact />
+          </div>
+        </div>
+
+        {/* 進捗バー */}
+        <div>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-gray-500">導入進捗</span>
+            <span className="font-bold text-blue-600">{readiness}%</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+              style={{ width: `${readiness}%` }}
+            />
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-gray-400">
+            <span>開始</span>
+            <span>初回受入 🎉</span>
+            <span>夜間対応</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 次にやること */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-2 font-bold text-gray-900">次にやること</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          進め方: オーナー方針決定 → スタッフ教育 → 体制構築 → 営業・獲得
         </p>
-        <h2 className="mb-4 text-lg font-bold text-gray-900">
-          まずはここから始める
-        </h2>
-        <p className="mb-6 text-sm text-gray-600">
-          {storeProfile.firstActionTime}で、この薬局の現在地と次の動きが見えます。
-        </p>
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
-          {quickStartSteps.map((step, index) => (
+        <div className="mb-4 space-y-3">
+          {activeTasks.map((task, i) => (
             <Link
-              key={step.label}
-              href={step.link}
-              className="group rounded-xl border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-md"
+              key={task.id}
+              href={`/onboarding/tasks/${task.id}`}
+              className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-blue-300"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-2xl">{step.icon}</span>
-                <Pill tone={index === 0 ? 'good' : 'info'}>STEP {index + 1}</Pill>
-              </div>
-              <p className="mb-1 text-xs text-gray-500">{step.label}</p>
-              <p className="mb-1 font-bold text-gray-900">{step.title}</p>
-              <p className="mb-3 text-sm text-gray-600">{step.body}</p>
-              <span className="text-sm font-semibold text-blue-600 group-hover:underline">
-                {step.cta} →
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                {i + 1}
               </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{task.title}</p>
+                <p className="text-sm text-gray-500">{task.owner} · {task.due}</p>
+              </div>
+              <Pill tone={task.status === '進行中' ? 'warn' : 'info'}>{task.status}</Pill>
             </Link>
           ))}
         </div>
-        <div className="flex flex-wrap gap-3">
+        <Link href="/onboarding/tasks" className="text-sm text-blue-600 hover:underline">
+          すべてのタスクを見る →
+        </Link>
+      </section>
+
+      {/* クイックアクセス */}
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[
+          { icon: '🩺', label: '再診断', desc: '状況が変わったら', href: '/onboarding/assessment' },
+          { icon: '📚', label: '教材', desc: '動画・テンプレート', href: '/onboarding/learning' },
+          { icon: '⚠️', label: 'つまずきポイント', desc: 'よくある問題', href: '/onboarding/stumbling' },
+          { icon: '🗺️', label: 'ロードマップ', desc: '全体の進め方', href: '/onboarding/roadmap' },
+        ].map((item) => (
           <Link
-            href="/onboarding/assessment"
-            className="rounded-full bg-blue-600 px-6 py-2.5 font-semibold text-white transition hover:bg-blue-700"
+            key={item.label}
+            href={item.href}
+            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md"
           >
-            3分ではじめる
+            <span className="text-2xl">{item.icon}</span>
+            <p className="mt-2 font-bold text-gray-900">{item.label}</p>
+            <p className="text-sm text-gray-500">{item.desc}</p>
           </Link>
-          <Link
-            href="/onboarding/tasks"
-            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-50"
-          >
-            今週の1件を見る
-          </Link>
+        ))}
+      </section>
+
+      {/* 次の目標 */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-bold text-gray-900">次の目標</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="mb-1 text-xs text-gray-500">今ここ</p>
+            <p className="font-bold text-gray-900">{currentPhase.icon} {currentPhase.title}</p>
+            <p className="mt-2 text-xs text-gray-500">達成条件: {currentPhase.gate}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="mb-1 text-xs text-gray-500">次のゴール</p>
+            <p className="font-bold text-gray-900">{nextPhase.icon} {nextPhase.title}</p>
+            <p className="mt-2 text-xs text-gray-500">達成条件: {nextPhase.gate}</p>
+          </div>
         </div>
       </section>
 
-      {/* 最初に見るカード */}
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-bold text-gray-900">最初に見るカード</h2>
-        <p className="mb-4 text-sm text-gray-600">
-          読む量を減らして、必要なものだけ前に出しています。
-        </p>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl bg-blue-50 p-4">
-            <p className="mb-1 text-xs text-gray-500">いまの段階</p>
-            <p className="font-bold text-gray-900">{phaseInfo.label}</p>
-            <p className="text-sm text-gray-600">{phaseInfo.summary}</p>
-          </div>
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="mb-1 text-xs text-gray-500">今週の優先</p>
-            <p className="font-bold text-gray-900">{mustDoTasks[0]?.title}</p>
-            <p className="text-sm text-gray-600">{mustDoTasks[0]?.nextAction}</p>
-          </div>
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="mb-1 text-xs text-gray-500">まず見る教材</p>
-            <p className="font-bold text-gray-900">{firstLearning.title}</p>
-            <p className="text-sm text-gray-600">{firstLearning.duration}で要点だけ確認</p>
-          </div>
-        </div>
-      </section>
-
-      {/* やること一覧 */}
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-bold text-gray-900">やること一覧</h2>
-        <p className="mb-4 text-sm text-gray-600">
-          長い説明を減らし、1画面で判断しやすくしました。
-        </p>
-        <div className="space-y-3">
-          {checklistItems.map((item, index) => (
-            <div
-              key={item.id}
-              className={`flex items-center gap-4 rounded-xl border p-4 ${
-                item.done
-                  ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-gray-200 bg-white'
-              }`}
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600">
-                {index + 1}
-              </span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-900">{item.title}</p>
-                  <Pill tone={item.done ? 'good' : 'info'}>
-                    {item.done ? '済' : 'これから'}
-                  </Pill>
-                </div>
-                <p className="text-sm text-gray-600">{item.description}</p>
+      {/* 夜間対応オプション（Phase 3以上のみ） */}
+      {phaseInfo.phaseId >= 3 && (
+        <section className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl">🌙</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-gray-900">夜間対応オプション</h2>
+                <Pill tone="info">有料</Pill>
               </div>
+              <p className="mt-1 text-sm text-gray-600">
+                24時間365日対応で患者紹介を増やしたい場合はご検討ください。
+              </p>
               <Link
-                href={item.link}
-                className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                href="/onboarding/night-support"
+                className="mt-3 inline-flex rounded-full border border-indigo-300 bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-50"
               >
-                {item.linkLabel}
+                詳しく見る
               </Link>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* 困ったとき */}
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-bold text-gray-900">困ったとき</h2>
-        <p className="mb-4 text-sm text-gray-600">
-          必要なときだけ開ける相談導線です。
-        </p>
-        <div className="mb-4 grid gap-4 md:grid-cols-3">
-          {supportItems.map((item) => (
-            <SupportCard key={item.id} item={item} />
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-gray-900">困ったとき</h2>
+            <p className="text-sm text-gray-500">伴走担当に相談できます</p>
+          </div>
           <Link
             href="/onboarding/support"
-            className="rounded-full bg-blue-600 px-6 py-2.5 font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            相談画面へ進む
-          </Link>
-          <Link
-            href="/onboarding/phase-map"
-            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-50"
-          >
-            全体像はあとで見る
+            相談する
           </Link>
         </div>
       </section>
@@ -215,13 +413,13 @@ export default function OnboardingHomePage() {
             <span className="text-lg">🏠</span>
             <span className="text-xs font-medium">ホーム</span>
           </Link>
-          <Link href="/onboarding/assessment" className="flex flex-col items-center px-3 py-1 text-gray-500">
-            <span className="text-lg">🩺</span>
-            <span className="text-xs font-medium">診断</span>
-          </Link>
           <Link href="/onboarding/tasks" className="flex flex-col items-center px-3 py-1 text-gray-500">
             <span className="text-lg">✅</span>
-            <span className="text-xs font-medium">今週</span>
+            <span className="text-xs font-medium">タスク</span>
+          </Link>
+          <Link href="/onboarding/learning" className="flex flex-col items-center px-3 py-1 text-gray-500">
+            <span className="text-lg">📚</span>
+            <span className="text-xs font-medium">教材</span>
           </Link>
           <Link href="/onboarding/support" className="flex flex-col items-center px-3 py-1 text-gray-500">
             <span className="text-lg">💬</span>

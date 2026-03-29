@@ -64,8 +64,7 @@ function calculateAge(dob: string): number {
 }
 
 export default function PatientDetailPage() {
-  useAuth()
-  useAuth()
+  const { role } = useAuth()
   const params = useParams()
   const id = params.id as string
 
@@ -118,6 +117,7 @@ export default function PatientDetailPage() {
   }
 
   const age = calculateAge(patient.dob)
+  const isRegionalAdmin = role === 'regional_admin'
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
@@ -187,6 +187,14 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+      {isRegionalAdmin && (
+        <Card className="border-indigo-500/30 bg-indigo-500/10">
+          <CardContent className="pt-4 pb-4 text-xs text-indigo-100">
+            Regional Admin は地域運営・夜間監督目的で患者詳細と申し送り本文を閲覧できます。編集主役ではなく、閲覧と状況把握が中心です。
+          </CardContent>
+        </Card>
+      )}
+
       {/* Visit Notes Alert Card - TOP PRIORITY */}
       {patient.visitNotes && (
         <Card className="border-amber-500/40 bg-amber-500/10">
@@ -246,7 +254,7 @@ export default function PatientDetailPage() {
                 <Phone className="h-3 w-3" />
                 電話番号
               </p>
-              <p className="mt-0.5 text-sm text-gray-200">{pharmacy?.phone ?? '-'}</p>
+              <p className="mt-0.5 text-sm text-gray-200">{patient.phone ?? pharmacy?.phone ?? '-'}</p>
             </div>
             <div className="sm:col-span-2 lg:col-span-2">
               <p className="text-xs text-gray-500">担当薬局</p>
