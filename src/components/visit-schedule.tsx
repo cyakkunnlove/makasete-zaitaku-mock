@@ -6,83 +6,24 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Calendar, ChevronLeft, ChevronRight, Repeat, AlertTriangle } from 'lucide-react'
 import type { PatientVisitRule } from '@/lib/patient-master'
+import {
+  collectVisitRuleDates,
+  formatVisitCalendarDateKey,
+  formatVisitCalendarMonth,
+  getVisitCalendarMonthDays,
+  VISIT_CALENDAR_DAY_LABELS,
+} from '@/lib/visit-calendar'
 
 interface VisitScheduleProps {
   patientId: string
   visitRules?: PatientVisitRule[]
 }
 
-const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+const DAY_LABELS = VISIT_CALENDAR_DAY_LABELS
 const PATTERN_LABELS: Record<PatientVisitRule['pattern'], string> = {
   weekly: '毎週',
   biweekly: '隔週',
   custom: 'カスタム',
-}
-
-function getMonthDays(year: number, month: number) {
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  return { firstDay, daysInMonth }
-}
-
-function formatMonth(year: number, month: number) {
-  return `${year}年${month + 1}月`
-}
-
-function formatLocalDateKey(date: Date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function weekOfMonth(day: number) {
-  return Math.ceil(day / 7)
-}
-
-function matchesRule(rule: PatientVisitRule, dateStr: string, day: number, weekday: number) {
-  if (!rule.active) return false
-  if (rule.customDates.includes(dateStr)) return true
-  if (rule.excludedDates.includes(dateStr)) return false
-  if (rule.pattern === 'custom') return false
-  if (rule.weekday !== weekday) return false
-  if (rule.pattern === 'biweekly') {
-    const week = weekOfMonth(day)
-    return rule.anchorWeek === 2 ? week % 2 === 0 : week % 2 === 1
-  }
-  return true
-}
-
-function collectRuleDates(rules: PatientVisitRule[], year: number, month: number) {
-  const { daysInMonth } = getMonthDays(year, month)
-  const scheduled = new Set<string>()
-  const custom = new Set<string>()
-  const excluded = new Set<string>()
-
-  rules.filter((rule) => rule.active).forEach((rule) => {
-    rule.customDates.forEach((dateStr) => {
-      if (dateStr.startsWith(`${year}-${String(month + 1).padStart(2, '0')}-`)) custom.add(dateStr)
-    })
-    rule.excludedDates.forEach((dateStr) => {
-      if (dateStr.startsWith(`${year}-${String(month + 1).padStart(2, '0')}-`)) excluded.add(dateStr)
-    })
-  })
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day)
-    const dateStr = formatLocalDateKey(date)
-    const weekday = date.getDay()
-    const hasCustom = rules.some((rule) => rule.active && rule.customDates.includes(dateStr))
-    if (hasCustom) {
-      scheduled.add(dateStr)
-      continue
-    }
-    if (rules.some((rule) => matchesRule(rule, dateStr, day, weekday))) {
-      scheduled.add(dateStr)
-    }
-  }
-
-  return { scheduled, custom, excluded }
 }
 
 export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitScheduleProps) {
@@ -93,10 +34,10 @@ export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitS
 
   const activeRules = useMemo(() => visitRules.filter((rule) => rule.active), [visitRules])
   const { scheduled, custom, excluded } = useMemo(
-    () => collectRuleDates(activeRules, viewYear, viewMonth),
+    () => collectVisitRuleDates(activeRules, viewYear, viewMonth),
     [activeRules, viewYear, viewMonth],
   )
-  const { firstDay, daysInMonth } = getMonthDays(viewYear, viewMonth)
+  const { firstDay, daysInMonth } = getVisitCalendarMonthDays(viewYear, viewMonth)
 
   const monthlyVisitLimit = activeRules.reduce((max, rule) => Math.max(max, rule.monthlyVisitLimit), 0)
   const monthVisitCount = scheduled.size
@@ -171,7 +112,7 @@ export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitS
             <button onClick={prevMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-medium text-white">{formatMonth(viewYear, viewMonth)}</span>
+            <span className="text-sm font-medium text-white">{formatVisitCalendarMonth(viewYear, viewMonth)}</span>
             <button onClick={nextMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -193,11 +134,11 @@ export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitS
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const date = new Date(viewYear, viewMonth, day)
-              const dateStr = formatLocalDateKey(date)
+              const dateStr = formatVisitCalendarDateKey(date)
               const isScheduled = scheduled.has(dateStr)
               const isCustom = custom.has(dateStr)
               const isExcluded = excluded.has(dateStr) && !isCustom
-              const isToday = dateStr === formatLocalDateKey(today)
+              const isToday = dateStr === formatVisitCalendarDateKey(today)
 
               return (
                 <div

@@ -7,18 +7,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { AlertTriangle, RefreshCcw, Save, UserPlus } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCcw, Save, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { pharmacyData, patientData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
 import {
   buildRegisteredPatientRecord,
-  buildVisitRulesFromWeekdays,
   getPatientMasterRecords,
   loadRegisteredPatients,
   upsertRegisteredPatient,
+  type PatientVisitRule,
+  type VisitRulePattern,
 } from '@/lib/patient-master'
+import {
+  collectVisitRuleDates,
+  formatVisitCalendarDateKey,
+  formatVisitCalendarMonth,
+  getVisitCalendarMonthDays,
+  VISIT_CALENDAR_DAY_LABELS,
+} from '@/lib/visit-calendar'
 
 const weekdayMap: Record<(typeof visitWeekdayOptions)[number], number> = {
   '日': 0,
@@ -30,12 +38,19 @@ const weekdayMap: Record<(typeof visitWeekdayOptions)[number], number> = {
   '土': 6,
 }
 
+const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
+  { value: 'weekly', label: '毎週' },
+  { value: 'biweekly', label: '隔週' },
+]
+
 export default function NewPatientPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>(['利用中', '家族連絡用', '配薬場所指定'])
   const [selectedDays, setSelectedDays] = useState<string[]>(['土'])
+  const [visitPattern, setVisitPattern] = useState<VisitRulePattern>('weekly')
+  const [biweeklyAnchorWeek, setBiweeklyAnchorWeek] = useState<1 | 2>(1)
   const [manualSyncAt, setManualSyncAt] = useState('2026-03-29 15:10')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -62,6 +77,9 @@ export default function NewPatientPage() {
   })
 
   const isExceeded = Number(visitCount) > 4
+  const previewBaseDate = useMemo(() => new Date(`${form.startedAt || MOCK_FLOW_DATE}T00:00:00`), [form.startedAt])
+  const [previewYear, setPreviewYear] = useState(previewBaseDate.getFullYear())
+  const [previewMonth, setPreviewMonth] = useState(previewBaseDate.getMonth())
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag])
@@ -71,21 +89,64 @@ export default function NewPatientPage() {
     setSelectedDays((prev) => prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day])
   }
 
-  const calendarPreview = useMemo(() => {
-    const all = Array.from({ length: 30 }, (_, i) => i + 1)
-    return all.map((d) => ({
-      day: d,
-      active:
-        [1, 4, 8, 11, 15, 18, 22, 25, 29].includes(d) ||
-        (selectedDays.includes('月') && [3, 10, 17, 24].includes(d)) ||
-        (selectedDays.includes('木') && [6, 13, 20, 27].includes(d)) ||
-        (selectedDays.includes('火') && [4, 11, 18, 25].includes(d)) ||
-        (selectedDays.includes('金') && [7, 14, 21, 28].includes(d)),
+  const previewVisitRules = useMemo<PatientVisitRule[]>(() => {
+    return selectedDays.map((day, index) => ({
+      id: `preview-rule-${weekdayMap[day as keyof typeof weekdayMap]}-${index + 1}`,
+      pattern: visitPattern,
+      weekday: weekdayMap[day as keyof typeof weekdayMap],
+      intervalWeeks: visitPattern === 'biweekly' ? 2 : 1,
+      anchorWeek: visitPattern === 'biweekly' ? biweeklyAnchorWeek : null,
+      preferredTime: form.preferredTime || null,
+      monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
+      active: true,
+      customDates: [],
+      excludedDates: [],
     }))
-  }, [selectedDays])
+  }, [biweeklyAnchorWeek, form.preferredTime, selectedDays, visitCount, visitPattern])
+
+  const calendarPreview = useMemo(() => {
+    const { firstDay, daysInMonth } = getVisitCalendarMonthDays(previewYear, previewMonth)
+    const { scheduled, custom, excluded } = collectVisitRuleDates(previewVisitRules, previewYear, previewMonth)
+    const todayKey = formatVisitCalendarDateKey(new Date())
+
+    return {
+      firstDay,
+      daysInMonth,
+      scheduled,
+      custom,
+      excluded,
+      todayKey,
+    }
+  }, [previewMonth, previewVisitRules, previewYear])
 
   const handleChange = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+
+    if (key === 'startedAt') {
+      const nextDate = new Date(`${value || MOCK_FLOW_DATE}T00:00:00`)
+      if (!Number.isNaN(nextDate.getTime())) {
+        setPreviewYear(nextDate.getFullYear())
+        setPreviewMonth(nextDate.getMonth())
+      }
+    }
+  }
+
+  const showPreviousPreviewMonth = () => {
+    if (previewMonth === 0) {
+      setPreviewYear((prev) => prev - 1)
+      setPreviewMonth(11)
+      return
+    }
+    setPreviewMonth((prev) => prev - 1)
+  }
+
+  const showNextPreviewMonth = () => {
+    if (previewMonth === 11) {
+      setPreviewYear((prev) => prev + 1)
+      setPreviewMonth(0)
+      return
+    }
+    setPreviewMonth((prev) => prev + 1)
   }
 
   const handleSave = () => {
@@ -102,11 +163,7 @@ export default function NewPatientPage() {
       return
     }
 
-    const visitRules = buildVisitRulesFromWeekdays({
-      weekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
-      monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
-      preferredTime: form.preferredTime,
-    })
+    const visitRules = previewVisitRules
 
     const existing = getPatientMasterRecords(loadRegisteredPatients())
     const patient = buildRegisteredPatientRecord(
@@ -259,7 +316,22 @@ export default function NewPatientPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <Label className="text-gray-300">訪問パターン</Label>
+              <select value={visitPattern} onChange={(e) => setVisitPattern(e.target.value as VisitRulePattern)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+                {patternOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-gray-300">隔週アンカー</Label>
+              <select value={String(biweeklyAnchorWeek)} onChange={(e) => setBiweeklyAnchorWeek(Number(e.target.value) as 1 | 2)} disabled={visitPattern !== 'biweekly'} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="1">第1・3週</option>
+                <option value="2">第2・4週</option>
+              </select>
+            </div>
             <div>
               <Label className="text-gray-300">今月の訪問回数上限</Label>
               <Input value={visitCount} onChange={(e) => setVisitCount(e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
@@ -279,14 +351,59 @@ export default function NewPatientPage() {
 
           <div>
             <Label className="text-gray-300">カレンダー設定（visitRules プレビュー）</Label>
-            <div className="mt-2 grid grid-cols-7 gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              {calendarPreview.map((cell) => (
-                <button key={cell.day} type="button" className={`rounded-md border px-2 py-2 text-xs ${cell.active ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-200' : 'border-[#2a3553] bg-[#0f1424] text-gray-500'}`}>
-                  {cell.day}
+            <div className="mt-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
-              ))}
+                <div className="text-center">
+                  <p className="text-sm font-medium text-white">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
+                  <p className="text-[11px] text-gray-500">開始日 {form.startedAt || MOCK_FLOW_DATE} を基準に表示</p>
+                </div>
+                <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mb-1 grid grid-cols-7 gap-1">
+                {VISIT_CALENDAR_DAY_LABELS.map((label, index) => (
+                  <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-400' : index === 6 ? 'text-sky-400' : 'text-gray-500'}`}>
+                    {label}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: calendarPreview.firstDay }).map((_, index) => (
+                  <div key={`empty-${index}`} className="h-9" />
+                ))}
+
+                {Array.from({ length: calendarPreview.daysInMonth }).map((_, index) => {
+                  const day = index + 1
+                  const date = new Date(previewYear, previewMonth, day)
+                  const dateKey = formatVisitCalendarDateKey(date)
+                  const isScheduled = calendarPreview.scheduled.has(dateKey)
+                  const isCustom = calendarPreview.custom.has(dateKey)
+                  const isExcluded = calendarPreview.excluded.has(dateKey) && !isCustom
+                  const isToday = dateKey === calendarPreview.todayKey
+
+                  return (
+                    <div
+                      key={dateKey}
+                      className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30' : isExcluded ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through' : 'bg-[#0a0e1a] text-gray-400'} ${isToday ? 'ring-1 ring-indigo-500/50' : ''}`}
+                    >
+                      {day}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">保存時は selectedDays を visitRules[] に変換して patient master に保持します。</p>
+            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-gray-500">
+              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
+              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />追加日</span>
+              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外日</span>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">選択中の曜日・パターン・希望時間から visitRules を生成し、そのまま patient master に保存します。</p>
           </div>
         </CardContent>
       </Card>

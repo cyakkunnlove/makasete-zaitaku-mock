@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import {
   Home, ClipboardList, UserCheck, FileText,
@@ -135,6 +135,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     inProgress: 2,
   }
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const filteredNav = navItems
@@ -152,7 +153,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const visibleMobileNavItems = mobileNavItems.filter((item) => canAccess(role, item.permission))
 
   const allNavItems = [...filteredNav, ...filteredSettings]
-  const pageTitle = allNavItems.find(item => item.href === pathname)?.label ?? 'ダッシュボード'
+  const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
+  const handleSidebarNavigate = (href: string) => {
+    if (pathname === href) {
+      setSidebarOpen(false)
+      return
+    }
+    setSidebarOpen(false)
+    router.push(href)
+  }
+  const pageTitle = allNavItems.find((item) => isNavActive(item.href))?.label ?? 'ダッシュボード'
   const currentPermission = getPathPermission(pathname)
 
   const unreadNotifCount = 3 // Mock unread count
@@ -247,12 +257,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             return true
           })
           .map((item) => {
-            const active = pathname === item.href
+            const active = isNavActive(item.href)
             return (
-              <Link
+              <button
                 key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                type="button"
+                onClick={() => handleSidebarNavigate(item.href)}
+                className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                   active
                     ? 'bg-indigo-600/20 text-indigo-400 font-medium'
                     : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
@@ -260,7 +271,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               >
                 {item.icon}
                 {item.label}
-              </Link>
+              </button>
             )
           })}
 
@@ -274,12 +285,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 </p>
               </div>
               {filteredSettings.map((item) => {
-                const active = pathname === item.href
+                const active = isNavActive(item.href)
                 return (
-                  <Link
+                  <button
                     key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    type="button"
+                    onClick={() => handleSidebarNavigate(item.href)}
+                    className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       active
                         ? 'bg-indigo-600/20 text-indigo-400 font-medium'
                         : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
@@ -287,7 +299,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   >
                     {item.icon}
                     {item.label}
-                  </Link>
+                  </button>
                 )
               })}
             </>
@@ -330,19 +342,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {filteredNav.map((item) => {
-                const active = pathname === item.href
+                const active = isNavActive(item.href)
                 return (
-                  <Link
+                  <button
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
+                    type="button"
+                    onClick={() => handleSidebarNavigate(item.href)}
+                    className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${
                       active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
                     }`}
                   >
                     {item.icon}
                     {item.label}
-                  </Link>
+                  </button>
                 )
               })}
               {filteredSettings.length > 0 && (
@@ -354,19 +366,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     </p>
                   </div>
                   {filteredSettings.map((item) => {
-                    const active = pathname === item.href
+                    const active = isNavActive(item.href)
                     return (
-                      <Link
+                      <button
                         key={item.href}
-                        href={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
+                        type="button"
+                        onClick={() => handleSidebarNavigate(item.href)}
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${
                           active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
                         }`}
                       >
                         {item.icon}
                         {item.label}
-                      </Link>
+                      </button>
                     )
                   })}
                 </>
@@ -453,11 +465,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-[#2a3553] z-20 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around h-14">
           {visibleMobileNavItems.map((item) => {
-            const active = pathname === item.href
+            const active = isNavActive(item.href)
             return (
-              <Link
+              <button
                 key={item.href}
-                href={item.href}
+                type="button"
+                onClick={() => handleSidebarNavigate(item.href)}
                 className={`relative flex flex-col items-center gap-0.5 text-xs py-1 px-3 ${
                   active ? 'text-indigo-400' : 'text-gray-500'
                 }`}
@@ -466,7 +479,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   {item.icon}
                 </span>
                 <span>{item.label}</span>
-              </Link>
+              </button>
             )
           })}
         </div>
