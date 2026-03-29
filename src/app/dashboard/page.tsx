@@ -222,6 +222,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
+  const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
@@ -314,7 +315,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [searchQuery, ownPatients])
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
-  const orderedVisits = useMemo(() => [...filteredVisits].sort((a, b) => a.sortOrder - b.sortOrder), [filteredVisits])
+  const orderedVisits = useMemo(() => {
+    return [...filteredVisits].sort((a, b) => {
+      if (a.status === 'completed' && b.status !== 'completed') return 1
+      if (a.status !== 'completed' && b.status === 'completed') return -1
+      if (a.status === 'completed' && b.status === 'completed') {
+        return (a.completedAt ?? '').localeCompare(b.completedAt ?? '')
+      }
+      return a.sortOrder - b.sortOrder
+    })
+  }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>()
     draftDayTasks.forEach((task) => {
@@ -371,15 +381,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const handlePlanTask = (taskId: string) => {
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
+
+    if (isPharmacyAdmin && current.status === 'completed') {
+      const ok = window.confirm('対応完了済みの予定を変更します。完了後の修正は履歴確認前提です。このまま変更しますか？')
+      if (!ok) return
+    }
+
     const nextActionLabel = current.planningStatus === 'planned' ? '担当予定を解除しました' : '担当予定に設定しました'
     commitTaskChange(taskId, (task) => ({
       ...task,
       planningStatus: task.planningStatus === 'planned' ? 'unplanned' : 'planned',
-      plannedBy: task.planningStatus === 'planned' ? null : '伊藤 真理',
-      plannedById: task.planningStatus === 'planned' ? null : 'ST-07',
-      plannedAt: task.planningStatus === 'planned' ? null : '2026-03-28 12:00',
-      updatedAt: '2026-03-28 12:00',
-      updatedById: 'ST-07',
+      plannedBy: task.planningStatus === 'planned' ? null : (user?.full_name ?? '伊藤 真理'),
+      plannedById: task.planningStatus === 'planned' ? null : (user?.id ?? 'ST-07'),
+      plannedAt: task.planningStatus === 'planned' ? null : '2026-03-29 13:42',
+      updatedAt: '2026-03-29 13:42',
+      updatedById: user?.id ?? 'ST-07',
     }), nextActionLabel)
   }
 
