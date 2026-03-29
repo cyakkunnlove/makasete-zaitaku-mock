@@ -652,10 +652,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
 
   useEffect(() => {
-    setRegisteredPatients(loadRegisteredPatients())
-  }, [flowDate, registeredPatients, sharedDayTaskStorageKey])
-
-  useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
@@ -665,7 +661,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
+  const [flowLoadKey, setFlowLoadKey] = useState(0)
+  useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
+
   useEffect(() => {
+    const patients = loadRegisteredPatients()
     try {
       const sharedRaw = window.localStorage.getItem(sharedDayTaskStorageKey)
       if (sharedRaw) {
@@ -674,7 +674,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           const merged = mergeDayFlowTasks({
             baseTasks: dayTaskData,
             flowDate,
-            registeredPatients,
+            registeredPatients: patients,
             persistedTasks: parsed.tasks,
           })
           setDayTasks(merged)
@@ -692,7 +692,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           const merged = mergeDayFlowTasks({
             baseTasks: dayTaskData,
             flowDate,
-            registeredPatients,
+            registeredPatients: patients,
             persistedTasks: parsed,
           })
           setDayTasks(merged)
@@ -701,11 +701,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         }
       }
 
-      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients })
+      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients })
       setDayTasks(merged)
       setDraftDayTasks(merged)
     } catch {}
-  }, [dayTaskStorageKey, flowDate, registeredPatients, sharedDayTaskStorageKey])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flowLoadKey])
 
   useEffect(() => {
     try {
@@ -717,19 +718,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const handleStorage = (event: StorageEvent) => {
       if (event.key === 'makasete-patient-master:v1') {
         setRegisteredPatients(loadRegisteredPatients())
+        setFlowLoadKey((prev) => prev + 1)
       }
       if (event.key !== sharedDayTaskStorageKey || !event.newValue) return
       try {
         const parsed = JSON.parse(event.newValue) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
         if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-          const merged = mergeDayFlowTasks({
-            baseTasks: dayTaskData,
-            flowDate,
-            registeredPatients,
-            persistedTasks: parsed.tasks,
-          })
-          setDayTasks(merged)
-          setDraftDayTasks(merged)
+          setDayTasks(parsed.tasks)
+          setDraftDayTasks(parsed.tasks)
           setHasOrderDraft(false)
           setLastOrderSavedAt(parsed.savedAt ?? null)
           setLastOrderSavedBy(parsed.savedBy ?? null)
@@ -738,7 +734,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [flowDate, registeredPatients, sharedDayTaskStorageKey])
+  }, [sharedDayTaskStorageKey])
 
   useEffect(() => {
     if (!undoTarget) return
