@@ -315,6 +315,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [searchQuery, ownPatients])
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
+  const flowDescription = isPharmacyStaff
+    ? `今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 ${UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。`
+    : '自局の日中対応フローを確認します。Pharmacy Admin は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
+  const summaryTitle = isPharmacyStaff ? 'スタッフ別の本日対応件数（モック）' : '自局運用サマリー（モック）'
+  const primarySummaryBadge = isPharmacyStaff
+    ? `自分の対応 ${draftDayTasks.filter((task) => task.handledById === 'ST-07').length}件`
+    : `全体更新 ${draftDayTasks.filter((task) => task.updatedById).length}件`
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -471,11 +478,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
                 <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
-                <p className="text-xs text-gray-400">今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 {UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。</p>
+                <p className="text-xs text-gray-400">{flowDescription}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">自分の対応 {draftDayTasks.filter((task) => task.handledById === 'ST-07').length}件</Badge>
+                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
                 {hasOrderDraft ? (
                   <>
                     <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">未保存の順番変更あり</Badge>
@@ -500,7 +507,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-white">スタッフ別の本日対応件数（モック）</CardTitle>
+              <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-2">
