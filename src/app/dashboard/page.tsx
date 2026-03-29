@@ -390,6 +390,42 @@ function PharmacyDayTaskCardHeader({
   )
 }
 
+function PharmacyDayTaskCardMetrics({
+  handledBy,
+  handledAt,
+  billable,
+  collectionStatus,
+  collectionClassName,
+}: {
+  handledBy: string | null
+  handledAt: string | null
+  billable: boolean
+  collectionStatus: DayTaskItem['collectionStatus']
+  collectionClassName: string
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+        <p className="text-[10px] text-gray-500">handled-by</p>
+        <p className="mt-1 text-sm text-white">{handledBy ?? '未設定'}</p>
+      </div>
+      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+        <p className="text-[10px] text-gray-500">handled-at</p>
+        <p className="mt-1 text-sm text-white">{handledAt ?? '未設定'}</p>
+      </div>
+      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
+        <p className="text-[10px] text-gray-500">billable / 回収連携</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className={cn('border text-[10px]', billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
+            {billable ? '請求対象' : '未計上'}
+          </Badge>
+          <Badge variant="outline" className={cn('border text-[10px]', collectionClassName)}>{collectionStatus}</Badge>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -753,25 +789,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           statusLabel={status.label}
                         />
 
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-                            <p className="text-[10px] text-gray-500">handled-by</p>
-                            <p className="mt-1 text-sm text-white">{visit.handledBy ?? '未設定'}</p>
-                          </div>
-                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-                            <p className="text-[10px] text-gray-500">handled-at</p>
-                            <p className="mt-1 text-sm text-white">{visit.handledAt ?? '未設定'}</p>
-                          </div>
-                          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-                            <p className="text-[10px] text-gray-500">billable / 回収連携</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className={cn('border text-[10px]', visit.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                                {visit.billable ? '請求対象' : '未計上'}
-                              </Badge>
-                              <Badge variant="outline" className={cn('border text-[10px]', collection.className)}>{visit.collectionStatus}</Badge>
-                            </div>
-                          </div>
-                        </div>
+                        <PharmacyDayTaskCardMetrics
+                          handledBy={visit.handledBy}
+                          handledAt={visit.handledAt}
+                          billable={visit.billable}
+                          collectionStatus={visit.collectionStatus}
+                          collectionClassName={collection.className}
+                        />
 
                         <div className="flex flex-wrap items-center gap-2">
                           <Button size="sm" variant="outline" onClick={() => handlePlanTask(visit.id)} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
