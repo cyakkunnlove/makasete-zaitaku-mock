@@ -45,8 +45,14 @@ const staffStatusClass: Record<string, string> = {
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
-const DAY_TASK_STORAGE_KEY = `makasete-day-flow:PH-01:${MOCK_FLOW_DATE}`
-const DAY_TASK_SHARED_STORAGE_KEY = `makasete-day-flow:shared:PH-01:${MOCK_FLOW_DATE}`
+
+function getDayTaskStorageKey(pharmacyId: string, flowDate: string) {
+  return `makasete-day-flow:${pharmacyId}:${flowDate}`
+}
+
+function getSharedDayTaskStorageKey(pharmacyId: string, flowDate: string) {
+  return `makasete-day-flow:shared:${pharmacyId}:${flowDate}`
+}
 
 function formatMockTimestamp(time: string) {
   return `2026-03-15 ${time}`
@@ -641,11 +647,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const ownPharmacyId = 'PH-01'
+  const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
+  const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
 
   useEffect(() => {
     setRegisteredPatients(loadRegisteredPatients())
-  }, [])
+  }, [flowDate, registeredPatients, sharedDayTaskStorageKey])
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -659,7 +667,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   useEffect(() => {
     try {
-      const sharedRaw = window.localStorage.getItem(DAY_TASK_SHARED_STORAGE_KEY)
+      const sharedRaw = window.localStorage.getItem(sharedDayTaskStorageKey)
       if (sharedRaw) {
         const parsed = JSON.parse(sharedRaw) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
         if (Array.isArray(parsed.tasks)) {
@@ -677,7 +685,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         }
       }
 
-      const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
+      const raw = window.localStorage.getItem(dayTaskStorageKey)
       if (raw) {
         const parsed = JSON.parse(raw) as DayTaskItem[]
         if (Array.isArray(parsed)) {
@@ -697,25 +705,31 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setDayTasks(merged)
       setDraftDayTasks(merged)
     } catch {}
-  }, [flowDate, registeredPatients])
+  }, [dayTaskStorageKey, flowDate, registeredPatients, sharedDayTaskStorageKey])
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(DAY_TASK_STORAGE_KEY, JSON.stringify(draftDayTasks))
+      window.localStorage.setItem(dayTaskStorageKey, JSON.stringify(draftDayTasks))
     } catch {}
-  }, [draftDayTasks])
+  }, [dayTaskStorageKey, draftDayTasks])
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === 'makasete-patient-master:v1') {
         setRegisteredPatients(loadRegisteredPatients())
       }
-      if (event.key !== DAY_TASK_SHARED_STORAGE_KEY || !event.newValue) return
+      if (event.key !== sharedDayTaskStorageKey || !event.newValue) return
       try {
         const parsed = JSON.parse(event.newValue) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
         if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-          setDayTasks(parsed.tasks)
-          setDraftDayTasks(parsed.tasks)
+          const merged = mergeDayFlowTasks({
+            baseTasks: dayTaskData,
+            flowDate,
+            registeredPatients,
+            persistedTasks: parsed.tasks,
+          })
+          setDayTasks(merged)
+          setDraftDayTasks(merged)
           setHasOrderDraft(false)
           setLastOrderSavedAt(parsed.savedAt ?? null)
           setLastOrderSavedBy(parsed.savedBy ?? null)
@@ -724,7 +738,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+  }, [flowDate, registeredPatients, sharedDayTaskStorageKey])
 
   useEffect(() => {
     if (!undoTarget) return
@@ -928,7 +942,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setLastOrderSavedBy(savedBy)
     setSaveToast('並び順を保存しました。他スタッフにも反映されます。')
     try {
-      window.localStorage.setItem(DAY_TASK_SHARED_STORAGE_KEY, JSON.stringify({ tasks: draftDayTasks, savedAt, savedBy }))
+      window.localStorage.setItem(sharedDayTaskStorageKey, JSON.stringify({ tasks: draftDayTasks, savedAt, savedBy }))
     } catch {}
   }
 

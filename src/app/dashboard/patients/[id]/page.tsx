@@ -418,9 +418,7 @@ export default function PatientDetailPage() {
       {/* Visit Schedule */}
       <VisitSchedule
         patientId={patient.id}
-        initialPattern={patient.visitRules?.[0]?.pattern ?? 'weekly'}
-        initialDayOfWeek={patient.visitRules?.[0]?.weekday ?? 4}
-        initialVisitDates={patient.visitRules?.flatMap((rule) => rule.customDates) ?? []}
+        visitRules={patient.visitRules ?? []}
       />
 
       {/* Current Medications - moved to bottom with (任意) label */}

@@ -1,24 +1,19 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Calendar, ChevronLeft, ChevronRight, Repeat, AlertTriangle } from 'lucide-react'
-
-type VisitPattern = 'weekly' | 'biweekly' | 'custom'
+import type { PatientVisitRule } from '@/lib/patient-master'
 
 interface VisitScheduleProps {
   patientId: string
-  // In real app, these would come from DB
-  initialPattern?: VisitPattern
-  initialDayOfWeek?: number // 0=Sun ... 6=Sat
-  initialVisitDates?: string[] // ISO date strings for the month
+  visitRules?: PatientVisitRule[]
 }
 
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
-const PATTERN_LABELS: Record<VisitPattern, string> = {
+const PATTERN_LABELS: Record<PatientVisitRule['pattern'], string> = {
   weekly: '毎週',
   biweekly: '隔週',
   custom: 'カスタム',
@@ -41,57 +36,71 @@ function formatLocalDateKey(date: Date) {
   return `${y}-${m}-${d}`
 }
 
-export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4, initialVisitDates }: VisitScheduleProps) {
+function weekOfMonth(day: number) {
+  return Math.ceil(day / 7)
+}
+
+function matchesRule(rule: PatientVisitRule, dateStr: string, day: number, weekday: number) {
+  if (!rule.active) return false
+  if (rule.customDates.includes(dateStr)) return true
+  if (rule.excludedDates.includes(dateStr)) return false
+  if (rule.pattern === 'custom') return false
+  if (rule.weekday !== weekday) return false
+  if (rule.pattern === 'biweekly') {
+    const week = weekOfMonth(day)
+    return rule.anchorWeek === 2 ? week % 2 === 0 : week % 2 === 1
+  }
+  return true
+}
+
+function collectRuleDates(rules: PatientVisitRule[], year: number, month: number) {
+  const { daysInMonth } = getMonthDays(year, month)
+  const scheduled = new Set<string>()
+  const custom = new Set<string>()
+  const excluded = new Set<string>()
+
+  rules.filter((rule) => rule.active).forEach((rule) => {
+    rule.customDates.forEach((dateStr) => {
+      if (dateStr.startsWith(`${year}-${String(month + 1).padStart(2, '0')}-`)) custom.add(dateStr)
+    })
+    rule.excludedDates.forEach((dateStr) => {
+      if (dateStr.startsWith(`${year}-${String(month + 1).padStart(2, '0')}-`)) excluded.add(dateStr)
+    })
+  })
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day)
+    const dateStr = formatLocalDateKey(date)
+    const weekday = date.getDay()
+    const hasCustom = rules.some((rule) => rule.active && rule.customDates.includes(dateStr))
+    if (hasCustom) {
+      scheduled.add(dateStr)
+      continue
+    }
+    if (rules.some((rule) => matchesRule(rule, dateStr, day, weekday))) {
+      scheduled.add(dateStr)
+    }
+  }
+
+  return { scheduled, custom, excluded }
+}
+
+export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitScheduleProps) {
+  void _patientId
   const today = new Date()
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const [pattern, setPattern] = useState<VisitPattern>(initialPattern)
-  const [dayOfWeek, setDayOfWeek] = useState(initialDayOfWeek) // Thursday default
-  const [startWeek, setStartWeek] = useState(1) // 1=第1週開始, 2=第2週開始
-  const [customDates, setCustomDates] = useState<Set<string>>(new Set(initialVisitDates ?? []))
 
-  // Generate all candidate dates based on pattern
-  const candidateDates = useMemo(() => {
-    if (pattern === 'custom') return customDates
-
-    const dates = new Set<string>()
-    const { daysInMonth } = getMonthDays(viewYear, viewMonth)
-    let weekCount = 0
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(viewYear, viewMonth, day)
-      if (date.getDay() === dayOfWeek) {
-        weekCount++
-        if (pattern === 'weekly') {
-          dates.add(formatLocalDateKey(date))
-        } else if (pattern === 'biweekly') {
-          // startWeek: 1=第1,3,5週 / 2=第2,4週
-          const isTargetWeek = startWeek === 1 ? weekCount % 2 === 1 : weekCount % 2 === 0
-          if (isTargetWeek) {
-            dates.add(formatLocalDateKey(date))
-          }
-        }
-      }
-    }
-    return dates
-  }, [pattern, dayOfWeek, startWeek, viewYear, viewMonth, customDates])
-
-  const monthVisitCount = candidateDates.size
-  const isOverLimit = monthVisitCount > 4
-
-  const toggleDate = (dateStr: string) => {
-    const next = new Set(customDates)
-    if (next.has(dateStr)) {
-      next.delete(dateStr)
-    } else {
-      next.add(dateStr)
-    }
-    setCustomDates(next)
-  }
-
-  const [manualIncludedDates, setManualIncludedDates] = useState<Set<string>>(new Set())
-
+  const activeRules = useMemo(() => visitRules.filter((rule) => rule.active), [visitRules])
+  const { scheduled, custom, excluded } = useMemo(
+    () => collectRuleDates(activeRules, viewYear, viewMonth),
+    [activeRules, viewYear, viewMonth],
+  )
   const { firstDay, daysInMonth } = getMonthDays(viewYear, viewMonth)
+
+  const monthlyVisitLimit = activeRules.reduce((max, rule) => Math.max(max, rule.monthlyVisitLimit), 0)
+  const monthVisitCount = scheduled.size
+  const isOverLimit = monthlyVisitLimit > 0 && monthVisitCount > monthlyVisitLimit
 
   const prevMonth = () => {
     if (viewMonth === 0) {
@@ -111,64 +120,6 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
     }
   }
 
-  // For auto-generated patterns, default to first 4 active dates and allow manual swap within monthly 4-visit limit
-  const [skippedDates, setSkippedDates] = useState<Set<string>>(new Set())
-  const defaultActiveDates = useMemo(() => {
-    if (pattern === 'custom') return candidateDates
-    return new Set(Array.from(candidateDates).slice(0, 4))
-  }, [candidateDates, pattern])
-
-  const effectiveDates = useMemo(() => {
-    if (pattern === 'custom') return candidateDates
-    const dates = new Set<string>()
-    defaultActiveDates.forEach((d) => {
-      if (!skippedDates.has(d)) dates.add(d)
-    })
-    manualIncludedDates.forEach((d) => {
-      if (candidateDates.has(d)) dates.add(d)
-    })
-    return dates
-  }, [candidateDates, defaultActiveDates, skippedDates, manualIncludedDates, pattern])
-
-  const toggleSkip = (dateStr: string) => {
-    if (pattern === 'custom') {
-      toggleDate(dateStr)
-      return
-    }
-
-    const isCurrentlyActive = effectiveDates.has(dateStr)
-    const isDefaultActive = defaultActiveDates.has(dateStr)
-    const isManualIncluded = manualIncludedDates.has(dateStr)
-
-    if (isCurrentlyActive) {
-      if (isDefaultActive) {
-        const nextSkipped = new Set(skippedDates)
-        nextSkipped.add(dateStr)
-        setSkippedDates(nextSkipped)
-      }
-      if (isManualIncluded) {
-        const nextManual = new Set(manualIncludedDates)
-        nextManual.delete(dateStr)
-        setManualIncludedDates(nextManual)
-      }
-      return
-    }
-
-    if (!candidateDates.has(dateStr) || effectiveCount >= 4) return
-
-    const nextSkipped = new Set(skippedDates)
-    nextSkipped.delete(dateStr)
-    setSkippedDates(nextSkipped)
-
-    if (!defaultActiveDates.has(dateStr)) {
-      const nextManual = new Set(manualIncludedDates)
-      nextManual.add(dateStr)
-      setManualIncludedDates(nextManual)
-    }
-  }
-
-  const effectiveCount = effectiveDates.size
-
   return (
     <Card className="border-[#2a3553] bg-[#1a2035]">
       <CardHeader className="pb-2">
@@ -178,192 +129,106 @@ export function VisitSchedule({ initialPattern = 'weekly', initialDayOfWeek = 4,
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Pattern Selector */}
         <div className="space-y-2">
-          <p className="text-xs text-gray-400">基本パターン</p>
-          <div className="flex gap-2">
-            {(Object.keys(PATTERN_LABELS) as VisitPattern[]).map((p) => (
-              <Button
-                key={p}
-                variant="outline"
-                size="sm"
-                onClick={() => setPattern(p)}
-                className={cn(
-                  'h-8 border text-xs',
-                  pattern === p
-                    ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
-                    : 'border-[#2a3553] bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]'
-                )}
-              >
-                {PATTERN_LABELS[p]}
-              </Button>
-            ))}
-          </div>
+          <p className="text-xs text-gray-400">patient master の visitRules</p>
+          {activeRules.length === 0 ? (
+            <p className="text-sm text-gray-500">visitRules は未設定です。</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {activeRules.map((rule) => (
+                <Badge key={rule.id} variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">
+                  {PATTERN_LABELS[rule.pattern]}
+                  {rule.weekday != null ? ` / ${DAY_LABELS[rule.weekday]}曜` : ''}
+                  {rule.pattern === 'biweekly' ? ` / ${rule.anchorWeek === 2 ? '第2・4週' : '第1・3週'}` : ''}
+                  {rule.preferredTime ? ` / ${rule.preferredTime}` : ''}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Day of Week Selector (for weekly/biweekly) */}
-        {pattern !== 'custom' && (
-          <div className="space-y-2">
-            <p className="text-xs text-gray-400">訪問曜日</p>
-            <div className="flex gap-1">
-              {DAY_LABELS.map((label, i) => (
-                <button
-                  key={i}
-                  onClick={() => setDayOfWeek(i)}
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition',
-                    dayOfWeek === i
-                      ? 'bg-indigo-500 text-white'
-                      : 'bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]',
-                    i === 0 && 'text-rose-400',
-                    i === 6 && 'text-sky-400'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Start Week Selector (for biweekly) */}
-        {pattern === 'biweekly' && (
-          <div className="space-y-2">
-            <p className="text-xs text-gray-400">開始週</p>
-            <div className="flex gap-2">
-              {[1, 2].map((week) => (
-                <Button
-                  key={week}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStartWeek(week)}
-                  className={cn(
-                    'h-8 border text-xs flex-1',
-                    startWeek === week
-                      ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
-                      : 'border-[#2a3553] bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]'
-                  )}
-                >
-                  第{week === 1 ? '1・3' : '2・4'}週
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Monthly Count + Limit Warning */}
         <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
           <div className="flex items-center gap-2">
             <Repeat className="h-4 w-4 text-gray-500" />
-            <span className="text-xs text-gray-400">今月の訪問回数</span>
+            <span className="text-xs text-gray-400">今月の予定回数</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={cn('text-lg font-bold', isOverLimit ? 'text-rose-400' : effectiveCount === 4 ? 'text-amber-400' : 'text-emerald-400')}>
-              {effectiveCount}
+            <span className={cn('text-lg font-bold', isOverLimit ? 'text-rose-400' : 'text-emerald-400')}>
+              {monthVisitCount}
             </span>
-            <span className="text-xs text-gray-500">/ 4回</span>
+            <span className="text-xs text-gray-500">/ {monthlyVisitLimit || '—'}回</span>
             {isOverLimit && (
-              <Badge variant="outline" className="border-rose-500/40 bg-rose-500/20 text-rose-300 text-[10px]">
+              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/20 text-amber-300 text-[10px]">
                 <AlertTriangle className="mr-1 h-3 w-3" />
-                上限超過
+                警告のみ
               </Badge>
             )}
           </div>
         </div>
 
-        {/* Calendar */}
         <div>
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <button onClick={prevMonth} className="rounded-lg p-1.5 text-gray-400 hover:bg-[#212b45] hover:text-white transition">
+          <div className="mb-3 flex items-center justify-between">
+            <button onClick={prevMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-sm font-medium text-white">{formatMonth(viewYear, viewMonth)}</span>
-            <button onClick={nextMonth} className="rounded-lg p-1.5 text-gray-400 hover:bg-[#212b45] hover:text-white transition">
+            <button onClick={nextMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
+          <div className="mb-1 grid grid-cols-7 gap-1">
             {DAY_LABELS.map((label, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'text-center text-[10px] font-medium py-1',
-                  i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-gray-500'
-                )}
-              >
+              <div key={i} className={cn('py-1 text-center text-[10px] font-medium', i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-gray-500')}>
                 {label}
               </div>
             ))}
           </div>
 
-          {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells before first day */}
             {Array.from({ length: firstDay }).map((_, i) => (
               <div key={`empty-${i}`} className="h-9" />
             ))}
 
-            {/* Day cells */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const date = new Date(viewYear, viewMonth, day)
               const dateStr = formatLocalDateKey(date)
-              const isCandidate = candidateDates.has(dateStr)
-              const isScheduled = pattern === 'custom' ? customDates.has(dateStr) : effectiveDates.has(dateStr)
-              const isSkipped = pattern !== 'custom' && isCandidate && !effectiveDates.has(dateStr)
-              const isCustomSelected = pattern === 'custom' && customDates.has(dateStr)
+              const isScheduled = scheduled.has(dateStr)
+              const isCustom = custom.has(dateStr)
+              const isExcluded = excluded.has(dateStr) && !isCustom
               const isToday = dateStr === formatLocalDateKey(today)
-              const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
               return (
-                <button
+                <div
                   key={day}
-                  onClick={() => toggleSkip(dateStr)}
                   className={cn(
-                    'relative flex h-9 items-center justify-center rounded-lg text-xs font-medium transition',
-                    isScheduled || isCustomSelected
-                      ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30'
-                      : isSkipped
-                        ? 'bg-[#0a0e1a] text-gray-600 line-through'
-                        : 'bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]',
-                    isToday && !isScheduled && !isCustomSelected && 'ring-1 ring-indigo-500/50',
-                    isPast && !isScheduled && !isCustomSelected && 'opacity-40'
+                    'relative flex h-9 items-center justify-center rounded-lg text-xs font-medium',
+                    isCustom
+                      ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                      : isScheduled
+                        ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30'
+                        : isExcluded
+                          ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through'
+                          : 'bg-[#0a0e1a] text-gray-400',
+                    isToday && 'ring-1 ring-indigo-500/50',
                   )}
                 >
                   {day}
-                  {isToday && (
-                    <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-indigo-400" />
-                  )}
-                </button>
+                </div>
               )
             })}
           </div>
         </div>
 
-        {/* Legend */}
         <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded bg-indigo-500" />
-            訪問予定
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded bg-[#0a0e1a] border border-[#2a3553] line-through" />
-            スキップ
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded bg-[#0a0e1a] ring-1 ring-indigo-500/50" />
-            今日
-          </span>
+          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
+          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />追加日</span>
+          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外日</span>
         </div>
 
-        {/* Helper Text */}
         <p className="text-[10px] text-gray-500">
-          {pattern === 'custom'
-            ? '日付をタップして訪問日を選択/解除できます'
-            : '同じ曜日が5回ある月は、候補日の中から4回まで選択できます。ON/OFFを切り替えて今月の4回を調整してください。'}
+          patient master の visitRules をそのまま表示しています。追加日が除外日より優先され、月間上限は警告のみで生成自体は止めません。
         </p>
       </CardContent>
     </Card>

@@ -1,5 +1,5 @@
 import { dayTaskData, type DayTaskItem, type PatientRecord } from '@/lib/mock-data'
-import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
 
 export const MOCK_FLOW_DATE = '2026-03-28'
 
@@ -28,39 +28,113 @@ function hasBiweeklyAnchorMatch(anchorWeek: 1 | 2 | null, flowDate: string) {
   return weekOfMonth % 2 === 1
 }
 
-function matchesVisitRule(patient: Pick<RegisteredPatientRecord, 'visitRules' | 'startedAt'>, flowDate: string) {
+function parseDateKey(dateKey: string) {
+  return new Date(`${dateKey}T00:00:00`)
+}
+
+function diffDays(from: string, to: string) {
+  return Math.floor((parseDateKey(to).getTime() - parseDateKey(from).getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function buildVisitHistory(tasks: DayTaskItem[], flowDate: string) {
+  const history = new Map<string, string[]>()
+
+  tasks
+    .filter((task) => task.completedAt || task.handledAt || task.status === 'completed')
+    .filter((task) => task.flowDate < flowDate)
+    .forEach((task) => {
+      const current = history.get(task.patientId) ?? []
+      current.push(task.flowDate)
+      history.set(task.patientId, current)
+    })
+
+  history.forEach((dates, patientId) => {
+    const uniqueSorted = Array.from(new Set(dates)).sort((a, b) => a.localeCompare(b))
+    history.set(patientId, uniqueSorted)
+  })
+
+  return history
+}
+
+function getLastVisitDate(patientId: string, visitHistory: Map<string, string[]>) {
+  const dates = visitHistory.get(patientId) ?? []
+  return dates.length > 0 ? dates[dates.length - 1] : null
+}
+
+function getPreferredTime(rules: PatientVisitRule[]) {
+  return rules.find((rule) => rule.preferredTime)?.preferredTime ?? null
+}
+
+function getMonthlyVisitCount(patientId: string, monthKey: string, tasks: DayTaskItem[], flowDate: string) {
+  const completedDates = new Set(
+    tasks
+      .filter((task) => task.patientId === patientId)
+      .filter((task) => task.flowDate.startsWith(monthKey))
+      .filter((task) => task.flowDate <= flowDate)
+      .filter((task) => task.completedAt || task.handledAt || task.status === 'completed')
+      .map((task) => task.flowDate),
+  )
+
+  return completedDates.size
+}
+
+function getMatchingRules(
+  patient: Pick<RegisteredPatientRecord, 'id' | 'visitRules' | 'startedAt'>,
+  flowDate: string,
+  visitHistory: Map<string, string[]>,
+) {
   const rules = patient.visitRules?.filter((rule) => rule.active) ?? []
-  if (rules.length === 0) return false
+  if (rules.length === 0) return [] as PatientVisitRule[]
+
+  const customMatchedRules = rules.filter((rule) => rule.customDates.includes(flowDate))
+  if (customMatchedRules.length > 0) return customMatchedRules
 
   const currentWeekday = toWeekday(flowDate)
+  const lastVisitDate = getLastVisitDate(patient.id, visitHistory)
 
-  return rules.some((rule) => {
-    const customHit = rule.customDates.includes(flowDate)
-    if (customHit) return true
+  return rules.filter((rule) => {
     if (rule.excludedDates.includes(flowDate)) return false
     if (rule.pattern === 'custom') return false
     if (rule.weekday !== currentWeekday) return false
+
     if (rule.pattern === 'biweekly') {
-      if (patient.startedAt) {
-        const startedAt = new Date(`${patient.startedAt}T00:00:00`)
-        const target = new Date(`${flowDate}T00:00:00`)
-        const diffDays = Math.floor((target.getTime() - startedAt.getTime()) / (1000 * 60 * 60 * 24))
-        if (diffDays >= 0 && diffDays % 14 === 0) return true
+      if (lastVisitDate) {
+        const daysSinceLastVisit = diffDays(lastVisitDate, flowDate)
+        if (daysSinceLastVisit === 14) return true
+        if (daysSinceLastVisit >= 0 && daysSinceLastVisit < 14) return false
       }
+
       return hasBiweeklyAnchorMatch(rule.anchorWeek, flowDate)
     }
+
     return true
   })
 }
 
-function buildAutoTaskFromPatient(patient: RegisteredPatientRecord, flowDate: string, sortOrder: number): DayTaskItem {
-  const activeRules = patient.visitRules?.filter((rule) => rule.active) ?? []
-  const preferredTime = activeRules.find((rule) => rule.preferredTime)?.preferredTime ?? DAY_FLOW_TIME_SLOTS[(sortOrder - 1) % DAY_FLOW_TIME_SLOTS.length]
+function buildAutoTaskFromPatient(
+  patient: RegisteredPatientRecord,
+  flowDate: string,
+  sortOrder: number,
+  matchedRules: PatientVisitRule[],
+  monthVisitCount: number,
+  lastVisitDate: string | null,
+): DayTaskItem {
+  const preferredTime = getPreferredTime(matchedRules) ?? DAY_FLOW_TIME_SLOTS[(sortOrder - 1) % DAY_FLOW_TIME_SLOTS.length]
   const weekday = weekdayLabels[toWeekday(flowDate)]
+  const monthlyLimit = matchedRules.reduce((max, rule) => Math.max(max, rule.monthlyVisitLimit), 0)
+  const limitWarning = monthlyLimit > 0 && monthVisitCount >= monthlyLimit
+
   const noteParts = [
     `${weekday}曜のvisitRulesから自動生成`,
+    matchedRules.some((rule) => rule.customDates.includes(flowDate)) ? '追加日を優先して反映' : null,
+    matchedRules.some((rule) => rule.pattern === 'biweekly')
+      ? lastVisitDate
+        ? `隔週（前回 ${lastVisitDate} から2週間優先）`
+        : `隔週（${matchedRules.find((rule) => rule.pattern === 'biweekly')?.anchorWeek === 2 ? '第2・4週' : '第1・3週'}）`
+      : null,
     patient.manualTags && patient.manualTags.length > 0 ? `タグ: ${patient.manualTags.slice(0, 2).join(' / ')}` : null,
     patient.visitNotes && patient.visitNotes !== '未設定' ? patient.visitNotes.split('\n')[0].replace(/^【[^】]+】/, '').trim() : null,
+    limitWarning ? `月${monthlyLimit}回上限は警告のみ（今月 ${monthVisitCount + 1} 回目想定）` : null,
   ].filter(Boolean)
 
   return {
@@ -90,18 +164,33 @@ function buildAutoTaskFromPatient(patient: RegisteredPatientRecord, flowDate: st
   }
 }
 
-export function generateAutoDayTasksFromVisitRules(patients: RegisteredPatientRecord[], flowDate: string = MOCK_FLOW_DATE): DayTaskItem[] {
+export function generateAutoDayTasksFromVisitRules(
+  patients: RegisteredPatientRecord[],
+  flowDate: string = MOCK_FLOW_DATE,
+  taskHistory: DayTaskItem[] = dayTaskData,
+): DayTaskItem[] {
+  const visitHistory = buildVisitHistory(taskHistory, flowDate)
+  const monthKey = flowDate.slice(0, 7)
+
   const matchedPatients = patients
     .filter((patient) => patient.status === 'active')
-    .filter((patient) => matchesVisitRule(patient, flowDate))
+    .map((patient) => ({
+      patient,
+      matchedRules: getMatchingRules(patient, flowDate, visitHistory),
+    }))
+    .filter((entry) => entry.matchedRules.length > 0)
     .sort((a, b) => {
-      const timeA = a.visitRules?.find((rule) => rule.active)?.preferredTime ?? '99:99'
-      const timeB = b.visitRules?.find((rule) => rule.active)?.preferredTime ?? '99:99'
+      const timeA = getPreferredTime(a.matchedRules) ?? '99:99'
+      const timeB = getPreferredTime(b.matchedRules) ?? '99:99'
       if (timeA !== timeB) return timeA.localeCompare(timeB)
-      return a.name.localeCompare(b.name, 'ja')
+      return a.patient.name.localeCompare(b.patient.name, 'ja')
     })
 
-  return matchedPatients.map((patient, index) => buildAutoTaskFromPatient(patient, flowDate, dayTaskData.length + index + 1))
+  return matchedPatients.map(({ patient, matchedRules }, index) => {
+    const monthVisitCount = getMonthlyVisitCount(patient.id, monthKey, taskHistory, flowDate)
+    const lastVisitDate = getLastVisitDate(patient.id, visitHistory)
+    return buildAutoTaskFromPatient(patient, flowDate, dayTaskData.length + index + 1, matchedRules, monthVisitCount, lastVisitDate)
+  })
 }
 
 export function mergeDayFlowTasks(options: {
@@ -114,7 +203,8 @@ export function mergeDayFlowTasks(options: {
   const baseTasks = options.baseTasks ?? dayTaskData
   const registeredPatients = options.registeredPatients ?? []
   const persistedTasks = options.persistedTasks ?? []
-  const generatedTasks = generateAutoDayTasksFromVisitRules(registeredPatients, flowDate)
+  const taskHistory = [...baseTasks, ...persistedTasks]
+  const generatedTasks = generateAutoDayTasksFromVisitRules(registeredPatients, flowDate, taskHistory)
 
   const persistedById = new Map(persistedTasks.map((task) => [task.id, task]))
   const generatedById = new Map(generatedTasks.map((task) => [task.id, task]))

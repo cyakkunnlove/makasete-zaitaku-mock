@@ -144,7 +144,7 @@ export default function NewPatientPage() {
     )
 
     upsertRegisteredPatient(patient)
-    router.push(`/dashboard/patients/${patient.id}`)
+    router.push('/dashboard')
   }
 
   return (
