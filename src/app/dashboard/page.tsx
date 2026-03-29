@@ -220,6 +220,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [draftDayTasks, setDraftDayTasks] = useState(dayTaskData)
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [saveToast, setSaveToast] = useState<string | null>(null)
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
@@ -280,6 +282,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const timeout = window.setTimeout(() => setUndoTarget((current) => (current?.taskId === undoTarget.taskId ? null : current)), Math.max(undoTarget.expiresAt - Date.now(), 0))
     return () => window.clearTimeout(timeout)
   }, [undoTarget])
+
+  useEffect(() => {
+    if (!saveToast) return
+    const timeout = window.setTimeout(() => setSaveToast(null), 2500)
+    return () => window.clearTimeout(timeout)
+  }, [saveToast])
 
   const enrichedVisits = useMemo(() => {
     return draftDayTasks
@@ -417,12 +425,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }
 
   const handleSaveOrder = () => {
-    const savedAt = '2026-03-29 12:47'
+    const savedAt = '2026-03-29 13:00'
     const savedBy = user?.full_name ?? '伊藤 真理'
     setDayTasks(draftDayTasks)
     setHasOrderDraft(false)
     setLastOrderSavedAt(savedAt)
     setLastOrderSavedBy(savedBy)
+    setSaveToast('並び順を保存しました。他スタッフにも反映されます。')
     try {
       window.localStorage.setItem(DAY_TASK_SHARED_STORAGE_KEY, JSON.stringify({ tasks: draftDayTasks, savedAt, savedBy }))
     } catch {}
@@ -492,6 +501,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             </CardContent>
           </Card>
 
+          {saveToast && (
+            <Card className="border-emerald-500/30 bg-emerald-500/10">
+              <CardContent className="flex items-center justify-between gap-2 p-3 text-sm text-emerald-100">
+                <span>{saveToast}</span>
+                <span className="text-xs text-emerald-200/80">shared mock save</span>
+              </CardContent>
+            </Card>
+          )}
+
           {undoTarget && (
             <Card className="border-amber-500/30 bg-amber-500/10">
               <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-amber-100">
@@ -514,6 +532,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <span className="text-xs font-normal text-gray-500">自動生成 + 手動追加</span>
               </h2>
               <div className="space-y-2">
+                {draggingTaskId && (
+                  <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                    青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
+                  </div>
+                )}
                 {orderedVisits.map((visit) => {
                   const patient = visit.patient
                   if (!patient) return null
@@ -525,15 +548,32 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     <Card
                       key={visit.id}
                       draggable
-                      onDragStart={() => setDraggingTaskId(visit.id)}
-                      onDragEnd={() => setDraggingTaskId(null)}
-                      onDragOver={(event) => event.preventDefault()}
+                      onDragStart={() => {
+                        setDraggingTaskId(visit.id)
+                        setDragOverTaskId(null)
+                      }}
+                      onDragEnd={() => {
+                        setDraggingTaskId(null)
+                        setDragOverTaskId(null)
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault()
+                        if (draggingTaskId && draggingTaskId !== visit.id) setDragOverTaskId(visit.id)
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverTaskId === visit.id) setDragOverTaskId(null)
+                      }}
                       onDrop={() => {
                         if (!draggingTaskId) return
                         reorderTaskByDrag(draggingTaskId, visit.id)
                         setDraggingTaskId(null)
+                        setDragOverTaskId(null)
                       }}
-                      className={cn('border-[#2a3553] bg-[#1a2035]', draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60')}
+                      className={cn(
+                        'border-[#2a3553] bg-[#1a2035] transition',
+                        draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
+                        dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
+                      )}
                     >
                       <CardContent className="space-y-3 p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
