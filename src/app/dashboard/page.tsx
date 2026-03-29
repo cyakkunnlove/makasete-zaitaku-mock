@@ -628,8 +628,8 @@ function PharmacyDayTaskCard({
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
-  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
-  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
+  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate }))
+  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate }))
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
@@ -639,6 +639,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
+  const [flowDate, setFlowDate] = useState(MOCK_FLOW_DATE)
   const ownPharmacyId = 'PH-01'
   const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
 
@@ -664,7 +665,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         if (Array.isArray(parsed.tasks)) {
           const merged = mergeDayFlowTasks({
             baseTasks: dayTaskData,
-            flowDate: MOCK_FLOW_DATE,
+            flowDate,
             registeredPatients,
             persistedTasks: parsed.tasks,
           })
@@ -682,7 +683,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         if (Array.isArray(parsed)) {
           const merged = mergeDayFlowTasks({
             baseTasks: dayTaskData,
-            flowDate: MOCK_FLOW_DATE,
+            flowDate,
             registeredPatients,
             persistedTasks: parsed,
           })
@@ -692,11 +693,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         }
       }
 
-      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE, registeredPatients })
+      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients })
       setDayTasks(merged)
       setDraftDayTasks(merged)
     } catch {}
-  }, [registeredPatients])
+  }, [flowDate, registeredPatients])
 
   useEffect(() => {
     try {
@@ -740,11 +741,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const mergedDayTasks = useMemo(() => {
     return mergeDayFlowTasks({
       baseTasks: dayTaskData,
-      flowDate: MOCK_FLOW_DATE,
+      flowDate,
       registeredPatients,
       persistedTasks: draftDayTasks,
     })
-  }, [draftDayTasks, registeredPatients])
+  }, [draftDayTasks, flowDate, registeredPatients])
 
   const enrichedVisits = useMemo(() => {
     return mergedDayTasks
@@ -936,11 +937,34 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setHasOrderDraft(false)
   }
 
+  const flowDateLabel = useMemo(() => {
+    const d = new Date(`${flowDate}T00:00:00`)
+    return `${d.getMonth() + 1}/${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`
+  }, [flowDate])
+
+  const shiftFlowDate = (days: number) => {
+    const d = new Date(`${flowDate}T00:00:00`)
+    d.setDate(d.getDate() + days)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    setFlowDate(`${y}-${m}-${day}`)
+  }
+
   return (
     <div className="space-y-4">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-sm text-gray-200">
+        <button onClick={() => shiftFlowDate(-1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">前日</button>
+        <div className="text-center">
+          <p className="text-xs text-gray-500">表示中のday flow</p>
+          <p className="font-medium text-white">{flowDateLabel}</p>
+        </div>
+        <button onClick={() => shiftFlowDate(1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">翌日</button>
       </div>
 
       <>
@@ -985,7 +1009,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
-            <PharmacyTodaySectionHeading countLabel={isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'} />
+            <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
             <div className="space-y-2">
               {draggingTaskId && (
                 <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
