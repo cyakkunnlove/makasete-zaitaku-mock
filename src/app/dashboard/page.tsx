@@ -326,6 +326,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const saveStateBadge = lastOrderSavedBy && lastOrderSavedAt
     ? `最終保存: ${lastOrderSavedBy} / ${lastOrderSavedAt}`
     : null
+  const orderDraftBadgeText = '未保存の順番変更あり'
+  const orderSavedButtonText = '他スタッフ反映済み'
+  const resetOrderButtonText = '元に戻す'
+  const createPatientButtonText = '患者登録'
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -489,15 +493,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
                 {hasOrderDraft ? (
                   <>
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">未保存の順番変更あり</Badge>
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">{orderDraftBadgeText}</Badge>
                     <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-                    <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">元に戻す</Button>
+                    <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{resetOrderButtonText}</Button>
                   </>
                 ) : (
-                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">他スタッフ反映済み</Button>
+                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
                 )}
                 <Link href="/dashboard/patients/new">
-                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">患者登録</Button>
+                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">{createPatientButtonText}</Button>
                 </Link>
                 {undoTarget && (
                   <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
