@@ -330,6 +330,28 @@ function PharmacyDashboardNoticeCard({
   )
 }
 
+function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
+  return (
+    <Tabs defaultValue="today" className="space-y-3">
+      <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
+        <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の患者フロー</TabsTrigger>
+        <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者マスタ</TabsTrigger>
+      </TabsList>
+      {children}
+    </Tabs>
+  )
+}
+
+function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
+  return (
+    <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+      <Building2 className="h-4 w-4 text-indigo-400" />
+      今日の対応患者
+      <span className="text-xs font-normal text-gray-500">{countLabel ?? '自動生成 + 手動追加'}</span>
+    </h2>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -637,18 +659,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             />
           )}
 
-          <Tabs defaultValue="today" className="space-y-3">
-            <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
-              <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の患者フロー</TabsTrigger>
-              <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者マスタ</TabsTrigger>
-            </TabsList>
-
+          <PharmacyDashboardTabs>
             <TabsContent value="today" className="space-y-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-                <Building2 className="h-4 w-4 text-indigo-400" />
-                今日の対応患者
-                <span className="text-xs font-normal text-gray-500">自動生成 + 手動追加</span>
-              </h2>
+              <PharmacyTodaySectionHeading countLabel="自動生成 + 手動追加" />
               <div className="space-y-2">
                 {draggingTaskId && (
                   <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
@@ -796,7 +809,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 })}
               </div>
             </TabsContent>
-          </Tabs>
+          </PharmacyDashboardTabs>
         </>
       ) : (
         <>
