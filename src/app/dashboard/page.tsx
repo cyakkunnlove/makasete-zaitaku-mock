@@ -434,6 +434,8 @@ function PharmacyDayTaskCardMetrics({
 function PharmacyDayTaskCardActions({
   canStart,
   canComplete,
+  canMoveUp,
+  canMoveDown,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -445,6 +447,8 @@ function PharmacyDayTaskCardActions({
 }: {
   canStart: boolean
   canComplete: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -463,8 +467,8 @@ function PharmacyDayTaskCardActions({
         <GripVertical className="h-3.5 w-3.5 text-gray-500" />
         {reorderHintText}
       </span>
-      <Button size="sm" variant="outline" onClick={onMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
-      <Button size="sm" variant="outline" onClick={onMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
+      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
+      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
       <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
         対応する
       </Button>
@@ -512,6 +516,8 @@ function PharmacyDayTaskCard({
   onDropReorder,
   canStart,
   canComplete,
+  canMoveUp,
+  canMoveDown,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -535,6 +541,8 @@ function PharmacyDayTaskCard({
   onDropReorder: () => void
   canStart: boolean
   canComplete: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -594,6 +602,8 @@ function PharmacyDayTaskCard({
         <PharmacyDayTaskCardActions
           canStart={canStart}
           canComplete={canComplete}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
           onPlanToggle={onPlanToggle}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
@@ -961,6 +971,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
                       canStart={canStart}
                       canComplete={canComplete}
+                      canMoveUp={visit.status !== 'completed'}
+                      canMoveDown={visit.status !== 'completed'}
                       onPlanToggle={() => handlePlanTask(visit.id)}
                       onMoveUp={() => moveTask(visit.id, 'up')}
                       onMoveDown={() => moveTask(visit.id, 'down')}
