@@ -486,6 +486,108 @@ function PharmacyDayTaskCardMetaChips({
   )
 }
 
+function PharmacyDayTaskCard({
+  visit,
+  patient,
+  statusClassName,
+  statusLabel,
+  collectionClassName,
+  draggingTaskId,
+  dragOverTaskId,
+  setDraggingTaskId,
+  setDragOverTaskId,
+  onDropReorder,
+  canStart,
+  canComplete,
+  onPlanToggle,
+  onMoveUp,
+  onMoveDown,
+  onStart,
+  onComplete,
+}: {
+  visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
+  patient: { name: string; address: string }
+  statusClassName: string
+  statusLabel: string
+  collectionClassName: string
+  draggingTaskId: string | null
+  dragOverTaskId: string | null
+  setDraggingTaskId: (id: string | null) => void
+  setDragOverTaskId: (id: string | null) => void
+  onDropReorder: () => void
+  canStart: boolean
+  canComplete: boolean
+  onPlanToggle: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onStart: () => void
+  onComplete: () => void
+}) {
+  return (
+    <Card
+      draggable
+      onDragStart={() => {
+        setDraggingTaskId(visit.id)
+        setDragOverTaskId(null)
+      }}
+      onDragEnd={() => {
+        setDraggingTaskId(null)
+        setDragOverTaskId(null)
+      }}
+      onDragOver={(event) => {
+        event.preventDefault()
+        if (draggingTaskId && draggingTaskId !== visit.id) setDragOverTaskId(visit.id)
+      }}
+      onDragLeave={() => {
+        if (dragOverTaskId === visit.id) setDragOverTaskId(null)
+      }}
+      onDrop={() => {
+        if (!draggingTaskId) return
+        onDropReorder()
+        setDraggingTaskId(null)
+        setDragOverTaskId(null)
+      }}
+      className={cn(
+        'border-[#2a3553] bg-[#1a2035] transition',
+        draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
+        dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
+      )}
+    >
+      <CardContent className="space-y-3 p-4">
+        <PharmacyDayTaskCardHeader
+          visit={visit}
+          patientName={patient.name}
+          patientAddress={patient.address}
+          statusClassName={statusClassName}
+          statusLabel={statusLabel}
+        />
+        <PharmacyDayTaskCardMetrics
+          handledBy={visit.handledBy}
+          handledAt={visit.handledAt}
+          billable={visit.billable}
+          collectionStatus={visit.collectionStatus}
+          collectionClassName={collectionClassName}
+        />
+        <PharmacyDayTaskCardActions
+          visit={visit}
+          canStart={canStart}
+          canComplete={canComplete}
+          onPlanToggle={onPlanToggle}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+          onStart={onStart}
+          onComplete={onComplete}
+        />
+        <PharmacyDayTaskCardMetaChips
+          planningStatus={visit.planningStatus}
+          plannedBy={visit.plannedBy}
+          updatedAt={visit.updatedAt}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -810,70 +912,26 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   const canStart = visit.status === 'scheduled'
                   const canComplete = visit.status === 'in_progress'
                   return (
-                    <Card
+                    <PharmacyDayTaskCard
                       key={visit.id}
-                      draggable
-                      onDragStart={() => {
-                        setDraggingTaskId(visit.id)
-                        setDragOverTaskId(null)
-                      }}
-                      onDragEnd={() => {
-                        setDraggingTaskId(null)
-                        setDragOverTaskId(null)
-                      }}
-                      onDragOver={(event) => {
-                        event.preventDefault()
-                        if (draggingTaskId && draggingTaskId !== visit.id) setDragOverTaskId(visit.id)
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverTaskId === visit.id) setDragOverTaskId(null)
-                      }}
-                      onDrop={() => {
-                        if (!draggingTaskId) return
-                        reorderTaskByDrag(draggingTaskId, visit.id)
-                        setDraggingTaskId(null)
-                        setDragOverTaskId(null)
-                      }}
-                      className={cn(
-                        'border-[#2a3553] bg-[#1a2035] transition',
-                        draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
-                        dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
-                      )}
-                    >
-                      <CardContent className="space-y-3 p-4">
-                        <PharmacyDayTaskCardHeader
-                          visit={visit}
-                          patientName={patient.name}
-                          patientAddress={patient.address}
-                          statusClassName={status.className}
-                          statusLabel={status.label}
-                        />
-
-                        <PharmacyDayTaskCardMetrics
-                          handledBy={visit.handledBy}
-                          handledAt={visit.handledAt}
-                          billable={visit.billable}
-                          collectionStatus={visit.collectionStatus}
-                          collectionClassName={collection.className}
-                        />
-
-                        <PharmacyDayTaskCardActions
-                          visit={visit}
-                          canStart={canStart}
-                          canComplete={canComplete}
-                          onPlanToggle={() => handlePlanTask(visit.id)}
-                          onMoveUp={() => moveTask(visit.id, 'up')}
-                          onMoveDown={() => moveTask(visit.id, 'down')}
-                          onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
-                          onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
-                        />
-                        <PharmacyDayTaskCardMetaChips
-                          planningStatus={visit.planningStatus}
-                          plannedBy={visit.plannedBy}
-                          updatedAt={visit.updatedAt}
-                        />
-                      </CardContent>
-                    </Card>
+                      visit={visit}
+                      patient={patient}
+                      statusClassName={status.className}
+                      statusLabel={status.label}
+                      collectionClassName={collection.className}
+                      draggingTaskId={draggingTaskId}
+                      dragOverTaskId={dragOverTaskId}
+                      setDraggingTaskId={setDraggingTaskId}
+                      setDragOverTaskId={setDragOverTaskId}
+                      onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
+                      canStart={canStart}
+                      canComplete={canComplete}
+                      onPlanToggle={() => handlePlanTask(visit.id)}
+                      onMoveUp={() => moveTask(visit.id, 'up')}
+                      onMoveDown={() => moveTask(visit.id, 'down')}
+                      onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
+                      onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
+                    />
                   )
                 })}
               </div>
