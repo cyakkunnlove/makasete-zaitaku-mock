@@ -426,6 +426,47 @@ function PharmacyDayTaskCardMetrics({
   )
 }
 
+function PharmacyDayTaskCardActions({
+  visit,
+  canStart,
+  canComplete,
+  onPlanToggle,
+  onMoveUp,
+  onMoveDown,
+  onStart,
+  onComplete,
+}: {
+  visit: DayTaskItem
+  canStart: boolean
+  canComplete: boolean
+  onPlanToggle: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onStart: () => void
+  onComplete: () => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="outline" onClick={onPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+        {visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+      </Button>
+      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
+        <GripVertical className="h-3.5 w-3.5 text-gray-500" />
+        ドラッグで並び替え
+      </span>
+      <Button size="sm" variant="outline" onClick={onMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
+      <Button size="sm" variant="outline" onClick={onMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
+      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+        対応する
+      </Button>
+      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
+        対応完了
+      </Button>
+      <span className="text-[11px] text-gray-500">対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。</span>
+    </div>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -797,24 +838,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           collectionClassName={collection.className}
                         />
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handlePlanTask(visit.id)} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
-                            {visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
-                          </Button>
-                          <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
-                            <GripVertical className="h-3.5 w-3.5 text-gray-500" />
-                            ドラッグで並び替え
-                          </span>
-                          <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'up')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
-                          <Button size="sm" variant="outline" onClick={() => moveTask(visit.id, 'down')} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
-                          <Button size="sm" onClick={() => handleStartTask(visit.id, visit.scheduledTime)} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
-                            対応する
-                          </Button>
-                          <Button size="sm" onClick={() => handleCompleteTask(visit.id, visit.scheduledTime)} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
-                            対応完了
-                          </Button>
-                          <span className="text-[11px] text-gray-500">対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。</span>
-                        </div>
+                        <PharmacyDayTaskCardActions
+                          visit={visit}
+                          canStart={canStart}
+                          canComplete={canComplete}
+                          onPlanToggle={() => handlePlanTask(visit.id)}
+                          onMoveUp={() => moveTask(visit.id, 'up')}
+                          onMoveDown={() => moveTask(visit.id, 'down')}
+                          onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
+                          onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
+                        />
                         {(visit.planningStatus === 'planned' || visit.updatedAt) && (
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                             {visit.planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">対応予定: {visit.plannedBy}</span>}
