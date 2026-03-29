@@ -435,6 +435,7 @@ function PharmacyDayTaskCardActions({
   onMoveDown,
   onStart,
   onComplete,
+  completionHelpText,
 }: {
   visit: DayTaskItem
   canStart: boolean
@@ -444,6 +445,7 @@ function PharmacyDayTaskCardActions({
   onMoveDown: () => void
   onStart: () => void
   onComplete: () => void
+  completionHelpText: string
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -462,7 +464,7 @@ function PharmacyDayTaskCardActions({
       <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
         対応完了
       </Button>
-      <span className="text-[11px] text-gray-500">対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。</span>
+      <span className="text-[11px] text-gray-500">{completionHelpText}</span>
     </div>
   )
 }
@@ -504,6 +506,7 @@ function PharmacyDayTaskCard({
   onMoveDown,
   onStart,
   onComplete,
+  completionHelpText,
 }: {
   visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
   patient: { name: string; address: string }
@@ -522,6 +525,7 @@ function PharmacyDayTaskCard({
   onMoveDown: () => void
   onStart: () => void
   onComplete: () => void
+  completionHelpText: string
 }) {
   return (
     <Card
@@ -577,6 +581,7 @@ function PharmacyDayTaskCard({
           onMoveDown={onMoveDown}
           onStart={onStart}
           onComplete={onComplete}
+          completionHelpText={completionHelpText}
         />
         <PharmacyDayTaskCardMetaChips
           planningStatus={visit.planningStatus}
@@ -705,6 +710,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const orderSavedButtonText = '他スタッフ反映済み'
   const resetOrderButtonText = '元に戻す'
   const createPatientButtonText = '患者登録'
+  const completionHelpText = isPharmacyStaff
+    ? '対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。'
+    : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -931,6 +939,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       onMoveDown={() => moveTask(visit.id, 'down')}
                       onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
                       onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
+                      completionHelpText={completionHelpText}
                     />
                   )
                 })}
