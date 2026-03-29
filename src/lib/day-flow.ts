@@ -213,9 +213,15 @@ export function mergeDayFlowTasks(options: {
     .filter((task) => task.flowDate === flowDate)
     .map((task) => persistedById.get(task.id) ?? task)
 
+  const seededPatientIds = new Set(seeded.map((task) => task.patientId))
+
   const manualPersistedOnly = persistedTasks.filter((task) => task.flowDate === flowDate && !generatedById.has(task.id) && !baseTasks.some((baseTask) => baseTask.id === task.id))
 
-  const generatedResolved = generatedTasks.map((task) => persistedById.get(task.id) ?? task)
+  const manualPatientIds = new Set(manualPersistedOnly.map((task) => task.patientId))
+
+  const generatedResolved = generatedTasks
+    .filter((task) => !seededPatientIds.has(task.patientId) && !manualPatientIds.has(task.patientId))
+    .map((task) => persistedById.get(task.id) ?? task)
 
   return [...seeded, ...manualPersistedOnly, ...generatedResolved]
     .sort((a, b) => {
