@@ -799,6 +799,45 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           </Tabs>
         </>
       ) : (
+        <>
+          <PharmacyDashboardHeaderCard
+            flowDescription={flowDescription}
+            billableReadyCount={billableReadyCount}
+            primarySummaryBadge={primarySummaryBadge}
+            hasOrderDraft={hasOrderDraft}
+            handleSaveOrder={handleSaveOrder}
+            handleResetOrderDraft={handleResetOrderDraft}
+            orderDraftBadgeText={orderDraftBadgeText}
+            orderSavedButtonText={orderSavedButtonText}
+            resetOrderButtonText={resetOrderButtonText}
+            createPatientButtonText={createPatientButtonText}
+            undoTarget={undoTarget}
+            handleUndo={handleUndo}
+          />
+
+          <PharmacyDashboardSummaryCard
+            summaryTitle={summaryTitle}
+            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+            summarySupportText={summarySupportText}
+            saveStateBadge={saveStateBadge}
+          />
+
+          {saveToast && (
+            <PharmacyDashboardNoticeCard
+              tone="success"
+              message={saveToast}
+              subtext="shared mock save"
+            />
+          )}
+
+          {undoTarget && (
+            <PharmacyDashboardNoticeCard
+              tone="warning"
+              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
+              subtext="billing / 回収管理に反映する想定の mock 連携です。"
+            />
+          )}
+
         <div className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
             <Building2 className="h-4 w-4 text-indigo-400" />
@@ -834,6 +873,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             })}
           </div>
         </div>
+        </>
       )}
 
       {!isPharmacyStaff && (
