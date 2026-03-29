@@ -432,7 +432,6 @@ function PharmacyDayTaskCardMetrics({
 }
 
 function PharmacyDayTaskCardActions({
-  visit,
   canStart,
   canComplete,
   onPlanToggle,
@@ -441,8 +440,9 @@ function PharmacyDayTaskCardActions({
   onStart,
   onComplete,
   completionHelpText,
+  planButtonLabel,
+  reorderHintText,
 }: {
-  visit: DayTaskItem
   canStart: boolean
   canComplete: boolean
   onPlanToggle: () => void
@@ -451,15 +451,17 @@ function PharmacyDayTaskCardActions({
   onStart: () => void
   onComplete: () => void
   completionHelpText: string
+  planButtonLabel: string
+  reorderHintText: string
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button size="sm" variant="outline" onClick={onPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
-        {visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+        {planButtonLabel}
       </Button>
       <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
         <GripVertical className="h-3.5 w-3.5 text-gray-500" />
-        ドラッグで並び替え
+        {reorderHintText}
       </span>
       <Button size="sm" variant="outline" onClick={onMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
       <Button size="sm" variant="outline" onClick={onMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
@@ -518,6 +520,8 @@ function PharmacyDayTaskCard({
   completionHelpText,
   plannedLabelPrefix,
   updatedLabelPrefix,
+  planButtonLabel,
+  reorderHintText,
 }: {
   visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
   patient: { name: string; address: string }
@@ -539,6 +543,8 @@ function PharmacyDayTaskCard({
   completionHelpText: string
   plannedLabelPrefix: string
   updatedLabelPrefix: string
+  planButtonLabel: string
+  reorderHintText: string
 }) {
   return (
     <Card
@@ -586,7 +592,6 @@ function PharmacyDayTaskCard({
           collectionClassName={collectionClassName}
         />
         <PharmacyDayTaskCardActions
-          visit={visit}
           canStart={canStart}
           canComplete={canComplete}
           onPlanToggle={onPlanToggle}
@@ -595,6 +600,8 @@ function PharmacyDayTaskCard({
           onStart={onStart}
           onComplete={onComplete}
           completionHelpText={completionHelpText}
+          planButtonLabel={planButtonLabel}
+          reorderHintText={reorderHintText}
         />
         <PharmacyDayTaskCardMetaChips
           planningStatus={visit.planningStatus}
@@ -731,6 +738,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
   const plannedLabelPrefix = isPharmacyStaff ? '対応予定: ' : 'Admin確認予定: '
   const updatedLabelPrefix = isPharmacyStaff ? '更新: ' : '最終更新: '
+  const reorderHintText = isPharmacyStaff ? 'ドラッグで並び替え' : 'Adminも並び替え可能'
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -961,6 +969,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       completionHelpText={completionHelpText}
                       plannedLabelPrefix={plannedLabelPrefix}
                       updatedLabelPrefix={updatedLabelPrefix}
+                      planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+                      reorderHintText={reorderHintText}
                     />
                   )
                 })}
