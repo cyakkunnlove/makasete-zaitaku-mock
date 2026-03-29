@@ -213,6 +213,67 @@ function SystemAdminDashboard() {
   )
 }
 
+function PharmacyDashboardHeaderCard({
+  flowDescription,
+  billableReadyCount,
+  primarySummaryBadge,
+  hasOrderDraft,
+  handleSaveOrder,
+  handleResetOrderDraft,
+  orderDraftBadgeText,
+  orderSavedButtonText,
+  resetOrderButtonText,
+  createPatientButtonText,
+  undoTarget,
+  handleUndo,
+}: {
+  flowDescription: string
+  billableReadyCount: number
+  primarySummaryBadge: string
+  hasOrderDraft: boolean
+  handleSaveOrder: () => void
+  handleResetOrderDraft: () => void
+  orderDraftBadgeText: string
+  orderSavedButtonText: string
+  resetOrderButtonText: string
+  createPatientButtonText: string
+  undoTarget: { taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null
+  handleUndo: () => void
+}) {
+  return (
+    <Card className="border-[#2a3553] bg-[#1a2035]">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
+          <p className="text-xs text-gray-400">{flowDescription}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
+          <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
+          {hasOrderDraft ? (
+            <>
+              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">{orderDraftBadgeText}</Badge>
+              <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
+              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{resetOrderButtonText}</Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
+          )}
+          <Link href="/dashboard/patients/new">
+            <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">{createPatientButtonText}</Button>
+          </Link>
+          {undoTarget && (
+            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
+              <RotateCcw className="h-3.5 w-3.5" />
+              取り消す
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -482,36 +543,20 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
       {isPharmacyStaff ? (
         <>
-          <Card className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div>
-                <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
-                <p className="text-xs text-gray-400">{flowDescription}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-                <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
-                {hasOrderDraft ? (
-                  <>
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">{orderDraftBadgeText}</Badge>
-                    <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-                    <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{resetOrderButtonText}</Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
-                )}
-                <Link href="/dashboard/patients/new">
-                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">{createPatientButtonText}</Button>
-                </Link>
-                {undoTarget && (
-                  <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    取り消す
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <PharmacyDashboardHeaderCard
+            flowDescription={flowDescription}
+            billableReadyCount={billableReadyCount}
+            primarySummaryBadge={primarySummaryBadge}
+            hasOrderDraft={hasOrderDraft}
+            handleSaveOrder={handleSaveOrder}
+            handleResetOrderDraft={handleResetOrderDraft}
+            orderDraftBadgeText={orderDraftBadgeText}
+            orderSavedButtonText={orderSavedButtonText}
+            resetOrderButtonText={resetOrderButtonText}
+            createPatientButtonText={createPatientButtonText}
+            undoTarget={undoTarget}
+            handleUndo={handleUndo}
+          />
 
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardHeader className="pb-2">
