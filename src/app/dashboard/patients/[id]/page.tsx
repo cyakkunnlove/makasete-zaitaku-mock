@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  patientData,
   requestData,
   handoverData,
   pharmacyData,
@@ -24,6 +23,7 @@ import {
   getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
+import { formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -67,8 +67,22 @@ export default function PatientDetailPage() {
   const { role } = useAuth()
   const params = useParams()
   const id = params.id as string
+  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
 
-  const patient = useMemo(() => patientData.find((p) => p.id === id), [id])
+  useEffect(() => {
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    syncPatients()
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === 'makasete-patient-master:v1') {
+        syncPatients()
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  const patientMaster = useMemo(() => getPatientMasterRecords(registeredPatients), [registeredPatients])
+  const patient = useMemo(() => patientMaster.find((p) => p.id === id), [id, patientMaster])
 
   const pharmacy = useMemo(
     () => (patient ? pharmacyData.find((ph) => ph.id === patient.pharmacyId) : undefined),
@@ -362,8 +376,52 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
+      {(patient.manualTags?.length || patient.registrationMeta || patient.visitRules?.length) && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-white">
+              <Clock3 className="h-4 w-4 text-cyan-400" />
+              patient master 登録情報
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-gray-200">
+            {patient.manualTags && patient.manualTags.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500">manualTags</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {patient.manualTags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {patient.visitRules && patient.visitRules.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500">visitRules</p>
+                <p className="mt-1">{formatVisitRuleSummary(patient)}</p>
+              </div>
+            )}
+            {patient.registrationMeta && (
+              <div className="grid gap-2 sm:grid-cols-2 text-xs text-gray-400">
+                <p>作成者: {patient.registrationMeta.createdByName}</p>
+                <p>作成日時: {patient.registrationMeta.createdAt}</p>
+                <p>最終更新者: {patient.registrationMeta.updatedByName}</p>
+                <p>手動同期: {patient.registrationMeta.manualSyncAt ?? '-'}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Visit Schedule */}
-      <VisitSchedule patientId={patient.id} />
+      <VisitSchedule
+        patientId={patient.id}
+        initialPattern={patient.visitRules?.[0]?.pattern ?? 'weekly'}
+        initialDayOfWeek={patient.visitRules?.[0]?.weekday ?? 4}
+        initialVisitDates={patient.visitRules?.flatMap((rule) => rule.customDates) ?? []}
+      />
 
       {/* Current Medications - moved to bottom with (任意) label */}
       <Card className="border-[#2a3553] bg-[#1a2035]">

@@ -169,6 +169,32 @@ export interface PatientRecord {
   insuranceInfo: string
   diseaseName: string
   status: 'active' | 'inactive'
+  startedAt?: string | null
+  manualTags?: string[]
+  derivedFlags?: string[]
+  visitRules?: Array<{
+    id: string
+    pattern: 'weekly' | 'biweekly' | 'custom'
+    weekday: number | null
+    intervalWeeks: number
+    anchorWeek: 1 | 2 | null
+    preferredTime: string | null
+    monthlyVisitLimit: number
+    active: boolean
+    customDates: string[]
+    excludedDates: string[]
+  }>
+  registrationMeta?: {
+    source: 'mock_registration_form'
+    createdAt: string
+    createdById: string | null
+    createdByName: string
+    updatedAt: string
+    updatedById: string | null
+    updatedByName: string
+    version: number
+    manualSyncAt: string | null
+  }
 }
 
 export interface AttentionFlag {
@@ -530,12 +556,27 @@ export const requestStepIndex: Record<RequestStatus, number> = {
 export function getAttentionFlags(patient: PatientRecord): AttentionFlag[] {
   const flags: AttentionFlag[] = []
   const notes = patient.visitNotes ?? ''
+  const manualTags = patient.manualTags ?? []
+  const derivedFlags = patient.derivedFlags ?? []
 
   const push = (key: string, label: string, tone: AttentionFlag['tone']) => {
     if (!flags.find((flag) => flag.key === key)) {
       flags.push({ key, label, tone })
     }
   }
+
+  manualTags.forEach((tag) => {
+    if (tag === '家族連絡用') push('manual_family_contact', tag, 'info')
+    if (tag === '配薬場所指定') push('manual_delivery_spot', tag, 'info')
+    if (tag === '夜間注意') push('manual_night_caution', tag, 'warning')
+    if (tag === '医療機器あり') push('manual_equipment', tag, 'info')
+    if (tag === '転倒注意') push('manual_fall_risk', tag, 'warning')
+    if (tag === 'ペット注意') push('manual_pet', tag, 'warning')
+    if (tag === '駐車注意') push('manual_parking', tag, 'info')
+    if (tag === 'キーボックスあり') push('manual_keybox', tag, 'warning')
+  })
+
+  derivedFlags.forEach((flag) => push(`derived-${flag}`, flag, 'info'))
 
   if (notes.includes('暗証番号') || notes.includes('キーボックス') || notes.includes('オートロック')) {
     push('security_code', '暗証番号あり', 'warning')

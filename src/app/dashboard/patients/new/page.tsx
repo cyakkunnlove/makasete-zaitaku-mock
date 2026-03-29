@@ -1,19 +1,65 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { AlertTriangle, RefreshCcw, Save, UserPlus } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { pharmacyData, patientData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
+import { MOCK_FLOW_DATE } from '@/lib/day-flow'
+import {
+  buildRegisteredPatientRecord,
+  buildVisitRulesFromWeekdays,
+  getPatientMasterRecords,
+  loadRegisteredPatients,
+  upsertRegisteredPatient,
+} from '@/lib/patient-master'
+
+const weekdayMap: Record<(typeof visitWeekdayOptions)[number], number> = {
+  '日': 0,
+  '月': 1,
+  '火': 2,
+  '水': 3,
+  '木': 4,
+  '金': 5,
+  '土': 6,
+}
 
 export default function NewPatientPage() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>(['利用中', '家族連絡用', '配薬場所指定'])
-  const [selectedDays, setSelectedDays] = useState<string[]>(['月', '木'])
-  const [manualSyncAt, setManualSyncAt] = useState('2026-03-28 22:41')
+  const [selectedDays, setSelectedDays] = useState<string[]>(['土'])
+  const [manualSyncAt, setManualSyncAt] = useState('2026-03-29 15:10')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [form, setForm] = useState({
+    name: '',
+    dob: '',
+    phone: '',
+    pharmacyId: 'PH-01',
+    address: '',
+    startedAt: MOCK_FLOW_DATE,
+    status: 'active' as 'active' | 'inactive',
+    emergencyContactName: '',
+    emergencyContactRelation: '',
+    emergencyContactPhone: '',
+    doctorName: '',
+    doctorClinic: '',
+    doctorPhone: '',
+    currentMeds: '',
+    medicalHistory: '',
+    allergies: '',
+    diseaseName: '',
+    preferredTime: '10:00',
+    visitNotes: '',
+    insuranceInfo: '',
+  })
 
   const isExceeded = Number(visitCount) > 4
 
@@ -27,17 +73,88 @@ export default function NewPatientPage() {
 
   const calendarPreview = useMemo(() => {
     const all = Array.from({ length: 30 }, (_, i) => i + 1)
-    return all.map((d) => ({ day: d, active: [1,4,8,11,15,18,22,25,29].includes(d) || (selectedDays.includes('月') && [3,10,17,24].includes(d)) || (selectedDays.includes('木') && [6,13,20,27].includes(d)) }))
+    return all.map((d) => ({
+      day: d,
+      active:
+        [1, 4, 8, 11, 15, 18, 22, 25, 29].includes(d) ||
+        (selectedDays.includes('月') && [3, 10, 17, 24].includes(d)) ||
+        (selectedDays.includes('木') && [6, 13, 20, 27].includes(d)) ||
+        (selectedDays.includes('火') && [4, 11, 18, 25].includes(d)) ||
+        (selectedDays.includes('金') && [7, 14, 21, 28].includes(d)),
+    }))
   }, [selectedDays])
+
+  const handleChange = (key: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim()) {
+      setErrorMessage('氏名は必須です。')
+      return
+    }
+    if (!form.address.trim()) {
+      setErrorMessage('住所は必須です。')
+      return
+    }
+    if (selectedDays.length === 0) {
+      setErrorMessage('訪問曜日を1つ以上選んでください。')
+      return
+    }
+
+    const visitRules = buildVisitRulesFromWeekdays({
+      weekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
+      monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
+      preferredTime: form.preferredTime,
+    })
+
+    const existing = getPatientMasterRecords(loadRegisteredPatients())
+    const patient = buildRegisteredPatientRecord(
+      {
+        name: form.name,
+        dob: form.dob,
+        phone: form.phone,
+        pharmacyId: form.pharmacyId,
+        address: form.address,
+        startedAt: form.startedAt,
+        status: form.status,
+        manualTags: selectedTags,
+        emergencyContactName: form.emergencyContactName,
+        emergencyContactRelation: form.emergencyContactRelation,
+        emergencyContactPhone: form.emergencyContactPhone,
+        doctorName: form.doctorName,
+        doctorClinic: form.doctorClinic,
+        doctorPhone: form.doctorPhone,
+        currentMeds: form.currentMeds,
+        medicalHistory: form.medicalHistory,
+        allergies: form.allergies,
+        diseaseName: form.diseaseName,
+        visitNotes: form.visitNotes,
+        insuranceInfo: form.insuranceInfo,
+        preferredTime: form.preferredTime,
+        visitCount: Math.max(1, Number(visitCount) || 4),
+        visitRules,
+        manualSyncAt,
+      },
+      {
+        id: user?.id ?? null,
+        name: user?.full_name ?? 'Pharmacy Staff（モック）',
+      },
+      existing.length > 0 ? existing : patientData,
+    )
+
+    upsertRegisteredPatient(patient)
+    router.push(`/dashboard/patients/${patient.id}`)
+  }
 
   return (
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録（モック）</h1>
-          <p className="text-xs text-gray-400">Pharmacy Admin / Pharmacy Staff 向け。将来DB化を想定した患者登録のたたき台です。</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
+          <p className="text-xs text-gray-400">患者マスタ + visitRules モデルへ保存する最小実装。Supabase接続前は localStorage に保存します。初期曜日は mock 当日フロー（{MOCK_FLOW_DATE}）に乗る設定です。</p>
         </div>
-        <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => setManualSyncAt('2026-03-28 22:44')}>
+        <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => setManualSyncAt('2026-03-29 15:10')}>
           <RefreshCcw className="h-4 w-4" />
           手動更新
         </Button>
@@ -47,29 +164,49 @@ export default function NewPatientPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
           <div>
             <p>最終同期: {manualSyncAt}</p>
-            <p>最終更新者: Pharmacy Staff（モック） / 最終更新時刻: 2026-03-28 22:42</p>
+            <p>最終更新者: {user?.full_name ?? 'Pharmacy Staff（モック）'} / 保存先: patient master localStorage</p>
           </div>
           <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-cyan-200">更新ありバッジ / 手動同期を想定</div>
         </CardContent>
       </Card>
 
+      {errorMessage && (
+        <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <AlertTriangle className="h-4 w-4 text-rose-300" />
+          {errorMessage}
+        </div>
+      )}
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">基本情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
-          <div><Label className="text-gray-300">氏名</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" /></div>
-          <div><Label className="text-gray-300">生年月日</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1948-04-12" /></div>
-          <div><Label className="text-gray-300">患者本人電話</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
-          <div><Label className="text-gray-300">担当薬局</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="城南みらい薬局" /></div>
-          <div className="md:col-span-2"><Label className="text-gray-300">住所</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." /></div>
-          <div><Label className="text-gray-300">利用開始日</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-03-28" /></div>
-          <div><Label className="text-gray-300">ステータス</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="利用中" /></div>
+          <div><Label className="text-gray-300">氏名</Label><Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" /></div>
+          <div><Label className="text-gray-300">生年月日</Label><Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1948-04-12" /></div>
+          <div><Label className="text-gray-300">患者本人電話</Label><Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
+          <div>
+            <Label className="text-gray-300">担当薬局</Label>
+            <select value={form.pharmacyId} onChange={(e) => handleChange('pharmacyId', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+              {pharmacyData.map((pharmacy) => (
+                <option key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-2"><Label className="text-gray-300">住所</Label><Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." /></div>
+          <div><Label className="text-gray-300">利用開始日</Label><Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-03-28" /></div>
+          <div>
+            <Label className="text-gray-300">ステータス</Label>
+            <select value={form.status} onChange={(e) => handleChange('status', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+              <option value="active">利用中</option>
+              <option value="inactive">休止</option>
+            </select>
+          </div>
         </CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">タグ設定</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-gray-400">患者名の横や注意フラグで表示するタグを手動設定できます。</p>
+          <p className="text-xs text-gray-400">manualTags として保存し、患者名横や注意フラグで再利用します。</p>
           <div className="flex flex-wrap gap-2">
             {patientTagOptions.map((tag) => {
               const active = selectedTags.includes(tag)
@@ -92,16 +229,21 @@ export default function NewPatientPage() {
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">連絡・医療情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
-          <div><Label className="text-gray-300">緊急連絡先</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎（長男）" /></div>
-          <div><Label className="text-gray-300">連絡先電話</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
-          <div><Label className="text-gray-300">主治医</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師 / ○○クリニック" /></div>
-          <div><Label className="text-gray-300">現在薬</Label><Input className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="オキシコドン / ラシックス ..." /></div>
-          <div className="md:col-span-2"><Label className="text-gray-300">既往歴・アレルギー・主疾患</Label><Textarea className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴 / アレルギー / 主疾患を入力" /></div>
+          <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
+          <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
+          <div><Label className="text-gray-300">連絡先電話</Label><Input value={form.emergencyContactPhone} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
+          <div><Label className="text-gray-300">主治医</Label><Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" /></div>
+          <div><Label className="text-gray-300">クリニック</Label><Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" /></div>
+          <div><Label className="text-gray-300">医師電話</Label><Input value={form.doctorPhone} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-xxxx-xxxx" /></div>
+          <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="オキシコドン / ラシックス ..." /></div>
+          <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全、糖尿病" /></div>
+          <div className="md:col-span-2"><Label className="text-gray-300">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴を入力" /></div>
+          <div className="md:col-span-2"><Label className="text-gray-300">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="なし / ペニシリン系 など" /></div>
         </CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問スケジュール</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問ルール</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label className="text-gray-300">訪問曜日</Label>
@@ -117,20 +259,26 @@ export default function NewPatientPage() {
             </div>
           </div>
 
-          <div>
-            <Label className="text-gray-300">今月の訪問回数</Label>
-            <Input value={visitCount} onChange={(e) => setVisitCount(e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <Label className="text-gray-300">今月の訪問回数上限</Label>
+              <Input value={visitCount} onChange={(e) => setVisitCount(e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+            <div>
+              <Label className="text-gray-300">希望時間</Label>
+              <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" />
+            </div>
           </div>
 
           {isExceeded && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-300" />
-              月4回を超過しています。保存は可能ですが、超過警告として扱います。
+              月4回を超過しています。保存は可能ですが、visitRules 上の警告対象として扱います。
             </div>
           )}
 
           <div>
-            <Label className="text-gray-300">カレンダー設定（モック）</Label>
+            <Label className="text-gray-300">カレンダー設定（visitRules プレビュー）</Label>
             <div className="mt-2 grid grid-cols-7 gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
               {calendarPreview.map((cell) => (
                 <button key={cell.day} type="button" className={`rounded-md border px-2 py-2 text-xs ${cell.active ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-200' : 'border-[#2a3553] bg-[#0f1424] text-gray-500'}`}>
@@ -138,7 +286,7 @@ export default function NewPatientPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">日付をポチポチ押して訪問予定を設定するイメージ。今後DBでは定期ルールと個別日を分ける前提。</p>
+            <p className="mt-2 text-xs text-gray-500">保存時は selectedDays を visitRules[] に変換して patient master に保持します。</p>
           </div>
         </CardContent>
       </Card>
@@ -146,18 +294,18 @@ export default function NewPatientPage() {
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">運用情報</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div><Label className="text-gray-300">訪問時注意事項</Label><Textarea className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / ペット / 配薬場所 / 夜間訪問注意 など" /></div>
-          <div><Label className="text-gray-300">保険情報</Label><Textarea className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険種別・負担割合など" /></div>
+          <div><Label className="text-gray-300">訪問時注意事項</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / ペット / 配薬場所 / 夜間訪問注意 など" /></div>
+          <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険種別・負担割合など" /></div>
         </CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
           <div>
-            <p>最終更新者: Pharmacy Staff（モック）</p>
-            <p>最終更新時刻: 2026-03-28 22:44</p>
+            <p>最終更新者: {user?.full_name ?? 'Pharmacy Staff（モック）'}</p>
+            <p>最終更新時刻: {manualSyncAt}</p>
           </div>
-          <Button className="bg-indigo-600 text-white hover:bg-indigo-500"><Save className="h-4 w-4" />保存する（モック）</Button>
+          <Button onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500"><Save className="h-4 w-4" />patient master に保存</Button>
         </CardContent>
       </Card>
     </div>

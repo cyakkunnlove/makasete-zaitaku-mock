@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
@@ -16,21 +16,37 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
-import { patientData, pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { countVisitRuleTouches, formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 
 export default function PatientsPage() {
   const { role } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isDayContext = role === 'pharmacy_admin' || role === 'pharmacy_staff'
 
+  useEffect(() => {
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    syncPatients()
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === 'makasete-patient-master:v1') {
+        syncPatients()
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  const patientMaster = useMemo(() => getPatientMasterRecords(registeredPatients), [registeredPatients])
+
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
-      return patientData.filter((patient) => patient.pharmacyId === 'PH-01')
+      return patientMaster.filter((patient) => patient.pharmacyId === 'PH-01')
     }
-    return patientData
-  }, [isDayContext])
+    return patientMaster
+  }, [isDayContext, patientMaster])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -154,6 +170,10 @@ export default function PatientsPage() {
                       )}
                     </div>
                     <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
+                    <p className="mt-1 text-[11px] text-gray-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                    {patient.registrationMeta && (
+                      <p className="mt-1 text-[11px] text-cyan-300">登録経路: patient master / {countVisitRuleTouches(patient)} ルール</p>
+                    )}
                     {attentionFlags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {attentionFlags.slice(0, 3).map((flag) => (
@@ -196,9 +216,12 @@ export default function PatientsPage() {
                       <TableCell className="font-medium text-white">
                         <div className="flex items-center gap-2">
                           {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
-                          <Link href={`/dashboard/patients/${patient.id}`} className="hover:text-indigo-300">
-                            {patient.name}
-                          </Link>
+                          <div>
+                            <Link href={`/dashboard/patients/${patient.id}`} className="hover:text-indigo-300">
+                              {patient.name}
+                            </Link>
+                            <p className="mt-1 text-[11px] font-normal text-gray-500">{formatVisitRuleSummary(patient)}</p>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-gray-300">{patient.dob}</TableCell>

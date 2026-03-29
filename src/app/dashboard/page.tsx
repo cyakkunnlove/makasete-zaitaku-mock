@@ -27,7 +27,9 @@ import {
   Receipt,
   GripVertical,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, getPatientsByPharmacy, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
+import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
+import { countVisitRuleTouches, formatVisitRuleSummary, getPatientsByPharmacyFromMaster, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 
 const mockPharmacyRequests = [
   { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
@@ -43,8 +45,8 @@ const staffStatusClass: Record<string, string> = {
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
-const DAY_TASK_STORAGE_KEY = 'makasete-day-flow:PH-01:2026-03-28'
-const DAY_TASK_SHARED_STORAGE_KEY = 'makasete-day-flow:shared:PH-01:2026-03-28'
+const DAY_TASK_STORAGE_KEY = `makasete-day-flow:PH-01:${MOCK_FLOW_DATE}`
+const DAY_TASK_SHARED_STORAGE_KEY = `makasete-day-flow:shared:PH-01:${MOCK_FLOW_DATE}`
 
 function formatMockTimestamp(time: string) {
   return `2026-03-15 ${time}`
@@ -626,8 +628,8 @@ function PharmacyDayTaskCard({
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
-  const [dayTasks, setDayTasks] = useState(dayTaskData)
-  const [draftDayTasks, setDraftDayTasks] = useState(dayTaskData)
+  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
+  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
@@ -636,17 +638,38 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
+  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const ownPharmacyId = 'PH-01'
-  const ownPatients = useMemo(() => getPatientsByPharmacy(ownPharmacyId), [ownPharmacyId])
+  const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
+
+  useEffect(() => {
+    setRegisteredPatients(loadRegisteredPatients())
+  }, [])
+
+  useEffect(() => {
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    syncPatients()
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   useEffect(() => {
     try {
       const sharedRaw = window.localStorage.getItem(DAY_TASK_SHARED_STORAGE_KEY)
       if (sharedRaw) {
         const parsed = JSON.parse(sharedRaw) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
-        if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-          setDayTasks(parsed.tasks)
-          setDraftDayTasks(parsed.tasks)
+        if (Array.isArray(parsed.tasks)) {
+          const merged = mergeDayFlowTasks({
+            baseTasks: dayTaskData,
+            flowDate: MOCK_FLOW_DATE,
+            registeredPatients,
+            persistedTasks: parsed.tasks,
+          })
+          setDayTasks(merged)
+          setDraftDayTasks(merged)
           setLastOrderSavedAt(parsed.savedAt ?? null)
           setLastOrderSavedBy(parsed.savedBy ?? null)
           return
@@ -656,13 +679,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as DayTaskItem[]
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setDayTasks(parsed)
-          setDraftDayTasks(parsed)
+        if (Array.isArray(parsed)) {
+          const merged = mergeDayFlowTasks({
+            baseTasks: dayTaskData,
+            flowDate: MOCK_FLOW_DATE,
+            registeredPatients,
+            persistedTasks: parsed,
+          })
+          setDayTasks(merged)
+          setDraftDayTasks(merged)
+          return
         }
       }
+
+      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE, registeredPatients })
+      setDayTasks(merged)
+      setDraftDayTasks(merged)
     } catch {}
-  }, [])
+  }, [registeredPatients])
 
   useEffect(() => {
     try {
@@ -672,6 +706,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'makasete-patient-master:v1') {
+        setRegisteredPatients(loadRegisteredPatients())
+      }
       if (event.key !== DAY_TASK_SHARED_STORAGE_KEY || !event.newValue) return
       try {
         const parsed = JSON.parse(event.newValue) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
@@ -700,14 +737,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return () => window.clearTimeout(timeout)
   }, [saveToast])
 
+  const mergedDayTasks = useMemo(() => {
+    return mergeDayFlowTasks({
+      baseTasks: dayTaskData,
+      flowDate: MOCK_FLOW_DATE,
+      registeredPatients,
+      persistedTasks: draftDayTasks,
+    })
+  }, [draftDayTasks, registeredPatients])
+
   const enrichedVisits = useMemo(() => {
-    return draftDayTasks
+    return mergedDayTasks
       .filter((task) => ownPatients.some((p) => p.id === task.patientId))
       .map((task) => {
         const patient = ownPatients.find((p) => p.id === task.patientId)
         return { ...task, patient }
       })
-  }, [draftDayTasks, ownPatients])
+  }, [mergedDayTasks, ownPatients])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -1003,8 +1049,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold text-white">{patient.name}</p>
                             <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                            <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: 毎週 / 隔週の自動生成対象</p>
-                            <p className="mt-1 text-[11px] text-amber-300">今月の訪問回数: 4回中4回（超過時も保存可 / 警告表示のみ）</p>
+                            <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                            <p className="mt-1 text-[11px] text-amber-300">visitRules 数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                           </div>
                         </div>
                         {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
