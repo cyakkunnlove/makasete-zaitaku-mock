@@ -752,23 +752,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return () => window.clearTimeout(timeout)
   }, [saveToast])
 
-  const mergedDayTasks = useMemo(() => {
-    return mergeDayFlowTasks({
-      baseTasks: dayTaskData,
-      flowDate,
-      registeredPatients,
-      persistedTasks: draftDayTasks,
-    })
-  }, [draftDayTasks, flowDate, registeredPatients])
-
   const enrichedVisits = useMemo(() => {
-    return mergedDayTasks
+    return draftDayTasks
       .filter((task) => ownPatients.some((p) => p.id === task.patientId))
       .map((task) => {
         const patient = ownPatients.find((p) => p.id === task.patientId)
         return { ...task, patient }
       })
-  }, [mergedDayTasks, ownPatients])
+  }, [draftDayTasks, ownPatients])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
