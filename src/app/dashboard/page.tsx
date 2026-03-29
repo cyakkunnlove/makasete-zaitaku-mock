@@ -307,6 +307,29 @@ function PharmacyDashboardSummaryCard({
   )
 }
 
+function PharmacyDashboardNoticeCard({
+  tone,
+  message,
+  subtext,
+}: {
+  tone: 'success' | 'warning'
+  message: string
+  subtext: string
+}) {
+  const cardClass = tone === 'success' ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-amber-500/30 bg-amber-500/10'
+  const textClass = tone === 'success' ? 'text-emerald-100' : 'text-amber-100'
+  const subtextClass = tone === 'success' ? 'text-emerald-200/80' : 'text-amber-200/80'
+
+  return (
+    <Card className={cardClass}>
+      <CardContent className={`flex flex-wrap items-center justify-between gap-2 p-3 text-sm ${textClass}`}>
+        <span>{message}</span>
+        <span className={`text-xs ${subtextClass}`}>{subtext}</span>
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -599,21 +622,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           />
 
           {saveToast && (
-            <Card className="border-emerald-500/30 bg-emerald-500/10">
-              <CardContent className="flex items-center justify-between gap-2 p-3 text-sm text-emerald-100">
-                <span>{saveToast}</span>
-                <span className="text-xs text-emerald-200/80">shared mock save</span>
-              </CardContent>
-            </Card>
+            <PharmacyDashboardNoticeCard
+              tone="success"
+              message={saveToast}
+              subtext="shared mock save"
+            />
           )}
 
           {undoTarget && (
-            <Card className="border-amber-500/30 bg-amber-500/10">
-              <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-amber-100">
-                <span>{undoTarget.actionLabel}。短時間だけ元に戻せます。</span>
-                <span className="text-xs text-amber-200/80">billing / 回収管理に反映する想定の mock 連携です。</span>
-              </CardContent>
-            </Card>
+            <PharmacyDashboardNoticeCard
+              tone="warning"
+              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
+              subtext="billing / 回収管理に反映する想定の mock 連携です。"
+            />
           )}
 
           <Tabs defaultValue="today" className="space-y-3">
