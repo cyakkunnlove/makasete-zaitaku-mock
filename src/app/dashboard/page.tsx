@@ -322,6 +322,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const primarySummaryBadge = isPharmacyStaff
     ? `自分の対応 ${draftDayTasks.filter((task) => task.handledById === 'ST-07').length}件`
     : `全体更新 ${draftDayTasks.filter((task) => task.updatedById).length}件`
+  const summarySupportText = '並び順はドラッグハンドル風UI + 保存ボタンで共有反映'
+  const saveStateBadge = lastOrderSavedBy && lastOrderSavedAt
+    ? `最終保存: ${lastOrderSavedBy} / ${lastOrderSavedAt}`
+    : null
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -516,9 +520,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">並び順はドラッグハンドル風UI + 保存ボタンで共有反映</span>
-                {lastOrderSavedBy && lastOrderSavedAt && (
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">最終保存: {lastOrderSavedBy} / {lastOrderSavedAt}</span>
+                <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
+                {saveStateBadge && (
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
                 )}
               </div>
             </CardContent>
