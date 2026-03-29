@@ -473,17 +473,21 @@ function PharmacyDayTaskCardMetaChips({
   planningStatus,
   plannedBy,
   updatedAt,
+  plannedLabelPrefix,
+  updatedLabelPrefix,
 }: {
   planningStatus: DayTaskItem['planningStatus']
   plannedBy: string | null
   updatedAt: string | null
+  plannedLabelPrefix: string
+  updatedLabelPrefix: string
 }) {
   if (!(planningStatus === 'planned' || updatedAt)) return null
 
   return (
     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-      {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">対応予定: {plannedBy}</span>}
-      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">更新: {updatedAt}</span>}
+      {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">{plannedLabelPrefix}{plannedBy}</span>}
+      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">{updatedLabelPrefix}{updatedAt}</span>}
     </div>
   )
 }
@@ -507,6 +511,8 @@ function PharmacyDayTaskCard({
   onStart,
   onComplete,
   completionHelpText,
+  plannedLabelPrefix,
+  updatedLabelPrefix,
 }: {
   visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
   patient: { name: string; address: string }
@@ -526,6 +532,8 @@ function PharmacyDayTaskCard({
   onStart: () => void
   onComplete: () => void
   completionHelpText: string
+  plannedLabelPrefix: string
+  updatedLabelPrefix: string
 }) {
   return (
     <Card
@@ -587,6 +595,8 @@ function PharmacyDayTaskCard({
           planningStatus={visit.planningStatus}
           plannedBy={visit.plannedBy}
           updatedAt={visit.updatedAt}
+          plannedLabelPrefix={plannedLabelPrefix}
+          updatedLabelPrefix={updatedLabelPrefix}
         />
       </CardContent>
     </Card>
@@ -713,6 +723,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const completionHelpText = isPharmacyStaff
     ? '対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。'
     : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
+  const plannedLabelPrefix = isPharmacyStaff ? '対応予定: ' : 'Admin確認予定: '
+  const updatedLabelPrefix = isPharmacyStaff ? '更新: ' : '最終更新: '
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
@@ -940,6 +952,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
                       onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
                       completionHelpText={completionHelpText}
+                      plannedLabelPrefix={plannedLabelPrefix}
+                      updatedLabelPrefix={updatedLabelPrefix}
                     />
                   )
                 })}
