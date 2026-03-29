@@ -279,11 +279,13 @@ function PharmacyDashboardSummaryCard({
   pharmacyStaffHandledCounts,
   summarySupportText,
   saveStateBadge,
+  adminWarningText,
 }: {
   summaryTitle: string
   pharmacyStaffHandledCounts: { name: string; count: number }[]
   summarySupportText: string
   saveStateBadge: string | null
+  adminWarningText?: string | null
 }) {
   return (
     <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -298,6 +300,9 @@ function PharmacyDashboardSummaryCard({
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
           <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
+          {adminWarningText && (
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200">{adminWarningText}</span>
+          )}
           {saveStateBadge && (
             <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
           )}
@@ -716,6 +721,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const saveStateBadge = lastOrderSavedBy && lastOrderSavedAt
     ? `最終保存: ${lastOrderSavedBy} / ${lastOrderSavedAt}`
     : null
+  const adminWarningText = isPharmacyAdmin ? '完了後の予定変更は警告付きで許可' : null
   const orderDraftBadgeText = '未保存の順番変更あり'
   const orderSavedButtonText = '他スタッフ反映済み'
   const resetOrderButtonText = '元に戻す'
@@ -897,6 +903,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
             summarySupportText={summarySupportText}
             saveStateBadge={saveStateBadge}
+            adminWarningText={adminWarningText}
           />
 
           {saveToast && (
@@ -1013,6 +1020,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
             summarySupportText={summarySupportText}
             saveStateBadge={saveStateBadge}
+            adminWarningText={adminWarningText}
           />
 
           {saveToast && (
