@@ -27,7 +27,7 @@ import {
   Receipt,
   GripVertical,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, nightStaff, requestData, type DayTaskItem } from '@/lib/mock-data'
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, requestData, shiftData, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, getPatientsByPharmacyFromMaster, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 
@@ -166,26 +166,38 @@ function RegionalAdminDashboard() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <Stethoscope className="h-4 w-4 text-indigo-400" />
-            夜勤スタッフ稼働状況
+            本日の当直スタッフ
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {nightStaff.map((staff) => (
-            <div key={staff.name} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300">
-                  {staff.name.charAt(0)}
+          {(() => {
+            const today = MOCK_FLOW_DATE
+            const todayShifts = shiftData.filter((shift) => shift.shiftDate === today)
+            if (todayShifts.length === 0) {
+              return <p className="text-xs text-gray-500">本日の当直データがありません。</p>
+            }
+            return todayShifts.map((shift) => {
+              const activeRequest = requestData.find((req) => req.assigneeId === shift.pharmacistId && ['dispatched', 'arrived', 'in_progress'].includes(req.status))
+              const status = activeRequest ? (activeRequest.status === 'dispatched' ? '移動中' : '対応中') : '待機中'
+              const assignment = activeRequest ? `${activeRequest.pharmacyName} / ${activeRequest.patientName ?? '患者照合中'}` : '次回アサイン待機'
+              return (
+                <div key={shift.id} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300">
+                      {shift.pharmacistName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{shift.pharmacistName}</p>
+                      <p className="text-xs text-gray-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={cn('border text-xs', staffStatusClass[status])}>
+                    {status}
+                  </Badge>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{staff.name}</p>
-                  <p className="text-xs text-gray-500">{staff.assignment}</p>
-                </div>
-              </div>
-              <Badge variant="outline" className={cn('border text-xs', staffStatusClass[staff.status])}>
-                {staff.status}
-              </Badge>
-            </div>
-          ))}
+              )
+            })
+          })()}
         </CardContent>
       </Card>
     </div>
@@ -954,6 +966,35 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   return (
     <div className="space-y-4">
+      {(() => {
+        const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
+        if (unconfirmed.length === 0) return null
+        return (
+          <Card className="border-amber-500/40 bg-amber-500/10">
+            <CardContent className="space-y-2 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+                <AlertTriangle className="h-4 w-4" />
+                夜間からの申し送り（未確認 {unconfirmed.length}件）
+              </div>
+              {unconfirmed.map((ho) => (
+                <div key={ho.id} className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-amber-100">{ho.patientName} — {ho.pharmacistName}</p>
+                      <p className="mt-1 text-amber-200/80">{ho.situation}</p>
+                      <p className="mt-1 text-amber-200/60">{ho.recommendation}</p>
+                    </div>
+                    <Link href={`/dashboard/handovers/${ho.id}`}>
+                      <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-200 hover:bg-amber-500/20">確認する</Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
