@@ -29,6 +29,20 @@ import {
   type AuditActionType,
 } from '@/lib/mock-data'
 
+const roleLabel: Record<string, string> = {
+  system_admin: 'System Admin',
+  regional_admin: 'Regional Admin',
+  pharmacy_admin: 'Pharmacy Admin',
+  pharmacy_staff: 'Pharmacy Staff',
+  night_pharmacist: 'Night Pharmacist',
+}
+
+const resultClass: Record<'success' | 'warning' | 'denied', string> = {
+  success: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  warning: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  denied: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+}
+
 function parseTimestamp(value: string) {
   return new Date(value.replace(' ', 'T'))
 }
@@ -79,6 +93,13 @@ export default function AuditPage() {
       <div>
         <h1 className="text-lg font-semibold text-white">監査ログ</h1>
         <p className="text-xs text-gray-400">操作履歴を時系列で確認し、患者検索・閲覧・電話・地図・拒否アクセスも監査</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-white">{filteredLogs.length}</p><p className="text-[10px] text-gray-500">表示件数</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-emerald-300">{filteredLogs.filter((entry) => entry.result === 'success').length}</p><p className="text-[10px] text-gray-500">成功</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-amber-300">{filteredLogs.filter((entry) => entry.result === 'warning').length}</p><p className="text-[10px] text-gray-500">要注意</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-rose-300">{filteredLogs.filter((entry) => entry.result === 'denied').length}</p><p className="text-[10px] text-gray-500">拒否アクセス</p></CardContent></Card>
       </div>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -166,14 +187,18 @@ export default function AuditPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-white">{entry.user}</p>
-                    <p className="text-xs text-gray-400">{entry.timestamp}</p>
+                    <p className="text-xs text-gray-400">{roleLabel[entry.role]} / {entry.timestamp}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-[11px]', auditActionClass[entry.action])}>
-                    {auditActionLabel[entry.action]}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline" className={cn('border text-[11px]', auditActionClass[entry.action])}>
+                      {auditActionLabel[entry.action]}
+                    </Badge>
+                    <Badge variant="outline" className={cn('border text-[10px]', resultClass[entry.result])}>{entry.result}</Badge>
+                  </div>
                 </div>
 
                 <p className="text-xs text-gray-300">対象: {entry.target}</p>
+                <p className="text-[11px] text-gray-500">スコープ: {entry.scopeLabel}</p>
 
                 {expanded && (
                   <div className="rounded-md border border-[#2a3553] bg-[#11182c] p-2 text-xs text-gray-200">
@@ -194,6 +219,7 @@ export default function AuditPage() {
                 <TableHead className="text-gray-400">日時</TableHead>
                 <TableHead className="text-gray-400">ユーザー</TableHead>
                 <TableHead className="text-gray-400">操作</TableHead>
+                <TableHead className="text-gray-400">結果</TableHead>
                 <TableHead className="text-gray-400">対象</TableHead>
                 <TableHead className="text-gray-400">詳細</TableHead>
               </TableRow>
@@ -209,20 +235,36 @@ export default function AuditPage() {
                       onClick={() => setExpandedId(expanded ? null : entry.id)}
                     >
                       <TableCell className="text-gray-300">{entry.timestamp}</TableCell>
-                      <TableCell className="text-white">{entry.user}</TableCell>
+                      <TableCell className="text-white">
+                        <div>
+                          <p>{entry.user}</p>
+                          <p className="text-[11px] text-gray-500">{roleLabel[entry.role]}</p>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn('border text-xs', auditActionClass[entry.action])}>
                           {auditActionLabel[entry.action]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-300">{entry.target}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('border text-xs', resultClass[entry.result])}>
+                          {entry.result}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-300">
+                        <div>
+                          <p>{entry.target}</p>
+                          <p className="text-[11px] text-gray-500">{entry.scopeLabel}</p>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-gray-400">クリックで詳細表示</TableCell>
                     </TableRow>
 
                     {expanded && (
                       <TableRow className="border-[#2a3553] bg-[#11182c] hover:bg-[#11182c]">
-                        <TableCell colSpan={5} className="text-sm text-gray-200">
-                          {entry.details}
+                        <TableCell colSpan={5} className="space-y-1 text-sm text-gray-200">
+                          <p>{entry.details}</p>
+                          <p className="text-[11px] text-gray-500">scope_type: {entry.scopeType}</p>
                         </TableCell>
                       </TableRow>
                     )}

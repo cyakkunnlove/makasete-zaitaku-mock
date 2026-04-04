@@ -685,37 +685,41 @@ export interface AuditEntry {
   id: string
   timestamp: string
   user: string
+  role: UserRole
+  scopeType: 'system' | 'region' | 'pharmacy' | 'request' | 'patient' | 'handover'
+  scopeLabel: string
   action: AuditActionType
   target: string
   details: string
+  result: 'success' | 'warning' | 'denied'
 }
 
 export const auditLogData: AuditEntry[] = [
-  { id: 'AL-001', timestamp: '2026-03-05 00:58:14', user: '田中 直樹', action: 'billing_generate', target: '請求管理', details: '2026-03対象の請求書を6件一括生成。' },
-  { id: 'AL-002', timestamp: '2026-03-05 00:50:42', user: '山田 美咲', action: 'handover_confirm', target: 'HO-260301', details: '申し送りを確認済みに変更。確認コメント: 朝訪問前倒し。' },
-  { id: 'AL-003', timestamp: '2026-03-05 00:47:10', user: '佐藤 健一', action: 'request_update', target: 'RQ-2411', details: 'ステータスを in_progress に更新。患者宅到着を記録。' },
-  { id: 'AL-004', timestamp: '2026-03-05 00:41:03', user: '田中 直樹', action: 'staff_update', target: 'ST-09', details: 'スタッフ状態を active に変更。連絡先情報を更新。' },
-  { id: 'AL-005', timestamp: '2026-03-05 00:38:55', user: '小林 恒一', action: 'login', target: '管理画面', details: 'MFA認証を伴う管理画面ログインに成功。' },
-  { id: 'AL-006', timestamp: '2026-03-05 00:31:19', user: '中村 玲子', action: 'request_update', target: 'RQ-2412', details: 'FAX受領時刻を登録し、ステータスを fax_received に更新。' },
-  { id: 'AL-006A', timestamp: '2026-03-05 00:30:10', user: '佐藤 健一', action: 'fax_opened', target: 'RQ-2405', details: 'FAX原本を開き、患者照合を開始。' },
-  { id: 'AL-006B', timestamp: '2026-03-05 00:30:48', user: '佐藤 健一', action: 'patient_search', target: 'RQ-2405', details: '患者名・DOB・薬局名で候補検索を実行。' },
-  { id: 'AL-006C', timestamp: '2026-03-05 00:31:04', user: '佐藤 健一', action: 'patient_linked', target: 'RQ-2403', details: 'FAX内容を患者 PT-009（林 恒一）へ確定紐付け。' },
-  { id: 'AL-006D', timestamp: '2026-03-05 00:31:15', user: '佐藤 健一', action: 'patient_view', target: 'PT-009', details: '夜間患者詳細を表示。緊急連絡先・主治医・visitNotes を確認。' },
-  { id: 'AL-006E', timestamp: '2026-03-05 00:31:28', user: '佐藤 健一', action: 'patient_phone_open', target: 'PT-009', details: '緊急連絡先への電話リンクを起動。' },
-  { id: 'AL-006F', timestamp: '2026-03-05 00:31:35', user: '佐藤 健一', action: 'patient_map_open', target: 'PT-009', details: '患者住所の地図リンクを表示。' },
-  { id: 'AL-006G', timestamp: '2026-03-05 00:32:02', user: '田中 直樹', action: 'access_denied', target: 'PT-004', details: 'system_admin による患者詳細への直接アクセスを遮断。' },
-  { id: 'AL-007', timestamp: '2026-03-05 00:24:11', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-03', details: '転送設定を OFF から ON に変更。' },
-  { id: 'AL-008', timestamp: '2026-03-05 00:16:29', user: '高橋 奈央', action: 'request_update', target: 'RQ-2407', details: 'ステータスを completed に更新。対応完了メモを追記。' },
-  { id: 'AL-009', timestamp: '2026-03-05 00:09:04', user: '山口 美咲', action: 'handover_confirm', target: 'HO-260302', details: '申し送り確認とバイタル再評価メモを登録。' },
-  { id: 'AL-010', timestamp: '2026-03-04 23:59:57', user: '田中 直樹', action: 'export_csv', target: '実績レポート', details: '2026-02の実績CSVをエクスポート。' },
-  { id: 'AL-011', timestamp: '2026-03-04 23:51:26', user: '伊藤 真理', action: 'request_update', target: 'RQ-2405', details: '患者連絡履歴を追加し優先度を normal に維持。' },
-  { id: 'AL-012', timestamp: '2026-03-04 23:44:02', user: '田中 直樹', action: 'pharmacy_update', target: 'PH-05', details: '加盟店ステータスを pending から active に変更。' },
-  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', action: 'login', target: '管理画面', details: 'Pharmacy Staff 権限でログイン。' },
-  { id: 'AL-014', timestamp: '2026-03-04 23:19:42', user: '山田 美咲', action: 'request_update', target: 'RQ-2403', details: '主訴を修正し、既往歴リンクを添付。' },
-  { id: 'AL-015', timestamp: '2026-03-04 23:12:27', user: '小林 恒一', action: 'staff_update', target: 'ST-08', details: 'スタッフ状態を inactive に変更。退職予定登録。' },
-  { id: 'AL-016', timestamp: '2026-03-04 22:58:33', user: '田中 直樹', action: 'billing_generate', target: '請求管理', details: '再発行対応としてINV-2026-03-004を単体再生成。' },
-  { id: 'AL-017', timestamp: '2026-03-04 22:46:11', user: '佐藤 健一', action: 'request_update', target: 'RQ-2401', details: '出動記録を追加。到着見込み時刻を更新。' },
-  { id: 'AL-018', timestamp: '2026-03-04 22:33:40', user: '田中 直樹', action: 'login', target: '管理画面', details: 'システム監視対応のためログイン。' },
+  { id: 'AL-001', timestamp: '2026-03-05 00:58:14', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'billing_generate', target: '請求管理', details: '2026-03対象の請求書を6件一括生成。', result: 'success' },
+  { id: 'AL-002', timestamp: '2026-03-05 00:50:42', user: '山田 美咲', role: 'pharmacy_admin', scopeType: 'handover', scopeLabel: 'HO-260301', action: 'handover_confirm', target: 'HO-260301', details: '申し送りを確認済みに変更。確認コメント: 朝訪問前倒し。', result: 'success' },
+  { id: 'AL-003', timestamp: '2026-03-05 00:47:10', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2411', action: 'request_update', target: 'RQ-2411', details: 'ステータスを in_progress に更新。患者宅到着を記録。', result: 'success' },
+  { id: 'AL-004', timestamp: '2026-03-05 00:41:03', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'staff_update', target: 'ST-09', details: 'スタッフ状態を active に変更。連絡先情報を更新。', result: 'success' },
+  { id: 'AL-005', timestamp: '2026-03-05 00:38:55', user: '小林 恒一', role: 'system_admin', scopeType: 'system', scopeLabel: 'platform', action: 'login', target: '管理画面', details: 'MFA認証を伴う管理画面ログインに成功。', result: 'success' },
+  { id: 'AL-006', timestamp: '2026-03-05 00:31:19', user: '中村 玲子', role: 'pharmacy_staff', scopeType: 'request', scopeLabel: 'RQ-2412', action: 'request_update', target: 'RQ-2412', details: 'FAX受領時刻を登録し、ステータスを fax_received に更新。', result: 'success' },
+  { id: 'AL-006A', timestamp: '2026-03-05 00:30:10', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2405', action: 'fax_opened', target: 'RQ-2405', details: 'FAX原本を開き、患者照合を開始。', result: 'success' },
+  { id: 'AL-006B', timestamp: '2026-03-05 00:30:48', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2405', action: 'patient_search', target: 'RQ-2405', details: '患者名・DOB・薬局名で候補検索を実行。', result: 'success' },
+  { id: 'AL-006C', timestamp: '2026-03-05 00:31:04', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2403', action: 'patient_linked', target: 'RQ-2403', details: 'FAX内容を患者 PT-009（林 恒一）へ確定紐付け。', result: 'success' },
+  { id: 'AL-006D', timestamp: '2026-03-05 00:31:15', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'patient', scopeLabel: 'PT-009 / 林 恒一', action: 'patient_view', target: 'PT-009', details: '夜間患者詳細を表示。緊急連絡先・主治医・visitNotes を確認。', result: 'success' },
+  { id: 'AL-006E', timestamp: '2026-03-05 00:31:28', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'patient', scopeLabel: 'PT-009 / 林 恒一', action: 'patient_phone_open', target: 'PT-009', details: '緊急連絡先への電話リンクを起動。', result: 'success' },
+  { id: 'AL-006F', timestamp: '2026-03-05 00:31:35', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'patient', scopeLabel: 'PT-009 / 林 恒一', action: 'patient_map_open', target: 'PT-009', details: '患者住所の地図リンクを表示。', result: 'success' },
+  { id: 'AL-006G', timestamp: '2026-03-05 00:32:02', user: '田中 直樹', role: 'regional_admin', scopeType: 'patient', scopeLabel: 'PT-004 / 清水 恒一', action: 'access_denied', target: 'PT-004', details: 'system_admin による患者詳細への直接アクセスを遮断。', result: 'denied' },
+  { id: 'AL-007', timestamp: '2026-03-05 00:24:11', user: '田中 直樹', role: 'regional_admin', scopeType: 'pharmacy', scopeLabel: 'PH-03 / 中野しらさぎ薬局', action: 'pharmacy_update', target: 'PH-03', details: '転送設定を OFF から ON に変更。', result: 'success' },
+  { id: 'AL-008', timestamp: '2026-03-05 00:16:29', user: '高橋 奈央', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2407', action: 'request_update', target: 'RQ-2407', details: 'ステータスを completed に更新。対応完了メモを追記。', result: 'success' },
+  { id: 'AL-009', timestamp: '2026-03-05 00:09:04', user: '山口 美咲', role: 'pharmacy_admin', scopeType: 'handover', scopeLabel: 'HO-260302', action: 'handover_confirm', target: 'HO-260302', details: '申し送り確認とバイタル再評価メモを登録。', result: 'success' },
+  { id: 'AL-010', timestamp: '2026-03-04 23:59:57', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'export_csv', target: '実績レポート', details: '2026-02の実績CSVをエクスポート。', result: 'warning' },
+  { id: 'AL-011', timestamp: '2026-03-04 23:51:26', user: '伊藤 真理', role: 'pharmacy_staff', scopeType: 'request', scopeLabel: 'RQ-2405', action: 'request_update', target: 'RQ-2405', details: '患者連絡履歴を追加し優先度を normal に維持。', result: 'success' },
+  { id: 'AL-012', timestamp: '2026-03-04 23:44:02', user: '田中 直樹', role: 'regional_admin', scopeType: 'pharmacy', scopeLabel: 'PH-05 / 西新宿いろは薬局', action: 'pharmacy_update', target: 'PH-05', details: '加盟店ステータスを pending から active に変更。', result: 'success' },
+  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', role: 'pharmacy_staff', scopeType: 'pharmacy', scopeLabel: 'PH-01 / 城南みらい薬局', action: 'login', target: '管理画面', details: 'Pharmacy Staff 権限でログイン。', result: 'success' },
+  { id: 'AL-014', timestamp: '2026-03-04 23:19:42', user: '山田 美咲', role: 'pharmacy_admin', scopeType: 'request', scopeLabel: 'RQ-2403', action: 'request_update', target: 'RQ-2403', details: '主訴を修正し、既往歴リンクを添付。', result: 'success' },
+  { id: 'AL-015', timestamp: '2026-03-04 23:12:27', user: '小林 恒一', role: 'system_admin', scopeType: 'system', scopeLabel: 'platform', action: 'staff_update', target: 'ST-08', details: 'スタッフ状態を inactive に変更。退職予定登録。', result: 'warning' },
+  { id: 'AL-016', timestamp: '2026-03-04 22:58:33', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'billing_generate', target: '請求管理', details: '再発行対応としてINV-2026-03-004を単体再生成。', result: 'success' },
+  { id: 'AL-017', timestamp: '2026-03-04 22:46:11', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2401', action: 'request_update', target: 'RQ-2401', details: '出動記録を追加。到着見込み時刻を更新。', result: 'success' },
+  { id: 'AL-018', timestamp: '2026-03-04 22:33:40', user: '小林 恒一', role: 'system_admin', scopeType: 'system', scopeLabel: 'platform', action: 'login', target: '管理画面', details: 'システム監視対応のためログイン。', result: 'success' },
 ]
 
 export const auditActionLabel: Record<AuditActionType, string> = {
