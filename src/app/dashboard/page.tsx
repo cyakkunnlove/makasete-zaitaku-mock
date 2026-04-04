@@ -26,6 +26,9 @@ import {
   RotateCcw,
   Receipt,
   GripVertical,
+  Settings2,
+  FileClock,
+  UserCog,
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, requestData, shiftData, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
@@ -785,6 +788,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [searchQuery, ownPatients])
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
+  const ownRequests = requestData.filter((request) => request.pharmacyId === ownPharmacyId)
+  const ownUnconfirmedHandovers = handoverData.filter((handover) => handover.pharmacyId === ownPharmacyId && !handover.confirmed)
+  const ownOvernightPatients = new Set(ownRequests.filter((request) => request.receivedDate === '2026-03-05' || request.receivedDate === '2026-03-06').map((request) => request.patientId).filter(Boolean)).size
+  const ownActiveRequests = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist', 'dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+  const ownConfigStatus = {
+    nightDelegation: '有効',
+    regionLabel: '世田谷・城南リージョン',
+    emergencyRoute: 'Regional Admin 受付',
+  }
   const flowDescription = isPharmacyStaff
     ? `今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 ${UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。`
     : '自局の日中対応フローを確認します。Pharmacy Admin は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
@@ -1010,6 +1022,53 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       </div>
 
       <>
+        {isPharmacyAdmin && (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <FileClock className="h-4 w-4 text-amber-300" />
+                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">最優先</Badge>
+                </div>
+                <p className="mt-3 text-2xl font-bold text-white">{ownUnconfirmedHandovers.length}</p>
+                <p className="text-[11px] text-gray-500">未確認申し送り</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <Moon className="h-4 w-4 text-indigo-300" />
+                  <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-indigo-200">昨夜</Badge>
+                </div>
+                <p className="mt-3 text-2xl font-bold text-white">{ownOvernightPatients}</p>
+                <p className="text-[11px] text-gray-500">昨夜対応あり患者</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <ClipboardList className="h-4 w-4 text-sky-300" />
+                  <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-200">自局</Badge>
+                </div>
+                <p className="mt-3 text-2xl font-bold text-white">{ownActiveRequests}</p>
+                <p className="text-[11px] text-gray-500">進行中の夜間依頼</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="space-y-2 p-4">
+                <div className="flex items-center justify-between">
+                  <Settings2 className="h-4 w-4 text-emerald-300" />
+                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">{ownConfigStatus.nightDelegation}</Badge>
+                </div>
+                <p className="text-xs text-gray-400">夜間受託設定</p>
+                <p className="text-sm font-medium text-white">{ownConfigStatus.regionLabel}</p>
+                <p className="text-[11px] text-gray-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
+                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-300 hover:text-indigo-200">薬局設定を開く</Link>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <PharmacyDashboardHeaderCard
           flowDescription={flowDescription}
           billableReadyCount={billableReadyCount}
@@ -1024,6 +1083,31 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           undoTarget={undoTarget}
           handleUndo={handleUndo}
         />
+
+        {isPharmacyAdmin && ownUnconfirmedHandovers.length > 0 && (
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <UserCog className="h-4 w-4 text-indigo-400" />
+                管理者向け朝確認
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {ownUnconfirmedHandovers.slice(0, 3).map((handover) => (
+                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">{handover.patientName}</p>
+                    <p className="text-xs text-gray-400">夜間担当: {handover.pharmacistName} / {handover.timestamp}</p>
+                    <p className="mt-1 text-[11px] text-amber-200">申し送り未確認・朝の対応優先度確認が必要です</p>
+                  </div>
+                  <Link href={`/dashboard/handovers/${handover.id}`}>
+                    <Button size="sm" variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">確認する</Button>
+                  </Link>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <PharmacyDashboardSummaryCard
           summaryTitle={summaryTitle}
@@ -1107,13 +1191,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <div className="space-y-2">
               {filteredMasterPatients.map((patient) => {
                 const flags = getAttentionFlags(patient)
+                const hasOvernightRequest = ownRequests.some((request) => request.patientId === patient.id)
+                const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 return (
                   <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                     <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-white">{patient.name}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-white">{patient.name}</p>
+                              {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">昨夜対応あり</Badge>}
+                              {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">申し送り未確認</Badge>}
+                            </div>
                             <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
                             <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
                             <p className="mt-1 text-[11px] text-amber-300">visitRules 数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>

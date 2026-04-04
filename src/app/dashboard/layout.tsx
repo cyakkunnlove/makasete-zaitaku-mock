@@ -8,7 +8,7 @@ import {
   Home, ClipboardList, UserCheck, FileText,
   Building2, Users, CreditCard, BarChart3,
   Shield, Bell, Menu, X, LogOut, Moon,
-  Settings, MessageCircle, Calendar, Search
+  Settings, MessageCircle, Calendar, Search, Hospital
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
 ]
 
 const settingsNavItems: NavItem[] = [
+  { href: '/dashboard/settings/pharmacy', label: '薬局設定', icon: <Hospital size={20} />, permission: 'settings' },
   { href: '/dashboard/settings/notifications', label: '通知設定', icon: <Bell size={20} />, permission: 'settings' },
   { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, permission: 'settings' },
 ]

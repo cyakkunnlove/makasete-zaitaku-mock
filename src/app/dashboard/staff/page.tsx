@@ -47,6 +47,8 @@ type StaffStatus = 'active' | 'inactive'
 
 type RoleFilter = 'all' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type AddStaffRole = 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+
+const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
 
 const roleLabel: Record<UserRole, string> = {
@@ -70,9 +72,15 @@ const statusClass: Record<StaffStatus, string> = {
   inactive: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
 }
 
-const filterItems: Array<{ key: RoleFilter; label: string }> = [
+const regionalFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
   { key: 'night_pharmacist', label: 'Night Pharmacist' },
+  { key: 'pharmacy_admin', label: 'Pharmacy Admin' },
+  { key: 'pharmacy_staff', label: 'Pharmacy Staff' },
+]
+
+const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
+  { key: 'all', label: '全員' },
   { key: 'pharmacy_admin', label: 'Pharmacy Admin' },
   { key: 'pharmacy_staff', label: 'Pharmacy Staff' },
 ]
@@ -108,10 +116,12 @@ export default function StaffPage() {
 
   const visibleStaffMembers = useMemo(() => {
     if (role === 'pharmacy_admin') {
-      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith('@jonan-ph.jp'))
+      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith(PHARMACY_ADMIN_EMAIL_DOMAIN))
     }
     return staffMembers
   }, [role, staffMembers])
+
+  const availableFilterItems = role === 'pharmacy_admin' ? pharmacyFilterItems : regionalFilterItems
 
   const filteredStaff = useMemo(() => {
     if (activeFilter === 'all') return visibleStaffMembers
@@ -124,7 +134,7 @@ export default function StaffPage() {
     const newStaff: StaffItem = {
       id: `ST-${Date.now()}`,
       name: formData.name,
-      role: role === 'pharmacy_admin' && formData.role === 'night_pharmacist' ? 'pharmacy_staff' : formData.role,
+      role: role === 'pharmacy_admin' ? (formData.role === 'pharmacy_admin' ? 'pharmacy_admin' : 'pharmacy_staff') : formData.role,
       phone: formData.phone,
       email: formData.email,
       status: formData.status,
@@ -217,7 +227,7 @@ export default function StaffPage() {
             <CardContent className="p-4">
               <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as RoleFilter)}>
                 <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-[#11182c] p-1">
-                  {filterItems.map((item) => (
+                  {availableFilterItems.map((item) => (
                     <TabsTrigger
                       key={item.key}
                       value={item.key}
@@ -451,7 +461,7 @@ export default function StaffPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>
+                    {role === 'regional_admin' && <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>}
                     <SelectItem value="pharmacy_admin">Pharmacy Admin</SelectItem>
                     <SelectItem value="pharmacy_staff">Pharmacy Staff</SelectItem>
                   </SelectContent>
