@@ -1,150 +1,224 @@
--- マカセテ在宅 - Row Level Security Policies
--- 002: RLS for all tables
+-- マカセテ在宅 - Row Level Security (draft)
+-- 002: RLS aligned with role + pharmacy_id + region_id + operation_unit_id
 
--- Enable RLS on all tables
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pharmacies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE checklists ENABLE ROW LEVEL SECURITY;
-ALTER TABLE handovers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shift_schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE billings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_logs ENABLE ROW LEVEL SECURITY;
+alter table organizations enable row level security;
+alter table regions enable row level security;
+alter table operation_units enable row level security;
+alter table pharmacies enable row level security;
+alter table users enable row level security;
+alter table patients enable row level security;
+alter table patient_visit_rules enable row level security;
+alter table requests enable row level security;
+alter table request_events enable row level security;
+alter table assignments enable row level security;
+alter table checklists enable row level security;
+alter table handovers enable row level security;
+alter table handover_confirmations enable row level security;
+alter table shift_schedules enable row level security;
+alter table billings enable row level security;
+alter table notification_logs enable row level security;
+alter table audit_logs enable row level security;
 
--- Helper function: get current user's role
-CREATE OR REPLACE FUNCTION get_user_role() RETURNS TEXT AS $$
-  SELECT role FROM users WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+create or replace function get_user_role() returns text as $$
+  select role from users where id = auth.uid();
+$$ language sql security definer stable;
 
--- Helper function: get current user's pharmacy_id
-CREATE OR REPLACE FUNCTION get_user_pharmacy_id() RETURNS UUID AS $$
-  SELECT pharmacy_id FROM users WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+create or replace function get_user_org_id() returns uuid as $$
+  select organization_id from users where id = auth.uid();
+$$ language sql security definer stable;
 
--- Helper function: get current user's organization_id
-CREATE OR REPLACE FUNCTION get_user_org_id() RETURNS UUID AS $$
-  SELECT organization_id FROM users WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+create or replace function get_user_pharmacy_id() returns uuid as $$
+  select pharmacy_id from users where id = auth.uid();
+$$ language sql security definer stable;
 
--- ===== organizations =====
-CREATE POLICY "org_read" ON organizations FOR SELECT
-  USING (id = get_user_org_id());
+create or replace function get_user_region_id() returns uuid as $$
+  select region_id from users where id = auth.uid();
+$$ language sql security definer stable;
 
--- ===== users =====
-CREATE POLICY "users_read_own_org" ON users FOR SELECT
-  USING (organization_id = get_user_org_id());
-CREATE POLICY "users_update_self" ON users FOR UPDATE
-  USING (id = auth.uid());
+create or replace function get_user_operation_unit_id() returns uuid as $$
+  select operation_unit_id from users where id = auth.uid();
+$$ language sql security definer stable;
 
--- ===== pharmacies =====
--- Admin: all pharmacies in org
-CREATE POLICY "pharmacies_admin_all" ON pharmacies FOR ALL
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Pharmacy roles: own pharmacy only
-CREATE POLICY "pharmacies_own" ON pharmacies FOR SELECT
-  USING (id = get_user_pharmacy_id());
--- Pharmacist: all pharmacies (need to see where to go)
-CREATE POLICY "pharmacies_pharmacist_read" ON pharmacies FOR SELECT
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'pharmacist');
+-- organizations / regions / operation_units
+create policy org_read on organizations for select using (id = get_user_org_id());
+create policy regions_read on regions for select using (organization_id = get_user_org_id());
+create policy operation_units_read on operation_units for select using (organization_id = get_user_org_id());
 
--- ===== patients =====
--- Admin: all
-CREATE POLICY "patients_admin" ON patients FOR ALL
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Pharmacy: own patients
-CREATE POLICY "patients_pharmacy" ON patients FOR ALL
-  USING (pharmacy_id = get_user_pharmacy_id() AND get_user_role() IN ('pharmacy_admin', 'pharmacy_staff'));
--- Pharmacist: read all (need patient info for visits)
-CREATE POLICY "patients_pharmacist_read" ON patients FOR SELECT
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'pharmacist');
+-- regional admin manages region-scoped master data
+create policy regions_regional_admin_update on regions for update using (
+  get_user_role() = 'regional_admin' and id = get_user_region_id()
+);
+create policy operation_units_regional_admin_update on operation_units for update using (
+  get_user_role() = 'regional_admin' and region_id = get_user_region_id()
+);
 
--- ===== requests =====
--- Admin: all
-CREATE POLICY "requests_admin" ON requests FOR ALL
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Pharmacy: own pharmacy requests (read only)
-CREATE POLICY "requests_pharmacy_read" ON requests FOR SELECT
-  USING (pharmacy_id = get_user_pharmacy_id());
--- Pharmacist: assigned requests + unassigned (for potential assignment)
-CREATE POLICY "requests_pharmacist_read" ON requests FOR SELECT
-  USING (
-    organization_id = get_user_org_id()
-    AND get_user_role() = 'pharmacist'
-    AND (
-      id IN (SELECT request_id FROM assignments WHERE pharmacist_id = auth.uid())
-      OR status IN ('received', 'fax_pending', 'fax_received', 'assigning')
-    )
-  );
--- Pharmacist: update status on assigned requests
-CREATE POLICY "requests_pharmacist_update" ON requests FOR UPDATE
-  USING (
-    get_user_role() = 'pharmacist'
-    AND id IN (SELECT request_id FROM assignments WHERE pharmacist_id = auth.uid())
-  );
+-- users
+create policy users_read_same_org on users for select using (organization_id = get_user_org_id());
+create policy users_update_self on users for update using (id = auth.uid());
 
--- ===== assignments =====
--- Admin: all
-CREATE POLICY "assignments_admin" ON assignments FOR ALL
-  USING (get_user_role() = 'admin');
--- Pharmacist: own assignments
-CREATE POLICY "assignments_pharmacist" ON assignments FOR ALL
-  USING (pharmacist_id = auth.uid());
--- Pharmacy: read assignments for their requests
-CREATE POLICY "assignments_pharmacy_read" ON assignments FOR SELECT
-  USING (request_id IN (SELECT id FROM requests WHERE pharmacy_id = get_user_pharmacy_id()));
+-- pharmacies
+create policy pharmacies_regional_admin_manage on pharmacies for all using (
+  get_user_role() = 'regional_admin'
+  and region_id = get_user_region_id()
+);
+create policy pharmacies_pharmacy_read_own on pharmacies for select using (
+  id = get_user_pharmacy_id()
+);
+create policy pharmacies_system_admin_read on pharmacies for select using (
+  get_user_role() = 'system_admin' and organization_id = get_user_org_id()
+);
 
--- ===== checklists =====
-CREATE POLICY "checklists_admin" ON checklists FOR ALL
-  USING (get_user_role() = 'admin');
-CREATE POLICY "checklists_pharmacist" ON checklists FOR ALL
-  USING (assignment_id IN (SELECT id FROM assignments WHERE pharmacist_id = auth.uid()));
+-- patients
+create policy patients_pharmacy_scope on patients for select using (
+  get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+  and pharmacy_id = get_user_pharmacy_id()
+);
+create policy patients_pharmacy_admin_update on patients for update using (
+  get_user_role() = 'pharmacy_admin'
+  and pharmacy_id = get_user_pharmacy_id()
+);
+create policy patients_pharmacy_staff_update on patients for update using (
+  get_user_role() = 'pharmacy_staff'
+  and pharmacy_id = get_user_pharmacy_id()
+);
+create policy patients_regional_admin_minimum_read on patients for select using (
+  get_user_role() = 'regional_admin'
+  and pharmacy_id in (select id from pharmacies where region_id = get_user_region_id())
+);
+create policy patients_night_pharmacist_request_scoped on patients for select using (
+  get_user_role() = 'night_pharmacist'
+  and id in (
+    select r.patient_id
+    from requests r
+    join assignments a on a.request_id = r.id
+    where a.pharmacist_id = auth.uid()
+      and r.patient_id is not null
+  )
+);
 
--- ===== handovers =====
--- Admin: all
-CREATE POLICY "handovers_admin" ON handovers FOR ALL
-  USING (get_user_role() = 'admin');
--- Pharmacist: create own, read own
-CREATE POLICY "handovers_pharmacist" ON handovers FOR ALL
-  USING (pharmacist_id = auth.uid());
--- Pharmacy: read + confirm own pharmacy handovers
-CREATE POLICY "handovers_pharmacy" ON handovers FOR SELECT
-  USING (pharmacy_id = get_user_pharmacy_id());
-CREATE POLICY "handovers_pharmacy_confirm" ON handovers FOR UPDATE
-  USING (pharmacy_id = get_user_pharmacy_id() AND get_user_role() = 'pharmacy_admin')
-  WITH CHECK (pharmacy_id = get_user_pharmacy_id());
+-- patient_visit_rules
+create policy visit_rules_same_patient_scope on patient_visit_rules for select using (
+  patient_id in (select id from patients where pharmacy_id = get_user_pharmacy_id())
+);
+create policy visit_rules_admin_update on patient_visit_rules for all using (
+  get_user_role() = 'pharmacy_admin'
+  and patient_id in (select id from patients where pharmacy_id = get_user_pharmacy_id())
+);
 
--- ===== shift_schedules =====
--- Admin: full access
-CREATE POLICY "shifts_admin" ON shift_schedules FOR ALL
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Pharmacist: read own shifts
-CREATE POLICY "shifts_pharmacist_read" ON shift_schedules FOR SELECT
-  USING (pharmacist_id = auth.uid());
+-- requests
+create policy requests_regional_admin_manage on requests for all using (
+  get_user_role() = 'regional_admin'
+  and region_id = get_user_region_id()
+);
+create policy requests_pharmacy_read on requests for select using (
+  get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+  and pharmacy_id = get_user_pharmacy_id()
+);
+create policy requests_night_pharmacist_read on requests for select using (
+  get_user_role() = 'night_pharmacist'
+  and id in (select request_id from assignments where pharmacist_id = auth.uid())
+);
+create policy requests_night_pharmacist_update on requests for update using (
+  get_user_role() = 'night_pharmacist'
+  and id in (select request_id from assignments where pharmacist_id = auth.uid())
+);
 
--- ===== billings =====
--- Admin: full access
-CREATE POLICY "billings_admin" ON billings FOR ALL
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Pharmacy: read own billings
-CREATE POLICY "billings_pharmacy_read" ON billings FOR SELECT
-  USING (pharmacy_id = get_user_pharmacy_id());
+-- request_events
+create policy request_events_regional_admin on request_events for select using (
+  request_id in (select id from requests where region_id = get_user_region_id())
+);
+create policy request_events_pharmacy on request_events for select using (
+  request_id in (select id from requests where pharmacy_id = get_user_pharmacy_id())
+);
+create policy request_events_night_pharmacist on request_events for select using (
+  request_id in (select request_id from assignments where pharmacist_id = auth.uid())
+);
 
--- ===== audit_logs =====
--- Admin: read only (append-only, no delete)
-CREATE POLICY "audit_admin_read" ON audit_logs FOR SELECT
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Insert allowed for all authenticated users (via trigger)
-CREATE POLICY "audit_insert" ON audit_logs FOR INSERT
-  WITH CHECK (true);
+-- assignments
+create policy assignments_regional_admin_manage on assignments for all using (
+  get_user_role() = 'regional_admin'
+  and request_id in (select id from requests where region_id = get_user_region_id())
+);
+create policy assignments_night_pharmacist_own on assignments for select using (
+  pharmacist_id = auth.uid()
+);
+create policy assignments_pharmacy_read on assignments for select using (
+  request_id in (select id from requests where pharmacy_id = get_user_pharmacy_id())
+);
 
--- ===== notification_logs =====
--- Admin: read all
-CREATE POLICY "notif_admin_read" ON notification_logs FOR SELECT
-  USING (organization_id = get_user_org_id() AND get_user_role() = 'admin');
--- Users: read own notifications
-CREATE POLICY "notif_own_read" ON notification_logs FOR SELECT
-  USING (recipient_id = auth.uid());
+-- checklists
+create policy checklists_regional_admin on checklists for select using (
+  request_id in (select id from requests where region_id = get_user_region_id())
+);
+create policy checklists_night_pharmacist on checklists for all using (
+  assignment_id in (select id from assignments where pharmacist_id = auth.uid())
+);
+
+-- handovers
+create policy handovers_regional_admin_read on handovers for select using (
+  pharmacy_id in (select id from pharmacies where region_id = get_user_region_id())
+);
+create policy handovers_night_pharmacist_manage on handovers for all using (
+  pharmacist_id = auth.uid()
+);
+create policy handovers_pharmacy_read on handovers for select using (
+  pharmacy_id = get_user_pharmacy_id()
+  and get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+);
+create policy handovers_pharmacy_admin_update on handovers for update using (
+  pharmacy_id = get_user_pharmacy_id()
+  and get_user_role() = 'pharmacy_admin'
+);
+
+-- handover confirmations
+create policy handover_conf_pharmacy_read on handover_confirmations for select using (
+  pharmacy_id = get_user_pharmacy_id()
+);
+create policy handover_conf_pharmacy_insert on handover_confirmations for insert with check (
+  pharmacy_id = get_user_pharmacy_id()
+  and get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+);
+
+-- shifts
+create policy shifts_regional_admin_manage on shift_schedules for all using (
+  get_user_role() = 'regional_admin'
+  and organization_id = get_user_org_id()
+);
+create policy shifts_night_pharmacist_read on shift_schedules for select using (
+  pharmacist_id = auth.uid()
+);
+
+-- billings
+create policy billings_pharmacy_read on billings for select using (
+  pharmacy_id = get_user_pharmacy_id()
+  and get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+);
+create policy billings_system_admin_read on billings for select using (
+  get_user_role() = 'system_admin'
+  and organization_id = get_user_org_id()
+);
+
+-- notifications
+create policy notif_regional_admin_read on notification_logs for select using (
+  region_id = get_user_region_id()
+  and get_user_role() = 'regional_admin'
+);
+create policy notif_pharmacy_read on notification_logs for select using (
+  pharmacy_id = get_user_pharmacy_id()
+  and get_user_role() in ('pharmacy_admin', 'pharmacy_staff')
+);
+create policy notif_system_admin_read on notification_logs for select using (
+  get_user_role() = 'system_admin'
+  and organization_id = get_user_org_id()
+);
+
+-- audit logs
+create policy audit_system_admin_read on audit_logs for select using (
+  get_user_role() = 'system_admin'
+  and organization_id = get_user_org_id()
+);
+create policy audit_regional_admin_read on audit_logs for select using (
+  get_user_role() = 'regional_admin'
+  and region_id = get_user_region_id()
+);
+create policy audit_insert on audit_logs for insert with check (true);
