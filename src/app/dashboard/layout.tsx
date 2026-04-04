@@ -152,7 +152,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const filteredSettings = settingsNavItems.filter((item) => canAccess(role, item.permission))
 
-  const visibleMobileNavItems = mobileNavItems.filter((item) => canAccess(role, item.permission))
+  const visibleMobileNavItems = mobileNavItems.filter((item) => {
+    if (!canAccess(role, item.permission)) return false
+    if (role === 'night_pharmacist' && item.href === '/dashboard/patients') return false
+    return true
+  })
 
   const allNavItems = [...filteredNav, ...filteredSettings]
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))

@@ -1326,11 +1326,8 @@ function PharmacistDashboard() {
             <Link href="/dashboard/night-patients">
               <Button variant="outline" className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">夜間患者検索</Button>
             </Link>
-            <Link href="/dashboard/handovers/new">
-              <Button variant="outline" className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">申し送りを作成</Button>
-            </Link>
           </div>
-          <p className="text-xs text-gray-500">Night Pharmacist には全患者一覧を出さず、必要時に検索起点で患者詳細へ進む設計です。</p>
+          <p className="text-xs text-gray-500">Night Pharmacist には全患者一覧を出さず、依頼詳細→患者検索→対応→申し送り作成の流れを主導線にしています。</p>
         </CardContent>
       </Card>
 

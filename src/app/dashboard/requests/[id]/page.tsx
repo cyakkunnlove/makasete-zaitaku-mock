@@ -63,6 +63,7 @@ export default function RequestDetailPage() {
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const isNightPharmacist = role === 'night_pharmacist'
   const id = params.id as string
 
   const request = requestData.find((r) => r.id === id)
@@ -248,6 +249,9 @@ export default function RequestDetailPage() {
             {isAdmin && (
               <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 受付→患者特定→対応開始→完了 の流れで表示。患者詳細・FAX原本・申し送り本文は非表示</p>
             )}
+            {isNightPharmacist && (
+              <p className="mt-1 text-[11px] text-sky-300">Night Pharmacist はこの依頼から患者検索・対応・申し送り作成へ進みます。</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -257,6 +261,20 @@ export default function RequestDetailPage() {
                 FAX確認・患者特定
               </Button>
             </Link>
+          )}
+          {isNightPharmacist && (
+            <>
+              <Link href="/dashboard/night-patients">
+                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                  患者検索
+                </Button>
+              </Link>
+              <Link href="/dashboard/handovers/new">
+                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                  申し送り作成
+                </Button>
+              </Link>
+            </>
           )}
           <Badge variant="outline" className={cn('border text-xs', status.className)}>
             {status.label}
