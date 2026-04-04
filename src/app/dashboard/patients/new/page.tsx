@@ -45,7 +45,7 @@ const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
 
 export default function NewPatientPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>(['利用中', '家族連絡用', '配薬場所指定'])
   const [selectedDays, setSelectedDays] = useState<string[]>(['土'])
@@ -77,6 +77,8 @@ export default function NewPatientPage() {
   })
 
   const isExceeded = Number(visitCount) > 4
+  const isPharmacyAdmin = role === 'pharmacy_admin'
+  const isPharmacyStaff = role === 'pharmacy_staff'
   const previewBaseDate = useMemo(() => new Date(`${form.startedAt || MOCK_FLOW_DATE}T00:00:00`), [form.startedAt])
   const [previewYear, setPreviewYear] = useState(previewBaseDate.getFullYear())
   const [previewMonth, setPreviewMonth] = useState(previewBaseDate.getMonth())
@@ -227,6 +229,19 @@ export default function NewPatientPage() {
         </CardContent>
       </Card>
 
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
+          <div className="space-y-1 text-gray-300">
+            <p className="font-medium text-white">編集権限の考え方（モック）</p>
+            <p>Pharmacy Admin: 所属設定・重要マスタ・夜間受託設定まで編集可能</p>
+            <p>Pharmacy Staff: 実務情報更新が中心。重要設定は編集不可</p>
+          </div>
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-200">
+            現在のロール: {isPharmacyAdmin ? 'Pharmacy Admin' : isPharmacyStaff ? 'Pharmacy Staff' : 'その他'}
+          </div>
+        </CardContent>
+      </Card>
+
       {errorMessage && (
         <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           <AlertTriangle className="h-4 w-4 text-rose-300" />
@@ -242,7 +257,7 @@ export default function NewPatientPage() {
           <div><Label className="text-gray-300">患者本人電話</Label><Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
           <div>
             <Label className="text-gray-300">担当薬局</Label>
-            <select value={form.pharmacyId} onChange={(e) => handleChange('pharmacyId', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+            <select value={form.pharmacyId} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('pharmacyId', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:opacity-60">
               {pharmacyData.map((pharmacy) => (
                 <option key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</option>
               ))}
@@ -252,7 +267,7 @@ export default function NewPatientPage() {
           <div><Label className="text-gray-300">利用開始日</Label><Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-03-28" /></div>
           <div>
             <Label className="text-gray-300">ステータス</Label>
-            <select value={form.status} onChange={(e) => handleChange('status', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+            <select value={form.status} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('status', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:opacity-60">
               <option value="active">利用中</option>
               <option value="inactive">休止</option>
             </select>
@@ -412,7 +427,7 @@ export default function NewPatientPage() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">運用情報</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div><Label className="text-gray-300">訪問時注意事項</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / ペット / 配薬場所 / 夜間訪問注意 など" /></div>
-          <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険種別・負担割合など" /></div>
+          <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" placeholder="保険種別・負担割合など" /></div>
         </CardContent>
       </Card>
 

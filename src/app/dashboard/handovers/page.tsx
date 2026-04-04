@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { CheckCircle2, ChevronDown, ChevronUp, Plus } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Plus, ShieldCheck, Printer } from 'lucide-react'
 import { handoverData, sbarStyles } from '@/lib/mock-data'
 
 export default function HandoversPage() {
@@ -27,12 +27,19 @@ export default function HandoversPage() {
     setConfirmedIds((prev) => new Set(prev).add(id))
   }
 
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') window.print()
+  }
+
   return (
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">申し送り</h1>
           <p className="text-xs text-gray-400">SBAR形式で夜間対応内容を共有・確認</p>
+          {role === 'pharmacy_admin' && (
+            <p className="mt-1 text-[11px] text-amber-200">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -42,6 +49,10 @@ export default function HandoversPage() {
           >
             未確認 {unconfirmedCount}件
           </Badge>
+          <Button variant="outline" onClick={handlePrint} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+            <Printer className="h-4 w-4" />
+            印刷
+          </Button>
           <Link href="/dashboard/handovers/new">
             <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">
               <Plus className="h-4 w-4" />
@@ -129,9 +140,14 @@ export default function HandoversPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-gray-400">
-                      {handover.confirmedAt ? `確認日時: ${handover.confirmedAt}` : '未確認の申し送りです'}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-400">
+                        {handover.confirmedAt ? `確認日時: ${handover.confirmedAt}` : '未確認の申し送りです'}
+                      </p>
+                      {role === 'pharmacy_admin' && (
+                        <p className="inline-flex items-center gap-1 text-[11px] text-amber-200"><ShieldCheck className="h-3 w-3" />管理者確認の対象</p>
+                      )}
+                    </div>
 
                     {role === 'pharmacy_admin' && !isConfirmed && (
                       <Button
@@ -140,7 +156,7 @@ export default function HandoversPage() {
                         className="bg-emerald-600 text-white hover:bg-emerald-600/90"
                       >
                         <CheckCircle2 className="h-4 w-4" />
-                        確認する
+                        最終確認する
                       </Button>
                     )}
                   </div>

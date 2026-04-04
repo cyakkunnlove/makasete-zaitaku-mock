@@ -30,6 +30,8 @@ export interface Organization {
 export interface Pharmacy {
   id: string
   organization_id: string
+  region_id?: string | null
+  operation_unit_id?: string | null
   name: string
   area: string | null
   address: string
@@ -40,6 +42,8 @@ export interface Pharmacy {
   contract_date: string | null
   saas_monthly_fee: number
   night_monthly_fee: number
+  night_delegation_enabled?: boolean | null
+  default_morning_note?: string | null
   status: PharmacyStatus
   patient_count: number
   created_at: string
@@ -50,6 +54,8 @@ export interface User {
   id: string
   organization_id: string | null
   pharmacy_id: string | null
+  region_id?: string | null
+  operation_unit_id?: string | null
   role: UserRole
   full_name: string
   phone: string | null
@@ -210,6 +216,9 @@ export interface Billing {
 export interface AuditLog {
   id: string
   organization_id: string | null
+  pharmacy_id?: string | null
+  region_id?: string | null
+  operation_unit_id?: string | null
   user_id: string | null
   action: string
   target_type: string | null

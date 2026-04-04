@@ -141,7 +141,7 @@ export default function RequestsPage() {
     urgency: '',
   })
 
-  const canCreateRequest = role !== 'night_pharmacist'
+  const canCreateRequest = role === 'regional_admin'
 
   const visibleRequests = useMemo(() => {
     if (isPharmacyAdmin) {
@@ -177,7 +177,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (

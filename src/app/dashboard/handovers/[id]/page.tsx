@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope, FileText as FileTextIcon } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope, FileText as FileTextIcon, Printer, Download, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { handoverData, patientData, sbarStyles } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,6 +58,10 @@ export default function HandoverDetailPage() {
     setConfirmedBy(user?.full_name ?? '不明')
   }
 
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') window.print()
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-gray-100">
       <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
@@ -78,17 +82,31 @@ export default function HandoverDetailPage() {
               <p className="text-xs text-gray-400">申し送り詳細</p>
             </div>
           </div>
-          <Badge
-            variant="outline"
-            className={cn(
-              'border',
-              confirmed
-                ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-                : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+          <div className="flex flex-wrap items-center gap-2">
+            {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && (
+              <Button variant="outline" size="sm" onClick={handlePrint} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+                <Printer className="mr-1 h-4 w-4" />
+                印刷
+              </Button>
             )}
-          >
-            {confirmed ? '確認済み' : '未確認'}
-          </Badge>
+            {handover.reportFileUrl && (
+              <a href={handover.reportFileUrl} download className="inline-flex items-center rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-1.5 text-sm text-gray-200 hover:bg-[#1a2035]">
+                <Download className="mr-1 h-4 w-4" />
+                保存
+              </a>
+            )}
+            <Badge
+              variant="outline"
+              className={cn(
+                'border',
+                confirmed
+                  ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                  : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+              )}
+            >
+              {confirmed ? '確認済み' : '未確認'}
+            </Badge>
+          </div>
         </div>
 
         {/* Meta card */}
@@ -248,7 +266,13 @@ export default function HandoverDetailPage() {
 
         {/* Confirm section */}
         <Card className="border-[#2a3553] bg-[#111827]">
-          <CardContent className="pt-5">
+          <CardContent className="space-y-4 pt-5">
+            {role === 'pharmacy_admin' && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+                <p className="inline-flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4" />Pharmacy Admin は自局申し送りの最終確認責任者候補です</p>
+                <p className="mt-1 text-xs text-amber-200/80">Pharmacy Staff が閲覧していても、管理者としての確認導線を残します。</p>
+              </div>
+            )}
             {confirmed ? (
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-400" />
@@ -268,7 +292,7 @@ export default function HandoverDetailPage() {
                     className="bg-emerald-600 text-white hover:bg-emerald-600/90"
                   >
                     <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                    確認する
+                    {role === 'pharmacy_admin' ? '最終確認する' : '確認する'}
                   </Button>
                 )}
               </div>

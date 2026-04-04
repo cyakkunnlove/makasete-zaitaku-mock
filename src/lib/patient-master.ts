@@ -94,6 +94,15 @@ export function upsertRegisteredPatient(patient: RegisteredPatientRecord) {
   saveRegisteredPatients(next)
 }
 
+export function updateRegisteredPatient(
+  patientId: string,
+  updater: (patient: RegisteredPatientRecord) => RegisteredPatientRecord,
+) {
+  const current = loadRegisteredPatients()
+  const next = current.map((patient) => (patient.id === patientId ? updater(patient) : patient))
+  saveRegisteredPatients(next)
+}
+
 export function getPatientMasterRecords(registeredPatients: RegisteredPatientRecord[] = []): RegisteredPatientRecord[] {
   const merged = new Map<string, RegisteredPatientRecord>()
 
