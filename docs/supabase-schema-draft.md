@@ -215,6 +215,7 @@
 - handover_id uuid fk handovers(id)
 - user_id uuid fk users(id)
 - role text
+- confirmation_type text  # staff_confirm / admin_final_confirm
 - pharmacy_id uuid fk pharmacies(id) null
 - confirmed_at timestamptz
 - note text null

@@ -16,6 +16,7 @@ export default function HandoversPage() {
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(
     () => new Set(handoverData.filter((h) => h.confirmed).map((h) => h.id))
   )
+  const [staffConfirmedIds, setStaffConfirmedIds] = useState<Set<string>>(new Set())
 
   const unconfirmedCount = useMemo(
     () => handoverData.filter((h) => !confirmedIds.has(h.id)).length,
@@ -25,6 +26,11 @@ export default function HandoversPage() {
   const handleConfirm = (id: string) => {
     if (role !== 'pharmacy_admin') return
     setConfirmedIds((prev) => new Set(prev).add(id))
+  }
+
+  const handleStaffConfirm = (id: string) => {
+    if (role !== 'pharmacy_staff') return
+    setStaffConfirmedIds((prev) => new Set(prev).add(id))
   }
 
   const handlePrint = () => {
@@ -39,6 +45,9 @@ export default function HandoversPage() {
           <p className="text-xs text-gray-400">SBAR形式で夜間対応内容を共有・確認</p>
           {role === 'pharmacy_admin' && (
             <p className="mt-1 text-[11px] text-amber-200">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
+          )}
+          {role === 'pharmacy_staff' && (
+            <p className="mt-1 text-[11px] text-sky-200">Pharmacy Staff は申し送り確認者として閲覧・確認できます。最終確認責任は Pharmacy Admin 側に残します。</p>
           )}
         </div>
 
@@ -66,6 +75,7 @@ export default function HandoversPage() {
         {handoverData.map((handover) => {
           const isExpanded = expandedId === handover.id
           const isConfirmed = confirmedIds.has(handover.id)
+          const isStaffConfirmed = staffConfirmedIds.has(handover.id)
 
           return (
             <Card key={handover.id} className="border-[#2a3553] bg-[#1a2035]">
@@ -89,8 +99,13 @@ export default function HandoversPage() {
                           : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
                       )}
                     >
-                      {isConfirmed ? '確認済み' : '未確認'}
+                      {isConfirmed ? '最終確認済み' : '未確認'}
                     </Badge>
+                    {isStaffConfirmed && !isConfirmed && (
+                      <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-300">
+                        staff確認済み
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -147,18 +162,34 @@ export default function HandoversPage() {
                       {role === 'pharmacy_admin' && (
                         <p className="inline-flex items-center gap-1 text-[11px] text-amber-200"><ShieldCheck className="h-3 w-3" />管理者確認の対象</p>
                       )}
+                      {role === 'pharmacy_staff' && (
+                        <p className="inline-flex items-center gap-1 text-[11px] text-sky-200">staff確認ログ対象</p>
+                      )}
                     </div>
 
-                    {role === 'pharmacy_admin' && !isConfirmed && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleConfirm(handover.id)}
-                        className="bg-emerald-600 text-white hover:bg-emerald-600/90"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        最終確認する
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {role === 'pharmacy_staff' && !isStaffConfirmed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStaffConfirm(handover.id)}
+                          className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          確認した
+                        </Button>
+                      )}
+                      {role === 'pharmacy_admin' && !isConfirmed && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleConfirm(handover.id)}
+                          className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          最終確認する
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               )}

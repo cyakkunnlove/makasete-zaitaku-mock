@@ -23,6 +23,9 @@ export default function HandoverDetailPage() {
   const [confirmed, setConfirmed] = useState(handover?.confirmed ?? false)
   const [confirmedAt, setConfirmedAt] = useState(handover?.confirmedAt ?? null)
   const [confirmedBy, setConfirmedBy] = useState(handover?.confirmedBy ?? null)
+  const [staffConfirmed, setStaffConfirmed] = useState(false)
+  const [staffConfirmedAt, setStaffConfirmedAt] = useState<string | null>(null)
+  const [staffConfirmedBy, setStaffConfirmedBy] = useState<string | null>(null)
 
   if (!handover) {
     return (
@@ -44,18 +47,27 @@ export default function HandoverDetailPage() {
     )
   }
 
+  const formatNow = () => new Date().toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+
   const handleConfirm = () => {
-    const now = new Date().toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
+    const now = formatNow()
     setConfirmed(true)
     setConfirmedAt(now)
     setConfirmedBy(user?.full_name ?? '不明')
+  }
+
+  const handleStaffConfirm = () => {
+    const now = formatNow()
+    setStaffConfirmed(true)
+    setStaffConfirmedAt(now)
+    setStaffConfirmedBy(user?.full_name ?? '不明')
   }
 
   const handlePrint = () => {
@@ -273,30 +285,62 @@ export default function HandoverDetailPage() {
                 <p className="mt-1 text-xs text-amber-200/80">Pharmacy Staff が閲覧していても、管理者としての確認導線を残します。</p>
               </div>
             )}
-            {confirmed ? (
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                <div>
-                  <p className="text-sm font-medium text-emerald-300">確認済み</p>
-                  <p className="text-xs text-gray-400">
-                    {confirmedAt} - {confirmedBy}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-amber-300">この申し送りはまだ確認されていません</p>
-                {(role === 'pharmacy_admin' || role === 'regional_admin') && (
-                  <Button
-                    onClick={handleConfirm}
-                    className="bg-emerald-600 text-white hover:bg-emerald-600/90"
-                  >
-                    <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                    {role === 'pharmacy_admin' ? '最終確認する' : '確認する'}
-                  </Button>
-                )}
+            {role === 'pharmacy_staff' && (
+              <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-100">
+                <p className="font-medium">Pharmacy Staff は確認者として記録されます</p>
+                <p className="mt-1 text-xs text-sky-200/80">最終確認責任は Pharmacy Admin 側に残しつつ、誰が確認したかを個人単位で残します。</p>
               </div>
             )}
+            <div className="space-y-3">
+              {staffConfirmed && (
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-sky-400" />
+                  <div>
+                    <p className="text-sm font-medium text-sky-300">staff確認済み</p>
+                    <p className="text-xs text-gray-400">
+                      {staffConfirmedAt} - {staffConfirmedBy}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {confirmed ? (
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-300">最終確認済み</p>
+                    <p className="text-xs text-gray-400">
+                      {confirmedAt} - {confirmedBy}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-amber-300">この申し送りはまだ最終確認されていません</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {role === 'pharmacy_staff' && !staffConfirmed && (
+                      <Button
+                        variant="outline"
+                        onClick={handleStaffConfirm}
+                        className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                      >
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                        確認した
+                      </Button>
+                    )}
+                    {(role === 'pharmacy_admin' || role === 'regional_admin') && (
+                      <Button
+                        onClick={handleConfirm}
+                        className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                      >
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                        {role === 'pharmacy_admin' ? '最終確認する' : '確認する'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
