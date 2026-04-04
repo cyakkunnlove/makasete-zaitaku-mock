@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import {
   getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
-import { formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -37,6 +38,8 @@ import {
   Stethoscope,
   Clock3,
   ExternalLink,
+  Save,
+  ShieldCheck,
 } from 'lucide-react'
 import { VisitSchedule } from '@/components/visit-schedule'
 
@@ -84,6 +87,18 @@ export default function PatientDetailPage() {
   const patientMaster = useMemo(() => getPatientMasterRecords(registeredPatients), [registeredPatients])
   const patient = useMemo(() => patientMaster.find((p) => p.id === id), [id, patientMaster])
 
+  useEffect(() => {
+    if (!patient) return
+    setEditForm({
+      phone: patient.phone ?? '',
+      visitNotes: patient.visitNotes ?? '',
+      currentMeds: patient.currentMeds ?? '',
+      medicalHistory: patient.medicalHistory ?? '',
+      allergies: patient.allergies ?? '',
+      insuranceInfo: patient.insuranceInfo ?? '',
+    })
+  }, [patient])
+
   const pharmacy = useMemo(
     () => (patient ? pharmacyData.find((ph) => ph.id === patient.pharmacyId) : undefined),
     [patient]
@@ -101,6 +116,16 @@ export default function PatientDetailPage() {
 
   const [visitDialogOpen, setVisitDialogOpen] = useState(false)
   const [visitRecords, setVisitRecords] = useState<VisitRecordDraft[]>([])
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editSavedNotice, setEditSavedNotice] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    phone: '',
+    visitNotes: '',
+    currentMeds: '',
+    medicalHistory: '',
+    allergies: '',
+    insuranceInfo: '',
+  })
   const [visitForm, setVisitForm] = useState({
     visitDate: '2026-03-16',
     visitType: '定期',
@@ -132,6 +157,8 @@ export default function PatientDetailPage() {
 
   const age = calculateAge(patient.dob)
   const isRegionalAdmin = role === 'regional_admin'
+  const isPharmacyAdmin = role === 'pharmacy_admin'
+  const isPharmacyStaff = role === 'pharmacy_staff'
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
@@ -161,6 +188,32 @@ export default function PatientDetailPage() {
       note: '',
     })
   }
+
+  const handleSavePatientEdit = () => {
+    updateRegisteredPatient(patient.id, (current) => ({
+      ...current,
+      phone: editForm.phone || null,
+      visitNotes: editForm.visitNotes,
+      currentMeds: isPharmacyAdmin ? editForm.currentMeds : current.currentMeds,
+      medicalHistory: isPharmacyAdmin ? editForm.medicalHistory : current.medicalHistory,
+      allergies: isPharmacyAdmin ? editForm.allergies : current.allergies,
+      insuranceInfo: isPharmacyAdmin ? editForm.insuranceInfo : current.insuranceInfo,
+      registrationMeta: current.registrationMeta
+        ? {
+            ...current.registrationMeta,
+            updatedAt: new Date().toISOString(),
+            updatedById: null,
+            updatedByName: isPharmacyAdmin ? 'Pharmacy Admin（モック）' : 'Pharmacy Staff（モック）',
+            version: current.registrationMeta.version + 1,
+          }
+        : current.registrationMeta,
+    }))
+    setRegisteredPatients(loadRegisteredPatients())
+    setEditDialogOpen(false)
+    setEditSavedNotice(isPharmacyAdmin ? '管理者権限の編集を保存しました（モック）' : '実務項目の更新を保存しました（モック）')
+    setTimeout(() => setEditSavedNotice(null), 2500)
+  }
+
 
   return (
     <div className="space-y-4 text-gray-100">
@@ -201,10 +254,31 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+      {editSavedNotice && (
+        <div className="fixed right-4 top-20 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg">
+          {editSavedNotice}
+        </div>
+      )}
+
       {isRegionalAdmin && (
         <Card className="border-indigo-500/30 bg-indigo-500/10">
           <CardContent className="pt-4 pb-4 text-xs text-indigo-100">
             Regional Admin は地域夜間運用・患者照合補助のために必要最小限の患者情報を閲覧します。日中運用の編集主体ではなく、照合・進行確認が中心です。
+          </CardContent>
+        </Card>
+      )}
+
+      {(isPharmacyAdmin || isPharmacyStaff) && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
+            <div className="space-y-1 text-gray-300">
+              <p className="font-medium text-white">患者編集権限</p>
+              <p>Pharmacy Staff: 電話番号・訪問時注意事項などの実務項目を更新</p>
+              <p>Pharmacy Admin: 上記に加え、既往歴・アレルギー・保険情報・現在薬など重要項目も更新</p>
+            </div>
+            <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
+              <Save className="mr-2 h-4 w-4" />患者情報を編集
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -457,6 +531,60 @@ export default function PatientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>患者情報を編集</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+              <p className="font-medium text-white">現在の権限</p>
+              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />{isPharmacyAdmin ? 'Pharmacy Admin: 重要項目の編集が可能' : 'Pharmacy Staff: 実務項目のみ編集可能'}</p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs text-gray-500">実務項目</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500">電話番号</p>
+                  <Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">訪問時注意事項</p>
+                  <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className="mt-1 min-h-[110px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs text-gray-500">管理者項目</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500">現在薬</p>
+                  <Textarea disabled={!isPharmacyAdmin} value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">既往歴</p>
+                  <Textarea disabled={!isPharmacyAdmin} value={editForm.medicalHistory} onChange={(e) => setEditForm((prev) => ({ ...prev, medicalHistory: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-gray-500">アレルギー</p>
+                    <Input disabled={!isPharmacyAdmin} value={editForm.allergies} onChange={(e) => setEditForm((prev) => ({ ...prev, allergies: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">保険情報</p>
+                    <Input disabled={!isPharmacyAdmin} value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">キャンセル</Button>
+            <Button onClick={handleSavePatientEdit} className="bg-indigo-600 text-white hover:bg-indigo-700">保存する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Visit Records / Unbilled */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
