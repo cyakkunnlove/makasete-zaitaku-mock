@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { Building2, Plus, Phone, Users, Clock3 } from 'lucide-react'
+import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
 type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
@@ -107,8 +107,9 @@ export default function PharmaciesPage() {
     const total = visiblePharmacies.length
     const active = visiblePharmacies.filter((pharmacy) => pharmacy.status === 'active').length
     const autoManaged = visiblePharmacies.filter((pharmacy) => forwardingSettings[pharmacy.id]?.mode === 'auto').length
+    const pending = visiblePharmacies.filter((pharmacy) => pharmacy.status === 'pending').length
 
-    return { total, active, autoManaged }
+    return { total, active, autoManaged, pending }
   }, [visiblePharmacies, forwardingSettings])
 
   const updateForwardingMode = (id: string, mode: ForwardingMode) => {
@@ -179,7 +180,7 @@ export default function PharmaciesPage() {
         )}
       </div>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
             <CardDescription className="text-gray-400">総加盟店数</CardDescription>
@@ -198,7 +199,25 @@ export default function PharmaciesPage() {
             <CardTitle className="text-2xl text-indigo-300">{summary.autoManaged}</CardTitle>
           </CardHeader>
         </Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-gray-400">初期設定待ち</CardDescription>
+            <CardTitle className="text-2xl text-amber-300">{summary.pending}</CardTitle>
+          </CardHeader>
+        </Card>
       </section>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-300">
+          <div className="space-y-1">
+            <p className="font-medium text-white">regional_admin 向け加盟店管理の考え方</p>
+            <p>加盟店管理は店舗一覧ではなく、夜間受託・転送設定・受け入れ状態を整えるための運用設定画面として扱います。</p>
+          </div>
+          <Link href="/dashboard/settings/region" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">
+            <Settings2 className="h-3.5 w-3.5" />地域設定へ
+          </Link>
+        </CardContent>
+      </Card>
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {visiblePharmacies.map((pharmacy) => {
@@ -256,6 +275,17 @@ export default function PharmaciesPage() {
                     <Button size="sm" onClick={() => updateForwardingMode(pharmacy.id, 'auto')} className="bg-indigo-600 text-white hover:bg-indigo-600/90">
                       自動運用に戻す
                     </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+                    <p className="inline-flex items-center gap-1 font-medium text-white"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />夜間受託状態</p>
+                    <p className="mt-1">{pharmacy.status === 'active' ? '受け入れ可能' : '初期設定または停止中'}</p>
+                  </div>
+                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+                    <p className="inline-flex items-center gap-1 font-medium text-white"><AlertTriangle className="h-3.5 w-3.5 text-amber-400" />運用メモ</p>
+                    <p className="mt-1">{pharmacy.status === 'pending' ? '加盟後の初期設定・受託設定確認が必要' : '地域運用に接続済み。転送ルールの定期見直し対象'}</p>
                   </div>
                 </div>
               </CardContent>

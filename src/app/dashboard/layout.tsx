@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
 
 const settingsNavItems: NavItem[] = [
   { href: '/dashboard/settings/pharmacy', label: '薬局設定', icon: <Hospital size={20} />, permission: 'settings' },
+  { href: '/dashboard/settings/region', label: '地域設定', icon: <Settings size={20} />, permission: 'settings' },
   { href: '/dashboard/settings/notifications', label: '通知設定', icon: <Bell size={20} />, permission: 'settings' },
   { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, permission: 'settings' },
 ]

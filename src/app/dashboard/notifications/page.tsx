@@ -73,6 +73,7 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-xl font-bold text-white">通知ログ</h1>
           <p className="text-sm text-gray-400 mt-1">送信済み通知の履歴と状態を確認</p>
+          {role === 'regional_admin' && <p className="mt-1 text-[11px] text-amber-200">regional_admin では地域夜間運用に関係する通知の再送・確認を担当します。</p>}
         </div>
         <div className="flex items-center gap-2">
           {failedCount > 0 && (

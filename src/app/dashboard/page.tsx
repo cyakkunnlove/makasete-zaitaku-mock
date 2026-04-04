@@ -30,7 +30,7 @@ import {
   FileClock,
   UserCog,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, requestData, shiftData, type DayTaskItem } from '@/lib/mock-data'
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, getPatientsByPharmacyFromMaster, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 
@@ -91,6 +91,9 @@ function RegionalAdminDashboard() {
   const unassignedRequests = requestData.filter((request) => !request.assigneeId && request.status !== 'completed' && request.status !== 'cancelled').length
   const urgentActiveRequests = requestData.filter((request) => request.priority === 'high' && ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
   const unconfirmedHandovers = handoverData.filter((handover) => !handover.confirmed).length
+  const activePharmacies = pharmacyData.filter((pharmacy) => pharmacy.status === 'active').length
+  const forwardingReady = pharmacyData.filter((pharmacy) => pharmacy.forwarding).length
+  const patientUnresolved = requestData.filter((request) => !request.patientId && request.status !== 'cancelled' && request.status !== 'completed').length
 
   return (
     <div className="space-y-4">
@@ -117,6 +120,35 @@ function RegionalAdminDashboard() {
           )
         })}
       </div>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Settings2 className="h-4 w-4 text-emerald-400" />
+            地域運用・加盟店設定サマリー
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+              <p className="text-[10px] text-emerald-200/80">夜間受託有効</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-300">{forwardingReady}</p>
+            </div>
+            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
+              <p className="text-[10px] text-indigo-200/80">地域内 active 加盟店</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-300">{activePharmacies}</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-[10px] text-amber-200/80">患者未特定</p>
+              <p className="mt-1 text-2xl font-bold text-amber-300">{patientUnresolved}</p>
+            </div>
+            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
+              <p className="text-[10px] text-sky-200/80">設定画面</p>
+              <Link href="/dashboard/settings/region" className="mt-1 inline-flex text-sm font-medium text-sky-300 hover:text-sky-200">地域設定を開く</Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">

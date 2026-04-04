@@ -204,7 +204,7 @@ export default function PatientDetailPage() {
       {isRegionalAdmin && (
         <Card className="border-indigo-500/30 bg-indigo-500/10">
           <CardContent className="pt-4 pb-4 text-xs text-indigo-100">
-            Regional Admin は地域運営・夜間監督目的で患者詳細と申し送り本文を閲覧できます。編集主役ではなく、閲覧と状況把握が中心です。
+            Regional Admin は地域夜間運用・患者照合補助のために必要最小限の患者情報を閲覧します。日中運用の編集主体ではなく、照合・進行確認が中心です。
           </CardContent>
         </Card>
       )}
