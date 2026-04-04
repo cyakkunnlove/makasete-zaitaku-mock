@@ -61,3 +61,11 @@
 - src/lib/supabase/server.ts
 - users / patients / requests / handovers の repository 層
 - localStorage モックから repository 呼び出しへ移行
+
+### 2026-04-04 時点で雛形作成済み
+- src/lib/supabase/env.ts
+- src/lib/repositories/index.ts
+- src/lib/repositories/patients.ts
+- src/lib/repositories/requests.ts
+- src/lib/repositories/handovers.ts
+- src/lib/repositories/audit.ts
