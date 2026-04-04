@@ -20,8 +20,8 @@ export type PermissionKey =
 
 export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
   dashboard: ['system_admin', 'regional_admin', 'pharmacy_admin', 'night_pharmacist', 'pharmacy_staff'],
-  requests: ['regional_admin', 'pharmacy_admin'],
-  requestDetail: ['regional_admin', 'pharmacy_admin'],
+  requests: ['regional_admin', 'pharmacy_admin', 'night_pharmacist'],
+  requestDetail: ['regional_admin', 'pharmacy_admin', 'night_pharmacist'],
   assign: ['regional_admin'],
   handovers: ['regional_admin', 'pharmacy_admin'],
   pharmacies: ['regional_admin'],

@@ -129,6 +129,7 @@ export default function RequestsPage() {
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const isNightPharmacist = role === 'night_pharmacist'
   const ownPharmacyId = 'PH-01'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
@@ -147,8 +148,11 @@ export default function RequestsPage() {
     if (isPharmacyAdmin) {
       return requestData.filter((request) => request.pharmacyId === ownPharmacyId)
     }
+    if (isNightPharmacist) {
+      return requestData.filter((request) => request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一')
+    }
     return requestData
-  }, [isPharmacyAdmin])
+  }, [isNightPharmacist, isPharmacyAdmin])
 
   const filteredRequests = useMemo(() => {
     switch (activeTab) {
@@ -177,7 +181,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '自分に連携された夜間依頼のみ表示します。依頼から患者検索・対応・申し送り作成へ進みます。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -196,6 +200,22 @@ export default function RequestsPage() {
           <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">今夜の自局依頼</p></CardContent></Card>
           <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応準備中</p></CardContent></Card>
           <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+        </div>
+      )}
+
+      {isNightPharmacist && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-emerald-300">{visibleRequests.filter((request) => request.status === 'completed').length}</p><p className="text-[10px] text-gray-500">完了済み</p></CardContent></Card>
+        </div>
+      )}
+
+      {isNightPharmacist && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-emerald-300">{visibleRequests.filter((request) => request.status === 'completed').length}</p><p className="text-[10px] text-gray-500">完了済み</p></CardContent></Card>
         </div>
       )}
 

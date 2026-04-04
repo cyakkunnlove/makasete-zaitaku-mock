@@ -30,7 +30,7 @@ import {
   FileClock,
   UserCog,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, type DayTaskItem } from '@/lib/mock-data'
+import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, getPatientsByPharmacyFromMaster, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 
@@ -1302,16 +1302,55 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 }
 
 function PharmacistDashboard() {
+  const ownAssignments = requestData.filter((request) => request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一')
+  const waitingCount = ownAssignments.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
+  const inProgressCount = ownAssignments.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+  const handoverPendingCount = ownAssignments.filter((request) => request.status === 'completed').length
+
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{ownAssignments.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{waitingCount}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{inProgressCount}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+      </div>
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間患者検索</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間対応ワークスペース</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-300">通知を受けたら、夜間患者検索から患者を検索して照合してください。</p>
+          <p className="text-sm text-gray-300">自分に連携された依頼を確認し、依頼詳細から患者検索・対応・申し送り作成へ進みます。</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/requests">
+              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">自分の依頼一覧を開く</Button>
+            </Link>
+            <Link href="/dashboard/night-patients">
+              <Button variant="outline" className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">夜間患者検索</Button>
+            </Link>
+            <Link href="/dashboard/handovers/new">
+              <Button variant="outline" className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">申し送りを作成</Button>
+            </Link>
+          </div>
           <p className="text-xs text-gray-500">Night Pharmacist には全患者一覧を出さず、必要時に検索起点で患者詳細へ進む設計です。</p>
-          <Link href="/dashboard/night-patients">
-            <Button className="bg-indigo-600 text-white hover:bg-indigo-500">夜間患者検索を開く</Button>
-          </Link>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">直近の自分案件（モック）</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {ownAssignments.slice(0, 3).map((request) => (
+            <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 transition hover:border-indigo-500/40">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">{request.id} / {request.patientName ?? '患者照合中'}</p>
+                    <p className="text-xs text-gray-400">{request.pharmacyName} ・ {request.receivedAt}</p>
+                  </div>
+                  <Badge variant="outline" className={cn('border text-xs', statusMeta[request.status].className)}>{statusMeta[request.status].label}</Badge>
+                </div>
+              </div>
+            </Link>
+          ))}
+          <p className="text-[11px] text-gray-500">完了済み案件 {handoverPendingCount} 件。申し送り未作成/未確認の最終整理は次工程で強化予定です。</p>
         </CardContent>
       </Card>
     </div>

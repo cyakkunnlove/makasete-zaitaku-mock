@@ -52,6 +52,12 @@ export default function NightPatientsPage() {
         <p className="text-xs text-gray-400">患者一覧は表示せず、検索ヒットした患者だけを詳細確認します。</p>
       </div>
 
+      <Card className="border-amber-500/30 bg-amber-500/10">
+        <CardContent className="p-4 text-xs text-amber-100">
+          night_pharmacist は、原則として依頼詳細からこの画面へ入り、患者照合を行います。独立検索はモック上の簡易導線として残しています。
+        </CardContent>
+      </Card>
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
