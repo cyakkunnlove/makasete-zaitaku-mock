@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Sparkles, UploadCloud, Loader2, Pencil } from 'lucide-react'
+import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { patientData, requestData } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,39 +18,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-// Mock AI response
 const mockAiGenerate = (rawInput: string, patientName: string): Promise<string> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(`【申し送り】${patientName}様
 
 ■ 対応概要
-${rawInput.includes('発熱') || rawInput.includes('熱') 
-  ? '夜間に発熱の報告を受け、訪問対応を実施しました。' 
-  : '夜間に状態変化の報告を受け、訪問対応を実施しました。'}
+${rawInput.includes('発熱') || rawInput.includes('熱')
+  ? '夜間に発熱の報告を受け、対応を実施しました。'
+  : '夜間に状態変化の報告を受け、対応を実施しました。'}
 
 ■ 対応内容
 ${rawInput}
 
-■ バイタルサイン
-${rawInput.includes('38') ? '・体温: 38℃台' : '・体温: 測定値を記入してください'}
-・血圧/脈拍: 測定値を記入してください
-・SpO2: 測定値を記入してください
-
-■ 患者の状態
-対応後、症状は落ち着いており、バイタルも安定傾向です。
-引き続き経過観察が必要です。
-
 ■ 翌朝への引き継ぎ事項
-・主治医への報告をお願いします
-・次回訪問時にバイタルの再確認をお願いします
-${rawInput.includes('薬') ? '・処方内容の確認をお願いします' : ''}
-
-■ 添付資料
-・報告書PDFを添付（メディックス作成分）`)
-    }, 1500)
+・朝の時点で状態再確認をお願いします
+・必要時は主治医連携をお願いします
+${rawInput.includes('薬') ? '・処方内容の確認をお願いします' : ''}`)
+    }, 1200)
   })
 }
 
@@ -61,26 +49,38 @@ export default function NewHandoverPage() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
   const [patientName, setPatientName] = useState('')
   const [pharmacyName, setPharmacyName] = useState('')
+  const [assignedPharmacist, setAssignedPharmacist] = useState('')
+  const [isLocked, setIsLocked] = useState(false)
 
-  // AI-assisted flow
   const [rawInput, setRawInput] = useState('')
-  const [generatedDoc, setGeneratedDoc] = useState('')
+  const [draftDoc, setDraftDoc] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null)
+  const [photoFiles, setPhotoFiles] = useState<string[]>([])
+  const [adoptedAi, setAdoptedAi] = useState(false)
+
+  const selectedRequest = useMemo(
+    () => (selectedRequestId && selectedRequestId !== 'none' ? requestData.find((r) => r.id === selectedRequestId) : null),
+    [selectedRequestId]
+  )
 
   const handleRequestChange = (value: string) => {
     setSelectedRequestId(value)
+    setAdoptedAi(false)
     if (value && value !== 'none') {
       const request = requestData.find((r) => r.id === value)
       if (request) {
         const patient = request.patientId ? patientData.find((p) => p.id === request.patientId) : null
         setPatientName(patient?.name ?? request.patientName ?? '')
-        setPharmacyName(request.pharmacyName)
+        setPharmacyName(patient?.pharmacyName ?? request.pharmacyName ?? '')
+        setAssignedPharmacist(request.assignee && request.assignee !== '未割当' ? request.assignee : '夜間担当薬剤師')
+        setIsLocked(Boolean(patient?.name || request.patientName || request.pharmacyName || request.assignee))
       }
     } else {
       setPatientName('')
       setPharmacyName('')
+      setAssignedPharmacist('')
+      setIsLocked(false)
     }
   }
 
@@ -88,9 +88,23 @@ export default function NewHandoverPage() {
     if (!rawInput.trim()) return
     setIsGenerating(true)
     const result = await mockAiGenerate(rawInput, patientName || '（患者名）')
-    setGeneratedDoc(result)
+    setDraftDoc(result)
     setIsGenerating(false)
     setIsEditing(false)
+    setAdoptedAi(false)
+  }
+
+  const handleAdoptAi = () => {
+    if (!draftDoc.trim()) return
+    setAdoptedAi(true)
+  }
+
+  const handleRejectAi = () => {
+    setAdoptedAi(false)
+  }
+
+  const handleAttachPhoto = () => {
+    setPhotoFiles((prev) => [...prev, `night-photo-${prev.length + 1}.jpg`])
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,41 +112,29 @@ export default function NewHandoverPage() {
     router.push('/dashboard/handovers')
   }
 
-  const handleFileDrop = () => {
-    setUploadedFile('report_sample.pdf')
-  }
-
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-gray-100">
       <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Link href="/dashboard/handovers">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-300 hover:bg-[#1a2035] hover:text-white"
-            >
+            <Button variant="ghost" size="icon" className="text-gray-300 hover:bg-[#1a2035] hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
             <h1 className="text-lg font-semibold text-white">新規申し送り作成</h1>
-            <p className="text-xs text-gray-400">AIが文書作成をサポートします</p>
+            <p className="text-xs text-gray-400">対応メモをもとにAI整形し、採用するか選べます</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Request selection */}
           <Card className="border-[#2a3553] bg-[#111827]">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-white">依頼の紐付け</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="request" className="text-gray-300">
-                  対応した依頼
-                </Label>
+                <Label htmlFor="request" className="text-gray-300">対応した依頼</Label>
                 <Select value={selectedRequestId} onValueChange={handleRequestChange}>
                   <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-200">
                     <SelectValue placeholder="依頼を選択（任意）" />
@@ -141,14 +143,14 @@ export default function NewHandoverPage() {
                     <SelectItem value="none">紐付けなし</SelectItem>
                     {requestData.map((req) => (
                       <SelectItem key={req.id} value={req.id}>
-                        {req.id} - {req.patientName}
+                        {req.id} - {req.patientName ?? '患者未特定'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="patientName" className="text-gray-300">患者名</Label>
                   <Input
@@ -157,7 +159,8 @@ export default function NewHandoverPage() {
                     onChange={(e) => setPatientName(e.target.value)}
                     placeholder="例: 田中 優子"
                     required
-                    className="border-[#2a3553] bg-[#1a2035] text-gray-200"
+                    disabled={isLocked}
+                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
                   />
                 </div>
                 <div className="space-y-2">
@@ -168,14 +171,32 @@ export default function NewHandoverPage() {
                     onChange={(e) => setPharmacyName(e.target.value)}
                     placeholder="例: 城南みらい薬局"
                     required
-                    className="border-[#2a3553] bg-[#1a2035] text-gray-200"
+                    disabled={isLocked}
+                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="assignedPharmacist" className="text-gray-300">対応薬剤師</Label>
+                  <Input
+                    id="assignedPharmacist"
+                    value={assignedPharmacist}
+                    onChange={(e) => setAssignedPharmacist(e.target.value)}
+                    placeholder="夜間担当薬剤師"
+                    required
+                    disabled={isLocked}
+                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
                   />
                 </div>
               </div>
+
+              {selectedRequest && isLocked && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-100">
+                  この依頼では患者・薬局・対応薬剤師がすでに特定済みのため、ここでは編集せず固定表示にしています。
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Step 1: Raw Input */}
           <Card className="border-[#2a3553] bg-[#111827]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm text-white">
@@ -184,9 +205,7 @@ export default function NewHandoverPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-xs text-gray-400">
-                箇条書きでOK。AIが読みやすい申し送り文書にまとめます。
-              </p>
+              <p className="text-xs text-gray-400">箇条書きでOKです。AIが日中スタッフ向けの申し送り文として整形します。</p>
               <Textarea
                 value={rawInput}
                 onChange={(e) => setRawInput(e.target.value)}
@@ -202,26 +221,25 @@ export default function NewHandoverPage() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    AIが文書作成中...
+                    AIが文面を整形中...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    AIで申し送り文書を作成
+                    AIで申し送り文面を整形
                   </>
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          {/* Step 2: Generated Document */}
-          {generatedDoc && (
+          {draftDoc && (
             <Card className="border-indigo-500/30 bg-[#111827]">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-sm text-white">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">2</span>
-                    生成された申し送り文書
+                    AI整形結果
                   </CardTitle>
                   <div className="flex gap-2">
                     <Button
@@ -232,7 +250,7 @@ export default function NewHandoverPage() {
                       className="h-7 border-[#2a3553] text-xs text-gray-300 hover:bg-[#1a2035]"
                     >
                       <Pencil className="mr-1 h-3 w-3" />
-                      {isEditing ? '完了' : '編集'}
+                      {isEditing ? '編集完了' : '編集'}
                     </Button>
                     <Button
                       type="button"
@@ -242,82 +260,96 @@ export default function NewHandoverPage() {
                       className="h-7 border-[#2a3553] text-xs text-gray-300 hover:bg-[#1a2035]"
                     >
                       <Sparkles className="mr-1 h-3 w-3" />
-                      再生成
+                      再整形
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 {isEditing ? (
                   <Textarea
-                    value={generatedDoc}
-                    onChange={(e) => setGeneratedDoc(e.target.value)}
-                    className="min-h-[300px] border-indigo-500/30 bg-[#1a2035] text-gray-200 font-mono text-sm"
+                    value={draftDoc}
+                    onChange={(e) => setDraftDoc(e.target.value)}
+                    className="min-h-[260px] border-indigo-500/30 bg-[#1a2035] font-mono text-sm text-gray-200"
                   />
                 ) : (
                   <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-4">
-                    <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-200 font-sans">
-                      {generatedDoc}
-                    </pre>
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-200">{draftDoc}</pre>
                   </div>
                 )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" onClick={handleAdoptAi} className="bg-emerald-600 text-white hover:bg-emerald-500">
+                    <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                    この文面を反映する
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleRejectAi} className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                    <XCircle className="mr-1.5 h-4 w-4" />
+                    反映しない
+                  </Button>
+                  {adoptedAi && <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">AI文面を反映中</Badge>}
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Step 3: Attachment */}
           <Card className="border-[#2a3553] bg-[#111827]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm text-white">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">3</span>
-                報告書添付（任意）
+                写真添付（任意）
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <button
                 type="button"
-                onClick={handleFileDrop}
+                onClick={handleAttachPhoto}
                 className={cn(
                   'flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition',
-                  uploadedFile
+                  photoFiles.length > 0
                     ? 'border-emerald-500/40 bg-emerald-500/10'
                     : 'border-[#2a3553] bg-[#1a2035] hover:border-indigo-500/40 hover:bg-indigo-500/5'
                 )}
               >
-                <UploadCloud className={cn('h-8 w-8', uploadedFile ? 'text-emerald-400' : 'text-gray-500')} />
-                {uploadedFile ? (
-                  <>
-                    <p className="mt-2 text-sm font-medium text-emerald-300">{uploadedFile}</p>
-                    <p className="mt-1 text-xs text-gray-400">クリックして変更</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-2 text-sm font-medium text-gray-300">
-                      メディックス等で作成した報告書PDFを添付
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      クリックまたはドラッグ&ドロップ
-                    </p>
-                  </>
-                )}
+                <Camera className={cn('h-8 w-8', photoFiles.length > 0 ? 'text-emerald-400' : 'text-gray-500')} />
+                <p className="mt-2 text-sm font-medium text-gray-300">対応時の写メを添付</p>
+                <p className="mt-1 text-xs text-gray-500">クリックしてモック添付</p>
               </button>
+
+              {photoFiles.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#1a2035] p-3">
+                  <p className="text-xs text-gray-400">添付済み写真</p>
+                  {photoFiles.map((file) => (
+                    <div key={file} className="text-sm text-gray-200">・{file}</div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Submit */}
+          <Card className="border-[#2a3553] bg-[#111827]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-white">申し送り書の仕上がりイメージ</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-gray-300">
+              <p>対応メモをもとにAIが文面を整え、日中薬局スタッフ向けの申し送り書として共有する想定です。</p>
+              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3 text-xs text-gray-400">
+                保存時は「生メモ + 採用した整形文 + 添付写真」をセットで保持する想定です。
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-end gap-3">
             <Link href="/dashboard/handovers">
-              <Button type="button" variant="ghost" className="text-gray-300 hover:text-white">
-                キャンセル
-              </Button>
+              <Button type="button" variant="ghost" className="text-gray-300 hover:text-white">キャンセル</Button>
             </Link>
             <Button
               type="submit"
-              disabled={!generatedDoc && !uploadedFile}
+              disabled={!rawInput.trim() || (!adoptedAi && !draftDoc.trim())}
               className="bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50"
             >
               <Save className="mr-1.5 h-4 w-4" />
-              保存する
+              申し送り書を保存
             </Button>
           </div>
         </form>
