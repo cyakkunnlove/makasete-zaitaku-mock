@@ -732,7 +732,7 @@ export default function PatientDetailPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <FileText className="h-4 w-4 text-purple-400" />
-            申し送り履歴
+            夜間対応履歴
             <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
               {patientHandovers.length}
             </Badge>
@@ -740,7 +740,7 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent>
           {patientHandovers.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">申し送り履歴はありません。</p>
+            <p className="py-4 text-center text-xs text-gray-500">夜間対応履歴はありません。</p>
           ) : (
             <div className="space-y-2">
               {patientHandovers.map((ho) => (
@@ -761,7 +761,7 @@ export default function PatientDetailPage() {
                           {ho.confirmed ? '確認済' : '未確認'}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-xs text-gray-400">薬剤師: {ho.pharmacistName}</p>
+                      <p className="mt-1 text-xs text-gray-400">夜間対応: {ho.pharmacistName}</p>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-xs text-gray-500">{ho.timestamp}</p>

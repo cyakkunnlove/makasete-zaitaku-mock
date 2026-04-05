@@ -248,7 +248,7 @@ export default function RequestDetailPage() {
               <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 受付→患者特定→対応開始→完了 の流れで表示。患者詳細・FAX原本・申し送り本文は非表示</p>
             )}
             {isNightPharmacist && (
-              <p className="mt-1 text-[11px] text-sky-300">Night Pharmacist は電話受電後にFAX内容を確認し、患者検索・患者確認を行い、確認時点のタイムスタンプを受付時間として記録して対応・申し送りへ進みます。</p>
+              <p className="mt-1 text-[11px] text-sky-300">Night Pharmacist は電話受電後にFAX内容を確認し、患者検索・患者確認を行い、確認時点のタイムスタンプを受付時間として記録して対応完了後に夜間対応内容を残します。</p>
             )}
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function RequestDetailPage() {
               </Link>
               <Link href={`/dashboard/handovers/new?requestId=${request.id}`}>
                 <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
-                  申し送り作成
+                  夜間対応内容を残す
                 </Button>
               </Link>
             </>
