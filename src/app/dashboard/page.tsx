@@ -1321,23 +1321,17 @@ function PharmacistDashboard() {
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間受付ワークスペース</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。電話受電・FAX確認を起点に患者検索し、患者を確認した時点で受付登録します。</p>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <Link href="/dashboard/requests">
               <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4 transition hover:border-indigo-400">
-                <p className="text-sm font-medium text-white">電話受付 / 進行中案件</p>
-                <p className="mt-1 text-xs text-gray-400">受付中・対応中案件を確認</p>
+                <p className="text-sm font-medium text-white">依頼管理</p>
+                <p className="mt-1 text-xs text-gray-400">受電済み / FAX受信済み / 患者特定待ち / 進行中案件を確認</p>
               </div>
             </Link>
-            <Link href="/dashboard/night-patients?source=fax">
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 transition hover:border-amber-400">
-                <p className="text-sm font-medium text-white">FAX確認から患者検索</p>
-                <p className="mt-1 text-xs text-gray-400">FAX内容をもとに患者を照合</p>
-              </div>
-            </Link>
-            <Link href="/dashboard/night-patients?source=phone">
+            <Link href="/dashboard/night-patients">
               <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 transition hover:border-sky-400">
-                <p className="text-sm font-medium text-white">患者検索して受付登録</p>
-                <p className="mt-1 text-xs text-gray-400">確認押下時刻を受付時間として登録</p>
+                <p className="text-sm font-medium text-white">患者特定</p>
+                <p className="mt-1 text-xs text-gray-400">依頼詳細またはFAX内容を確認し、患者を検索して確定</p>
               </div>
             </Link>
           </div>
@@ -1352,7 +1346,7 @@ function PharmacistDashboard() {
         <CardContent className="grid gap-3 md:grid-cols-3 text-sm">
           <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
             <p className="text-xs text-gray-500">受付起点</p>
-            <p className="mt-1 text-white">電話受電 / FAX確認</p>
+            <p className="mt-1 text-white">受電後にFAX受信まで含めた受付フロー</p>
           </div>
           <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
             <p className="text-xs text-gray-500">受付時間</p>

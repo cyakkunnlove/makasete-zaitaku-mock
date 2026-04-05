@@ -27,8 +27,8 @@ export default function NightPatientDetailPage() {
   const id = params.id as string
   const [nightNote, setNightNote] = useState('')
   const requestId = searchParams.get('requestId')
-  const source = searchParams.get('source') ?? 'phone'
-  const sourceLabel = source === 'fax' ? 'FAX確認' : '電話受付'
+  const source = searchParams.get('source') ?? 'request'
+  const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
   const patient = useMemo(() => patientData.find((p) => p.id === id), [id])
   const patientHandovers = useMemo(() => handoverData.filter((h) => h.patientId === id).slice(0, 3), [id])
@@ -62,7 +62,7 @@ export default function NightPatientDetailPage() {
         </Link>
         <div>
           <h1 className="text-lg font-semibold text-white">夜間患者詳細</h1>
-          <p className="text-xs text-gray-400">{sourceLabel}から検索した患者を確認し、ここで受付登録する想定です。</p>
+          <p className="text-xs text-gray-400">{sourceLabel}後に患者を確認し、ここで受付登録する想定です。</p>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function NightPatientDetailPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                確認ボタンを押した時刻を受付時間として記録し、タイムラインへ反映する想定です。{requestId ? ` 対象依頼: ${requestId}` : ''}
+                確認ボタンを押した時刻をタイムスタンプとして記録し、受付時間としてタイムラインへ反映する想定です。{requestId ? ` 対象依頼: ${requestId}` : ''}
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-lg font-semibold text-white">{patient.name}</p>

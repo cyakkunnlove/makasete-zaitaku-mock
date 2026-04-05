@@ -24,8 +24,8 @@ export default function NightPatientsPage() {
   const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const requestId = searchParams.get('requestId')
-  const source = searchParams.get('source') ?? 'phone'
-  const sourceLabel = source === 'fax' ? 'FAX確認' : '電話受付'
+  const source = searchParams.get('source') ?? 'request'
+  const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -54,13 +54,13 @@ export default function NightPatientsPage() {
     <div className="space-y-4 text-gray-100">
       <div>
         <h1 className="text-lg font-semibold text-white">夜間患者検索</h1>
-        <p className="text-xs text-gray-400">{sourceLabel}を起点に患者を検索し、対象患者を確認して受付登録します。</p>
+        <p className="text-xs text-gray-400">{sourceLabel}後に患者を検索し、対象患者を確認して受付登録します。</p>
       </div>
 
       <Card className="border-amber-500/30 bg-amber-500/10">
         <CardContent className="space-y-2 p-4 text-xs text-amber-100">
           <p>検索範囲はリージョンアドミン管轄内の患者に限定します。全患者一覧は表示せず、検索ヒットした患者のみ確認します。</p>
-          <p>「確認して受付登録」を押した時刻が受付時間としてタイムラインに載る想定です。</p>
+          <p>「確認して受付登録」を押した時刻がタイムスタンプとして記録され、受付時間としてタイムラインに載る想定です。</p>
           {requestId && <p className="text-amber-200/80">対象依頼: {requestId}</p>}
         </CardContent>
       </Card>
