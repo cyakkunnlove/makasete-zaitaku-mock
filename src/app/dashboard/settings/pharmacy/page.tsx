@@ -133,7 +133,7 @@ export default function PharmacySettingsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-xs text-gray-300">
             <Link href="/dashboard/settings/notifications" className="block text-indigo-300 hover:text-indigo-200">通知設定を開く</Link>
-            <Link href="/dashboard/handovers" className="block text-indigo-300 hover:text-indigo-200">申し送り一覧を開く</Link>
+            <span className="block text-gray-500">申し送りは薬局トップと患者詳細から確認</span>
             <Link href="/dashboard/requests" className="block text-indigo-300 hover:text-indigo-200">自局依頼一覧を開く</Link>
           </CardContent>
         </Card>
