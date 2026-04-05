@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, TriangleAlert } from 'lucide-react'
+import { Search, TriangleAlert, FileImage, ExternalLink } from 'lucide-react'
 import { patientData, requestData } from '@/lib/mock-data'
 
 function calculateAge(dob: string): number {
@@ -71,7 +71,7 @@ export default function NightPatientsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-white">受付内容 / FAX確認</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs text-gray-300">
+          <CardContent className="space-y-4 text-xs text-gray-300">
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                 <p className="text-gray-500">受付時刻</p>
@@ -86,14 +86,41 @@ export default function NightPatientsPage() {
                 <p className="mt-1 text-white">{request.pharmacyName}</p>
               </div>
             </div>
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-gray-500">受付内容</p>
-              <p className="mt-1 text-white">{request.symptom}</p>
-              <p className="mt-1 text-gray-400">{request.notes ?? '追加メモなし'}</p>
-            </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-amber-100">FAXで届いた処方箋画像を見ながら患者特定する想定です。</p>
-              <p className="mt-1 text-amber-200/80">モックでは画像URL: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
+
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-xl border border-amber-500/30 bg-[#11182c] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileImage className="h-4 w-4 text-amber-300" />
+                    <p className="text-sm font-medium text-white">処方箋FAX画像</p>
+                  </div>
+                  {request.faxImageUrl && (
+                    <a href={request.faxImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-indigo-300 hover:text-indigo-200">
+                      開く
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+                <div className="mt-3 flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5">
+                  <div className="space-y-2 px-6 text-center">
+                    <FileImage className="mx-auto h-10 w-10 text-amber-300" />
+                    <p className="text-sm text-amber-100">FAXで届いた処方箋画像をここで確認</p>
+                    <p className="text-[11px] text-amber-200/70">モックURL: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <p className="text-gray-500">受付内容</p>
+                  <p className="mt-1 text-sm text-white">{request.symptom}</p>
+                  <p className="mt-2 text-gray-400">{request.notes ?? '追加メモなし'}</p>
+                </div>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-amber-100">患者特定は、電話で受けた内容とFAX画像の両方を見ながら行います。</p>
+                  <p className="mt-1 text-amber-200/80">候補患者を検索し、確認して受付登録してください。</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
