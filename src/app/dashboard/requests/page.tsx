@@ -45,12 +45,6 @@ import type { RequestStatus } from '@/types/database'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
 
-const tabItems: Array<{ key: TabKey; label: string }> = [
-  { key: 'received', label: '受付/特定(5)' },
-  { key: 'active', label: '対応中(3)' },
-  { key: 'completed', label: '完了(24)' },
-  { key: 'all', label: '全件' },
-]
 
 function getAdminStatus(status: RequestStatus, patientId: string | null) {
   if (status === 'completed') {
@@ -74,6 +68,43 @@ function getAdminStatus(status: RequestStatus, patientId: string | null) {
   return {
     label: '受付',
     className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  }
+}
+
+function getNightPharmacistStatus(status: RequestStatus, patientId: string | null) {
+  if (status === 'completed') {
+    return {
+      label: '完了',
+      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+    }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return {
+      label: '対応中',
+      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+    }
+  }
+  if (patientId) {
+    return {
+      label: '受付済み',
+      className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+    }
+  }
+  if (status === 'fax_received') {
+    return {
+      label: '患者特定待ち',
+      className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+    }
+  }
+  if (status === 'fax_pending') {
+    return {
+      label: 'FAX受信待ち',
+      className: 'border-purple-500/40 bg-purple-500/20 text-purple-300',
+    }
+  }
+  return {
+    label: '受電済み',
+    className: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
   }
 }
 
@@ -154,6 +185,21 @@ export default function RequestsPage() {
     return requestData
   }, [isNightPharmacist, isPharmacyAdmin])
 
+  const tabItems = useMemo<Array<{ key: TabKey; label: string }>>(() => {
+    const receivedCount = visibleRequests.filter((request) =>
+      ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)
+    ).length
+    const activeCount = visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+    const completedCount = visibleRequests.filter((request) => request.status === 'completed').length
+
+    return [
+      { key: 'received', label: `受付処理中(${receivedCount})` },
+      { key: 'active', label: `対応中(${activeCount})` },
+      { key: 'completed', label: `完了(${completedCount})` },
+      { key: 'all', label: `全件(${visibleRequests.length})` },
+    ]
+  }, [visibleRequests])
+
   const filteredRequests = useMemo(() => {
     switch (activeTab) {
       case 'received':
@@ -181,7 +227,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '自分に連携された夜間依頼のみ表示します。依頼から患者検索・対応・申し送り作成へ進みます。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '電話受電後にFAX受信・患者特定・受付登録・対応へ進む夜間依頼を一覧で確認します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -203,19 +249,14 @@ export default function RequestsPage() {
         </div>
       )}
 
-      {isNightPharmacist && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-emerald-300">{visibleRequests.filter((request) => request.status === 'completed').length}</p><p className="text-[10px] text-gray-500">完了済み</p></CardContent></Card>
-        </div>
-      )}
+
 
       {isNightPharmacist && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-emerald-300">{visibleRequests.filter((request) => request.status === 'completed').length}</p><p className="text-[10px] text-gray-500">完了済み</p></CardContent></Card>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-cyan-300">{visibleRequests.filter((request) => request.status === 'received').length}</p><p className="text-[10px] text-gray-500">受電済み</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-300">{visibleRequests.filter((request) => request.status === 'fax_pending').length}</p><p className="text-[10px] text-gray-500">FAX受信待ち</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => request.status === 'fax_received' || (!request.patientId && ['assigning', 'assigned', 'checklist'].includes(request.status))).length}</p><p className="text-[10px] text-gray-500">患者特定待ち</p></CardContent></Card>
+          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
         </div>
       )}
 
@@ -243,7 +284,7 @@ export default function RequestsPage() {
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
         {filteredRequests.map((request) => {
-          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : statusMeta[request.status]
+          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const slaInfo = getSlaInfo(request.slaMet, request.status)
           const patientLabel = isAdmin
@@ -316,7 +357,7 @@ export default function RequestsPage() {
           </TableHeader>
           <TableBody>
             {filteredRequests.map((request) => {
-              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : statusMeta[request.status]
+              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
               const slaInfo = getSlaInfo(request.slaMet, request.status)
               const patientLabel = isAdmin
