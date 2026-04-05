@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, TriangleAlert } from 'lucide-react'
-import { patientData } from '@/lib/mock-data'
+import { patientData, requestData } from '@/lib/mock-data'
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
@@ -25,6 +25,7 @@ export default function NightPatientsPage() {
   const [query, setQuery] = useState('')
   const requestId = searchParams.get('requestId')
   const source = searchParams.get('source') ?? 'request'
+  const request = requestId ? requestData.find((item) => item.id === requestId) : null
   const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
   const filtered = useMemo(() => {
@@ -64,6 +65,39 @@ export default function NightPatientsPage() {
           {requestId && <p className="text-amber-200/80">対象依頼: {requestId}</p>}
         </CardContent>
       </Card>
+
+      {request && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white">受付内容 / FAX確認</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs text-gray-300">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <p className="text-gray-500">受付時刻</p>
+                <p className="mt-1 text-white">{request.receivedDate} {request.receivedAt}</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <p className="text-gray-500">FAX状況</p>
+                <p className="mt-1 text-white">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</p>
+              </div>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <p className="text-gray-500">薬局</p>
+                <p className="mt-1 text-white">{request.pharmacyName}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <p className="text-gray-500">受付内容</p>
+              <p className="mt-1 text-white">{request.symptom}</p>
+              <p className="mt-1 text-gray-400">{request.notes ?? '追加メモなし'}</p>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-amber-100">FAXで届いた処方箋画像を見ながら患者特定する想定です。</p>
+              <p className="mt-1 text-amber-200/80">モックでは画像URL: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-3">

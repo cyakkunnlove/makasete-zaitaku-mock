@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, CheckCircle2, Clock3, Plus } from 'lucide-react'
+import { Clock3, Plus } from 'lucide-react'
 import {
   requestData,
   statusMeta,
@@ -127,34 +127,6 @@ function getPharmacyStatus(status: RequestStatus) {
   }
 }
 
-const terminalStatuses: RequestStatus[] = ['completed', 'cancelled']
-
-function getSlaInfo(slaMet: boolean | null, status: RequestStatus) {
-  if (slaMet === true) {
-    return {
-      label: '達成',
-      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-      icon: CheckCircle2,
-    }
-  }
-  if (slaMet === false) {
-    return {
-      label: '違反',
-      className: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
-      icon: AlertTriangle,
-    }
-  }
-  // slaMet === null
-  if (terminalStatuses.includes(status)) {
-    return null // no badge for completed/cancelled with null SLA
-  }
-  return {
-    label: '計測中',
-    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-    icon: Clock3,
-  }
-}
-
 export default function RequestsPage() {
   const router = useRouter()
   const { role } = useAuth()
@@ -180,7 +152,7 @@ export default function RequestsPage() {
       return requestData.filter((request) => request.pharmacyId === ownPharmacyId)
     }
     if (isNightPharmacist) {
-      return requestData.filter((request) => request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一')
+      return requestData.filter((request) => (request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一') && request.receivedDate === '2026-03-05')
     }
     return requestData
   }, [isNightPharmacist, isPharmacyAdmin])
@@ -227,7 +199,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '電話受電後にFAX受信・患者特定・受付登録・対応へ進む夜間依頼を一覧で確認します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -286,7 +258,6 @@ export default function RequestsPage() {
         {filteredRequests.map((request) => {
           const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
-          const slaInfo = getSlaInfo(request.slaMet, request.status)
           const patientLabel = isAdmin
             ? request.patientId
               ? '患者特定済'
@@ -315,12 +286,6 @@ export default function RequestsPage() {
                       <Badge variant="outline" className={cn('border text-xs', status.className)}>
                         {status.label}
                       </Badge>
-                      {slaInfo && (
-                        <Badge variant="outline" className={cn('border text-xs', slaInfo.className)}>
-                          <slaInfo.icon className="mr-0.5 h-3 w-3" />
-                          {slaInfo.label}
-                        </Badge>
-                      )}
                     </div>
                   </div>
 
@@ -334,6 +299,12 @@ export default function RequestsPage() {
                       優先度 {priority.label}
                     </span>
                   </div>
+                  {isNightPharmacist && (
+                    <div className="mt-2 text-[11px] text-gray-400">
+                      <p className="truncate">{request.symptom}</p>
+                      <p className="mt-1">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX内容は患者特定画面で確認'}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
@@ -351,16 +322,15 @@ export default function RequestsPage() {
               <TableHead className="text-gray-400">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
               <TableHead className="text-gray-400">薬局名</TableHead>
               <TableHead className="text-gray-400">ステータス</TableHead>
-              <TableHead className="text-gray-400">SLA</TableHead>
-              <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '担当者'}</TableHead>
+              <TableHead className="text-gray-400">受付概要</TableHead>
+              <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRequests.map((request) => {
               const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
-              const slaInfo = getSlaInfo(request.slaMet, request.status)
-              const patientLabel = isAdmin
+                  const patientLabel = isAdmin
                 ? request.patientId
                   ? '患者特定済'
                   : '患者未特定'
@@ -398,17 +368,16 @@ export default function RequestsPage() {
                       {status.label}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {slaInfo ? (
-                      <Badge variant="outline" className={cn('border text-xs', slaInfo.className)}>
-                        <slaInfo.icon className="mr-0.5 h-3 w-3" />
-                        {slaInfo.label}
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-gray-500">-</span>
-                    )}
+                  <TableCell className="max-w-[260px] text-xs text-gray-300">
+                    <div className="space-y-1">
+                      <p className="truncate">{request.symptom}</p>
+                      <div className="flex gap-2 text-[10px]">
+                        <span className={request.status === 'fax_pending' ? 'text-purple-300' : 'text-gray-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
+                        <span className={request.patientId ? 'text-indigo-300' : 'text-amber-300'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : request.assignee}</TableCell>
+                  <TableCell className="text-xs text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
                 </TableRow>
               )
             })}
