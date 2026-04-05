@@ -62,12 +62,14 @@ export default function HandoversPage() {
             <Printer className="h-4 w-4" />
             印刷
           </Button>
-          <Link href="/dashboard/handovers/new">
-            <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">
-              <Plus className="h-4 w-4" />
-              新規申し送り
-            </Button>
-          </Link>
+          {role !== 'night_pharmacist' && (
+            <Link href="/dashboard/handovers/new">
+              <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+                <Plus className="h-4 w-4" />
+                新規申し送り
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

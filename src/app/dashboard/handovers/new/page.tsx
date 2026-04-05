@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle } from 'lucide-react'
+import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { patientData, requestData } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -149,66 +149,86 @@ export default function NewHandoverPage() {
               <CardTitle className="text-sm text-white">依頼の紐付け</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="request" className="text-gray-300">対応した依頼</Label>
-                <Select value={selectedRequestId} onValueChange={handleRequestChange}>
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-200">
-                    <SelectValue placeholder="依頼を選択（任意）" />
-                  </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#1a2035] text-gray-200">
-                    <SelectItem value="none">紐付けなし</SelectItem>
-                    {requestData.map((req) => (
-                      <SelectItem key={req.id} value={req.id}>
-                        {req.id} - {req.patientName ?? '患者未特定'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!selectedRequest || !isLocked ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="request" className="text-gray-300">対応した依頼</Label>
+                    <Select value={selectedRequestId} onValueChange={handleRequestChange}>
+                      <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-200">
+                        <SelectValue placeholder="依頼を選択（任意）" />
+                      </SelectTrigger>
+                      <SelectContent className="border-[#2a3553] bg-[#1a2035] text-gray-200">
+                        <SelectItem value="none">紐付けなし</SelectItem>
+                        {requestData.map((req) => (
+                          <SelectItem key={req.id} value={req.id}>
+                            {req.id} - {req.patientName ?? '患者未特定'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="patientName" className="text-gray-300">患者名</Label>
-                  <Input
-                    id="patientName"
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="例: 田中 優子"
-                    required
-                    disabled={isLocked}
-                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pharmacyName" className="text-gray-300">薬局名</Label>
-                  <Input
-                    id="pharmacyName"
-                    value={pharmacyName}
-                    onChange={(e) => setPharmacyName(e.target.value)}
-                    placeholder="例: 城南みらい薬局"
-                    required
-                    disabled={isLocked}
-                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="assignedPharmacist" className="text-gray-300">対応薬剤師</Label>
-                  <Input
-                    id="assignedPharmacist"
-                    value={assignedPharmacist}
-                    onChange={(e) => setAssignedPharmacist(e.target.value)}
-                    placeholder="夜間担当薬剤師"
-                    required
-                    disabled={isLocked}
-                    className="border-[#2a3553] bg-[#1a2035] text-gray-200 disabled:opacity-70"
-                  />
-                </div>
-              </div>
-
-              {selectedRequest && isLocked && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-100">
-                  この依頼では患者・薬局・対応薬剤師がすでに特定済みのため、ここでは編集せず固定表示にしています。
-                </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="patientName" className="text-gray-300">患者名</Label>
+                      <Input
+                        id="patientName"
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="例: 田中 優子"
+                        required
+                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pharmacyName" className="text-gray-300">薬局名</Label>
+                      <Input
+                        id="pharmacyName"
+                        value={pharmacyName}
+                        onChange={(e) => setPharmacyName(e.target.value)}
+                        placeholder="例: 城南みらい薬局"
+                        required
+                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="assignedPharmacist" className="text-gray-300">対応薬剤師</Label>
+                      <Input
+                        id="assignedPharmacist"
+                        value={assignedPharmacist}
+                        onChange={(e) => setAssignedPharmacist(e.target.value)}
+                        placeholder="夜間担当薬剤師"
+                        required
+                        className="border-[#2a3553] bg-[#1a2035] text-gray-200"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                    <Lock className="h-3.5 w-3.5" />
+                    この申し送りは依頼に紐づくため、依頼情報は固定表示です。
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3">
+                      <p className="text-xs text-gray-500">依頼ID</p>
+                      <p className="mt-1 text-sm text-white">{selectedRequest.id}</p>
+                    </div>
+                    <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3">
+                      <p className="text-xs text-gray-500">患者名</p>
+                      <p className="mt-1 text-sm text-white">{patientName}</p>
+                    </div>
+                    <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3">
+                      <p className="text-xs text-gray-500">薬局名</p>
+                      <p className="mt-1 text-sm text-white">{pharmacyName}</p>
+                    </div>
+                    <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3">
+                      <p className="text-xs text-gray-500">対応薬剤師</p>
+                      <p className="mt-1 text-sm text-white">{assignedPharmacist}</p>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
