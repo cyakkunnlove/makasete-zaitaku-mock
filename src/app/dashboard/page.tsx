@@ -1307,6 +1307,8 @@ function PharmacistDashboard() {
   const inProgressCount = ownAssignments.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
   const completedCount = ownAssignments.filter((request) => request.status === 'completed').length
   const faxCount = ownAssignments.filter((request) => ['fax_pending', 'fax_received'].includes(request.status)).length
+  const intakeRequests = ownAssignments.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status))
+  const newestIntakeRequest = intakeRequests[0] ?? null
 
   return (
     <div className="space-y-4">
@@ -1317,21 +1319,56 @@ function PharmacistDashboard() {
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-indigo-300">{faxCount}</p><p className="text-[10px] text-gray-500">FAX確認待ち</p></CardContent></Card>
       </div>
 
+      {newestIntakeRequest && (
+        <Card className="border-rose-500/30 bg-rose-500/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-rose-100">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-rose-400" />
+              新規あり
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-100">新規受付</span>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-100">{newestIntakeRequest.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</span>
+                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-100">{newestIntakeRequest.receivedAt}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{newestIntakeRequest.pharmacyName}</p>
+                  <p className="mt-1 text-xs text-gray-300">{newestIntakeRequest.symptom}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">電子FAXの添付処方箋を確認してから患者特定へ進みます。</p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
+                  <Button className="w-full bg-rose-600 text-white hover:bg-rose-500">確認する</Button>
+                </Link>
+                <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
+                  <Button variant="outline" className="w-full border-[#2a3553] bg-[#11182c] text-gray-100 hover:bg-[#1a2035]">患者特定へ進む</Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間受付ワークスペース</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。電話受電・FAX確認を起点に患者検索し、患者を確認した時点で受付登録します。</p>
+          <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。新規受付はまずダッシュボードで検知し、電子FAXの添付処方箋を確認してから患者特定へ進みます。</p>
           <div className="grid gap-3 md:grid-cols-2">
             <Link href="/dashboard/requests">
               <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4 transition hover:border-indigo-400">
                 <p className="text-sm font-medium text-white">依頼管理</p>
-                <p className="mt-1 text-xs text-gray-400">受電済み / FAX受信済み / 患者特定待ち / 進行中案件を確認</p>
+                <p className="mt-1 text-xs text-gray-400">受けた後の案件一覧と進行状況を確認</p>
               </div>
             </Link>
             <Link href="/dashboard/night-patients">
               <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 transition hover:border-sky-400">
                 <p className="text-sm font-medium text-white">患者特定</p>
-                <p className="mt-1 text-xs text-gray-400">依頼詳細またはFAX内容を確認し、患者を検索して確定</p>
+                <p className="mt-1 text-xs text-gray-400">新規受付またはFAX確認後に患者を検索して確定</p>
               </div>
             </Link>
           </div>
