@@ -84,10 +84,10 @@ export default function RequestFaxReviewPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <FileImage className="h-4 w-4 text-indigo-400" />
-              未確認FAX
+              FAX原本確認（依頼と共通）
             </CardTitle>
             <CardDescription className="text-gray-400">
-              まずはFAX原本を見て、患者候補との一致を確認します。
+              このFAX原本は関連画面と同じ request.faxImageUrl を参照します。まずは原本を見て、患者候補との一致を確認します。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -111,7 +111,7 @@ export default function RequestFaxReviewPage() {
                 <div className="flex items-start justify-between border-b border-slate-300 pb-3">
                   <div>
                     <p className="text-xs text-slate-500">受信FAX</p>
-                    <p className="text-base font-bold">処方箋 / 夜間受付資料</p>
+                    <p className="text-base font-bold">処方箋 / 夜間受付資料（共通FAX原本）</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500">受信 {request.receivedDate} {request.receivedAt}</p>
@@ -128,7 +128,7 @@ export default function RequestFaxReviewPage() {
                   <p><span className="font-semibold">生年月日:</span> （要確認）</p>
                   <p><span className="font-semibold">薬局名:</span> （要確認）</p>
                   <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-                    この時点では患者・薬局は未特定です。FAX原本の内容を優先して照合してください。
+                    この時点では患者・薬局は未特定です。関連画面と同じFAX原本を見ている前提で、内容を優先して照合してください。
                   </div>
                 </div>
               </div>

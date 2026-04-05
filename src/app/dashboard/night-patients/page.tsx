@@ -70,7 +70,7 @@ export default function NightPatientsPage() {
       {request && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">未確認FAX</CardTitle>
+            <CardTitle className="text-sm text-white">FAX原本確認（依頼と共通）</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-xs text-gray-300">
             <div className="grid gap-3 md:grid-cols-3">
@@ -93,7 +93,7 @@ export default function NightPatientsPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FileImage className="h-4 w-4 text-amber-300" />
-                    <p className="text-sm font-medium text-white">処方箋FAX画像</p>
+                    <p className="text-sm font-medium text-white">処方箋FAX画像（依頼画面と共通）</p>
                   </div>
                   {request.faxImageUrl && (
                     <a href={request.faxImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-indigo-300 hover:text-indigo-200">
@@ -106,7 +106,7 @@ export default function NightPatientsPage() {
                   <div className="space-y-2 px-6 text-center">
                     <FileImage className="mx-auto h-10 w-10 text-amber-300" />
                     <p className="text-sm text-amber-100">FAXで届いた処方箋画像をここで確認</p>
-                    <p className="text-[11px] text-amber-200/70">モックURL: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
+                    <p className="text-[11px] text-amber-200/70">依頼 {request.id} のFAX原本を共通参照: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
                   </div>
                 </div>
               </div>
