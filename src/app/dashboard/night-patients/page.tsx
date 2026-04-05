@@ -143,8 +143,8 @@ export default function NightPatientsPage() {
                 <p className="mt-1 text-white">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</p>
               </div>
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                <p className="text-gray-500">薬局</p>
-                <p className="mt-1 text-white">{request.pharmacyName}</p>
+                <p className="text-gray-500">状態</p>
+                <p className="mt-1 text-white">患者・薬局 未特定</p>
               </div>
             </div>
 
@@ -173,13 +173,13 @@ export default function NightPatientsPage() {
 
               <div className="space-y-3">
                 <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                  <p className="text-gray-500">受付内容</p>
-                  <p className="mt-1 text-sm text-white">{request.symptom}</p>
-                  <p className="mt-2 text-gray-400">{request.notes ?? '追加メモなし'}</p>
+                  <p className="text-gray-500">受電メモ（未確認）</p>
+                  <p className="mt-1 text-sm text-white">{request.symptom || '受電内容は未整理'}</p>
+                  <p className="mt-2 text-gray-400">{request.notes ?? '補足メモなし'}</p>
                 </div>
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                  <p className="text-amber-100">患者特定は、電話で受けた内容とFAX画像の両方を見ながら行います。</p>
-                  <p className="mt-1 text-amber-200/80">候補患者を検索し、確認して受付登録してください。</p>
+                  <p className="text-amber-100">この時点では患者・薬局はまだ未特定です。FAX画像を主に確認しながら患者を特定します。</p>
+                  <p className="mt-1 text-amber-200/80">受電メモは仮情報として扱い、候補患者を検索して確認してください。</p>
                 </div>
               </div>
             </div>

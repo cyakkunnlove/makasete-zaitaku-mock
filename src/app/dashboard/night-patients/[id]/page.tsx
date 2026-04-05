@@ -71,7 +71,7 @@ export default function NightPatientDetailPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                確認ボタンを押した時刻をタイムスタンプとして記録し、受付時間としてタイムラインへ反映する想定です。{requestId ? ` 対象依頼: ${requestId}` : ''}
+                ここでは患者確認の最終確認を行います。確定した時刻がタイムスタンプとして記録され、受付時間としてタイムラインへ反映されます。{requestId ? ` 対象依頼: ${requestId}` : ''}
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-lg font-semibold text-white">{patient.name}</p>
@@ -173,9 +173,10 @@ export default function NightPatientDetailPage() {
 
       <Card className="border-indigo-500/30 bg-indigo-500/10">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-indigo-100">受付登録</CardTitle>
+          <CardTitle className="text-sm text-indigo-100">患者確認・受付確定</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-sm text-indigo-50">この患者で問題なければ、受付を確定します。確定した時刻が受付時間として記録されます。</p>
           <div className="grid gap-3 md:grid-cols-3 text-sm">
             <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
               <p className="text-xs text-indigo-200/70">受付起点</p>
@@ -183,23 +184,23 @@ export default function NightPatientDetailPage() {
             </div>
             <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
               <p className="text-xs text-indigo-200/70">受付時間</p>
-              <p className="mt-1 text-white">確認ボタン押下時刻</p>
+              <p className="mt-1 text-white">確定時に自動記録</p>
             </div>
             <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
-              <p className="text-xs text-indigo-200/70">次アクション</p>
-              <p className="mt-1 text-white">対応開始 → 申し送り作成</p>
+              <p className="text-xs text-indigo-200/70">現在の状態</p>
+              <p className="mt-1 text-white">未登録</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {requestId ? (
               <Link href={`/dashboard/requests/${requestId}`}>
-                <Button className="bg-indigo-600 text-white hover:bg-indigo-500">確認して受付登録</Button>
+                <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者で受付確定</Button>
               </Link>
             ) : (
-              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">確認して受付登録（モック）</Button>
+              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者で受付確定（モック）</Button>
             )}
-            <Link href={requestId ? `/dashboard/requests/${requestId}` : '/dashboard/requests'}>
-              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">案件詳細へ戻る</Button>
+            <Link href="/dashboard/night-patients">
+              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">患者検索に戻る</Button>
             </Link>
           </div>
         </CardContent>
