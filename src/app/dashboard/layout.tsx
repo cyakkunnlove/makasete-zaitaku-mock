@@ -142,7 +142,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const filteredNav = navItems
     .filter((item) => canAccess(role, item.permission))
-    .filter((item) => !(role === 'night_pharmacist' && item.href === '/dashboard/handovers'))
+    .filter((item) => !((role === 'night_pharmacist' || role === 'regional_admin') && item.href === '/dashboard/handovers'))
     .map((item) => {
       if (item.href === '/dashboard/billing') {
         if (role === 'pharmacy_admin' || role === 'pharmacy_staff') return { ...item, label: '回収管理' }
@@ -156,7 +156,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const visibleMobileNavItems = mobileNavItems.filter((item) => {
     if (!canAccess(role, item.permission)) return false
     if (role === 'night_pharmacist' && item.href === '/dashboard/patients') return false
-    if (role === 'night_pharmacist' && item.href === '/dashboard/handovers') return false
+    if ((role === 'night_pharmacist' || role === 'regional_admin') && item.href === '/dashboard/handovers') return false
     return true
   })
 
@@ -261,7 +261,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {filteredNav
           .filter((item) => {
             if (role === 'night_pharmacist' && item.href === '/dashboard/patients') return false
-            if (role === 'night_pharmacist' && item.href === '/dashboard/handovers') return false
+            if ((role === 'night_pharmacist' || role === 'regional_admin') && item.href === '/dashboard/handovers') return false
             if ((role === 'pharmacy_staff' || role === 'pharmacy_admin') && item.href === '/dashboard/night-patients') return false
             return true
           })
