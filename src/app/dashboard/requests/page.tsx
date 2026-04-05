@@ -71,6 +71,19 @@ function getAdminStatus(status: RequestStatus, patientId: string | null) {
   }
 }
 
+function getNightNextAction(request: (typeof requestData)[number]) {
+  if (request.status === 'fax_pending') {
+    return { label: 'FAX受信待ち', href: `/dashboard/requests/${request.id}`, tone: 'muted' as const }
+  }
+  if (!request.patientId || ['fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)) {
+    return { label: 'FAX確認・患者特定', href: `/dashboard/night-patients?requestId=${request.id}&source=fax`, tone: 'primary' as const }
+  }
+  if (['dispatched', 'arrived', 'in_progress'].includes(request.status)) {
+    return { label: '対応中を確認', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
+  }
+  return { label: '依頼詳細を開く', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
+}
+
 function getNightPharmacistStatus(status: RequestStatus, patientId: string | null) {
   if (status === 'completed') {
     return {
@@ -300,9 +313,31 @@ export default function RequestsPage() {
                     </span>
                   </div>
                   {isNightPharmacist && (
-                    <div className="mt-2 text-[11px] text-gray-400">
-                      <p className="truncate">{request.symptom}</p>
-                      <p className="mt-1">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX内容は患者特定画面で確認'}</p>
+                    <div className="mt-2 space-y-2 text-[11px] text-gray-400">
+                      <div>
+                        <p className="truncate">{request.symptom}</p>
+                        <p className="mt-1">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX内容は患者特定画面で確認'}</p>
+                      </div>
+                      {(() => {
+                        const nextAction = getNightNextAction(request)
+                        return (
+                          <Link href={nextAction.href} onClick={(event) => event.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              className={cn(
+                                'h-8 w-full',
+                                nextAction.tone === 'primary'
+                                  ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                  : nextAction.tone === 'secondary'
+                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
+                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                              )}
+                            >
+                              {nextAction.label}
+                            </Button>
+                          </Link>
+                        )
+                      })()}
                     </div>
                   )}
                 </CardContent>
@@ -324,6 +359,7 @@ export default function RequestsPage() {
               <TableHead className="text-gray-400">ステータス</TableHead>
               <TableHead className="text-gray-400">受付概要</TableHead>
               <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
+              {isNightPharmacist && <TableHead className="text-gray-400">次の操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -378,6 +414,30 @@ export default function RequestsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
+                  {isNightPharmacist && (
+                    <TableCell>
+                      {(() => {
+                        const nextAction = getNightNextAction(request)
+                        return (
+                          <Link href={nextAction.href} onClick={(event) => event.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              className={cn(
+                                'h-8',
+                                nextAction.tone === 'primary'
+                                  ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                  : nextAction.tone === 'secondary'
+                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
+                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                              )}
+                            >
+                              {nextAction.label}
+                            </Button>
+                          </Link>
+                        )
+                      })()}
+                    </TableCell>
+                  )}
                 </TableRow>
               )
             })}
