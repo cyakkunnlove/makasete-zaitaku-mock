@@ -1336,17 +1336,14 @@ function PharmacistDashboard() {
                   <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-100">{newestIntakeRequest.receivedAt}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{newestIntakeRequest.pharmacyName}</p>
+                  <p className="text-sm font-medium text-white">患者・薬局は未特定</p>
                   <p className="mt-1 text-xs text-gray-300">{newestIntakeRequest.symptom}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">電子FAXの添付処方箋を確認してから患者特定へ進みます。</p>
+                  <p className="mt-1 text-[11px] text-gray-400">電子FAXの添付処方箋を確認し、内容を見ながら患者と薬局を特定します。</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
-                  <Button className="w-full bg-rose-600 text-white hover:bg-rose-500">確認する</Button>
-                </Link>
-                <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
-                  <Button variant="outline" className="w-full border-[#2a3553] bg-[#11182c] text-gray-100 hover:bg-[#1a2035]">患者特定へ進む</Button>
+                  <Button className="w-full bg-rose-600 text-white hover:bg-rose-500">内容を確認する</Button>
                 </Link>
               </div>
             </div>
