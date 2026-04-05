@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
@@ -45,6 +45,7 @@ ${rawInput.includes('薬') ? '・処方内容の確認をお願いします' : '
 export default function NewHandoverPage() {
   useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
   const [patientName, setPatientName] = useState('')
@@ -59,10 +60,25 @@ export default function NewHandoverPage() {
   const [photoFiles, setPhotoFiles] = useState<string[]>([])
   const [adoptedAi, setAdoptedAi] = useState(false)
 
+  const requestedRequestId = searchParams.get('requestId') ?? ''
+
   const selectedRequest = useMemo(
     () => (selectedRequestId && selectedRequestId !== 'none' ? requestData.find((r) => r.id === selectedRequestId) : null),
     [selectedRequestId]
   )
+
+  useEffect(() => {
+    if (!requestedRequestId || selectedRequestId) return
+    const request = requestData.find((r) => r.id === requestedRequestId)
+    if (!request) return
+
+    setSelectedRequestId(requestedRequestId)
+    const patient = request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+    setPatientName(patient?.name ?? request.patientName ?? '')
+    setPharmacyName(patient?.pharmacyName ?? request.pharmacyName ?? '')
+    setAssignedPharmacist(request.assignee && request.assignee !== '未割当' ? request.assignee : '夜間担当薬剤師')
+    setIsLocked(Boolean(patient?.name || request.patientName || request.pharmacyName || request.assignee))
+  }, [requestedRequestId, selectedRequestId])
 
   const handleRequestChange = (value: string) => {
     setSelectedRequestId(value)

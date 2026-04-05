@@ -267,7 +267,7 @@ export default function RequestDetailPage() {
                   患者検索
                 </Button>
               </Link>
-              <Link href="/dashboard/handovers/new">
+              <Link href={`/dashboard/handovers/new?requestId=${request.id}`}>
                 <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
                   申し送り作成
                 </Button>
