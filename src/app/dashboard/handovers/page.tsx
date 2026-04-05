@@ -7,20 +7,25 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { CheckCircle2, ChevronDown, ChevronUp, Plus, ShieldCheck, Printer } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Plus, ShieldCheck, Printer, Pencil } from 'lucide-react'
 import { handoverData, sbarStyles } from '@/lib/mock-data'
 
 export default function HandoversPage() {
   const { role } = useAuth()
-  const [expandedId, setExpandedId] = useState<string | null>(handoverData[0]?.id ?? null)
+  const visibleHandovers = useMemo(() => {
+    if (role !== 'night_pharmacist') return handoverData
+    return handoverData.filter((h) => h.pharmacistName === '佐藤 健一' && h.timestamp.startsWith('2026/03/05'))
+  }, [role])
+
+  const [expandedId, setExpandedId] = useState<string | null>(visibleHandovers[0]?.id ?? null)
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(
-    () => new Set(handoverData.filter((h) => h.confirmed).map((h) => h.id))
+    () => new Set(visibleHandovers.filter((h) => h.confirmed).map((h) => h.id))
   )
   const [staffConfirmedIds, setStaffConfirmedIds] = useState<Set<string>>(new Set())
 
   const unconfirmedCount = useMemo(
-    () => handoverData.filter((h) => !confirmedIds.has(h.id)).length,
-    [confirmedIds]
+    () => visibleHandovers.filter((h) => !confirmedIds.has(h.id)).length,
+    [confirmedIds, visibleHandovers]
   )
 
   const handleConfirm = (id: string) => {
@@ -42,7 +47,7 @@ export default function HandoversPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">申し送り</h1>
-          <p className="text-xs text-gray-400">SBAR形式で夜間対応内容を共有・確認</p>
+          <p className="text-xs text-gray-400">{role === 'night_pharmacist' ? '今日、自分が作成した申し送りだけを表示し、必要に応じて編集します。' : 'SBAR形式で夜間対応内容を共有・確認'}</p>
           {role === 'pharmacy_admin' && (
             <p className="mt-1 text-[11px] text-amber-200">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
           )}
@@ -74,7 +79,11 @@ export default function HandoversPage() {
       </div>
 
       <div className="space-y-3">
-        {handoverData.map((handover) => {
+        {visibleHandovers.length === 0 && role === 'night_pharmacist' ? (
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardContent className="p-6 text-sm text-gray-400">本日、自分が作成した申し送りはありません。</CardContent>
+          </Card>
+        ) : visibleHandovers.map((handover) => {
           const isExpanded = expandedId === handover.id
           const isConfirmed = confirmedIds.has(handover.id)
           const isStaffConfirmed = staffConfirmedIds.has(handover.id)
@@ -92,6 +101,14 @@ export default function HandoversPage() {
                   </Link>
 
                   <div className="flex items-center gap-2">
+                    {role === 'night_pharmacist' && (
+                      <Link href={`/dashboard/handovers/new?requestId=${handover.requestId ?? ''}`}>
+                        <Button variant="outline" size="sm" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          編集
+                        </Button>
+                      </Link>
+                    )}
                     <Badge
                       variant="outline"
                       className={cn(
