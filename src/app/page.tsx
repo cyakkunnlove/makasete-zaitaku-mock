@@ -8,9 +8,9 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  Headphones,
   Heart,
   LogIn,
+  Mail,
   Moon,
   Phone,
   Route,
@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button'
 const services = [
   {
     id: 'knowhow',
-    name: 'ノウハウツール',
+    name: '在宅はじめてキット',
     tagline: '在宅の「はじめ方」を、型にする',
     description:
       '導入診断・学習コンテンツ・タスク管理・添削まで、在宅を始めるために必要なノウハウを体系化。何から手をつければいいか分からない状態を解消し、最短で初回受入を実現します。',
@@ -38,7 +38,7 @@ const services = [
   },
   {
     id: 'omakase',
-    name: 'オマカセ在宅プラン',
+    name: '在宅運用サポート',
     tagline: '運用の「回し方」を、任せられる',
     description:
       '患者情報管理・依頼受付・アサイン・チェックリスト・申し送り(SBAR)まで、在宅業務のオペレーションを一気通貫で支援。日々のルーチンを仕組み化し、属人化を防ぎます。',
@@ -48,7 +48,7 @@ const services = [
   },
   {
     id: 'night',
-    name: '夜間連携',
+    name: '夜間対応代行',
     tagline: '夜間の「断らない」を、支える',
     description:
       '22時〜翌6時の夜間対応を専門薬剤師チームが代行。受電→アサイン→対応→申し送りまで15分SLAで運用し、翌朝には加盟薬局へ完全引継ぎ。患者も薬局も安心して夜を過ごせます。',
@@ -58,7 +58,7 @@ const services = [
   },
   {
     id: 'makaseta',
-    name: 'マカセタ在宅プラン',
+    name: '経営分析・レポート',
     tagline: '在宅の「その先」を、描ける',
     description:
       '月次レポート・KPI分析・請求管理・監査ログなど、在宅事業の見える化と経営判断を支援。地域の在宅体制を持続可能にするための戦略基盤を提供します。',
@@ -99,11 +99,11 @@ const nightFlowSteps = [
   },
 ]
 
-const stats = [
-  { value: '15', unit: '分', label: 'SLA目標（折返し）' },
-  { value: '24', unit: 'h', label: '対応体制' },
-  { value: '99.2', unit: '%', label: 'SLA達成率' },
-  { value: '150', unit: '+', label: '対応実績（月間）' },
+const commitments = [
+  { value: '15', unit: '分', label: '折返しSLA目標' },
+  { value: '24', unit: 'h', label: '切れ目のない対応体制' },
+  { value: 'SBAR', unit: '', label: '標準化された申し送り' },
+  { value: '5', unit: '年', label: '対応記録の保存期間' },
 ]
 
 const valueProps = [
@@ -175,9 +175,14 @@ export default function CorporateHomepage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <Moon className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-white">
-              マカセテ在宅
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold leading-tight tracking-tight text-white">
+                マカセテ在宅
+              </span>
+              <span className="hidden text-[10px] leading-none text-gray-500 sm:block">
+                マカセテ在宅株式会社
+              </span>
+            </div>
           </div>
           <div className="hidden items-center gap-8 md:flex">
             <a href="#services" className="text-sm text-gray-400 transition hover:text-white">
@@ -206,7 +211,7 @@ export default function CorporateHomepage() {
               className="bg-indigo-600 text-sm text-white hover:bg-indigo-500"
               onClick={() => router.push('/onboarding')}
             >
-              無料で始める
+              導入相談
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </div>
@@ -275,17 +280,30 @@ export default function CorporateHomepage() {
                 size="lg"
                 variant="outline"
                 className="w-full border-[#2a3553] bg-[#11182c]/50 px-8 text-base text-gray-200 hover:border-gray-600 hover:bg-[#1a2035] sm:w-auto"
-                onClick={() => router.push('/login')}
               >
-                管理画面へログイン
+                <Mail className="mr-2 h-4 w-4" />
+                資料請求・お問い合わせ
               </Button>
             </div>
+
+            <p className="mt-4 text-xs text-gray-600">
+              既にご利用の方は
+              <button
+                onClick={() => router.push('/login')}
+                className="ml-1 text-indigo-400/70 underline underline-offset-2 transition hover:text-indigo-400"
+              >
+                管理画面へログイン
+              </button>
+            </p>
           </div>
 
-          {/* Stats bar */}
+          {/* Commitments bar */}
           <div className="mx-auto mt-20 max-w-3xl">
+            <p className="mb-3 text-center text-xs font-medium tracking-wider text-gray-600">
+              私たちの約束
+            </p>
             <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] md:grid-cols-4">
-              {stats.map((stat) => (
+              {commitments.map((stat) => (
                 <div
                   key={stat.label}
                   className="flex flex-col items-center justify-center px-4 py-6 transition hover:bg-white/[0.02] md:py-8"
@@ -294,7 +312,9 @@ export default function CorporateHomepage() {
                     <span className="text-3xl font-bold tabular-nums text-white md:text-4xl">
                       {stat.value}
                     </span>
-                    <span className="text-lg font-medium text-indigo-400">{stat.unit}</span>
+                    {stat.unit && (
+                      <span className="text-lg font-medium text-indigo-400">{stat.unit}</span>
+                    )}
                   </div>
                   <span className="mt-1.5 text-xs text-gray-500">{stat.label}</span>
                 </div>
@@ -309,15 +329,18 @@ export default function CorporateHomepage() {
         <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-indigo-400">
-              Our Mission
+              About Us
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               すべての患者に、夜も届く薬局を。
             </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              マカセテ在宅株式会社のミッション
+            </p>
             <p className="mt-6 text-base leading-relaxed text-gray-400 sm:text-lg">
               マカセテ在宅株式会社は、在宅医療における薬局の役割を最大化するために設立されました。
               「在宅をやりたいけれど始め方がわからない」「夜間対応のリソースがない」
-              ——そうした薬局の課題を、テクノロジーと専門チームの力で解決します。
+              ——そうした薬局が抱える構造的な課題を、テクノロジーと専門チームの力で解決します。
             </p>
             <p className="mt-4 text-base leading-relaxed text-gray-400 sm:text-lg">
               私たちが目指すのは、患者が安心して在宅療養を続けられる地域医療インフラの構築。
@@ -325,12 +348,24 @@ export default function CorporateHomepage() {
             </p>
           </div>
 
-          {/* Trust indicators */}
+          {/* Business pillars */}
           <div className="mx-auto mt-16 grid max-w-4xl gap-6 md:grid-cols-3">
             {[
-              { label: '医療系SaaS開発', detail: '薬事法準拠のデータ管理', icon: Shield },
-              { label: '夜間専門オペレーション', detail: '22:00〜翌6:00を完全カバー', icon: Clock },
-              { label: '加盟薬局ネットワーク', detail: '地域ごとの在宅薬局連携', icon: Building2 },
+              {
+                label: '在宅導入・運用支援SaaS',
+                detail: '薬局の在宅業務をデジタル化し、導入から日常運用までを一貫サポート',
+                icon: Shield,
+              },
+              {
+                label: '夜間薬剤師派遣・代行',
+                detail: '22:00〜翌6:00の夜間対応を専門薬剤師チームが完全代行',
+                icon: Clock,
+              },
+              {
+                label: '地域薬局ネットワーク構築',
+                detail: '加盟薬局間の連携を促進し、面的な在宅医療体制を実現',
+                icon: Building2,
+              },
             ].map((item) => (
               <div
                 key={item.label}
@@ -341,7 +376,7 @@ export default function CorporateHomepage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">{item.label}</p>
-                  <p className="mt-1 text-sm text-gray-500">{item.detail}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-500">{item.detail}</p>
                 </div>
               </div>
             ))}
@@ -370,7 +405,7 @@ export default function CorporateHomepage() {
           </div>
 
           <div className="mt-16 grid gap-6 md:grid-cols-2">
-            {services.map((service) => {
+            {services.map((service, i) => {
               const colors = colorMap[service.color]
               const Icon = service.icon
               return (
@@ -384,10 +419,15 @@ export default function CorporateHomepage() {
                   />
 
                   <div className="relative">
-                    <div
-                      className={`mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl border ${colors.border} ${colors.bg}`}
-                    >
-                      <Icon className={`h-6 w-6 ${colors.text}`} />
+                    <div className="mb-5 flex items-center gap-3">
+                      <div
+                        className={`inline-flex h-12 w-12 items-center justify-center rounded-xl border ${colors.border} ${colors.bg}`}
+                      >
+                        <Icon className={`h-6 w-6 ${colors.text}`} />
+                      </div>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.06] text-xs font-bold text-gray-500">
+                        {i + 1}
+                      </span>
                     </div>
 
                     <h3 className="text-xl font-bold text-white">{service.name}</h3>
@@ -422,7 +462,7 @@ export default function CorporateHomepage() {
               Night Collaboration
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              夜間連携の流れ
+              夜間対応代行の流れ
             </h2>
             <p className="mt-4 text-base text-gray-400 sm:text-lg">
               22:00〜翌6:00。加盟薬局の電話転送を受けてから、
@@ -514,23 +554,19 @@ export default function CorporateHomepage() {
             ))}
           </div>
 
-          {/* Testimonial-style highlight */}
+          {/* Voice of stakeholder — framed as aspiration */}
           <div className="mx-auto mt-20 max-w-3xl text-center">
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 md:p-12">
               <p className="text-lg font-medium leading-relaxed text-gray-300 md:text-xl">
-                &ldquo;夜間対応を任せることで、スタッフの離職が減り、
+                &ldquo;夜間対応を仕組み化することで、薬局スタッフの負担を減らしながら
                 <br className="hidden md:block" />
-                在宅患者数を
-                <span className="font-bold text-emerald-400">1.8倍</span>
-                に増やすことができました。&rdquo;
+                在宅患者の受入体制を
+                <span className="font-bold text-emerald-400">着実に拡大</span>
+                できる環境をつくりたい。&rdquo;
               </p>
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-white">加盟薬局 A</p>
-                  <p className="text-xs text-gray-500">管理薬剤師</p>
-                </div>
-              </div>
+              <p className="mt-6 text-sm text-gray-500">
+                — マカセテ在宅が加盟薬局と共に目指す姿
+              </p>
             </div>
           </div>
         </div>
@@ -550,8 +586,8 @@ export default function CorporateHomepage() {
               いま踏み出しませんか。
             </h2>
             <p className="mt-6 text-base text-gray-400 sm:text-lg">
-              導入診断は無料。所要5分で、あなたの薬局に最適な在宅参入プランが分かります。
-              まずは現状を整理するところから、お手伝いします。
+              まずは無料の導入診断で、貴薬局の在宅参入に最適なプランを確認。
+              個別のご相談や資料のご請求も、お気軽にどうぞ。
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -565,11 +601,11 @@ export default function CorporateHomepage() {
               </Button>
               <Button
                 size="lg"
-                variant="ghost"
-                className="w-full text-base text-gray-300 hover:bg-white/5 hover:text-white sm:w-auto"
+                variant="outline"
+                className="w-full border-[#2a3553] bg-[#11182c]/50 px-8 text-base text-gray-200 hover:border-gray-600 hover:bg-[#1a2035] sm:w-auto"
               >
-                <Headphones className="mr-2 h-4 w-4" />
-                お問い合わせ
+                <Mail className="mr-2 h-4 w-4" />
+                お問い合わせ・資料請求
               </Button>
             </div>
 
@@ -590,12 +626,22 @@ export default function CorporateHomepage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
                   <Moon className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-lg font-semibold text-white">マカセテ在宅</span>
+                <div className="flex flex-col">
+                  <span className="text-lg font-semibold leading-tight text-white">マカセテ在宅</span>
+                  <span className="text-[10px] leading-none text-gray-500">マカセテ在宅株式会社</span>
+                </div>
               </div>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-500">
                 マカセテ在宅株式会社は、在宅医療における薬局支援に特化したヘルスケアテクノロジー企業です。
                 薬局の在宅参入を支援し、夜間を含む24時間体制の在宅薬学的ケアの実現を目指しています。
               </p>
+              {/* Corporate details */}
+              <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs text-gray-600">
+                <dt className="text-gray-500">所在地</dt>
+                <dd>東京都世田谷区</dd>
+                <dt className="text-gray-500">事業内容</dt>
+                <dd>在宅薬局支援SaaS開発・夜間薬剤師派遣事業</dd>
+              </dl>
             </div>
 
             {/* Links */}
@@ -604,7 +650,7 @@ export default function CorporateHomepage() {
                 サービス
               </h3>
               <ul className="mt-4 space-y-3">
-                {['ノウハウツール', 'オマカセ在宅プラン', '夜間連携', 'マカセタ在宅プラン'].map(
+                {['在宅はじめてキット', '在宅運用サポート', '夜間対応代行', '経営分析・レポート'].map(
                   (item) => (
                     <li key={item}>
                       <a
@@ -621,27 +667,33 @@ export default function CorporateHomepage() {
 
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                会社情報
+                企業情報
               </h3>
               <ul className="mt-4 space-y-3">
-                {['会社概要', '採用情報', 'プライバシーポリシー', '利用規約'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm text-gray-500 transition hover:text-gray-300">
-                      {item}
-                    </a>
-                  </li>
-                ))}
+                {['会社概要', 'お問い合わせ', '採用情報', 'プライバシーポリシー', '利用規約'].map(
+                  (item) => (
+                    <li key={item}>
+                      <a href="#" className="text-sm text-gray-500 transition hover:text-gray-300">
+                        {item}
+                      </a>
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           </div>
 
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/[0.04] pt-8 md:flex-row">
             <p className="text-xs text-gray-600">
-              &copy; {new Date().getFullYear()} マカセテ在宅株式会社. All rights reserved.
+              &copy; {new Date().getFullYear()} マカセテ在宅株式会社 All rights reserved.
             </p>
             <div className="flex items-center gap-6">
-              <span className="text-xs text-gray-600">医療情報の取り扱いについて</span>
-              <span className="text-xs text-gray-600">特定商取引法に基づく表記</span>
+              <a href="#" className="text-xs text-gray-600 transition hover:text-gray-400">
+                医療情報の取り扱いについて
+              </a>
+              <a href="#" className="text-xs text-gray-600 transition hover:text-gray-400">
+                特定商取引法に基づく表記
+              </a>
             </div>
           </div>
         </div>
