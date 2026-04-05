@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Search, TriangleAlert, FileImage, ExternalLink, ArrowRight } from 'lucide-react'
+import { Search, TriangleAlert, FileImage, ExternalLink } from 'lucide-react'
 import { patientData, requestData } from '@/lib/mock-data'
 
 function calculateAge(dob: string): number {
@@ -19,30 +19,79 @@ function calculateAge(dob: string): number {
   return age
 }
 
-const requestCandidateMap: Record<string, string[]> = {
-  'RQ-2401': ['PT-001'],
-  'RQ-2402': ['PT-002'],
-  'RQ-2403': ['PT-009'],
-  'RQ-2404': ['PT-006'],
-  'RQ-2405': ['PT-007'],
+const patientNameReadings: Record<string, string[]> = {
+  'PT-001': ['たなかゆうこ'],
+  'PT-011': ['ささきこういち'],
+  'PT-012': ['なかむらこういち'],
+  'PT-013': ['まつもとこういち'],
+  'PT-002': ['おがわまさこ'],
+  'PT-003': ['はしもとかずこ'],
+  'PT-004': ['しみずこういち'],
+  'PT-005': ['いのうえこういち'],
+  'PT-006': ['わたなべみわ'],
+  'PT-007': ['やまもとなおこ'],
+  'PT-008': ['もりたこういち'],
+  'PT-009': ['はやしこういち'],
+  'PT-010': ['たかだこういち'],
+}
+
+function normalizeText(value: string) {
+  return value.replace(/[\s　\-ー]/g, '').toLowerCase()
+}
+
+function warekiToSeireki(input: string) {
+  const normalized = normalizeText(input)
+  const match = normalized.match(/^(令和|平成|昭和|r|h|s)(\d+|元)年?(\d{1,2})月?(\d{1,2})日?$/i)
+  if (!match) return null
+  const era = match[1].toLowerCase()
+  const year = match[2] === '元' ? 1 : Number(match[2])
+  const month = String(Number(match[3])).padStart(2, '0')
+  const day = String(Number(match[4])).padStart(2, '0')
+  let baseYear = 0
+  if (era === '令和' || era === 'r') baseYear = 2018
+  else if (era === '平成' || era === 'h') baseYear = 1988
+  else if (era === '昭和' || era === 's') baseYear = 1925
+  else return null
+  return `${baseYear + year}-${month}-${day}`
+}
+
+function normalizeBirthDateInput(input: string) {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  const fromWareki = warekiToSeireki(trimmed)
+  if (fromWareki) return fromWareki
+  const normalized = trimmed.replace(/[年月/.]/g, '-').replace(/日/g, '').replace(/\s+/g, '')
+  const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (!match) return null
+  const year = match[1]
+  const month = String(Number(match[2])).padStart(2, '0')
+  const day = String(Number(match[3])).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export default function NightPatientsPage() {
   const { role } = useAuth()
   const searchParams = useSearchParams()
+  const [nameQuery, setNameQuery] = useState('')
+  const [birthDateQuery, setBirthDateQuery] = useState('')
   const requestId = searchParams.get('requestId')
   const source = searchParams.get('source') ?? 'request'
   const request = requestId ? requestData.find((item) => item.id === requestId) : null
   const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
-  const candidatePatients = useMemo(() => {
-    if (!requestId) return []
+  const normalizedName = normalizeText(nameQuery)
+  const normalizedBirthDate = normalizeBirthDateInput(birthDateQuery)
+  const canSearch = normalizedName.length > 0 && Boolean(normalizedBirthDate)
 
-    const candidateIds = requestCandidateMap[requestId] ?? []
-    return candidateIds
-      .map((id) => patientData.find((patient) => patient.id === id))
-      .filter((patient): patient is NonNullable<typeof patient> => Boolean(patient))
-  }, [requestId])
+  const filtered = useMemo(() => {
+    if (!canSearch || !normalizedBirthDate) return []
+    return patientData.filter((patient) => {
+      const nameMatch = normalizeText(patient.name).includes(normalizedName)
+      const readingMatch = (patientNameReadings[patient.id] ?? []).some((reading) => normalizeText(reading).includes(normalizedName))
+      const dobMatch = patient.dob === normalizedBirthDate
+      return (nameMatch || readingMatch) && dobMatch
+    })
+  }, [canSearch, normalizedBirthDate, normalizedName])
 
   if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
@@ -55,14 +104,14 @@ export default function NightPatientsPage() {
   return (
     <div className="space-y-4 text-gray-100">
       <div>
-        <h1 className="text-lg font-semibold text-white">FAX確認・患者確認</h1>
-        <p className="text-xs text-gray-400">{sourceLabel}後の確認画面です。FAX内容を見ながら患者候補を確認し、確定後に対応へ進みます。</p>
+        <h1 className="text-lg font-semibold text-white">夜間患者検索</h1>
+        <p className="text-xs text-gray-400">{sourceLabel}後に患者を検索し、対象患者を確認して受付登録します。</p>
       </div>
 
       <Card className="border-amber-500/30 bg-amber-500/10">
         <CardContent className="space-y-2 p-4 text-xs text-amber-100">
-          <p>この画面は患者検索そのものではなく、FAX確認後に候補患者を確認するための画面です。</p>
-          <p>患者を確定した時刻がタイムスタンプとして記録され、受付時間としてタイムラインに反映されます。</p>
+          <p>検索範囲はリージョンアドミン管轄内の患者に限定します。全患者一覧は表示せず、検索ヒットした患者のみ確認します。</p>
+          <p>氏名（漢字または読み仮名）と生年月日の両方を入力したときだけ候補を表示します。生年月日は西暦・和暦どちらでも入力できます。</p>
           {requestId && <p className="text-amber-200/80">対象依頼: {requestId}</p>}
         </CardContent>
       </Card>
@@ -110,14 +159,10 @@ export default function NightPatientsPage() {
                   </div>
                 </div>
               </div>
-
               <div className="space-y-3">
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-                  <p className="text-sm font-medium text-amber-100">患者候補を確認してください</p>
-                  <p className="mt-2 text-xs text-amber-200/80">FAX内容を見て候補患者を確認し、問題なければ受付を確定して対応へ進みます。</p>
-                </div>
-                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-[11px] text-gray-400">
-                  受電メモはこの段階では仮情報です。患者候補とFAX画像の一致を優先して確認します。
+                  <p className="text-sm font-medium text-amber-100">まだ患者・薬局は未特定です</p>
+                  <p className="mt-2 text-xs text-amber-200/80">/dashboard/requests/[id]/fax と同じFAX原本を見ています。内容を確認して患者検索へ進んでください。</p>
                 </div>
               </div>
             </div>
@@ -129,78 +174,63 @@ export default function NightPatientsPage() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <Search className="h-4 w-4 text-indigo-400" />
-            確認患者
+            患者検索
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input value={nameQuery} onChange={(e) => setNameQuery(e.target.value)} placeholder="氏名または読み仮名を入力" className="border-[#2a3553] bg-[#11182c] text-gray-100" />
+            <Input value={birthDateQuery} onChange={(e) => setBirthDateQuery(e.target.value)} placeholder="生年月日（例: 1948-06-12 / 昭和23年6月12日）" className="border-[#2a3553] bg-[#11182c] text-gray-100" />
+          </div>
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
             <div className="flex items-start gap-2">
               <TriangleAlert className="mt-0.5 h-4 w-4 text-amber-300" />
-              <p>ここは検索画面ではなく、FAX確認後に絞り込まれた患者候補を確認する画面です。</p>
+              <p>氏名と生年月日の両方が一致したときだけ候補を表示します。氏名は読み仮名でも検索でき、生年月日は西暦・和暦どちらでも入力可能です。</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {candidatePatients.length === 0 ? (
-            <Card className="border-[#2a3553] bg-[#11182c]">
-              <CardContent className="p-4 text-sm text-gray-400">
-                まだ患者候補がありません。FAX内容確認後に候補が表示されます。
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {candidatePatients.map((patient) => (
-                <Card key={patient.id} className="border-indigo-500/30 bg-indigo-500/10">
-                  <CardContent className="space-y-4 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+      {canSearch && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-white">検索結果 {filtered.length}件</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {filtered.length === 0 ? (
+              <p className="text-sm text-gray-400">一致する患者が見つかりません。</p>
+            ) : (
+              filtered.map((patient) => (
+                <Link key={patient.id} href={`/dashboard/night-patients/${patient.id}?source=${source}${requestId ? `&requestId=${requestId}` : ''}`}>
+                  <div className="rounded-lg border border-[#2a3553] bg-[#111827] p-4 transition hover:border-indigo-500/40 hover:bg-[#151d30]">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-base font-semibold text-white">{patient.name}</p>
-                          <Badge
-                            variant="outline"
-                            className={patient.status === 'active' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300'}
-                          >
+                          <p className="font-medium text-white">{patient.name}</p>
+                          <Badge variant="outline" className={patient.status === 'active' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300'}>
                             {patient.status === 'active' ? '利用中' : '休止'}
                           </Badge>
                         </div>
-                        <p className="mt-1 text-xs text-gray-300">生年月日: {patient.dob} / {calculateAge(patient.dob)}歳</p>
-                        <p className="mt-1 text-xs text-indigo-200">薬局: {patient.pharmacyName}</p>
+                        <p className="mt-1 text-xs text-gray-400">{patient.id} / {patient.dob} / {calculateAge(patient.dob)}歳</p>
+                        <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
                       </div>
-                      <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-100">
-                        候補確認済み
-                      </Badge>
+                      <div className="text-right text-xs text-gray-500">詳細を見る</div>
                     </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-                    <div className="grid gap-3 md:grid-cols-2 text-sm">
-                      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                        <p className="text-xs text-gray-500">確認ポイント</p>
-                        <p className="mt-1 text-white">氏名・生年月日・薬局情報をFAX内容と照合</p>
-                      </div>
-                      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                        <p className="text-xs text-gray-500">確定後</p>
-                        <p className="mt-1 text-white">受付時間を記録して、そのまま対応ページへ進む</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/dashboard/night-patients/${patient.id}?source=${source}${requestId ? `&requestId=${requestId}` : ''}`}>
-                        <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者を確認する</Button>
-                      </Link>
-                      {requestId && (
-                        <Link href={`/dashboard/requests/${requestId}`}>
-                          <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
-                            対応ページを見る
-                            <ArrowRight className="ml-1 h-4 w-4" />
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {!canSearch && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-4 text-xs text-gray-400">
+            候補表示には、氏名（漢字または読み仮名）と生年月日の両方の入力が必要です。
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
