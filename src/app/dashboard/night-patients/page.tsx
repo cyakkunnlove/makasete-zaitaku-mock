@@ -130,7 +130,7 @@ export default function NightPatientsPage() {
       {request && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">受付内容 / FAX確認</CardTitle>
+            <CardTitle className="text-sm text-white">未確認FAX</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-xs text-gray-300">
             <div className="grid gap-3 md:grid-cols-3">
@@ -172,14 +172,12 @@ export default function NightPatientsPage() {
               </div>
 
               <div className="space-y-3">
-                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                  <p className="text-gray-500">受電メモ（未確認）</p>
-                  <p className="mt-1 text-sm text-white">{request.symptom || '受電内容は未整理'}</p>
-                  <p className="mt-2 text-gray-400">{request.notes ?? '補足メモなし'}</p>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                  <p className="text-sm font-medium text-amber-100">まだ患者・薬局は未特定です</p>
+                  <p className="mt-2 text-xs text-amber-200/80">まずはFAX画像を確認し、その内容をもとに患者検索へ進んでください。</p>
                 </div>
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                  <p className="text-amber-100">この時点では患者・薬局はまだ未特定です。FAX画像を主に確認しながら患者を特定します。</p>
-                  <p className="mt-1 text-amber-200/80">受電メモは仮情報として扱い、候補患者を検索して確認してください。</p>
+                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-[11px] text-gray-400">
+                  受電メモはこの段階では仮情報です。患者検索後に内容を確認します。
                 </div>
               </div>
             </div>
