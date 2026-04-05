@@ -1305,29 +1305,63 @@ function PharmacistDashboard() {
   const ownAssignments = requestData.filter((request) => request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一')
   const waitingCount = ownAssignments.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
   const inProgressCount = ownAssignments.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
-  const handoverPendingCount = ownAssignments.filter((request) => request.status === 'completed').length
+  const completedCount = ownAssignments.filter((request) => request.status === 'completed').length
+  const faxCount = ownAssignments.filter((request) => ['fax_pending', 'fax_received'].includes(request.status)).length
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{ownAssignments.length}</p><p className="text-[10px] text-gray-500">自分の案件</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{waitingCount}</p><p className="text-[10px] text-gray-500">患者確認 / 対応待ち</p></CardContent></Card>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{ownAssignments.length}</p><p className="text-[10px] text-gray-500">夜間受付案件</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{waitingCount}</p><p className="text-[10px] text-gray-500">患者確認前 / 対応待ち</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{inProgressCount}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-indigo-300">{faxCount}</p><p className="text-[10px] text-gray-500">FAX確認待ち</p></CardContent></Card>
       </div>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間対応ワークスペース</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間受付ワークスペース</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-300">自分に連携された依頼を確認し、依頼詳細から患者検索・対応・申し送り作成へ進みます。</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。電話受電・FAX確認を起点に患者検索し、患者を確認した時点で受付登録します。</p>
+          <div className="grid gap-3 md:grid-cols-3">
             <Link href="/dashboard/requests">
-              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">自分の依頼一覧を開く</Button>
+              <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4 transition hover:border-indigo-400">
+                <p className="text-sm font-medium text-white">電話受付 / 進行中案件</p>
+                <p className="mt-1 text-xs text-gray-400">受付中・対応中案件を確認</p>
+              </div>
             </Link>
-            <Link href="/dashboard/night-patients">
-              <Button variant="outline" className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">夜間患者検索</Button>
+            <Link href="/dashboard/night-patients?source=fax">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 transition hover:border-amber-400">
+                <p className="text-sm font-medium text-white">FAX確認から患者検索</p>
+                <p className="mt-1 text-xs text-gray-400">FAX内容をもとに患者を照合</p>
+              </div>
+            </Link>
+            <Link href="/dashboard/night-patients?source=phone">
+              <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4 transition hover:border-sky-400">
+                <p className="text-sm font-medium text-white">患者検索して受付登録</p>
+                <p className="mt-1 text-xs text-gray-400">確認押下時刻を受付時間として登録</p>
+              </div>
             </Link>
           </div>
-          <p className="text-xs text-gray-500">Night Pharmacist には全患者一覧を出さず、依頼詳細→患者検索→対応→申し送り作成の流れを主導線にしています。</p>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+            患者検索範囲はリージョンアドミン管轄内に限定。全患者一覧は表示せず、検索→患者選択→確認→対応→申し送りの順で進む想定です。
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">受付ルール</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3 text-sm">
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+            <p className="text-xs text-gray-500">受付起点</p>
+            <p className="mt-1 text-white">電話受電 / FAX確認</p>
+          </div>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+            <p className="text-xs text-gray-500">受付時間</p>
+            <p className="mt-1 text-white">患者確認ボタン押下時刻</p>
+          </div>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+            <p className="text-xs text-gray-500">次アクション</p>
+            <p className="mt-1 text-white">対応開始 → 申し送り作成</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -1347,7 +1381,7 @@ function PharmacistDashboard() {
               </div>
             </Link>
           ))}
-          <p className="text-[11px] text-gray-500">完了済み案件 {handoverPendingCount} 件。申し送り未作成/未確認の最終整理は次工程で強化予定です。</p>
+          <p className="text-[11px] text-gray-500">完了済み案件 {completedCount} 件。申し送りは案件詳細から作成する想定です。</p>
         </CardContent>
       </Card>
     </div>

@@ -217,14 +217,11 @@ export default function RequestDetailPage() {
         { time: currentStep >= 6 ? '00:05' : '', label: '完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
       ]
     : [
-        { time: request.receivedAt, label: '受電・依頼受付', done: true, userName: '事務局' },
-        { time: currentStep >= 1 ? '23:12' : '', label: 'FAX受領', done: currentStep >= 1, userName: '事務局' },
-        { time: linkedAt, label: '患者特定', done: patientResolved, userName: request.patientLinkedBy ?? '' },
-        { time: currentStep >= 2 ? '23:15' : '', label: '夜間薬剤師アサイン', done: currentStep >= 2, userName: assignee?.name ?? '' },
-        { time: currentStep >= 3 ? '23:18' : '', label: '出動', done: currentStep >= 3, userName: assignee?.name ?? '' },
-        { time: currentStep >= 4 ? '23:32' : '', label: '現地到着', done: currentStep >= 4, userName: assignee?.name ?? '' },
-        { time: currentStep >= 5 ? '23:35' : '', label: '対応中', done: currentStep >= 5, userName: assignee?.name ?? '' },
-        { time: currentStep >= 6 ? '00:05' : '', label: '対応完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
+        { time: request.receivedAt, label: needsFaxReview ? 'FAX確認待ち' : '電話受付', done: true, userName: '事務局' },
+        { time: linkedAt, label: '患者確認・受付登録', done: patientResolved, userName: request.patientLinkedBy ?? assignee?.name ?? '' },
+        { time: currentStep >= 3 ? '23:18' : '', label: '対応開始', done: currentStep >= 3, userName: assignee?.name ?? '' },
+        { time: currentStep >= 5 ? '23:35' : '', label: '対応メモ追加', done: currentStep >= 5, userName: assignee?.name ?? '' },
+        { time: currentStep >= 6 ? '00:05' : '', label: '申し送り作成 / 対応完了', done: currentStep >= 6, userName: assignee?.name ?? '' },
       ]
 
   return (
@@ -250,7 +247,7 @@ export default function RequestDetailPage() {
               <p className="mt-1 text-[11px] text-amber-300">運営管理表示: 受付→患者特定→対応開始→完了 の流れで表示。患者詳細・FAX原本・申し送り本文は非表示</p>
             )}
             {isNightPharmacist && (
-              <p className="mt-1 text-[11px] text-sky-300">Night Pharmacist はこの依頼から患者検索・対応・申し送り作成へ進みます。</p>
+              <p className="mt-1 text-[11px] text-sky-300">Night Pharmacist は電話受付・FAX確認を起点に患者検索し、患者確認時点で受付登録して対応・申し送りへ進みます。</p>
             )}
           </div>
         </div>
@@ -264,7 +261,7 @@ export default function RequestDetailPage() {
           )}
           {isNightPharmacist && (
             <>
-              <Link href="/dashboard/night-patients">
+              <Link href={`/dashboard/night-patients?requestId=${request.id}${needsFaxReview ? '&source=fax' : '&source=phone'}`}>
                 <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
                   患者検索
                 </Button>
@@ -295,6 +292,25 @@ export default function RequestDetailPage() {
           </Badge>
         </div>
       </div>
+
+      {isNightPharmacist && (
+        <Card className="border-indigo-500/30 bg-indigo-500/10">
+          <CardContent className="grid gap-3 p-4 md:grid-cols-3">
+            <div>
+              <p className="text-[11px] text-indigo-200/70">受付起点</p>
+              <p className="mt-1 text-sm text-white">{needsFaxReview ? 'FAX確認' : '電話受付'}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-indigo-200/70">受付時間の定義</p>
+              <p className="mt-1 text-sm text-white">患者確認ボタン押下時刻</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-indigo-200/70">検索範囲</p>
+              <p className="mt-1 text-sm text-white">リージョンアドミン管轄内の患者</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Uber Eats Style Vertical Timeline - Always Visible */}
       <Card className="border-[#2a3553] bg-[#1a2035]">

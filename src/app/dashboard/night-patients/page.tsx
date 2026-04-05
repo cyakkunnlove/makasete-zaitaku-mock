@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,11 @@ function calculateAge(dob: string): number {
 
 export default function NightPatientsPage() {
   const { role } = useAuth()
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
+  const requestId = searchParams.get('requestId')
+  const source = searchParams.get('source') ?? 'phone'
+  const sourceLabel = source === 'fax' ? 'FAX確認' : '電話受付'
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -49,12 +54,14 @@ export default function NightPatientsPage() {
     <div className="space-y-4 text-gray-100">
       <div>
         <h1 className="text-lg font-semibold text-white">夜間患者検索</h1>
-        <p className="text-xs text-gray-400">患者一覧は表示せず、検索ヒットした患者だけを詳細確認します。</p>
+        <p className="text-xs text-gray-400">{sourceLabel}を起点に患者を検索し、対象患者を確認して受付登録します。</p>
       </div>
 
       <Card className="border-amber-500/30 bg-amber-500/10">
-        <CardContent className="p-4 text-xs text-amber-100">
-          night_pharmacist は、原則として依頼詳細からこの画面へ入り、患者照合を行います。独立検索はモック上の簡易導線として残しています。
+        <CardContent className="space-y-2 p-4 text-xs text-amber-100">
+          <p>検索範囲はリージョンアドミン管轄内の患者に限定します。全患者一覧は表示せず、検索ヒットした患者のみ確認します。</p>
+          <p>「確認して受付登録」を押した時刻が受付時間としてタイムラインに載る想定です。</p>
+          {requestId && <p className="text-amber-200/80">対象依頼: {requestId}</p>}
         </CardContent>
       </Card>
 
@@ -91,7 +98,7 @@ export default function NightPatientsPage() {
               <p className="text-sm text-gray-400">該当患者が見つかりません。</p>
             ) : (
               filtered.map((patient) => (
-                <Link key={patient.id} href={`/dashboard/night-patients/${patient.id}`}>
+                <Link key={patient.id} href={`/dashboard/night-patients/${patient.id}?source=${source}${requestId ? `&requestId=${requestId}` : ''}`}>
                   <div className="rounded-lg border border-[#2a3553] bg-[#111827] p-4 transition hover:border-indigo-500/40 hover:bg-[#151d30]">
                     <div className="flex items-start justify-between gap-3">
                       <div>

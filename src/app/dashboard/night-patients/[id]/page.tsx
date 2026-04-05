@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,8 +23,12 @@ function calculateAge(dob: string): number {
 export default function NightPatientDetailPage() {
   const { role } = useAuth()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
   const [nightNote, setNightNote] = useState('')
+  const requestId = searchParams.get('requestId')
+  const source = searchParams.get('source') ?? 'phone'
+  const sourceLabel = source === 'fax' ? 'FAX確認' : '電話受付'
 
   const patient = useMemo(() => patientData.find((p) => p.id === id), [id])
   const patientHandovers = useMemo(() => handoverData.filter((h) => h.patientId === id).slice(0, 3), [id])
@@ -58,7 +62,7 @@ export default function NightPatientDetailPage() {
         </Link>
         <div>
           <h1 className="text-lg font-semibold text-white">夜間患者詳細</h1>
-          <p className="text-xs text-gray-400">検索起点の専用詳細画面です。閲覧ログと権限制御を前提に運用します。</p>
+          <p className="text-xs text-gray-400">{sourceLabel}から検索した患者を確認し、ここで受付登録する想定です。</p>
         </div>
       </div>
 
@@ -66,6 +70,9 @@ export default function NightPatientDetailPage() {
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
+              <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                確認ボタンを押した時刻を受付時間として記録し、タイムラインへ反映する想定です。{requestId ? ` 対象依頼: ${requestId}` : ''}
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-lg font-semibold text-white">{patient.name}</p>
                 <Badge variant="outline" className={patient.status === 'active' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300'}>
@@ -161,6 +168,40 @@ export default function NightPatientDetailPage() {
               </div>
             ))
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-indigo-500/30 bg-indigo-500/10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-indigo-100">受付登録</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
+              <p className="text-xs text-indigo-200/70">受付起点</p>
+              <p className="mt-1 text-white">{sourceLabel}</p>
+            </div>
+            <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
+              <p className="text-xs text-indigo-200/70">受付時間</p>
+              <p className="mt-1 text-white">確認ボタン押下時刻</p>
+            </div>
+            <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
+              <p className="text-xs text-indigo-200/70">次アクション</p>
+              <p className="mt-1 text-white">対応開始 → 申し送り作成</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {requestId ? (
+              <Link href={`/dashboard/requests/${requestId}`}>
+                <Button className="bg-indigo-600 text-white hover:bg-indigo-500">確認して受付登録</Button>
+              </Link>
+            ) : (
+              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">確認して受付登録（モック）</Button>
+            )}
+            <Link href={requestId ? `/dashboard/requests/${requestId}` : '/dashboard/requests'}>
+              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">案件詳細へ戻る</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
