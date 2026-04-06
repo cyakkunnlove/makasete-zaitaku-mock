@@ -8,9 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DEMO_ROLE, MOCK_USERS } from '@/lib/mock-data'
 
-const IS_DEMO = true
-const DEMO_ROLE_STORAGE_KEY = 'makasete-demo-role'
-
 const roleOptions = [
   { value: 'system_admin', label: 'System Admin', destination: '/dashboard' },
   { value: 'regional_admin', label: 'Regional Admin', destination: '/dashboard' },
@@ -25,16 +22,7 @@ export default function LoginPage() {
   const selected = useMemo(() => roleOptions.find((item) => item.value === role) ?? roleOptions[0], [role])
 
   const handleDemoLogin = () => {
-    window.localStorage.setItem(DEMO_ROLE_STORAGE_KEY, role)
-    router.push(selected.destination)
-  }
-
-  if (!IS_DEMO) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0e1a] text-gray-400">
-        本番認証画面は Supabase 接続後に有効化されます。
-      </div>
-    )
+    router.push(`/api/demo-login?role=${role}`)
   }
 
   return (
@@ -44,18 +32,28 @@ export default function LoginPage() {
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-2xl">🧭</div>
             <div>
-              <h1 className="text-xl font-bold text-white">簡易ログイン（デモ）</h1>
-              <p className="text-sm text-gray-400">Supabase 未接続のため、ロールを選んで画面確認できます。</p>
+              <h1 className="text-xl font-bold text-white">ログイン</h1>
+              <p className="text-sm text-gray-400">Cognito 本番ログインと、移行期間用のデモログインを選べます。</p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-4 text-sm text-gray-300">
-            <p>入口ページから今後ログインする想定に合わせ、まずはロール別の見え方を確認できる状態にしています。</p>
+            <p>本番は Cognito 認証で入り、アカウント属性に応じた role / 表示内容へ切り替えます。移行期間中はデモログインも残します。</p>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4">
+            <div>
+              <p className="text-sm font-semibold text-white">本番ログイン</p>
+              <p className="mt-1 text-xs text-indigo-100/80">Cognito に遷移してログインします。将来的には role や所属情報をアカウント属性から反映します。</p>
+            </div>
+            <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-500" onClick={() => router.push('/api/auth/login')}>
+              Cognitoでログイン
+            </Button>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-gray-300">ログインするロール</Label>
+            <Label className="text-gray-300">デモログインするロール</Label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-200">
                 <SelectValue placeholder="ロールを選択" />
@@ -73,12 +71,12 @@ export default function LoginPage() {
           <div className="rounded-lg border border-[#2a3553] bg-[#0f172a] p-4 text-sm text-gray-300">
             <p className="font-medium text-white">選択中</p>
             <p className="mt-2">ユーザー: {MOCK_USERS[role]?.full_name}</p>
-            <p className="text-gray-400">遷移先: {selected.destination}</p>
+            <p className="text-gray-400">遷移先: {selected.destination}（デモ）</p>
           </div>
 
           <div className="flex gap-3">
             <Button className="flex-1 bg-indigo-600 text-white hover:bg-indigo-500" onClick={handleDemoLogin}>
-              このロールで入る
+              このロールでデモログイン
             </Button>
             <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => router.push('/')}>
               入口へ戻る

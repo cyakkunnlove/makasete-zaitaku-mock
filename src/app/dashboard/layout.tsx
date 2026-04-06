@@ -11,16 +11,8 @@ import {
   Settings, MessageCircle, Calendar, Search, Hospital
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
-import { getUnifiedRoleLabel } from '@/lib/mock-data'
 
 interface NavItem {
   href: string
@@ -123,7 +115,7 @@ function NightBadge() {
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, role, loading, signOut, switchRole } = useAuth()
+  const { user, role, loading, signOut, authMode } = useAuth()
   const unreadFaxCount = 2
   const candidateCount = 3
   const pharmacyStaffStats = {
@@ -421,45 +413,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Demo banner */}
-      <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs">
-        <div className="hidden md:flex items-center gap-3">
-          <span className="text-amber-300 font-medium">🎭 デモモード</span>
-          <span className="text-gray-400">ロール切替:</span>
-          <div className="flex flex-wrap gap-2">
-            {(['system_admin', 'regional_admin', 'pharmacy_admin', 'pharmacy_staff', 'night_pharmacist'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => switchRole(r)}
-                className={`px-2 py-0.5 rounded text-xs ${
-                  role === r ? 'bg-indigo-500 text-white' : 'bg-[#1a2035] text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                {getUnifiedRoleLabel(r)}
-              </button>
-            ))}
-          </div>
+      {authMode === 'mock' && (
+        <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-100">
+          🎭 デモログイン中です。画面確認用の暫定モードで、最終的には Cognito ログインへ統一予定です。
         </div>
-
-        <div className="md:hidden space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-300 font-medium">🎭 デモモード</span>
-            <span className="text-gray-400">ロール切替</span>
-          </div>
-          <Select value={role ?? undefined} onValueChange={switchRole}>
-            <SelectTrigger className="h-8 border-amber-500/30 bg-[#1a2035] text-xs text-gray-100">
-              <SelectValue placeholder="ロールを選択" />
-            </SelectTrigger>
-            <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-              <SelectItem value="system_admin">System Admin</SelectItem>
-              <SelectItem value="regional_admin">Regional Admin</SelectItem>
-              <SelectItem value="pharmacy_admin">Pharmacy Admin</SelectItem>
-              <SelectItem value="pharmacy_staff">Pharmacy Staff</SelectItem>
-              <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {/* Main content */}
       <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">

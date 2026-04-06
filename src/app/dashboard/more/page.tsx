@@ -90,7 +90,7 @@ const settingsItems: MenuItem[] = [
 ]
 
 export default function MorePage() {
-  const { user, role, signOut } = useAuth()
+  const { user, role, signOut, authMode } = useAuth()
 
   const visibleItems = menuItems
     .filter((item) => canAccess(role, item.permission))
@@ -119,6 +119,7 @@ export default function MorePage() {
               <p className="font-semibold text-white">{user?.full_name ?? 'ゲスト'}</p>
               <p className="text-xs text-gray-400">{role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
+              {authMode && <p className="text-[10px] text-gray-500">auth: {authMode}</p>}
             </div>
             <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg px-2.5 py-1.5">
               <Moon size={14} className="text-indigo-400" />
