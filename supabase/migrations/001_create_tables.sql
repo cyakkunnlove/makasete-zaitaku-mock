@@ -1,11 +1,13 @@
--- マカセテ在宅 - Database Schema (draft before real Supabase project creation)
+-- マカセテ在宅 - Database Schema
 -- 001: Create core tables aligned with current role / scope model
+-- Revised 2026-04-06 for Cognito + Postgres user model (no Supabase Auth dependency)
 
 create extension if not exists pgcrypto;
 
 -- ===== organizations =====
 create table if not exists organizations (
   id uuid primary key default gen_random_uuid(),
+  code text unique,
   name text not null,
   legal_name text,
   phone text,
@@ -13,6 +15,7 @@ create table if not exists organizations (
   night_start time default '22:00',
   night_end time default '06:00',
   sla_target_minutes int default 45,
+  status text not null default 'active' check (status in ('active', 'suspended', 'archived')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -21,6 +24,7 @@ create table if not exists organizations (
 create table if not exists regions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references organizations(id) on delete cascade,
+  code text not null,
   name text not null,
   hotline_phone text,
   fax_routing_policy text,
@@ -28,8 +32,10 @@ create table if not exists regions (
   sla_target_minutes int default 45,
   pending_escalation_minutes int default 15,
   handover_reminder_minutes int default 30,
+  status text not null default 'active' check (status in ('active', 'suspended', 'archived')),
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  unique (organization_id, code)
 );
 
 -- ===== operation_units =====
@@ -37,10 +43,13 @@ create table if not exists operation_units (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references organizations(id) on delete cascade,
   region_id uuid references regions(id) on delete cascade,
+  code text not null,
   name text not null,
-  active boolean default true,
+  kind text not null default 'night_ops' check (kind in ('night_ops', 'regional_ops', 'pharmacy_ops')),
+  status text not null default 'active' check (status in ('active', 'suspended', 'archived')),
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  unique (organization_id, code)
 );
 
 -- ===== pharmacies =====
@@ -49,6 +58,7 @@ create table if not exists pharmacies (
   organization_id uuid references organizations(id) on delete cascade,
   region_id uuid references regions(id) on delete set null,
   operation_unit_id uuid references operation_units(id) on delete set null,
+  code text not null,
   name text not null,
   area text,
   address text not null,
@@ -64,12 +74,14 @@ create table if not exists pharmacies (
   status text default 'pending' check (status in ('pending', 'active', 'suspended', 'terminated')),
   patient_count int default 0,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  unique (organization_id, code)
 );
 
 -- ===== users =====
 create table if not exists users (
-  id uuid primary key references auth.users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  cognito_sub text unique,
   organization_id uuid references organizations(id) on delete cascade,
   pharmacy_id uuid references pharmacies(id) on delete set null,
   region_id uuid references regions(id) on delete set null,
@@ -77,9 +89,11 @@ create table if not exists users (
   role text not null check (role in ('system_admin', 'regional_admin', 'pharmacy_admin', 'pharmacy_staff', 'night_pharmacist')),
   full_name text not null,
   phone text,
-  email text unique,
+  email text unique not null,
   line_user_id text,
   is_active boolean default true,
+  status text not null default 'active' check (status in ('invited', 'active', 'suspended', 'disabled')),
+  last_login_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
