@@ -58,19 +58,26 @@ export default function AccountSecurityPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs leading-6 text-emerald-100/90">
-            <p className="font-medium">おすすめの使い方</p>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-xs leading-6 text-amber-100/90">
+            <p className="font-medium">現在の状態</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>まず通常ログインを使ってアカウントに入る</li>
-              <li>Cognito 側の画面で、パスキー登録導線が表示されるか確認する</li>
-              <li>登録できたら、次回以降はパスキーでもログインを試す</li>
-              <li>登録しなくても、従来どおり通常ログインは継続利用できる</li>
+              <li>通常ログインはそのまま利用できます</li>
+              <li>パスキー導線は UI と検証枠を先に用意済みです</li>
+              <li>Cognito managed login 標準だけで既存ユーザーの任意パスキー登録を完結できるかは現在検証中です</li>
+              <li>そのため、パスキー設定は一時的に「準備中 / 検証中」として扱います</li>
             </ol>
           </div>
 
+          <div className="rounded-lg border border-[#2a3553] bg-[#0f172a] p-4 text-sm text-gray-300">
+            <p className="font-medium text-white">パスキー設定について</p>
+            <p className="mt-2 text-xs leading-6 text-gray-400">
+              既存ユーザー向けの自己設定導線は現在検証中です。通常ログインは引き続き利用できます。正式な導線が固まり次第、この画面から案内できるようにします。
+            </p>
+          </div>
+
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
-              <a href="/api/auth/passkey-setup">Cognito でパスキー設定を開く</a>
+            <Button disabled className="bg-gray-600 text-white hover:bg-gray-600">
+              パスキー設定は準備中
             </Button>
             <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
               <a href="/api/auth/login">
@@ -87,8 +94,9 @@ export default function AccountSecurityPage() {
           <p className="font-medium text-white">今の運用方針</p>
           <ul className="list-disc space-y-1 pl-5 text-gray-400">
             <li>パスキーは推奨だが必須ではない</li>
-            <li>ユーザーごとに任意で設定できるようにする</li>
+            <li>ユーザーごとに任意で設定できる形を目標にする</li>
             <li>通常ログインも残す</li>
+            <li>既存ユーザー向け自己設定導線は Cognito managed login 標準の適用範囲を見極めたうえで決める</li>
             <li>将来的には「パスキーでログイン」導線も強化する</li>
           </ul>
         </CardContent>
