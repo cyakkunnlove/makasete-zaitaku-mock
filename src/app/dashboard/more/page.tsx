@@ -74,6 +74,13 @@ const menuItems: MenuItem[] = [
 
 const settingsItems: MenuItem[] = [
   {
+    href: '/dashboard/account-security',
+    label: 'アカウント / セキュリティ',
+    description: 'パスキー設定・ログイン方針の確認',
+    icon: <Shield size={20} className="text-emerald-400" />,
+    permission: 'dashboard',
+  },
+  {
     href: '/dashboard/settings/notifications',
     label: '通知設定',
     description: 'イベント毎の通知チャネル設定',
