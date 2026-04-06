@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 
 import type { User, UserRole } from '@/types/database'
 import { MOCK_USERS } from '@/lib/mock-data'
+import { findAppUserByIdentity } from '@/lib/auth/user-bridge'
 
 export type AuthMode = 'cognito' | 'mock'
 
@@ -121,5 +122,18 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const payload = decodeJwtPayload(idToken)
   if (!payload) return null
 
-  return buildCognitoUserFromPayload(payload)
+  const cognitoUser = buildCognitoUserFromPayload(payload)
+  const appUser = await findAppUserByIdentity({
+    cognitoSub: cognitoUser.id,
+    email: cognitoUser.email,
+  })
+
+  if (appUser.user) {
+    return {
+      ...appUser.user,
+      authMode: 'cognito',
+    }
+  }
+
+  return cognitoUser
 }

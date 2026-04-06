@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getAuthCookieNames } from '@/lib/auth'
+import { attachCognitoSubToUser, findAppUserByIdentity, touchLastLogin } from '@/lib/auth/user-bridge'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -42,6 +43,40 @@ export async function GET(request: Request) {
 
   if (!tokenResponse.ok) {
     return NextResponse.redirect(new URL('/login?error=token_exchange_failed', request.url))
+  }
+
+  const payload = (() => {
+    try {
+      const [, rawPayload] = String(tokenJson.id_token || '').split('.')
+      return rawPayload ? JSON.parse(Buffer.from(rawPayload, 'base64url').toString('utf8')) : null
+    } catch {
+      return null
+    }
+  })()
+
+  if (payload?.sub || payload?.email) {
+    try {
+      const matched = await findAppUserByIdentity({
+        cognitoSub: payload?.sub ?? null,
+        email: payload?.email ?? null,
+      })
+
+      if (!matched.user) {
+        return NextResponse.redirect(new URL('/login?error=user_not_provisioned', request.url))
+      }
+
+      if (!matched.user.is_active || matched.user.status !== 'active') {
+        return NextResponse.redirect(new URL('/login?error=user_inactive', request.url))
+      }
+
+      if (matched.matchedBy === 'email' && payload?.sub && !matched.user.cognito_sub) {
+        await attachCognitoSubToUser(matched.user.id, payload.sub)
+      }
+
+      await touchLastLogin(matched.user.id)
+    } catch {
+      return NextResponse.redirect(new URL('/login?error=user_lookup_failed', request.url))
+    }
   }
 
   const response = NextResponse.redirect(new URL('/dashboard', request.url))
