@@ -175,6 +175,43 @@ export default function MorePage() {
         </div>
       )}
 
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-300 px-1 flex items-center gap-1.5">
+          <Shield size={14} />
+          セキュリティ
+        </h3>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex items-start gap-3">
+              <Shield size={18} className="mt-0.5 text-emerald-400" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium text-white">パスキー設定</p>
+                <p className="text-xs leading-5 text-gray-400">
+                  まずは Cognito の managed login からアカウント設定に入り、パスキーを登録する運用にします。
+                  現時点では role / 所属の正本は Supabase 側に置き、認証とパスキーは Cognito 側に寄せる方針です。
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
+              <p>おすすめ手順</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-4">
+                <li>下のボタンから Cognito ログイン画面を開く</li>
+                <li>パスワードでログインする</li>
+                <li>ログイン後の Cognito アカウント設定からパスキーを追加する</li>
+                <li>追加後、次回以降はパスキー優先でログインできるか確認する</li>
+              </ol>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
+                <a href="/api/auth/passkey-setup">Cognito でパスキー設定を開く</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="space-y-2 pt-2">
         <Button
           variant="ghost"
