@@ -6,6 +6,10 @@ export type RequestStatus =
 export type RequestPriority = 'high' | 'normal' | 'low'
 export type AssignmentResponse = 'accepted' | 'declined' | 'timeout'
 export type ShiftType = 'primary' | 'backup'
+export type OrganizationStatus = 'active' | 'suspended' | 'archived'
+export type RegionStatus = 'active' | 'suspended' | 'archived'
+export type OperationUnitKind = 'night_ops' | 'regional_ops' | 'pharmacy_ops'
+export type OperationUnitStatus = 'active' | 'suspended' | 'archived'
 export type PharmacyStatus = 'pending' | 'active' | 'suspended' | 'terminated'
 export type ForwardingStatus = 'on' | 'off'
 export type BillingStatus = 'unpaid' | 'paid' | 'overdue'
@@ -16,13 +20,32 @@ export type ChecklistType = 'initial' | 'routine' | 'emergency'
 
 export interface Organization {
   id: string
+  code: string | null
   name: string
   legal_name: string | null
-  phone: string | null
-  address: string | null
-  night_start: string
-  night_end: string
-  sla_target_minutes: number
+  status: OrganizationStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface Region {
+  id: string
+  organization_id: string
+  code: string
+  name: string
+  status: RegionStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface OperationUnit {
+  id: string
+  organization_id: string
+  region_id: string
+  code: string
+  name: string
+  kind: OperationUnitKind
+  status: OperationUnitStatus
   created_at: string
   updated_at: string
 }
@@ -30,38 +53,37 @@ export interface Organization {
 export interface Pharmacy {
   id: string
   organization_id: string
-  region_id?: string | null
-  operation_unit_id?: string | null
+  region_id: string
+  code: string
   name: string
-  area: string | null
-  address: string
-  phone: string
+  address: string | null
+  phone: string | null
   fax: string | null
-  forwarding_phone: string | null
-  forwarding_status: ForwardingStatus
-  contract_date: string | null
-  saas_monthly_fee: number
-  night_monthly_fee: number
-  night_delegation_enabled?: boolean | null
-  default_morning_note?: string | null
   status: PharmacyStatus
-  patient_count: number
+  night_delegation_enabled: boolean
+  contract_start_date: string | null
+  contract_end_date: string | null
   created_at: string
   updated_at: string
 }
 
+export type UserStatus = 'invited' | 'active' | 'suspended' | 'disabled'
+
 export interface User {
   id: string
-  organization_id: string | null
+  cognito_sub: string | null
+  organization_id: string
   pharmacy_id: string | null
-  region_id?: string | null
-  operation_unit_id?: string | null
+  region_id: string | null
+  operation_unit_id: string | null
   role: UserRole
   full_name: string
   phone: string | null
-  email: string | null
+  email: string
   line_user_id: string | null
   is_active: boolean
+  status: UserStatus
+  last_login_at: string | null
   created_at: string
   updated_at: string
 }
@@ -254,7 +276,9 @@ export interface Database {
   public: {
     Tables: {
       organizations: { Row: Organization; Insert: Partial<Organization>; Update: Partial<Organization> }
+      regions: { Row: Region; Insert: Partial<Region>; Update: Partial<Region> }
       pharmacies: { Row: Pharmacy; Insert: Partial<Pharmacy>; Update: Partial<Pharmacy> }
+      operation_units: { Row: OperationUnit; Insert: Partial<OperationUnit>; Update: Partial<OperationUnit> }
       users: { Row: User; Insert: Partial<User>; Update: Partial<User> }
       patients: { Row: Patient; Insert: Partial<Patient>; Update: Partial<Patient> }
       requests: { Row: Request; Insert: Partial<Request>; Update: Partial<Request> }
