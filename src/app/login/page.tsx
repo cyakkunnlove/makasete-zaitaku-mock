@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -16,7 +16,7 @@ const roleOptions = [
   { value: 'night_pharmacist', label: 'Night Pharmacist', destination: '/dashboard/night-patients' },
 ]
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [role, setRole] = useState(DEMO_ROLE)
@@ -103,5 +103,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0a0e1a] p-4 text-gray-400">読み込み中...</div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
