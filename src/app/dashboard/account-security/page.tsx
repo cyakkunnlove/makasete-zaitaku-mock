@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Shield, KeyRound, LogIn, ArrowLeft } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,37 @@ import { useAuth } from '@/contexts/auth-context'
 
 export default function AccountSecurityPage() {
   const { user, role } = useAuth()
+  const searchParams = useSearchParams()
+  const passkeyStatus = searchParams.get('passkey')
+  const passkeyError = searchParams.get('passkey_error')
+
+  const passkeyMessage = (() => {
+    if (passkeyStatus === 'added') {
+      return {
+        tone: 'success' as const,
+        title: 'パスキーの追加が完了しました',
+        body: '対応環境では、次回以降のログイン時に利用できます。',
+      }
+    }
+
+    if (passkeyStatus === 'cancelled') {
+      return {
+        tone: 'warning' as const,
+        title: 'パスキー追加は完了していません',
+        body: '必要に応じて、もう一度お試しください。',
+      }
+    }
+
+    if (passkeyError) {
+      return {
+        tone: 'error' as const,
+        title: '設定処理または認証画面への移動で問題が発生しました',
+        body: '必要に応じて通常ログインを試すか、もう一度やり直してください。',
+      }
+    }
+
+    return null
+  })()
 
   return (
     <div className="space-y-6 text-gray-100">
@@ -19,6 +51,23 @@ export default function AccountSecurityPage() {
           </Link>
         </Button>
       </div>
+
+      {passkeyMessage && (
+        <Card
+          className={
+            passkeyMessage.tone === 'success'
+              ? 'border-emerald-500/30 bg-emerald-500/10'
+              : passkeyMessage.tone === 'warning'
+                ? 'border-amber-500/30 bg-amber-500/10'
+                : 'border-rose-500/30 bg-rose-500/10'
+          }
+        >
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm font-semibold text-white">{passkeyMessage.title}</p>
+            <p className="text-xs leading-6 text-gray-200/90">{passkeyMessage.body}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="space-y-4 p-5">

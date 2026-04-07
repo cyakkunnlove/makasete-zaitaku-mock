@@ -33,7 +33,7 @@ export default function LoginPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-2xl">🧭</div>
             <div>
               <h1 className="text-xl font-bold text-white">ログイン</h1>
-              <p className="text-sm text-gray-400">Cognito 本番ログインと、移行期間用のデモログインを選べます。</p>
+              <p className="text-sm text-gray-400">Cognito 本番ログインと、移行期間用のデモログインを選べます。対応環境では、ログイン時にパスキーを利用できる場合があります。</p>
             </div>
           </div>
         </CardHeader>
@@ -42,10 +42,19 @@ export default function LoginPage() {
             <p>本番は Cognito 認証で入り、アカウント属性に応じた role / 表示内容へ切り替えます。移行期間中はデモログインも残します。</p>
           </div>
 
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100/90">
+            <p className="font-medium text-white">ログイン方法について</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-6">
+              <li>パスキーは任意です</li>
+              <li>対応環境では、Eメール入力後にパスキーを利用できる場合があります</li>
+              <li>パスキーが使えない場合でも、通常ログインを利用できます</li>
+            </ul>
+          </div>
+
           <div className="space-y-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4">
             <div>
               <p className="text-sm font-semibold text-white">本番ログイン</p>
-              <p className="mt-1 text-xs text-indigo-100/80">Cognito に遷移してログインします。将来的には role や所属情報をアカウント属性から反映します。</p>
+              <p className="mt-1 text-xs text-indigo-100/80">Cognito の認証画面に移動してログインします。対応環境では、Eメール入力後にパスキーを利用できる場合があります。うまくいかない場合は通常のログイン方法も利用できます。</p>
             </div>
             <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-500" onClick={() => router.push('/api/auth/login')}>
               Cognitoでログイン
