@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -18,8 +18,10 @@ const roleOptions = [
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [role, setRole] = useState(DEMO_ROLE)
   const selected = useMemo(() => roleOptions.find((item) => item.value === role) ?? roleOptions[0], [role])
+  const loggedOut = searchParams.get('logged_out') === '1'
 
   const handleDemoLogin = () => {
     router.push(`/api/demo-login?role=${role}`)
@@ -38,6 +40,13 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {loggedOut && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100/90">
+              <p className="font-medium text-white">ログアウトしました</p>
+              <p className="mt-1 text-xs leading-6">必要に応じて、ここから再度ログインできます。</p>
+            </div>
+          )}
+
           <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-4 text-sm text-gray-300">
             <p>本番は Cognito 認証で入り、アカウント属性に応じた role / 表示内容へ切り替えます。移行期間中はデモログインも残します。</p>
           </div>
