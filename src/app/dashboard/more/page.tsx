@@ -195,7 +195,8 @@ export default function MorePage() {
                 <p className="text-sm font-medium text-white">パスキー設定</p>
                 <p className="text-xs leading-5 text-gray-400">
                   パスキーの追加は account-security 画面からも開始できます。登録時は app 内で完結せず、
-                  Cognito managed login の画面に移動して、必要に応じて再認証後に設定を進める運用にします。
+                  Cognito managed login の画面に移動して、必要に応じて再認証後に設定を進めます。
+                  登録後は、少なくとも現時点では Eメール入力後にパスキーでログインできます。
                 </p>
               </div>
             </div>

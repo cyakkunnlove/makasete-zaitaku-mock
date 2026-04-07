@@ -59,12 +59,12 @@ export default function AccountSecurityPage() {
           </div>
 
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs leading-6 text-emerald-100/90">
-            <p className="font-medium">現在の方針</p>
+            <p className="font-medium">確認できていること</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
               <li>通常ログインはそのまま利用できます</li>
               <li>パスキーは任意で追加できます</li>
-              <li>追加時は app 内で完結せず、Cognito の認証画面に移動します</li>
-              <li>状況によっては再ログインが必要になる場合があります</li>
+              <li>既存ユーザーでも、Cognito の認証画面経由でパスキー登録できます</li>
+              <li>登録後は、対応環境ではログイン時にパスキーを利用できます</li>
             </ol>
           </div>
 
@@ -73,6 +73,7 @@ export default function AccountSecurityPage() {
             <p className="mt-2 text-xs leading-6 text-gray-400">
               パスキーの追加は、単なるプロフィール設定ではなく、認証手段の追加として扱います。
               続行すると Cognito managed login の画面に移動し、本人確認後にパスキー登録を進めます。
+              ログイン時は、少なくとも現時点では <span className="text-white">Eメール入力後にパスキーを使う形</span> です。
             </p>
           </div>
 
@@ -100,6 +101,7 @@ export default function AccountSecurityPage() {
 
           <p className="text-xs leading-6 text-gray-500">
             パスキー追加時には認証画面へ移動します。Cognito 側のセッション状況によっては、再度ログインが必要になる場合があります。
+            ログインUIでは、まず Eメール入力が必要な場合があります。
           </p>
         </CardContent>
       </Card>
