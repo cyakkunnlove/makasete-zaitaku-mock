@@ -194,8 +194,8 @@ export default function MorePage() {
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium text-white">パスキー設定</p>
                 <p className="text-xs leading-5 text-gray-400">
-                  まずは Cognito の managed login からアカウント設定に入り、パスキーを登録する運用にします。
-                  現時点では role / 所属の正本は Supabase 側に置き、認証とパスキーは Cognito 側に寄せる方針です。
+                  パスキーの追加は account-security 画面からも開始できます。登録時は app 内で完結せず、
+                  Cognito managed login の画面に移動して、必要に応じて再認証後に設定を進める運用にします。
                 </p>
               </div>
             </div>
@@ -203,14 +203,17 @@ export default function MorePage() {
             <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
               <p>おすすめ手順</p>
               <ol className="mt-2 list-decimal space-y-1 pl-4">
-                <li>下のボタンから Cognito ログイン画面を開く</li>
-                <li>パスワードでログインする</li>
-                <li>ログイン後の Cognito アカウント設定からパスキーを追加する</li>
-                <li>追加後、次回以降はパスキー優先でログインできるか確認する</li>
+                <li>まず「アカウント / セキュリティ」画面で流れを確認する</li>
+                <li>「パスキーを追加」から Cognito の認証画面へ進む</li>
+                <li>必要に応じて再認証する</li>
+                <li>登録後、次回以降のログイン動作を確認する</li>
               </ol>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+                <Link href="/dashboard/account-security">アカウント / セキュリティを開く</Link>
+              </Button>
               <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
                 <a href="/api/auth/passkey-setup">Cognito でパスキー設定を開く</a>
               </Button>

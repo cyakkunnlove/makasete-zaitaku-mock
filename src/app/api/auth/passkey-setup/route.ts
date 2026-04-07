@@ -6,10 +6,10 @@ export async function GET(request: Request) {
   const redirectUri = process.env.COGNITO_REDIRECT_URI
 
   if (!domain || !clientId || !redirectUri) {
-    return NextResponse.redirect(new URL('/dashboard/more?passkey_error=missing_cognito_env', request.url))
+    return NextResponse.redirect(new URL('/dashboard/account-security?passkey_error=missing_cognito_env', request.url))
   }
 
-  const url = new URL(`${domain}/login`)
+  const url = new URL(`${domain}/passkeys/add`)
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid email')
