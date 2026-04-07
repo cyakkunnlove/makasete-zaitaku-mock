@@ -50,7 +50,7 @@ export async function attachCognitoSubToUser(userId: string, cognitoSub: string)
   const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('users')
-    .update({ cognito_sub: cognitoSub, last_login_at: new Date().toISOString() })
+    .update({ cognito_sub: cognitoSub, last_login_at: new Date().toISOString() } as never)
     .eq('id', userId)
 
   if (error) throw error
@@ -62,7 +62,7 @@ export async function touchLastLogin(userId: string) {
   const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('users')
-    .update({ last_login_at: new Date().toISOString() })
+    .update({ last_login_at: new Date().toISOString() } as never)
     .eq('id', userId)
 
   if (error) throw error

@@ -12,14 +12,6 @@ const ACCESS_TOKEN_COOKIE = 'access_token'
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
 const DEMO_SESSION_COOKIE = 'demo_session'
 
-const EMAIL_ROLE_MAP: Record<string, UserRole> = {
-  'admin@makasete.local': 'system_admin',
-  'regional@makasete.local': 'regional_admin',
-  'pharmacy-admin@makasete.local': 'pharmacy_admin',
-  'staff@makasete.local': 'pharmacy_staff',
-  'night@makasete.local': 'night_pharmacist',
-}
-
 type JwtPayload = {
   sub?: string
   email?: string
@@ -53,51 +45,6 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-function normalizeRole(value: unknown): UserRole | null {
-  if (typeof value !== 'string') return null
-  const roles: UserRole[] = [
-    'system_admin',
-    'regional_admin',
-    'pharmacy_admin',
-    'night_pharmacist',
-    'pharmacy_staff',
-  ]
-  return roles.includes(value as UserRole) ? (value as UserRole) : null
-}
-
-function roleFromEmail(email?: string | null): UserRole {
-  if (!email) return 'pharmacy_staff'
-  return EMAIL_ROLE_MAP[email.toLowerCase()] ?? 'pharmacy_staff'
-}
-
-function buildCognitoUserFromPayload(payload: JwtPayload): CurrentUser {
-  const email = typeof payload.email === 'string' ? payload.email : null
-  const role =
-    normalizeRole(payload['custom:role']) ??
-    normalizeRole(payload.role) ??
-    roleFromEmail(email)
-
-  return {
-    id: typeof payload.sub === 'string' ? payload.sub : 'cognito-user',
-    organization_id: null,
-    pharmacy_id: null,
-    region_id: null,
-    operation_unit_id: null,
-    role,
-    full_name:
-      typeof payload.name === 'string'
-        ? payload.name
-        : email?.split('@')[0] ?? 'Cognito User',
-    phone: null,
-    email,
-    line_user_id: null,
-    is_active: true,
-    created_at: '',
-    updated_at: '',
-    authMode: 'cognito',
-  }
-}
-
 function buildMockUser(role: UserRole): CurrentUser | null {
   const mockUser = MOCK_USERS[role]
   if (!mockUser) return null
@@ -122,18 +69,18 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const payload = decodeJwtPayload(idToken)
   if (!payload) return null
 
-  const cognitoUser = buildCognitoUserFromPayload(payload)
+  const cognitoSub = typeof payload.sub === 'string' ? payload.sub : null
+  const email = typeof payload.email === 'string' ? payload.email : null
+
   const appUser = await findAppUserByIdentity({
-    cognitoSub: cognitoUser.id,
-    email: cognitoUser.email,
+    cognitoSub,
+    email,
   })
 
-  if (appUser.user) {
-    return {
-      ...appUser.user,
-      authMode: 'cognito',
-    }
-  }
+  if (!appUser.user) return null
 
-  return cognitoUser
+  return {
+    ...appUser.user,
+    authMode: 'cognito',
+  }
 }
