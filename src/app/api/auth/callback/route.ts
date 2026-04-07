@@ -6,6 +6,8 @@ import { attachCognitoSubToUser, findAppUserByIdentity, touchLastLogin } from '@
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const state = requestUrl.searchParams.get('state')
+  const isPasskeySetupFlow = state === 'passkey_setup'
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', request.url))
@@ -79,7 +81,11 @@ export async function GET(request: Request) {
     }
   }
 
-  const response = NextResponse.redirect(new URL('/dashboard', request.url))
+  const redirectTarget = isPasskeySetupFlow
+    ? new URL('/dashboard/account-security?passkey=added', request.url)
+    : new URL('/dashboard', request.url)
+
+  const response = NextResponse.redirect(redirectTarget)
   const {
     AUTH_MODE_COOKIE,
     ID_TOKEN_COOKIE,
