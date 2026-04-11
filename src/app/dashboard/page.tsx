@@ -61,8 +61,16 @@ function getSharedDayTaskStorageKey(pharmacyId: string, flowDate: string) {
   return `makasete-day-flow:shared:${pharmacyId}:${flowDate}`
 }
 
+function getTodayDateKey() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function formatMockTimestamp(time: string) {
-  return `2026-03-15 ${time}`
+  return `${getTodayDateKey()} ${time}`
 }
 
 function taskStatusMeta(status: DayTaskItem['status']) {
@@ -685,9 +693,9 @@ function PharmacyDayTaskCard({
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
-  const [flowDate, setFlowDate] = useState(MOCK_FLOW_DATE)
-  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
-  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: MOCK_FLOW_DATE }))
+  const [flowDate, setFlowDate] = useState(getTodayDateKey())
+  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: getTodayDateKey() }))
+  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: getTodayDateKey() }))
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
