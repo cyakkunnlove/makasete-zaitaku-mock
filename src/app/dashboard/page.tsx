@@ -742,7 +742,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
   useEffect(() => {
-    const patients = loadRegisteredPatients()
+    const patients = ownPatients
     try {
       const sharedRaw = window.localStorage.getItem(sharedDayTaskStorageKey)
       if (sharedRaw) {
@@ -782,8 +782,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setDayTasks(merged)
       setDraftDayTasks(merged)
     } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flowLoadKey])
+  }, [dayTaskStorageKey, flowDate, flowLoadKey, ownPatients, sharedDayTaskStorageKey])
 
   useEffect(() => {
     try {
