@@ -750,6 +750,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
   const [isPatientsLoading, setIsPatientsLoading] = useState(true)
   const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
+  const [selectedRoutePatientIds, setSelectedRoutePatientIds] = useState<string[]>([])
+  const [routePlanLoading, setRoutePlanLoading] = useState(false)
+  const [routePlanResult, setRoutePlanResult] = useState<null | {
+    ready: boolean
+    suggestedOrder: Array<{ id: string; name: string; address: string; latitude?: number | null; longitude?: number | null }>
+    missingCoordinates: Array<{ id: string; name: string; address: string }>
+    totalDuration?: string | null
+    totalDistanceMeters?: number | null
+    message: string
+  }>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
@@ -1036,6 +1046,34 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
+    }
+  }
+
+  const handleToggleRoutePatient = (patientId: string) => {
+    setSelectedRoutePatientIds((prev) => prev.includes(patientId) ? prev.filter((id) => id !== patientId) : [...prev, patientId])
+  }
+
+  const handleSuggestRoute = async () => {
+    if (selectedRoutePatientIds.length === 0) {
+      setSaveToast('ルート提案したい患者を選んでください')
+      return
+    }
+
+    setRoutePlanLoading(true)
+    try {
+      const response = await fetch('/api/day-flow/route-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientIds: selectedRoutePatientIds }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result?.routePlan) {
+        setSaveToast(result?.details ?? 'ルート提案の取得に失敗しました')
+        return
+      }
+      setRoutePlanResult(result.routePlan)
+    } finally {
+      setRoutePlanLoading(false)
     }
   }
 
@@ -1393,6 +1431,51 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
             <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-white">巡回順のおすすめ</p>
+                    <p className="text-xs text-gray-400">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
+                  </div>
+                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
+                    {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
+                  </Button>
+                </div>
+                {routePlanResult && (
+                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-200">
+                    <p className="font-medium text-white">{routePlanResult.message}</p>
+                    {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                      <>
+                        <p className="mt-2 text-xs text-gray-400">
+                          {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
+                          {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
+                        </p>
+                        <ol className="mt-3 space-y-2">
+                          {routePlanResult.suggestedOrder.map((patient, index) => (
+                            <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2 text-sm">
+                              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
+                              <span className="font-medium text-white">{patient.name}</span>
+                              <span className="ml-2 text-xs text-gray-400">{patient.address}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </>
+                    )}
+                    {routePlanResult.missingCoordinates.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                        <p className="font-medium text-amber-300">座標未取得の患者</p>
+                        <ul className="mt-2 space-y-1">
+                          {routePlanResult.missingCoordinates.map((patient) => (
+                            <li key={patient.id}>{patient.name} / {patient.address}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             <div className="space-y-2">
               {draggingTaskId && (
                 <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
@@ -1409,7 +1492,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const canStart = visit.status === 'scheduled'
                 const canComplete = visit.status === 'in_progress'
                 return (
-                  <PharmacyDayTaskCard
+                  <div key={visit.id} className="space-y-2">
+                    <label className="flex items-center gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoutePatientIds.includes(visit.patientId)}
+                        onChange={() => handleToggleRoutePatient(visit.patientId)}
+                        className="h-4 w-4 rounded border-[#2a3553] bg-[#0f1728]"
+                      />
+                      <span>巡回順の提案に含める</span>
+                    </label>
+                    <PharmacyDayTaskCard
                     key={visit.id}
                     visit={visit}
                     patient={patient}
@@ -1437,6 +1530,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
                     reorderHintText={reorderHintText}
                   />
+                  </div>
                 )
               })}
             </div>
