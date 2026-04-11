@@ -24,7 +24,7 @@ import {
   getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
-import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient } from '@/types/database'
@@ -143,6 +143,16 @@ export default function PatientDetailPage() {
       allergies: patient.allergies ?? '',
       insuranceInfo: patient.insuranceInfo ?? '',
     })
+
+    const firstRule = patient.visitRules?.[0]
+    const customRule = patient.visitRules?.find((rule) => rule.pattern === 'custom')
+    setVisitRuleForm({
+      weeklyWeekday: String(firstRule?.weekday ?? 1),
+      preferredTime: firstRule?.preferredTime ?? '10:00',
+      monthlyVisitLimit: String(firstRule?.monthlyVisitLimit ?? 4),
+      customDatesText: customRule?.customDates.join('\n') ?? '',
+      excludedDatesText: (patient.visitRules ?? []).flatMap((rule) => rule.excludedDates).join('\n'),
+    })
   }, [patient])
 
   const pharmacy = useMemo(
@@ -163,6 +173,7 @@ export default function PatientDetailPage() {
   const [visitDialogOpen, setVisitDialogOpen] = useState(false)
   const [visitRecords, setVisitRecords] = useState<VisitRecordDraft[]>([])
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [visitRuleDialogOpen, setVisitRuleDialogOpen] = useState(false)
   const [editSavedNotice, setEditSavedNotice] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     phone: '',
@@ -171,6 +182,13 @@ export default function PatientDetailPage() {
     medicalHistory: '',
     allergies: '',
     insuranceInfo: '',
+  })
+  const [visitRuleForm, setVisitRuleForm] = useState({
+    weeklyWeekday: '1',
+    preferredTime: '10:00',
+    monthlyVisitLimit: '4',
+    customDatesText: '',
+    excludedDatesText: '',
   })
   const [visitForm, setVisitForm] = useState({
     visitDate: '2026-03-16',
@@ -245,6 +263,64 @@ export default function PatientDetailPage() {
       amount: 9800,
       note: '',
     })
+  }
+
+  const normalizeDateLines = (value: string) => value.split(/\n|,/).map((item) => item.trim()).filter(Boolean)
+
+  const handleSaveVisitRules = () => {
+    if (!patient) return
+
+    const monthlyVisitLimit = Math.max(1, Number(visitRuleForm.monthlyVisitLimit) || 4)
+    const customDates = normalizeDateLines(visitRuleForm.customDatesText)
+    const excludedDates = normalizeDateLines(visitRuleForm.excludedDatesText)
+
+    const nextVisitRules: PatientVisitRule[] = [
+      {
+        id: `${patient.id}-weekly`,
+        pattern: 'weekly',
+        weekday: Number(visitRuleForm.weeklyWeekday),
+        intervalWeeks: 1,
+        anchorWeek: null,
+        preferredTime: visitRuleForm.preferredTime || null,
+        monthlyVisitLimit,
+        active: true,
+        customDates: [],
+        excludedDates,
+      },
+    ]
+
+    if (customDates.length > 0) {
+      nextVisitRules.push({
+        id: `${patient.id}-custom`,
+        pattern: 'custom',
+        weekday: null,
+        intervalWeeks: 1,
+        anchorWeek: null,
+        preferredTime: visitRuleForm.preferredTime || null,
+        monthlyVisitLimit,
+        active: true,
+        customDates,
+        excludedDates: [],
+      })
+    }
+
+    upsertRegisteredPatient({
+      ...patient,
+      visitRules: nextVisitRules,
+      registrationMeta: patient.registrationMeta
+        ? {
+            ...patient.registrationMeta,
+            updatedAt: new Date().toISOString(),
+            updatedById: user?.id ?? null,
+            updatedByName: user?.full_name ?? 'Pharmacy Staff',
+            version: patient.registrationMeta.version + 1,
+          }
+        : undefined,
+    })
+    setRegisteredPatients(loadRegisteredPatients())
+    setVisitRuleDialogOpen(false)
+    setEditSavedNotice('訪問スケジュールを保存しました')
+    setTimeout(() => setEditSavedNotice(null), 2500)
   }
 
   const handleSavePatientEdit = async () => {
@@ -632,6 +708,8 @@ export default function PatientDetailPage() {
         <VisitSchedule
           patientId={patient.id}
           visitRules={patient.visitRules ?? []}
+          canEdit={canEditThisPatient}
+          onEdit={() => setVisitRuleDialogOpen(true)}
         />
       </div>
 
@@ -671,6 +749,50 @@ export default function PatientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={visitRuleDialogOpen} onOpenChange={setVisitRuleDialogOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>訪問スケジュールを修正</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pb-2">
+            <div>
+              <p className="text-xs text-gray-500">訪問曜日</p>
+              <select value={visitRuleForm.weeklyWeekday} onChange={(e) => setVisitRuleForm((prev) => ({ ...prev, weeklyWeekday: e.target.value }))} className="mt-1 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-100">
+                <option value="1">月曜</option>
+                <option value="2">火曜</option>
+                <option value="3">水曜</option>
+                <option value="4">木曜</option>
+                <option value="5">金曜</option>
+                <option value="6">土曜</option>
+                <option value="0">日曜</option>
+              </select>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <p className="text-xs text-gray-500">優先時間</p>
+                <Input value={visitRuleForm.preferredTime} onChange={(e) => setVisitRuleForm((prev) => ({ ...prev, preferredTime: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">月回数</p>
+                <Input value={visitRuleForm.monthlyVisitLimit} onChange={(e) => setVisitRuleForm((prev) => ({ ...prev, monthlyVisitLimit: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">追加日（1行1日, YYYY-MM-DD）</p>
+              <Textarea value={visitRuleForm.customDatesText} onChange={(e) => setVisitRuleForm((prev) => ({ ...prev, customDatesText: e.target.value }))} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">除外日（1行1日, YYYY-MM-DD）</p>
+              <Textarea value={visitRuleForm.excludedDatesText} onChange={(e) => setVisitRuleForm((prev) => ({ ...prev, excludedDatesText: e.target.value }))} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVisitRuleDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">キャンセル</Button>
+            <Button onClick={handleSaveVisitRules} className="bg-indigo-600 text-white hover:bg-indigo-700">保存する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-2xl">

@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Calendar, ChevronLeft, ChevronRight, Repeat, AlertTriangle } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Repeat, AlertTriangle, PencilLine } from 'lucide-react'
 import type { PatientVisitRule } from '@/lib/patient-master'
 import {
   collectVisitRuleDates,
@@ -17,6 +18,8 @@ import {
 interface VisitScheduleProps {
   patientId: string
   visitRules?: PatientVisitRule[]
+  canEdit?: boolean
+  onEdit?: () => void
 }
 
 const DAY_LABELS = VISIT_CALENDAR_DAY_LABELS
@@ -26,7 +29,7 @@ const PATTERN_LABELS: Record<PatientVisitRule['pattern'], string> = {
   custom: 'カスタム',
 }
 
-export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitScheduleProps) {
+export function VisitSchedule({ patientId: _patientId, visitRules = [], canEdit = false, onEdit }: VisitScheduleProps) {
   void _patientId
   const today = new Date()
   const [viewYear, setViewYear] = useState(today.getFullYear())
@@ -64,10 +67,18 @@ export function VisitSchedule({ patientId: _patientId, visitRules = [] }: VisitS
   return (
     <Card className="border-[#2a3553] bg-[#1a2035]">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm text-white">
-          <Calendar className="h-4 w-4 text-indigo-400" />
-          訪問スケジュール
-        </CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Calendar className="h-4 w-4 text-indigo-400" />
+            訪問スケジュール
+          </CardTitle>
+          {canEdit && onEdit && (
+            <Button size="sm" variant="outline" onClick={onEdit} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">
+              <PencilLine className="mr-1 h-4 w-4" />
+              修正する
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
