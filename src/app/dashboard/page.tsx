@@ -313,7 +313,6 @@ function PharmacyDashboardHeaderCard({
   orderDraftBadgeText,
   orderSavedButtonText,
   resetOrderButtonText,
-  createPatientButtonText,
   undoTarget,
   handleUndo,
 }: {
@@ -326,7 +325,6 @@ function PharmacyDashboardHeaderCard({
   orderDraftBadgeText: string
   orderSavedButtonText: string
   resetOrderButtonText: string
-  createPatientButtonText: string
   undoTarget: { taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null
   handleUndo: () => void
 }) {
@@ -349,9 +347,6 @@ function PharmacyDashboardHeaderCard({
           ) : (
             <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
           )}
-          <Link href="/dashboard/patients/new">
-            <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">{createPatientButtonText}</Button>
-          </Link>
           {undoTarget && (
             <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
               <RotateCcw className="h-3.5 w-3.5" />
@@ -372,7 +367,7 @@ function PharmacyDashboardSummaryCard({
   adminWarningText,
 }: {
   summaryTitle: string
-  pharmacyStaffHandledCounts: { name: string; count: number }[]
+  pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number }[]
   summarySupportText: string
   saveStateBadge: string | null
   adminWarningText?: string | null
@@ -383,10 +378,23 @@ function PharmacyDashboardSummaryCard({
         <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {pharmacyStaffHandledCounts.map((item) => (
-            <Badge key={item.name} variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-200">{item.name}: {item.count}件</Badge>
-          ))}
+        <div className="space-y-2">
+          {pharmacyStaffHandledCounts.length === 0 ? (
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-400">まだ本日の担当実績はありません。</div>
+          ) : (
+            pharmacyStaffHandledCounts.map((item) => (
+              <div key={item.name} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-white">{item.name}</span>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">完了 {item.completedCount}件</Badge>
+                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/20 text-amber-200">対応中 {item.inProgressCount}件</Badge>
+                    <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-200">予定 {item.plannedCount}件</Badge>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
           <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
@@ -945,11 +953,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const flowDescription = isPharmacyStaff
     ? `今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 ${UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。`
     : '自局の日中対応フローを確認します。Pharmacy Admin は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
-  const summaryTitle = isPharmacyStaff ? 'スタッフ別の本日対応件数（モック）' : '自局運用サマリー（モック）'
+  const summaryTitle = isPharmacyStaff ? 'スタッフごとの本日の状況' : '自局スタッフの本日の状況'
+  const ownHandledCount = draftDayTasks.filter((task) => task.handledById === (user?.id ?? 'ST-07')).length
   const primarySummaryBadge = isPharmacyStaff
-    ? `自分の対応 ${draftDayTasks.filter((task) => task.handledById === 'ST-07').length}件`
+    ? `自分の対応 ${ownHandledCount}件`
     : `全体更新 ${draftDayTasks.filter((task) => task.updatedById).length}件`
-  const summarySupportText = '並び順はドラッグハンドル風UI + 保存ボタンで共有反映'
+  const summarySupportText = '完了・対応中・予定をスタッフごとに確認できます'
   const saveStateBadge = lastOrderSavedBy && lastOrderSavedAt
     ? `最終保存: ${lastOrderSavedBy} / ${lastOrderSavedAt}`
     : null
@@ -957,7 +966,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const orderDraftBadgeText = '未保存の順番変更あり'
   const orderSavedButtonText = '他スタッフ反映済み'
   const resetOrderButtonText = '元に戻す'
-  const createPatientButtonText = '患者登録'
   const completionHelpText = isPharmacyStaff
     ? '対応完了すると、あとで billing の「請求処理が必要な訪問一覧」に上がります。'
     : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
@@ -975,14 +983,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
-    const counts = new Map<string, { name: string; count: number }>()
+    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number }>()
     draftDayTasks.forEach((task) => {
-      if (!task.handledById || !task.handledBy) return
-      const current = counts.get(task.handledById) ?? { name: task.handledBy, count: 0 }
-      current.count += 1
-      counts.set(task.handledById, current)
+      const actorId = task.handledById ?? task.plannedById
+      const actorName = task.handledBy ?? task.plannedBy
+      if (!actorId || !actorName) return
+      const current = counts.get(actorId) ?? { name: actorName, completedCount: 0, inProgressCount: 0, plannedCount: 0 }
+      if (task.status === 'completed') current.completedCount += 1
+      else if (task.status === 'in_progress') current.inProgressCount += 1
+      else current.plannedCount += 1
+      counts.set(actorId, current)
     })
-    return Array.from(counts.values())
+    return Array.from(counts.values()).sort((a, b) => {
+      const aTotal = a.completedCount + a.inProgressCount + a.plannedCount
+      const bTotal = b.completedCount + b.inProgressCount + b.plannedCount
+      return bTotal - aTotal
+    })
   }, [draftDayTasks])
 
   const upsertTask = async (task: DayTaskItem) => {
@@ -1306,7 +1322,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           orderDraftBadgeText={orderDraftBadgeText}
           orderSavedButtonText={orderSavedButtonText}
           resetOrderButtonText={resetOrderButtonText}
-          createPatientButtonText={createPatientButtonText}
           undoTarget={undoTarget}
           handleUndo={handleUndo}
         />
