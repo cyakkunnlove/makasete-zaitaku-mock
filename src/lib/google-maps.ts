@@ -48,7 +48,15 @@ export async function geocodeAddress(address: string) {
   }
 }
 
-type RouteStop = { id: string; name: string; latitude: number; longitude: number; address?: string }
+type RouteStop = {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  address?: string
+  geocodeInputAddress?: string | null
+  geocodeStatus?: string | null
+}
 
 export async function optimizeRoundTripRoute(options: {
   origin: { latitude: number; longitude: number }

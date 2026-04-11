@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -752,6 +752,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
   const [selectedRoutePatientIds, setSelectedRoutePatientIds] = useState<string[]>([])
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
+  const routeMapRef = useRef<HTMLDivElement | null>(null)
   const [routePlanResult, setRoutePlanResult] = useState<null | {
     ready: boolean
     suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }>
@@ -1449,6 +1450,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     <p className="font-medium text-white">{routePlanResult.message}</p>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
+                        <div ref={routeMapRef} className="mt-3 flex h-48 items-center justify-center rounded-lg border border-dashed border-[#2a3553] bg-[#0f1728] text-xs text-gray-500">
+                          地図表示は次に接続します。いまは起点・順番・座標を確認できます。
+                        </div>
                         <p className="mt-2 text-xs text-gray-400">
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}

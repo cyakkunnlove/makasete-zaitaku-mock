@@ -80,6 +80,8 @@ export async function POST(request: Request) {
         const geocoded = await geocodeAddress(patient.address)
         patient.latitude = geocoded.latitude
         patient.longitude = geocoded.longitude
+        patient.geocodeInputAddress = geocoded.normalizedAddress
+        patient.geocodeStatus = 'success'
 
         await supabase
           .from('patients')
@@ -126,6 +128,8 @@ export async function POST(request: Request) {
       latitude: patient.latitude as number,
       longitude: patient.longitude as number,
       address: patient.address,
+      geocodeInputAddress: patient.geocodeInputAddress,
+      geocodeStatus: patient.geocodeStatus,
     })),
   })
 
