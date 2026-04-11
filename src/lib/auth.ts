@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 
 import type { User, UserRole } from '@/types/database'
 import { MOCK_USERS } from '@/lib/mock-data'
-import { findAppUserByIdentity } from '@/lib/auth/user-bridge'
+import { findAppUserByIdentity, findDemoUserByRole } from '@/lib/auth/user-bridge'
 
 export type AuthMode = 'cognito' | 'mock'
 
@@ -59,6 +59,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const demoRole = cookieStore.get(DEMO_SESSION_COOKIE)?.value
   if (demoRole) {
+    const bridgedUser = await findDemoUserByRole(demoRole as UserRole).catch(() => null)
+    if (bridgedUser) {
+      return {
+        ...bridgedUser,
+        authMode: 'mock',
+      }
+    }
+
     const user = buildMockUser(demoRole as UserRole)
     if (user) return user
   }

@@ -93,6 +93,8 @@ export async function POST(request: Request) {
     risk_score: 1,
     requires_multi_visit: Number(visitPlan?.monthlyVisitCount ?? 4) > 1,
     status: 'active' as const,
+    created_by: user.id,
+    updated_by: user.id,
   }
 
   const { data, error } = await supabase.from('patients').insert(payload as never).select('*').single() as unknown as {

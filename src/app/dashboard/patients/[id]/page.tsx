@@ -24,7 +24,7 @@ import {
   getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
-import { formatVisitRuleSummary, loadRegisteredPatients, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient } from '@/types/database'
@@ -214,6 +214,22 @@ export default function PatientDetailPage() {
 
   const handleSavePatientEdit = async () => {
     if (!canEditThisPatient) return
+
+    if (!databasePatient) {
+      upsertRegisteredPatient({
+        ...patient,
+        phone: editForm.phone || null,
+        visitNotes: editForm.visitNotes || '未設定',
+        currentMeds: editForm.currentMeds || '未設定',
+        medicalHistory: editForm.medicalHistory || '未設定',
+        allergies: editForm.allergies || 'なし',
+        insuranceInfo: editForm.insuranceInfo || '未設定',
+      })
+      setEditDialogOpen(false)
+      setEditSavedNotice('患者情報を保存しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
 
     const response = await fetch(`/api/patients/${patient.id}`, {
       method: 'PATCH',

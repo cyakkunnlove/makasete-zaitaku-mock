@@ -1,5 +1,6 @@
 import type { User, UserRole } from '@/types/database'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 
 export function canManagePatients(role: UserRole | null) {
   return role === 'pharmacy_admin' || role === 'pharmacy_staff'
@@ -13,7 +14,7 @@ export function canEditPatientRecord(input: {
   if (!canManagePatients(input.role)) return false
   if (!input.user?.pharmacy_id) return false
   if (!input.patient?.pharmacyId) return false
-  return input.user.pharmacy_id === input.patient.pharmacyId
+  return isPatientInPharmacyScope(input.patient, input.user.pharmacy_id)
 }
 
 export function getScopedPharmacyId(user: Pick<User, 'pharmacy_id'> | null) {

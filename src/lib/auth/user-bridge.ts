@@ -2,6 +2,8 @@ import type { User } from '@/types/database'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
 
+import type { UserRole } from '@/types/database'
+
 type BridgeLookupInput = {
   cognitoSub?: string | null
   email?: string | null
@@ -42,6 +44,26 @@ export async function findAppUserByIdentity(input: BridgeLookupInput): Promise<B
   }
 
   return { user: null, matchedBy: null }
+}
+
+export async function findDemoUserByRole(role: UserRole): Promise<User | null> {
+  if (!hasSupabaseEnv()) return null
+
+  const supabase = createServerSupabaseClient()
+  const query = supabase
+    .from('users')
+    .select('*')
+    .eq('role', role)
+    .eq('status', 'active')
+
+  const scopedQuery = role === 'pharmacy_admin' || role === 'pharmacy_staff'
+    ? query.not('pharmacy_id', 'is', null)
+    : query
+
+  const { data, error } = await scopedQuery.order('created_at', { ascending: true }).limit(1).maybeSingle()
+
+  if (error) throw error
+  return data ?? null
 }
 
 export async function attachCognitoSubToUser(userId: string, cognitoSub: string) {

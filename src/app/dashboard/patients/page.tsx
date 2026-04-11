@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,10 +21,12 @@ import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mo
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
+import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 import type { Patient } from '@/types/database'
 
 export default function PatientsPage() {
   const { role, user } = useAuth()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
@@ -70,7 +73,7 @@ export default function PatientsPage() {
 
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
-      return patientMaster.filter((patient) => patient.pharmacyId === ownPharmacyId)
+      return patientMaster.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
     }
     return patientMaster
   }, [isDayContext, ownPharmacyId, patientMaster])
@@ -226,7 +229,7 @@ export default function PatientsPage() {
                     <TableHead className="text-gray-400">氏名</TableHead>
                     <TableHead className="text-gray-400">生年月日</TableHead>
                     <TableHead className="text-gray-400">住所</TableHead>
-                    <TableHead className="text-gray-400">薬局</TableHead>
+                    {!isDayContext && <TableHead className="text-gray-400">薬局</TableHead>}
                     <TableHead className="text-gray-400">注意フラグ</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -238,6 +241,7 @@ export default function PatientsPage() {
                     <TableRow
                       key={patient.id}
                       className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
+                      onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
                     >
                       <TableCell className="font-medium text-white">
                         <div className="flex items-center gap-2">
@@ -263,19 +267,21 @@ export default function PatientsPage() {
                           {patient.address}
                         </a>
                       </TableCell>
-                      <TableCell className="space-y-1">
-                        <p className="text-indigo-300">{patient.pharmacyName}</p>
-                        {pharmacy?.phone && (
-                          <a
-                            href={`tel:${pharmacy.phone}`}
-                            className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Phone className="h-3.5 w-3.5" />
-                            {pharmacy.phone}
-                          </a>
-                        )}
-                      </TableCell>
+                      {!isDayContext && (
+                        <TableCell className="space-y-1">
+                          <p className="text-indigo-300">{patient.pharmacyName}</p>
+                          {pharmacy?.phone && (
+                            <a
+                              href={`tel:${pharmacy.phone}`}
+                              className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                              {pharmacy.phone}
+                            </a>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">
                           {attentionFlags.slice(0, 3).map((flag) => (

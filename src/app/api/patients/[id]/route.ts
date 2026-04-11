@@ -49,6 +49,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const patch = body as Record<string, unknown>
   const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
+    updated_by: user.id,
   }
 
   if (typeof patch.phone === 'string' || patch.phone === null) {
@@ -84,7 +85,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       targetType: 'patient',
       targetId: params.id,
       details: {
-        updated_fields: Object.keys(payload).filter((key) => key !== 'updated_at'),
+        updated_fields: Object.keys(payload).filter((key) => !['updated_at', 'updated_by'].includes(key)),
         role: user.role,
       },
     })
