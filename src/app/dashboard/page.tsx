@@ -420,8 +420,8 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
       <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
-        <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の患者フロー</TabsTrigger>
-        <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者マスタ</TabsTrigger>
+        <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
@@ -432,7 +432,7 @@ function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
   return (
     <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
       <Building2 className="h-4 w-4 text-indigo-400" />
-      今日の対応患者
+      今日の対応予定
       <span className="text-xs font-normal text-gray-500">{countLabel ?? '自動生成 + 手動追加'}</span>
     </h2>
   )
@@ -1398,8 +1398,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           <TabsContent value="master" className="space-y-2">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
               <Users className="h-4 w-4 text-indigo-400" />
-              自局患者マスタ
-              <span className="text-xs font-normal text-gray-500">自局の患者のみ</span>
+              患者一覧（簡易）
+              <span className="text-xs font-normal text-gray-500">今日の対応予定へ追加したい患者をここで確認</span>
             </h2>
             <div className="space-y-2">
               {filteredMasterPatients.map((patient) => {
