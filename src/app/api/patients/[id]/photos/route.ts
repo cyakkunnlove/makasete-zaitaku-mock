@@ -29,7 +29,7 @@ async function ensureCanAccessPatient(patientId: string) {
   return { user, patient }
 }
 
-async function buildPhotoResponse(admin: ReturnType<typeof createAdminClient>, photo: PatientHomePhoto) {
+async function buildPhotoResponse(admin: ReturnType<typeof createAdminClient>, photo: PatientHomePhoto, uploadedByName?: string | null) {
   const [thumbnailResult, fullResult] = await Promise.all([
     admin.storage.from(BUCKET).createSignedUrl(photo.storage_path, 60 * 60, {
       transform: { width: 320, height: 240, resize: 'cover', quality: 60 },
@@ -41,6 +41,7 @@ async function buildPhotoResponse(admin: ReturnType<typeof createAdminClient>, p
     ...photo,
     thumbnail_url: thumbnailResult.data?.signedUrl ?? null,
     image_url: fullResult.data?.signedUrl ?? null,
+    uploaded_by_name: uploadedByName ?? null,
   }
 }
 
@@ -61,7 +62,19 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return NextResponse.json({ ok: false, error: 'photo_list_failed', details: error.message }, { status: 500 })
   }
 
-  const photos = await Promise.all((data ?? []).map((photo) => buildPhotoResponse(admin, photo as PatientHomePhoto)))
+  const photosRaw = (data ?? []) as PatientHomePhoto[]
+  const uploadedByIds = Array.from(new Set(photosRaw.map((photo) => photo.uploaded_by).filter((value): value is string => Boolean(value))))
+  const userNameMap = new Map<string, string>()
+
+  if (uploadedByIds.length > 0) {
+    const { data: users } = await admin.from('users').select('id, full_name').in('id', uploadedByIds)
+    ;(users ?? []).forEach((row) => {
+      const record = row as { id: string; full_name: string | null }
+      if (record.id) userNameMap.set(record.id, record.full_name ?? record.id)
+    })
+  }
+
+  const photos = await Promise.all(photosRaw.map((photo) => buildPhotoResponse(admin, photo, photo.uploaded_by ? userNameMap.get(photo.uploaded_by) ?? null : null)))
   return NextResponse.json({ ok: true, photos })
 }
 
@@ -149,5 +162,5 @@ export async function POST(request: Request, { params }: { params: { id: string 
     },
   })
 
-  return NextResponse.json({ ok: true, photo: await buildPhotoResponse(admin, savedPhoto) })
+  return NextResponse.json({ ok: true, photo: await buildPhotoResponse(admin, savedPhoto, user.full_name ?? user.id) })
 }

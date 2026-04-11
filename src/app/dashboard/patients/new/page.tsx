@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -63,6 +64,14 @@ function normalizeDateInput(value: string) {
   return trimmed
 }
 
+type GeocodePreview = {
+  inputAddress: string
+  normalizedAddress: string | null
+  latitude: number | null
+  longitude: number | null
+  warnings: Array<{ code: string; message: string }>
+}
+
 export default function NewPatientPage() {
   const router = useRouter()
   const { user, role } = useAuth()
@@ -77,6 +86,8 @@ export default function NewPatientPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [customDates, setCustomDates] = useState<string[]>([])
   const [excludedDates, setExcludedDates] = useState<string[]>([])
+  const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
+  const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
   const ownPharmacy = pharmacyData.find((pharmacy) => pharmacy.id === ownPharmacyId)
   const [form, setForm] = useState({
@@ -248,7 +259,26 @@ export default function NewPatientPage() {
     setCustomDates((prev) => [...prev, dateKey].sort())
   }
 
-  const handleSave = async () => {
+  const fetchGeocodePreview = async (address: string) => {
+    const response = await fetch('/api/patients/geocode-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok || !result?.preview) {
+      throw new Error('住所確認に失敗しました')
+    }
+    return result.preview as GeocodePreview
+  }
+
+  const shouldConfirmGeocode = (preview: GeocodePreview) => {
+    const normalized = preview.normalizedAddress?.trim() ?? ''
+    const input = preview.inputAddress.trim()
+    return preview.warnings.length > 0 || (normalized && normalized !== input)
+  }
+
+  const handleSave = async (skipGeocodeConfirmation = false) => {
     if (isSubmitting) return
 
     setErrorMessage(null)
@@ -310,6 +340,20 @@ export default function NewPatientPage() {
         diseaseName: form.diseaseName,
         insuranceInfo: form.insuranceInfo,
       },
+    }
+
+    if (!skipGeocodeConfirmation) {
+      try {
+        const preview = await fetchGeocodePreview(form.address)
+        if (shouldConfirmGeocode(preview)) {
+          setGeocodePreview(preview)
+          setGeocodeConfirmOpen(true)
+          return
+        }
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : '住所確認に失敗しました。')
+        return
+      }
     }
 
     setIsSubmitting(true)
@@ -377,6 +421,8 @@ export default function NewPatientPage() {
         setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
       }
 
+      setGeocodeConfirmOpen(false)
+      setGeocodePreview(null)
       router.push(`/dashboard/patients/${createdPatientId ?? patient.id}`)
     } finally {
       setIsSubmitting(false)
@@ -635,9 +681,42 @@ export default function NewPatientPage() {
             <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
             <p>電話未入力でも登録可能です。患者詳細で警告表示します。</p>
           </div>
-          <Button disabled={isSubmitting} onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
+          <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
       </Card>
+
+      <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>住所の解釈を確認してください</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              保存前に、地図で使う住所解釈を確認できます。問題なければこのまま登録します。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <p className="text-xs text-gray-500">入力した住所</p>
+              <p className="mt-1 text-gray-100">{geocodePreview?.inputAddress ?? '—'}</p>
+            </div>
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <p className="text-xs text-gray-500">解釈された住所</p>
+              <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
+              <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
+            </div>
+            {geocodePreview?.warnings?.length ? (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
+                {geocodePreview.warnings.map((warning) => (
+                  <p key={warning.code}>{warning.message}</p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">住所を見直す</Button>
+            <Button onClick={() => void handleSave(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">この住所で登録する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -52,6 +53,15 @@ import { VisitSchedule } from '@/components/visit-schedule'
 type PatientPhotoView = PatientHomePhoto & {
   thumbnail_url: string | null
   image_url: string | null
+  uploaded_by_name?: string | null
+}
+
+type GeocodePreview = {
+  inputAddress: string
+  normalizedAddress: string | null
+  latitude: number | null
+  longitude: number | null
+  warnings: Array<{ code: string; message: string }>
 }
 
 type VisitRecordDraft = {
@@ -144,6 +154,7 @@ export default function PatientDetailPage() {
   useEffect(() => {
     if (!patient) return
     setEditForm({
+      address: patient.address ?? '',
       phone: patient.phone ?? '',
       visitNotes: patient.visitNotes ?? '',
       currentMeds: patient.currentMeds ?? '',
@@ -206,7 +217,10 @@ export default function PatientDetailPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<PatientPhotoView | null>(null)
   const [photoActionNotice, setPhotoActionNotice] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
+  const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
+  const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
   const [editForm, setEditForm] = useState({
+    address: '',
     phone: '',
     visitNotes: '',
     currentMeds: '',
@@ -367,12 +381,47 @@ export default function PatientDetailPage() {
     setTimeout(() => setPhotoActionNotice(null), 2500)
   }
 
-  const handleSavePatientEdit = async () => {
+  const fetchGeocodePreview = async (address: string) => {
+    const response = await fetch('/api/patients/geocode-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok || !result?.preview) {
+      throw new Error('住所確認に失敗しました')
+    }
+    return result.preview as GeocodePreview
+  }
+
+  const shouldConfirmGeocode = (preview: GeocodePreview) => {
+    const normalized = preview.normalizedAddress?.trim() ?? ''
+    const input = preview.inputAddress.trim()
+    return preview.warnings.length > 0 || (normalized && normalized !== input)
+  }
+
+  const handleSavePatientEdit = async (skipGeocodeConfirmation = false) => {
     if (!canEditThisPatient) return
+
+    if (!skipGeocodeConfirmation && editForm.address.trim()) {
+      try {
+        const preview = await fetchGeocodePreview(editForm.address)
+        if (shouldConfirmGeocode(preview)) {
+          setGeocodePreview(preview)
+          setGeocodeConfirmOpen(true)
+          return
+        }
+      } catch (error) {
+        setEditSavedNotice(error instanceof Error ? error.message : '住所確認に失敗しました')
+        setTimeout(() => setEditSavedNotice(null), 2500)
+        return
+      }
+    }
 
     if (!databasePatient) {
       upsertRegisteredPatient({
         ...patient,
+        address: editForm.address || patient.address,
         phone: editForm.phone || null,
         visitNotes: editForm.visitNotes || '未設定',
         currentMeds: editForm.currentMeds || '未設定',
@@ -380,6 +429,7 @@ export default function PatientDetailPage() {
         allergies: editForm.allergies || 'なし',
         insuranceInfo: editForm.insuranceInfo || '未設定',
       })
+      setGeocodeConfirmOpen(false)
       setEditDialogOpen(false)
       setEditSavedNotice('患者情報を保存しました')
       setTimeout(() => setEditSavedNotice(null), 2500)
@@ -392,6 +442,7 @@ export default function PatientDetailPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        address: editForm.address,
         phone: editForm.phone || null,
         visitNotes: editForm.visitNotes,
         currentMeds: editForm.currentMeds,
@@ -416,6 +467,7 @@ export default function PatientDetailPage() {
     if (localPatientExists) {
       updateRegisteredPatient(patient.id, (current) => ({
         ...current,
+        address: editForm.address || current.address,
         phone: editForm.phone || null,
         visitNotes: editForm.visitNotes,
         currentMeds: editForm.currentMeds,
@@ -434,8 +486,11 @@ export default function PatientDetailPage() {
       }))
       setRegisteredPatients(loadRegisteredPatients())
     }
+    setGeocodeConfirmOpen(false)
+    setGeocodePreview(null)
     setEditDialogOpen(false)
-    setEditSavedNotice('患者情報を保存しました')
+    const apiWarnings = Array.isArray(result?.warnings) ? result.warnings : []
+    setEditSavedNotice(apiWarnings.length > 0 ? apiWarnings.map((warning: { message: string }) => warning.message).join(' / ') : '患者情報を保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
   }
 
@@ -675,7 +730,7 @@ export default function PatientDetailPage() {
                       <p className="text-xs text-gray-500">追加情報</p>
                       <p className="text-sm text-gray-200">{photo.caption || '外観写真'}</p>
                       <p className="mt-1 text-[11px] text-gray-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
-                      <p className="text-[11px] text-gray-500">追加者ID: {photo.uploaded_by ?? '不明'}</p>
+                      <p className="text-[11px] text-gray-500">追加者: {photo.uploaded_by_name ?? photo.uploaded_by ?? '不明'}</p>
                     </div>
                     {canEditThisPatient && (
                       <Button size="sm" variant="outline" className="w-full border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20" onClick={() => void handleDeletePhoto(photo.id)}>
@@ -881,12 +936,45 @@ export default function PatientDetailPage() {
                 <p>メモ: {selectedPhoto.caption || '外観写真'}</p>
                 <p>追加日時: {new Date(selectedPhoto.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                 <p>種別: {selectedPhoto.photo_type ?? '未設定'}</p>
-                <p>追加者ID: {selectedPhoto.uploaded_by ?? '不明'}</p>
+                <p>追加者: {selectedPhoto.uploaded_by_name ?? selectedPhoto.uploaded_by ?? '不明'}</p>
               </div>
             </div>
           ) : (
             <p className="text-sm text-gray-400">画像を表示できませんでした。</p>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>住所の解釈を確認してください</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              保存前に、地図で使う住所解釈を確認できます。問題なければこのまま保存します。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <p className="text-xs text-gray-500">入力した住所</p>
+              <p className="mt-1 text-gray-100">{geocodePreview?.inputAddress ?? '—'}</p>
+            </div>
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <p className="text-xs text-gray-500">解釈された住所</p>
+              <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
+              <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
+            </div>
+            {geocodePreview?.warnings?.length ? (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
+                {geocodePreview.warnings.map((warning) => (
+                  <p key={warning.code}>{warning.message}</p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">住所を見直す</Button>
+            <Button onClick={() => void handleSavePatientEdit(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">この住所で保存する</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -903,6 +991,10 @@ export default function PatientDetailPage() {
             <div>
               <p className="mb-2 text-xs text-gray-500">編集項目</p>
               <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500">住所</p>
+                  <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                </div>
                 <div>
                   <p className="text-xs text-gray-500">電話番号</p>
                   <Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
@@ -941,7 +1033,7 @@ export default function PatientDetailPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">キャンセル</Button>
-            <Button onClick={handleSavePatientEdit} className="bg-indigo-600 text-white hover:bg-indigo-700">保存する</Button>
+            <Button onClick={() => void handleSavePatientEdit()} className="bg-indigo-600 text-white hover:bg-indigo-700">保存する</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
