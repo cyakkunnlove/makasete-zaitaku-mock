@@ -694,8 +694,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [flowDate, setFlowDate] = useState(getTodayDateKey())
-  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: getTodayDateKey() }))
-  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>(() => mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate: getTodayDateKey() }))
+  const [dayTasks, setDayTasks] = useState<DayTaskItem[]>([])
+  const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>([])
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
@@ -749,6 +749,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [flowLoadKey, setFlowLoadKey] = useState(0)
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
+  const scopedBaseDayTasks = useMemo(() => {
+    const ownPatientIds = new Set(ownPatients.map((patient) => patient.id))
+    return dayTaskData.filter((task) => ownPatientIds.has(task.patientId))
+  }, [ownPatients])
+
   useEffect(() => {
     const patients = ownPatients
     let cancelled = false
@@ -785,13 +790,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             }))
           : []
 
-        const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients, persistedTasks })
+        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients, persistedTasks })
         if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)
         }
       } catch {
-        const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients })
+        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients })
         if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)
@@ -803,7 +808,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return () => {
       cancelled = true
     }
-  }, [flowDate, flowLoadKey, ownPatients])
+  }, [flowDate, flowLoadKey, ownPatients, scopedBaseDayTasks])
 
   useEffect(() => {
     try {
