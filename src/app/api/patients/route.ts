@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
+import { writeAuditLog } from '@/lib/audit-log'
 
 function normalizeDateInput(value: unknown) {
   if (typeof value !== 'string') return null
@@ -94,9 +95,27 @@ export async function POST(request: Request) {
     status: 'active' as const,
   }
 
-  const { data, error } = await supabase.from('patients').insert(payload as never).select('*').single()
+  const { data, error } = await supabase.from('patients').insert(payload as never).select('*').single() as unknown as {
+    data: { id: string; full_name: string } | null
+    error: { message: string } | null
+  }
   if (error) {
     return NextResponse.json({ ok: false, error: 'supabase_insert_failed', details: error.message }, { status: 500 })
+  }
+
+  if (data) {
+    await writeAuditLog({
+      user,
+      action: 'patient_created',
+      targetType: 'patient',
+      targetId: data.id,
+      details: {
+        patient_name: data.full_name,
+        phone_missing: !phone,
+        has_visit_weekdays: visitWeekdays.length > 0,
+        has_first_visit_date: Boolean(firstVisitDate),
+      },
+    })
   }
 
   return NextResponse.json({

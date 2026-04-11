@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -70,10 +71,23 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .update(payload as never)
     .eq('id', params.id)
     .select('*')
-    .single()
+    .single() as unknown as { data: { id: string } | null; error: { message: string } | null }
 
   if (error) {
     return NextResponse.json({ ok: false, error: 'patient_update_failed', details: error.message }, { status: 500 })
+  }
+
+  if (data) {
+    await writeAuditLog({
+      user,
+      action: 'patient_updated',
+      targetType: 'patient',
+      targetId: params.id,
+      details: {
+        updated_fields: Object.keys(payload).filter((key) => key !== 'updated_at'),
+        role: user.role,
+      },
+    })
   }
 
   return NextResponse.json({ ok: true, mode: 'supabase', patient: data })
