@@ -18,14 +18,16 @@ import { cn } from '@/lib/utils'
 import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
 import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 import { countVisitRuleTouches, formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 
 export default function PatientsPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
 
   const isNightPharmacist = role === 'night_pharmacist'
-  const isDayContext = role === 'pharmacy_admin' || role === 'pharmacy_staff'
+  const isDayContext = canManagePatients(role)
+  const ownPharmacyId = getScopedPharmacyId(user)
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -43,10 +45,10 @@ export default function PatientsPage() {
 
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
-      return patientMaster.filter((patient) => patient.pharmacyId === 'PH-01')
+      return patientMaster.filter((patient) => patient.pharmacyId === ownPharmacyId)
     }
     return patientMaster
-  }, [isDayContext, patientMaster])
+  }, [isDayContext, ownPharmacyId, patientMaster])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -56,7 +58,6 @@ export default function PatientsPage() {
   }, [searchQuery, visiblePatients])
 
   const orderedPatients = useMemo(() => {
-    const ownPharmacyId = 'PH-01'
     if (!isDayContext) return filteredPatients
 
     return [...filteredPatients].sort((a, b) => {
@@ -65,7 +66,7 @@ export default function PatientsPage() {
       if (aIndex !== bIndex) return aIndex - bIndex
       return a.name.localeCompare(b.name, 'ja')
     })
-  }, [filteredPatients, isDayContext])
+  }, [filteredPatients, isDayContext, ownPharmacyId])
 
   if (isNightPharmacist) {
     return (

@@ -25,6 +25,7 @@ import {
   statusMeta,
 } from '@/lib/mock-data'
 import { formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -67,7 +68,7 @@ function calculateAge(dob: string): number {
 }
 
 export default function PatientDetailPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const params = useParams()
   const id = params.id as string
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
@@ -158,7 +159,7 @@ export default function PatientDetailPage() {
   const age = calculateAge(patient.dob)
   const isRegionalAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
-  const isPharmacyStaff = role === 'pharmacy_staff'
+  const canEditThisPatient = canEditPatientRecord({ role, user, patient })
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
@@ -190,6 +191,8 @@ export default function PatientDetailPage() {
   }
 
   const handleSavePatientEdit = () => {
+    if (!canEditThisPatient) return
+
     updateRegisteredPatient(patient.id, (current) => ({
       ...current,
       phone: editForm.phone || null,
@@ -268,7 +271,7 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
-      {(isPharmacyAdmin || isPharmacyStaff) && (
+      {canEditThisPatient && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
             <div className="space-y-1 text-gray-300">
@@ -288,7 +291,7 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
-      {(!patient.phone || patient.phone === '-') && (isPharmacyAdmin || isPharmacyStaff) && (
+      {(!patient.phone || patient.phone === '-') && canEditThisPatient && (
         <Card className="border-amber-500/40 bg-amber-500/10">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
             <div>
@@ -302,7 +305,7 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
-      {patient.emergencyContact.phone === '-' && (isPharmacyAdmin || isPharmacyStaff) && (
+      {patient.emergencyContact.phone === '-' && canEditThisPatient && (
         <Card className="border-amber-500/40 bg-amber-500/10">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
             <div>

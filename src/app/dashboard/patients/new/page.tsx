@@ -11,6 +11,7 @@ import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Save,
 import { useAuth } from '@/contexts/auth-context'
 import { pharmacyData, patientData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
+import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
 import {
   buildRegisteredPatientRecord,
@@ -75,7 +76,7 @@ export default function NewPatientPage() {
   const [showOptional, setShowOptional] = useState(false)
   const [customDates, setCustomDates] = useState<string[]>([])
   const [excludedDates, setExcludedDates] = useState<string[]>([])
-  const ownPharmacyId = user?.pharmacy_id ?? 'PH-01'
+  const ownPharmacyId = getScopedPharmacyId(user)
   const ownPharmacy = pharmacyData.find((pharmacy) => pharmacy.id === ownPharmacyId)
   const [form, setForm] = useState({
     name: '',
@@ -101,9 +102,7 @@ export default function NewPatientPage() {
   })
 
   const isExceeded = Number(visitCount) > 4
-  const isPharmacyAdmin = role === 'pharmacy_admin'
-  const isPharmacyStaff = role === 'pharmacy_staff'
-  const canEditPatients = isPharmacyAdmin || isPharmacyStaff
+  const canEditPatients = canManagePatients(role)
   const previewBaseDate = useMemo(() => new Date(`${form.startedAt || MOCK_FLOW_DATE}T00:00:00`), [form.startedAt])
   const [previewYear, setPreviewYear] = useState(previewBaseDate.getFullYear())
   const [previewMonth, setPreviewMonth] = useState(previewBaseDate.getMonth())
