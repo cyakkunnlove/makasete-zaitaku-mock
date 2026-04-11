@@ -272,12 +272,45 @@ export default function PatientDetailPage() {
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
             <div className="space-y-1 text-gray-300">
-              <p className="font-medium text-white">患者編集権限</p>
-              <p>Pharmacy Staff: 電話番号・訪問時注意事項などの実務項目を更新</p>
-              <p>Pharmacy Admin: 上記に加え、既往歴・アレルギー・保険情報・現在薬など重要項目も更新</p>
+              <p className="font-medium text-white">患者編集</p>
+              <p>自局の Pharmacy Staff / Pharmacy Admin のみ編集できます。</p>
+              <p>Pharmacy Staff は実務項目、Pharmacy Admin は重要項目まで更新できます。</p>
             </div>
-            <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
-              <Save className="mr-2 h-4 w-4" />患者情報を編集
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
+                <Save className="mr-2 h-4 w-4" />基本情報を編集
+              </Button>
+              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => document.getElementById('visit-schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                訪問予定を調整
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {(!patient.phone || patient.phone === '-') && (isPharmacyAdmin || isPharmacyStaff) && (
+        <Card className="border-amber-500/40 bg-amber-500/10">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
+            <div>
+              <p className="font-medium text-amber-300">連絡先未設定</p>
+              <p className="mt-1 text-xs text-amber-100/80">患者本人の連絡先電話が未設定です。必要に応じて登録してください。</p>
+            </div>
+            <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+              連絡先を入力する
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {patient.emergencyContact.phone === '-' && (isPharmacyAdmin || isPharmacyStaff) && (
+        <Card className="border-amber-500/40 bg-amber-500/10">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
+            <div>
+              <p className="font-medium text-amber-300">緊急連絡先未設定</p>
+              <p className="mt-1 text-xs text-amber-100/80">夜間や緊急時に備えて、緊急連絡先の整備をおすすめします。</p>
+            </div>
+            <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+              緊急連絡先を入力する
             </Button>
           </CardContent>
         </Card>
@@ -490,10 +523,12 @@ export default function PatientDetailPage() {
       )}
 
       {/* Visit Schedule */}
-      <VisitSchedule
-        patientId={patient.id}
-        visitRules={patient.visitRules ?? []}
-      />
+      <div id="visit-schedule-card">
+        <VisitSchedule
+          patientId={patient.id}
+          visitRules={patient.visitRules ?? []}
+        />
+      </div>
 
       {/* Current Medications - moved to bottom with (任意) label */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -553,6 +588,13 @@ export default function PatientDetailPage() {
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
                   <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className="mt-1 min-h-[110px] border-[#2a3553] bg-[#11182c] text-gray-100" />
                 </div>
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs text-gray-500">補足</p>
+              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+                <p>患者の所属薬局やステータス変更は Pharmacy Admin の責務です。</p>
+                <p className="mt-1">他薬局の Pharmacy Staff / Pharmacy Admin、Night Pharmacist、Regional Admin、System Admin は患者情報を編集できません。</p>
               </div>
             </div>
             <div>

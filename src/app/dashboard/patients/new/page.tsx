@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCcw, Save, UserPlus } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { pharmacyData, patientData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
@@ -43,24 +43,48 @@ const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
   { value: 'biweekly', label: '隔週' },
 ]
 
+const postalCodeAddressMap: Record<string, string> = {
+  '1920012': '東京都八王子市左入町',
+  '1500001': '東京都渋谷区神宮前',
+  '1580097': '東京都世田谷区用賀',
+  '2220033': '神奈川県横浜市港北区新横浜',
+}
+
+function normalizeDateInput(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const digits = trimmed.replace(/[^0-9]/g, '')
+  if (digits.length === 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) return trimmed.replace(/\//g, '-')
+  return trimmed
+}
+
 export default function NewPatientPage() {
   const router = useRouter()
   const { user, role } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
-  const [selectedTags, setSelectedTags] = useState<string[]>(['利用中', '家族連絡用', '配薬場所指定'])
-  const [selectedDays, setSelectedDays] = useState<string[]>(['土'])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [visitPattern, setVisitPattern] = useState<VisitRulePattern>('weekly')
   const [biweeklyAnchorWeek, setBiweeklyAnchorWeek] = useState<1 | 2>(1)
-  const [manualSyncAt, setManualSyncAt] = useState('2026-03-29 15:10')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [warningMessage, setWarningMessage] = useState<string | null>(null)
+  const [showOptional, setShowOptional] = useState(false)
+  const [customDates, setCustomDates] = useState<string[]>([])
+  const [excludedDates, setExcludedDates] = useState<string[]>([])
+  const ownPharmacyId = user?.pharmacy_id ?? 'PH-01'
+  const ownPharmacy = pharmacyData.find((pharmacy) => pharmacy.id === ownPharmacyId)
   const [form, setForm] = useState({
     name: '',
     dob: '',
+    postalCode: '',
     phone: '',
-    pharmacyId: 'PH-01',
     address: '',
     startedAt: MOCK_FLOW_DATE,
-    status: 'active' as 'active' | 'inactive',
+    firstVisitDate: '',
     emergencyContactName: '',
     emergencyContactRelation: '',
     emergencyContactPhone: '',
@@ -79,9 +103,17 @@ export default function NewPatientPage() {
   const isExceeded = Number(visitCount) > 4
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const isPharmacyStaff = role === 'pharmacy_staff'
+  const canEditPatients = isPharmacyAdmin || isPharmacyStaff
   const previewBaseDate = useMemo(() => new Date(`${form.startedAt || MOCK_FLOW_DATE}T00:00:00`), [form.startedAt])
   const [previewYear, setPreviewYear] = useState(previewBaseDate.getFullYear())
   const [previewMonth, setPreviewMonth] = useState(previewBaseDate.getMonth())
+
+  const effectiveCustomDates = useMemo(() => {
+    const merged = new Set(customDates)
+    const normalizedFirstVisitDate = normalizeDateInput(form.firstVisitDate)
+    if (normalizedFirstVisitDate) merged.add(normalizedFirstVisitDate)
+    return Array.from(merged).sort()
+  }, [customDates, form.firstVisitDate])
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag])
@@ -92,7 +124,7 @@ export default function NewPatientPage() {
   }
 
   const previewVisitRules = useMemo<PatientVisitRule[]>(() => {
-    return selectedDays.map((day, index) => ({
+    const baseRules: PatientVisitRule[] = selectedDays.map((day, index) => ({
       id: `preview-rule-${weekdayMap[day as keyof typeof weekdayMap]}-${index + 1}`,
       pattern: visitPattern,
       weekday: weekdayMap[day as keyof typeof weekdayMap],
@@ -102,9 +134,26 @@ export default function NewPatientPage() {
       monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
       active: true,
       customDates: [],
-      excludedDates: [],
+      excludedDates,
     }))
-  }, [biweeklyAnchorWeek, form.preferredTime, selectedDays, visitCount, visitPattern])
+
+    if (effectiveCustomDates.length > 0) {
+      baseRules.push({
+        id: 'preview-rule-custom-dates',
+        pattern: 'custom',
+        weekday: null,
+        intervalWeeks: 1,
+        anchorWeek: null,
+        preferredTime: form.preferredTime || null,
+        monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
+        active: true,
+        customDates: effectiveCustomDates,
+        excludedDates: [],
+      })
+    }
+
+    return baseRules
+  }, [biweeklyAnchorWeek, effectiveCustomDates, excludedDates, form.preferredTime, selectedDays, visitCount, visitPattern])
 
   const calendarPreview = useMemo(() => {
     const { firstDay, daysInMonth } = getVisitCalendarMonthDays(previewYear, previewMonth)
@@ -122,7 +171,22 @@ export default function NewPatientPage() {
   }, [previewMonth, previewVisitRules, previewYear])
 
   const handleChange = (key: keyof typeof form, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    let nextValue = value
+
+    if (key === 'dob' || key === 'firstVisitDate') {
+      nextValue = normalizeDateInput(value)
+    }
+
+    if (key === 'postalCode') {
+      const digits = value.replace(/[^0-9]/g, '').slice(0, 7)
+      nextValue = digits
+      if (digits.length === 7 && postalCodeAddressMap[digits] && !form.address.trim()) {
+        setForm((prev) => ({ ...prev, postalCode: digits, address: postalCodeAddressMap[digits] }))
+        return
+      }
+    }
+
+    setForm((prev) => ({ ...prev, [key]: nextValue }))
 
     if (key === 'startedAt') {
       const nextDate = new Date(`${value || MOCK_FLOW_DATE}T00:00:00`)
@@ -151,32 +215,80 @@ export default function NewPatientPage() {
     setPreviewMonth((prev) => prev + 1)
   }
 
+  const resetCalendarEdits = () => {
+    setCustomDates([])
+    setExcludedDates([])
+  }
+
+  const toggleCalendarDate = (dateKey: string) => {
+    const isCustom = effectiveCustomDates.includes(dateKey)
+    const isExcluded = excludedDates.includes(dateKey)
+    const isScheduled = calendarPreview.scheduled.has(dateKey)
+    const normalizedFirstVisitDate = normalizeDateInput(form.firstVisitDate)
+
+    if (isCustom) {
+      if (normalizedFirstVisitDate === dateKey) {
+        setForm((prev) => ({ ...prev, firstVisitDate: '' }))
+      } else {
+        setCustomDates((prev) => prev.filter((item) => item !== dateKey))
+      }
+      return
+    }
+
+    if (isExcluded) {
+      setExcludedDates((prev) => prev.filter((item) => item !== dateKey))
+      return
+    }
+
+    if (isScheduled) {
+      setExcludedDates((prev) => [...prev, dateKey])
+      return
+    }
+
+    setCustomDates((prev) => [...prev, dateKey].sort())
+  }
+
   const handleSave = () => {
+    setErrorMessage(null)
+    setWarningMessage(null)
+
+    if (!canEditPatients) {
+      setErrorMessage('このロールでは患者登録はできません。')
+      return
+    }
+
     if (!form.name.trim()) {
-      setErrorMessage('氏名は必須です。')
+      setErrorMessage('氏名を入力してください。')
       return
     }
+
+    const normalizedDob = normalizeDateInput(form.dob)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDob)) {
+      setErrorMessage('生年月日を入力してください。')
+      return
+    }
+
     if (!form.address.trim()) {
-      setErrorMessage('住所は必須です。')
+      setErrorMessage('住所を入力してください。')
       return
     }
-    if (selectedDays.length === 0) {
-      setErrorMessage('訪問曜日を1つ以上選んでください。')
+
+    if (!normalizeDateInput(form.firstVisitDate) && selectedDays.length === 0) {
+      setErrorMessage('初回訪問予定日または訪問曜日を入力してください。')
       return
     }
 
     const visitRules = previewVisitRules
-
     const existing = getPatientMasterRecords(loadRegisteredPatients())
     const patient = buildRegisteredPatientRecord(
       {
         name: form.name,
-        dob: form.dob,
+        dob: normalizedDob,
         phone: form.phone,
-        pharmacyId: form.pharmacyId,
-        address: form.address,
+        pharmacyId: ownPharmacyId,
+        address: `${form.postalCode ? `〒${form.postalCode} ` : ''}${form.address}`.trim(),
         startedAt: form.startedAt,
-        status: form.status,
+        status: 'active',
         manualTags: selectedTags,
         emergencyContactName: form.emergencyContactName,
         emergencyContactRelation: form.emergencyContactRelation,
@@ -193,17 +305,36 @@ export default function NewPatientPage() {
         preferredTime: form.preferredTime,
         visitCount: Math.max(1, Number(visitCount) || 4),
         visitRules,
-        manualSyncAt,
+        manualSyncAt: null,
       },
       {
         id: user?.id ?? null,
-        name: user?.full_name ?? 'Pharmacy Staff（モック）',
+        name: user?.full_name ?? 'Pharmacy Staff',
       },
       existing.length > 0 ? existing : patientData,
     )
 
     upsertRegisteredPatient(patient)
-    router.push('/dashboard')
+    if (!form.phone.trim()) {
+      setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
+    }
+    router.push(`/dashboard/patients/${patient.id}`)
+  }
+
+  if (!canEditPatients) {
+    return (
+      <div className="space-y-4 text-gray-100">
+        <div>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
+          <p className="text-xs text-gray-400">患者登録は自局の Pharmacy Staff / Pharmacy Admin のみが行えます。</p>
+        </div>
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-6 text-sm text-gray-300">
+            現在のロールでは患者登録はできません。患者検索または患者詳細の閲覧をご利用ください。
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -211,36 +342,12 @@ export default function NewPatientPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">患者マスタ + visitRules モデルへ保存する最小実装。Supabase接続前は localStorage に保存します。初期曜日は mock 当日フロー（{MOCK_FLOW_DATE}）に乗る設定です。</p>
+          <p className="text-xs text-gray-400">まずは最低限の情報で登録できます。必要な情報はあとから追加できます。</p>
         </div>
-        <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => setManualSyncAt('2026-03-29 15:10')}>
-          <RefreshCcw className="h-4 w-4" />
-          手動更新
-        </Button>
+        <div className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
+          登録先薬局: <span className="font-medium text-white">{ownPharmacy?.name ?? '所属薬局'}</span>
+        </div>
       </div>
-
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
-          <div>
-            <p>最終同期: {manualSyncAt}</p>
-            <p>最終更新者: {user?.full_name ?? 'Pharmacy Staff（モック）'} / 保存先: patient master localStorage</p>
-          </div>
-          <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-cyan-200">更新ありバッジ / 手動同期を想定</div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
-          <div className="space-y-1 text-gray-300">
-            <p className="font-medium text-white">編集権限の考え方（モック）</p>
-            <p>Pharmacy Admin: 所属設定・重要マスタ・夜間受託設定まで編集可能</p>
-            <p>Pharmacy Staff: 実務情報更新が中心。重要設定は編集不可</p>
-          </div>
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-200">
-            現在のロール: {isPharmacyAdmin ? 'Pharmacy Admin' : isPharmacyStaff ? 'Pharmacy Staff' : 'その他'}
-          </div>
-        </CardContent>
-      </Card>
 
       {errorMessage && (
         <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
@@ -249,89 +356,56 @@ export default function NewPatientPage() {
         </div>
       )}
 
+      {warningMessage && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-300" />
+          {warningMessage}
+        </div>
+      )}
+
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">基本情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
-          <div><Label className="text-gray-300">氏名</Label><Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" /></div>
-          <div><Label className="text-gray-300">生年月日</Label><Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1948-04-12" /></div>
-          <div><Label className="text-gray-300">患者本人電話</Label><Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
           <div>
-            <Label className="text-gray-300">担当薬局</Label>
-            <select value={form.pharmacyId} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('pharmacyId', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:opacity-60">
-              {pharmacyData.map((pharmacy) => (
-                <option key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</option>
-              ))}
-            </select>
+            <Label className="text-gray-300">氏名</Label>
+            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" />
           </div>
-          <div className="md:col-span-2"><Label className="text-gray-300">住所</Label><Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." /></div>
-          <div><Label className="text-gray-300">利用開始日</Label><Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-03-28" /></div>
           <div>
-            <Label className="text-gray-300">ステータス</Label>
-            <select value={form.status} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('status', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:opacity-60">
-              <option value="active">利用中</option>
-              <option value="inactive">休止</option>
-            </select>
+            <Label className="text-gray-300">生年月日</Label>
+            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="19500412 / 1950-04-12" />
+          </div>
+          <div>
+            <Label className="text-gray-300">郵便番号</Label>
+            <Input value={form.postalCode} onChange={(e) => handleChange('postalCode', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1920012" />
+            <p className="mt-1 text-[11px] text-gray-500">入力すると住所を自動で補完できます。</p>
+          </div>
+          <div>
+            <Label className="text-gray-300">連絡先電話</Label>
+            <Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-gray-300">住所</Label>
+            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." />
+          </div>
+          <div>
+            <Label className="text-gray-300">利用開始日</Label>
+            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-11" />
+          </div>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
+            <p className="font-medium text-white">登録ルール</p>
+            <p className="mt-1">ステータスは active で自動設定されます。所属薬局はログイン中ユーザーの所属から自動反映します。</p>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">タグ設定</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-gray-400">manualTags として保存し、患者名横や注意フラグで再利用します。</p>
-          <div className="flex flex-wrap gap-2">
-            {patientTagOptions.map((tag) => {
-              const active = selectedTags.includes(tag)
-              return (
-                <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-3 py-1.5 text-xs ${active ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
-                  {tag}
-                </button>
-              )
-            })}
-          </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <p className="text-xs text-gray-500">プレビュー</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {selectedTags.map((tag) => <span key={tag} className="rounded-full border border-indigo-500/40 bg-indigo-500/20 px-3 py-1 text-xs text-indigo-200">{tag}</span>)}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">連絡・医療情報</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
-          <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
-          <div><Label className="text-gray-300">連絡先電話</Label><Input value={form.emergencyContactPhone} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
-          <div><Label className="text-gray-300">主治医</Label><Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" /></div>
-          <div><Label className="text-gray-300">クリニック</Label><Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" /></div>
-          <div><Label className="text-gray-300">医師電話</Label><Input value={form.doctorPhone} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-xxxx-xxxx" /></div>
-          <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="オキシコドン / ラシックス ..." /></div>
-          <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全、糖尿病" /></div>
-          <div className="md:col-span-2"><Label className="text-gray-300">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴を入力" /></div>
-          <div className="md:col-span-2"><Label className="text-gray-300">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="なし / ペニシリン系 など" /></div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問ルール</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問条件</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label className="text-gray-300">訪問曜日</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {visitWeekdayOptions.map((day) => {
-                const active = selectedDays.includes(day)
-                return (
-                  <button key={day} type="button" onClick={() => toggleDay(day)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
-                    {day}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <Label className="text-gray-300">初回訪問予定日</Label>
+              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-14" />
+            </div>
             <div>
               <Label className="text-gray-300">訪問パターン</Label>
               <select value={visitPattern} onChange={(e) => setVisitPattern(e.target.value as VisitRulePattern)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
@@ -348,96 +422,158 @@ export default function NewPatientPage() {
               </select>
             </div>
             <div>
-              <Label className="text-gray-300">今月の訪問回数上限</Label>
+              <Label className="text-gray-300">月回数</Label>
               <Input value={visitCount} onChange={(e) => setVisitCount(e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
             </div>
-            <div>
-              <Label className="text-gray-300">希望時間</Label>
-              <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" />
+          </div>
+
+          <div>
+            <Label className="text-gray-300">訪問曜日</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {visitWeekdayOptions.map((day) => {
+                const active = selectedDays.includes(day)
+                return (
+                  <button key={day} type="button" onClick={() => toggleDay(day)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
+                    {day}
+                  </button>
+                )
+              })}
             </div>
+            <p className="mt-2 text-xs text-gray-500">初回訪問予定日または訪問曜日のどちらかを入力してください。</p>
+          </div>
+
+          <div>
+            <Label className="text-gray-300">希望時間</Label>
+            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" />
           </div>
 
           {isExceeded && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-300" />
-              月4回を超過しています。保存は可能ですが、visitRules 上の警告対象として扱います。
+              月4回を超過しています。保存は可能ですが、運用上の確認が必要です。
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          <div>
-            <Label className="text-gray-300">カレンダー設定（visitRules プレビュー）</Label>
-            <div className="mt-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-white">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
-                  <p className="text-[11px] text-gray-500">開始日 {form.startedAt || MOCK_FLOW_DATE} を基準に表示</p>
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-sm text-white">訪問予定カレンダー</CardTitle>
+            <Button type="button" variant="outline" onClick={resetCalendarEdits} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+              <RotateCcw className="mr-2 h-4 w-4" />自動生成に戻す
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-gray-400">入力内容をもとに訪問予定を自動で入れます。日付を押すと、追加や除外を調整できます。</p>
+          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="text-center">
+                <p className="text-sm font-medium text-white">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
+                <p className="text-[11px] text-gray-500">青: 通常, 緑: 手動追加, 赤: 除外</p>
+              </div>
+              <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mb-1 grid grid-cols-7 gap-1">
+              {VISIT_CALENDAR_DAY_LABELS.map((label, index) => (
+                <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-400' : index === 6 ? 'text-sky-400' : 'text-gray-500'}`}>
+                  {label}
                 </div>
-                <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mb-1 grid grid-cols-7 gap-1">
-                {VISIT_CALENDAR_DAY_LABELS.map((label, index) => (
-                  <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-400' : index === 6 ? 'text-sky-400' : 'text-gray-500'}`}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: calendarPreview.firstDay }).map((_, index) => (
-                  <div key={`empty-${index}`} className="h-9" />
-                ))}
-
-                {Array.from({ length: calendarPreview.daysInMonth }).map((_, index) => {
-                  const day = index + 1
-                  const date = new Date(previewYear, previewMonth, day)
-                  const dateKey = formatVisitCalendarDateKey(date)
-                  const isScheduled = calendarPreview.scheduled.has(dateKey)
-                  const isCustom = calendarPreview.custom.has(dateKey)
-                  const isExcluded = calendarPreview.excluded.has(dateKey) && !isCustom
-                  const isToday = dateKey === calendarPreview.todayKey
-
-                  return (
-                    <div
-                      key={dateKey}
-                      className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30' : isExcluded ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through' : 'bg-[#0a0e1a] text-gray-400'} ${isToday ? 'ring-1 ring-indigo-500/50' : ''}`}
-                    >
-                      {day}
-                    </div>
-                  )
-                })}
-              </div>
+              ))}
             </div>
-            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-gray-500">
-              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
-              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />追加日</span>
-              <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外日</span>
+
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: calendarPreview.firstDay }).map((_, index) => (
+                <div key={`empty-${index}`} className="h-9" />
+              ))}
+
+              {Array.from({ length: calendarPreview.daysInMonth }).map((_, index) => {
+                const day = index + 1
+                const date = new Date(previewYear, previewMonth, day)
+                const dateKey = formatVisitCalendarDateKey(date)
+                const isScheduled = calendarPreview.scheduled.has(dateKey)
+                const isCustom = calendarPreview.custom.has(dateKey)
+                const isExcluded = calendarPreview.excluded.has(dateKey) && !isCustom
+                const isToday = dateKey === calendarPreview.todayKey
+
+                return (
+                  <button
+                    type="button"
+                    key={dateKey}
+                    onClick={() => toggleCalendarDate(dateKey)}
+                    className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30' : isExcluded ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through' : 'bg-[#0a0e1a] text-gray-400'} ${isToday ? 'ring-1 ring-indigo-500/50' : ''}`}
+                  >
+                    {day}
+                  </button>
+                )
+              })}
             </div>
-            <p className="mt-2 text-xs text-gray-500">選択中の曜日・パターン・希望時間から visitRules を生成し、そのまま patient master に保存します。</p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />手動追加</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外</span>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">運用情報</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div><Label className="text-gray-300">訪問時注意事項</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / ペット / 配薬場所 / 夜間訪問注意 など" /></div>
-          <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} disabled={!isPharmacyAdmin} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" placeholder="保険種別・負担割合など" /></div>
-        </CardContent>
+        <CardHeader className="pb-2">
+          <button type="button" onClick={() => setShowOptional((prev) => !prev)} className="flex w-full items-center justify-between text-left">
+            <CardTitle className="text-sm text-white">任意項目を追加</CardTitle>
+            <ChevronDown className={`h-4 w-4 text-gray-400 transition ${showOptional ? 'rotate-180' : ''}`} />
+          </button>
+        </CardHeader>
+        {showOptional && (
+          <CardContent className="space-y-4">
+            <p className="text-xs text-gray-400">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 夜間訪問注意 など" /></div>
+              <div className="space-y-3">
+                <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
+                <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
+                <div><Label className="text-gray-300">緊急連絡先電話</Label><Input value={form.emergencyContactPhone} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
+              </div>
+              <div><Label className="text-gray-300">主治医</Label><Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" /></div>
+              <div><Label className="text-gray-300">クリニック</Label><Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" /></div>
+              <div><Label className="text-gray-300">医師電話</Label><Input value={form.doctorPhone} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-xxxx-xxxx" /></div>
+              <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="ラシックス など" /></div>
+              <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全 など" /></div>
+              <div className="md:col-span-2"><Label className="text-gray-300">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴を入力" /></div>
+              <div><Label className="text-gray-300">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="なし / ペニシリン系 など" /></div>
+              <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険種別・負担割合など" /></div>
+            </div>
+            <div>
+              <Label className="text-gray-300">タグ</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {patientTagOptions.map((tag) => {
+                  const active = selectedTags.includes(tag)
+                  return (
+                    <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-3 py-1.5 text-xs ${active ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
           <div>
-            <p>最終更新者: {user?.full_name ?? 'Pharmacy Staff（モック）'}</p>
-            <p>最終更新時刻: {manualSyncAt}</p>
+            <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
+            <p>電話未入力でも登録可能です。患者詳細で警告表示します。</p>
           </div>
-          <Button onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500"><Save className="h-4 w-4" />patient master に保存</Button>
+          <Button onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500"><Save className="h-4 w-4" />登録する</Button>
         </CardContent>
       </Card>
     </div>
