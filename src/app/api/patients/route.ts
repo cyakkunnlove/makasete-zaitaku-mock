@@ -5,7 +5,7 @@ import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
-import { geocodeAddress } from '@/lib/google-maps'
+import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
 function normalizeDateInput(value: unknown) {
   if (typeof value !== 'string') return null
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       latitude: geocoded.latitude,
       longitude: geocoded.longitude,
     }
+    warnings.push(...buildGeocodeWarnings(addressLine1, geocoded.normalizedAddress))
   } catch (error) {
     geocodePayload = {
       ...geocodePayload,

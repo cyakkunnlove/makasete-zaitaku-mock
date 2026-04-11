@@ -5,7 +5,7 @@ import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
-import { geocodeAddress } from '@/lib/google-maps'
+import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -52,6 +52,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     updated_at: new Date().toISOString(),
     updated_by: user.id,
   }
+  const warnings: Array<{ code: string; message: string }> = []
 
   if (typeof patch.phone === 'string' || patch.phone === null) {
     payload.phone = typeof patch.phone === 'string' ? patch.phone.trim() || null : null
@@ -80,6 +81,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         payload.geocode_source = 'google_maps'
         payload.geocode_error = null
         payload.geocode_input_address = geocoded.normalizedAddress
+        warnings.push(...buildGeocodeWarnings(nextAddress, geocoded.normalizedAddress))
       } catch (error) {
         payload.latitude = null
         payload.longitude = null
@@ -117,5 +119,5 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     })
   }
 
-  return NextResponse.json({ ok: true, mode: 'supabase', patient: data })
+  return NextResponse.json({ ok: true, mode: 'supabase', patient: data, warnings })
 }

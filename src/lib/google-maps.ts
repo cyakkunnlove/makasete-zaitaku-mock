@@ -20,6 +20,32 @@ function toLatLng(latitude: number, longitude: number) {
   }
 }
 
+function extractMunicipality(text: string) {
+  const match = text.match(/(?:東京都|北海道|(?:京都|大阪)府|.{2,3}県)?([^\d\s]{1,20}?[市区町村])/)
+  return match?.[1] ?? null
+}
+
+export function buildGeocodeWarnings(address: string, normalizedAddress: string | null | undefined) {
+  const warnings: Array<{ code: string; message: string }> = []
+  const input = address.trim()
+  const normalized = normalizedAddress?.trim() ?? ''
+
+  if (!/(都|道|府|県)/.test(input)) {
+    warnings.push({ code: 'prefecture_missing', message: '住所に都道府県がなく、別地域に解釈される可能性があります。' })
+  }
+
+  if (!/(市|区|町|村)/.test(input)) {
+    warnings.push({ code: 'municipality_missing', message: '住所に市区町村の情報が少なく、解釈が不安定な可能性があります。' })
+  }
+
+  const inputMunicipality = extractMunicipality(input)
+  if (inputMunicipality && normalized && !normalized.includes(inputMunicipality)) {
+    warnings.push({ code: 'municipality_mismatch', message: `解釈住所に「${inputMunicipality}」が含まれていません。住所確認をおすすめします。` })
+  }
+
+  return warnings
+}
+
 export async function geocodeAddress(address: string) {
   const { serverApiKey } = assertGoogleMapsEnv()
   const url = new URL('https://maps.googleapis.com/maps/api/geocode/json')

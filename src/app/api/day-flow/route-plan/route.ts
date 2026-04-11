@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { geocodeAddress, optimizeRoundTripRoute } from '@/lib/google-maps'
+import { buildGeocodeWarnings, geocodeAddress, optimizeRoundTripRoute } from '@/lib/google-maps'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -61,15 +61,20 @@ export async function POST(request: Request) {
     geocode_status?: string | null
   }>
 
-  const patients = rows.map((patient) => ({
-    id: String(patient.id),
-    name: String(patient.full_name),
-    address: String(patient.address),
-    geocodeInputAddress: typeof patient.geocode_input_address === 'string' ? patient.geocode_input_address : null,
-    geocodeStatus: typeof patient.geocode_status === 'string' ? patient.geocode_status : null,
-    latitude: typeof patient.latitude === 'number' ? patient.latitude : null,
-    longitude: typeof patient.longitude === 'number' ? patient.longitude : null,
-  }))
+  const patients = rows.map((patient) => {
+    const address = String(patient.address)
+    const geocodeInputAddress = typeof patient.geocode_input_address === 'string' ? patient.geocode_input_address : null
+    return {
+      id: String(patient.id),
+      name: String(patient.full_name),
+      address,
+      geocodeInputAddress,
+      geocodeStatus: typeof patient.geocode_status === 'string' ? patient.geocode_status : null,
+      geocodeWarnings: buildGeocodeWarnings(address, geocodeInputAddress),
+      latitude: typeof patient.latitude === 'number' ? patient.latitude : null,
+      longitude: typeof patient.longitude === 'number' ? patient.longitude : null,
+    }
+  })
 
   const withCoordinates = [...patients]
   const missingCoordinates = patients.filter((patient) => patient.latitude === null || patient.longitude === null)
@@ -82,6 +87,7 @@ export async function POST(request: Request) {
         patient.longitude = geocoded.longitude
         patient.geocodeInputAddress = geocoded.normalizedAddress
         patient.geocodeStatus = 'success'
+        patient.geocodeWarnings = buildGeocodeWarnings(patient.address, geocoded.normalizedAddress)
 
         await supabase
           .from('patients')
@@ -146,6 +152,7 @@ export async function POST(request: Request) {
         name: pharmacyRecord.name,
         address: pharmacyRecord.address,
         geocodeInputAddress: origin.normalizedAddress,
+        geocodeWarnings: buildGeocodeWarnings(pharmacyRecord.address, origin.normalizedAddress),
         latitude: origin.latitude,
         longitude: origin.longitude,
       },

@@ -60,6 +60,7 @@ type GoogleMapsNamespace = {
   Marker: new (options: Record<string, unknown>) => unknown
   Polyline: new (options: Record<string, unknown>) => unknown
   LatLngBounds: new () => { extend: (point: GoogleMapsLatLng) => void; isEmpty: () => boolean }
+  SymbolPath: { CIRCLE: unknown }
 }
 
 function getDayTaskStorageKey(pharmacyId: string, flowDate: string) {
@@ -799,13 +800,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const [routePlanResult, setRoutePlanResult] = useState<null | {
     ready: boolean
-    suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }>
-    missingCoordinates: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null }>
+    suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; geocodeWarnings?: Array<{ code: string; message: string }>; latitude?: number | null; longitude?: number | null }>
+    missingCoordinates: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; geocodeWarnings?: Array<{ code: string; message: string }> }>
     totalDuration?: string | null
     totalDistanceMeters?: number | null
     polyline?: string | null
-    origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null }
-    debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }> }
+    origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }
+    debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }> }
     message: string
   }>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
@@ -999,7 +1000,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       const bounds = new googleMaps.LatLngBounds()
       if (typeof origin.latitude === 'number' && typeof origin.longitude === 'number') {
         const originPosition = { lat: origin.latitude, lng: origin.longitude }
-        new googleMaps.Marker({ map, position: originPosition, title: `起点: ${origin.name}` })
+        new googleMaps.Marker({
+          map,
+          position: originPosition,
+          title: `起点: ${origin.name}`,
+          icon: {
+            path: googleMaps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#10b981',
+            fillOpacity: 1,
+            strokeColor: '#ecfdf5',
+            strokeWeight: 2,
+          },
+        })
         bounds.extend(originPosition)
       }
 
@@ -1010,7 +1023,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           map,
           position,
           title: `${index + 1}. ${patient.name}`,
-          label: `${index + 1}`,
+          label: { text: `${index + 1}`, color: '#ffffff', fontWeight: '700' },
+          icon: `https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=${index + 1}|6366f1|ffffff`,
         })
         bounds.extend(position)
       })
@@ -1632,6 +1646,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                             <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
                             <p className="mt-1 text-gray-400">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
                             <p className="mt-1 text-gray-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
+                            {routePlanResult.origin.geocodeWarnings && routePlanResult.origin.geocodeWarnings.length > 0 && (
+                              <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                                {routePlanResult.origin.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                              </div>
+                            )}
                           </div>
                         )}
                         <ol className="mt-3 space-y-2">
@@ -1644,6 +1663,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                               </div>
                               <p className="mt-2 text-xs text-gray-400">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
                               <p className="mt-1 text-[11px] text-gray-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
+                              {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
+                                <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                                  {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                                </div>
+                              )}
                             </li>
                           ))}
                         </ol>
@@ -1654,7 +1678,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         <p className="font-medium text-amber-300">座標未取得の患者</p>
                         <ul className="mt-2 space-y-1">
                           {routePlanResult.missingCoordinates.map((patient) => (
-                            <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</li>
+                            <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}{patient.geocodeWarnings && patient.geocodeWarnings.length > 0 ? ` / 注意: ${patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}` : ''}</li>
                           ))}
                         </ul>
                       </div>
