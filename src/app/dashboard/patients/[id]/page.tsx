@@ -76,6 +76,11 @@ type VisitRecordDraft = {
   note: string
 }
 
+function isUuidLike(value: string | null | undefined) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
   const today = new Date()
@@ -110,7 +115,7 @@ export default function PatientDetailPage() {
   useEffect(() => {
     let cancelled = false
     async function fetchPatientDetail() {
-      const localPatient = registeredPatients.find((item) => item.id === id)
+      const localPatient = isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
       if (localPatient) {
         setDatabasePatient(null)
         setDetailLoadState('ready')

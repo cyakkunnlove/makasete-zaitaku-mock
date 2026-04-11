@@ -812,10 +812,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
+  const fallbackRegisteredPatients = useMemo(() => {
+    if (databasePatients.length === 0) return registeredPatients
+    return registeredPatients.filter((patient) => !isUuidLike(patient.id))
+  }, [databasePatients.length, registeredPatients])
+
   const ownPatients = useMemo(() => {
-    const merged = mergePatientSources({ databasePatients, registeredPatients })
+    const merged = mergePatientSources({ databasePatients, registeredPatients: fallbackRegisteredPatients })
     return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
-  }, [databasePatients, ownPharmacyId, registeredPatients])
+  }, [databasePatients, fallbackRegisteredPatients, ownPharmacyId])
   const dayFlowPatients = useMemo(() => ownPatients.filter((patient) => isUuidLike(patient.id)), [ownPatients])
 
   useEffect(() => {

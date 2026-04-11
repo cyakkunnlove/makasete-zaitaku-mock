@@ -20,6 +20,11 @@ import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
 import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
+
+function isUuidLike(value: string | null | undefined) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 import type { Patient } from '@/types/database'
@@ -69,7 +74,12 @@ export default function PatientsPage() {
     }
   }, [isDayContext, ownPharmacyId])
 
-  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients }), [databasePatients, registeredPatients])
+  const fallbackRegisteredPatients = useMemo(() => {
+    if (!isDayContext || databasePatients.length === 0) return registeredPatients
+    return registeredPatients.filter((patient) => !isUuidLike(patient.id))
+  }, [databasePatients.length, isDayContext, registeredPatients])
+
+  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients])
 
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
