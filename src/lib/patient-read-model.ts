@@ -38,21 +38,32 @@ export function mapDatabasePatientToPatientRecord(patient: Patient): RegisteredP
   }
 }
 
+function buildPatientFingerprint(patient: Pick<RegisteredPatientRecord, 'name' | 'dob' | 'address' | 'pharmacyId'>) {
+  return [patient.name, patient.dob, patient.address, patient.pharmacyId].map((item) => (item ?? '').trim().toLowerCase()).join('::')
+}
+
 export function mergePatientSources(options: {
   databasePatients?: Patient[]
   registeredPatients?: RegisteredPatientRecord[]
 }) {
   const merged = new Map<string, RegisteredPatientRecord>()
+  const databaseFingerprints = new Set<string>()
 
   patientData.forEach((patient) => {
     merged.set(patient.id, patient)
   })
 
   ;(options.databasePatients ?? []).forEach((patient) => {
-    merged.set(patient.id, mapDatabasePatientToPatientRecord(patient))
+    const mapped = mapDatabasePatientToPatientRecord(patient)
+    merged.set(patient.id, mapped)
+    databaseFingerprints.add(buildPatientFingerprint(mapped))
   })
 
   ;(options.registeredPatients ?? []).forEach((patient) => {
+    const fingerprint = buildPatientFingerprint(patient)
+    if (databaseFingerprints.has(fingerprint)) {
+      return
+    }
     merged.set(patient.id, patient)
   })
 
