@@ -61,6 +61,11 @@ function getSharedDayTaskStorageKey(pharmacyId: string, flowDate: string) {
   return `makasete-day-flow:shared:${pharmacyId}:${flowDate}`
 }
 
+function isUuidLike(value: string | null | undefined) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
 function getTodayDateKey() {
   const now = new Date()
   const year = now.getFullYear()
@@ -735,6 +740,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const merged = mergePatientSources({ databasePatients, registeredPatients })
     return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
   }, [databasePatients, ownPharmacyId, registeredPatients])
+  const dayFlowPatients = useMemo(() => ownPatients.filter((patient) => isUuidLike(patient.id)), [ownPatients])
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -775,12 +781,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
   const scopedBaseDayTasks = useMemo(() => {
-    const ownPatientIds = new Set(ownPatients.map((patient) => patient.id))
+    const ownPatientIds = new Set(dayFlowPatients.map((patient) => patient.id))
     return dayTaskData.filter((task) => ownPatientIds.has(task.patientId))
-  }, [ownPatients])
+  }, [dayFlowPatients])
 
   useEffect(() => {
-    const patients = ownPatients
+    const patients = dayFlowPatients
     let cancelled = false
 
     async function loadFlow() {
@@ -836,7 +842,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return () => {
       cancelled = true
     }
-  }, [flowDate, flowLoadKey, ownPatients, scopedBaseDayTasks])
+  }, [dayFlowPatients, flowDate, flowLoadKey, scopedBaseDayTasks])
 
   useEffect(() => {
     try {
@@ -880,12 +886,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const enrichedVisits = useMemo(() => {
     return draftDayTasks
-      .filter((task) => ownPatients.some((p) => p.id === task.patientId))
+      .filter((task) => dayFlowPatients.some((p) => p.id === task.patientId))
       .map((task) => {
-        const patient = ownPatients.find((p) => p.id === task.patientId)
+        const patient = dayFlowPatients.find((p) => p.id === task.patientId)
         return { ...task, patient }
       })
-  }, [draftDayTasks, ownPatients])
+  }, [dayFlowPatients, draftDayTasks])
 
   const filteredVisits = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -1315,9 +1321,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         {(isPatientsLoading || isDayFlowLoading) && (
           <Card className="border-sky-500/30 bg-sky-500/10">
             <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-100">
-              <span>Supabase から最新データを取得中です...</span>
+              <span>データベースから最新データを読み込み中です...</span>
               <span className="text-xs text-sky-200/80">
-                {isPatientsLoading && isDayFlowLoading ? '患者 + day flow を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : 'day flow を読み込み中'}
+                {isPatientsLoading && isDayFlowLoading ? '患者情報と今日の対応予定を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : '今日の対応予定を読み込み中'}
               </span>
             </CardContent>
           </Card>
