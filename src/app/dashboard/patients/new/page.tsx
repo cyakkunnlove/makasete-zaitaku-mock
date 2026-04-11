@@ -10,13 +10,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { pharmacyData, patientData } from '@/lib/mock-data'
+import { pharmacyData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
 import {
   buildRegisteredPatientRecord,
-  getPatientMasterRecords,
   loadRegisteredPatients,
   upsertRegisteredPatient,
   type PatientVisitRule,
@@ -311,7 +310,7 @@ export default function NewPatientPage() {
     }
 
     const visitRules = previewVisitRules
-    const existing = getPatientMasterRecords(loadRegisteredPatients())
+    const existing = loadRegisteredPatients()
     const requestPayload = {
       basic: {
         fullName: form.name,
@@ -404,7 +403,7 @@ export default function NewPatientPage() {
         id: user?.id ?? null,
         name: user?.full_name ?? 'Pharmacy Staff',
       },
-      existing.length > 0 ? existing : patientData,
+      existing,
     )
 
       const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null

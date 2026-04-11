@@ -1,4 +1,4 @@
-import { patientData, pharmacyData, type PatientRecord } from '@/lib/mock-data'
+import { pharmacyData, type PatientRecord } from '@/lib/mock-data'
 
 export const PATIENT_MASTER_STORAGE_KEY = 'makasete-patient-master:v1'
 
@@ -104,17 +104,7 @@ export function updateRegisteredPatient(
 }
 
 export function getPatientMasterRecords(registeredPatients: RegisteredPatientRecord[] = []): RegisteredPatientRecord[] {
-  const merged = new Map<string, RegisteredPatientRecord>()
-
-  patientData.forEach((patient) => {
-    merged.set(patient.id, patient)
-  })
-
-  registeredPatients.forEach((patient) => {
-    merged.set(patient.id, patient)
-  })
-
-  return Array.from(merged.values())
+  return [...registeredPatients]
 }
 
 export function getPatientsByPharmacyFromMaster(pharmacyId: string, registeredPatients: RegisteredPatientRecord[] = []) {
@@ -154,7 +144,7 @@ export function buildVisitRulesFromWeekdays(options: {
 export function buildRegisteredPatientRecord(
   draft: PatientRegistrationDraft,
   actor: { id: string | null; name: string },
-  existingPatients: Pick<PatientRecord, 'id'>[] = patientData,
+  existingPatients: Pick<PatientRecord, 'id'>[] = [],
 ): RegisteredPatientRecord {
   const now = new Date().toISOString()
   const pharmacy = pharmacyData.find((item) => item.id === draft.pharmacyId)
