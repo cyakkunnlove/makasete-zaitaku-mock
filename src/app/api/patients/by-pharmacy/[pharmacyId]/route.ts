@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { listPatientsByPharmacy } from '@/lib/repositories/patients'
+import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
+import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatients } from '@/lib/patient-permissions'
 
 export async function GET(_request: Request, { params }: { params: { pharmacyId: string } }) {
@@ -20,5 +21,11 @@ export async function GET(_request: Request, { params }: { params: { pharmacyId:
   }
 
   const patients = await listPatientsByPharmacy(params.pharmacyId)
-  return NextResponse.json({ ok: true, patients })
+  const patientsWithVisitRules = await Promise.all(
+    patients.map(async (patient) => {
+      const visitRules = await listPatientVisitRules(patient.id)
+      return mapDatabasePatientToPatientRecord(patient, visitRules)
+    }),
+  )
+  return NextResponse.json({ ok: true, patients: patientsWithVisitRules })
 }
