@@ -58,3 +58,16 @@ export function mergePatientSources(options: {
 
   return Array.from(merged.values())
 }
+
+export function mergeSinglePatient(options: {
+  databasePatient?: Patient | null
+  registeredPatients?: RegisteredPatientRecord[]
+  patientId: string
+}) {
+  const merged = mergePatientSources({
+    databasePatients: options.databasePatient ? [options.databasePatient] : [],
+    registeredPatients: options.registeredPatients,
+  })
+
+  return merged.find((patient) => patient.id === options.patientId) ?? null
+}

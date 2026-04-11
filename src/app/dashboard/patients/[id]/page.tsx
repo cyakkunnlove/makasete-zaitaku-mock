@@ -24,8 +24,10 @@ import {
   getAttentionFlagClass,
   statusMeta,
 } from '@/lib/mock-data'
-import { formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, loadRegisteredPatients, updateRegisteredPatient, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
+import { mergeSinglePatient } from '@/lib/patient-read-model'
+import type { Patient } from '@/types/database'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -72,6 +74,7 @@ export default function PatientDetailPage() {
   const params = useParams()
   const id = params.id as string
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
+  const [databasePatient, setDatabasePatient] = useState<Patient | null>(null)
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -85,8 +88,27 @@ export default function PatientDetailPage() {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const patientMaster = useMemo(() => getPatientMasterRecords(registeredPatients), [registeredPatients])
-  const patient = useMemo(() => patientMaster.find((p) => p.id === id), [id, patientMaster])
+  useEffect(() => {
+    let cancelled = false
+    async function fetchPatientDetail() {
+      try {
+        const response = await fetch(`/api/patients/${id}/detail`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!cancelled && response.ok && result?.ok && result.patient) {
+          setDatabasePatient(result.patient)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatient(null)
+      }
+    }
+
+    if (id) fetchPatientDetail()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const patient = useMemo(() => mergeSinglePatient({ databasePatient, registeredPatients, patientId: id }), [databasePatient, id, registeredPatients])
 
   useEffect(() => {
     if (!patient) return
