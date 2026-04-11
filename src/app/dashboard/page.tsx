@@ -52,6 +52,15 @@ const staffStatusClass: Record<string, string> = {
 
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
+const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
+
+type GoogleMapsLatLng = { lat: number; lng: number }
+type GoogleMapsNamespace = {
+  Map: new (element: HTMLElement, options: Record<string, unknown>) => { fitBounds: (bounds: { isEmpty: () => boolean }, padding?: number) => void }
+  Marker: new (options: Record<string, unknown>) => unknown
+  Polyline: new (options: Record<string, unknown>) => unknown
+  LatLngBounds: new () => { extend: (point: GoogleMapsLatLng) => void; isEmpty: () => boolean }
+}
 
 function getDayTaskStorageKey(pharmacyId: string, flowDate: string) {
   return `makasete-day-flow:${pharmacyId}:${flowDate}`
@@ -81,6 +90,40 @@ function shiftDateKey(baseDateKey: string, diffDays: number) {
 
 function getTodayDateKey() {
   return toDateKey(new Date())
+}
+
+function decodeGooglePolyline(encoded: string) {
+  let index = 0
+  let lat = 0
+  let lng = 0
+  const coordinates: Array<{ lat: number; lng: number }> = []
+
+  while (index < encoded.length) {
+    let shift = 0
+    let result = 0
+    let byte = 0
+    do {
+      byte = encoded.charCodeAt(index++) - 63
+      result |= (byte & 0x1f) << shift
+      shift += 5
+    } while (byte >= 0x20)
+    const deltaLat = result & 1 ? ~(result >> 1) : result >> 1
+    lat += deltaLat
+
+    shift = 0
+    result = 0
+    do {
+      byte = encoded.charCodeAt(index++) - 63
+      result |= (byte & 0x1f) << shift
+      shift += 5
+    } while (byte >= 0x20)
+    const deltaLng = result & 1 ? ~(result >> 1) : result >> 1
+    lng += deltaLng
+
+    coordinates.push({ lat: lat / 1e5, lng: lng / 1e5 })
+  }
+
+  return coordinates
 }
 
 function formatJapanDateTime(value: string | null | undefined) {
@@ -753,12 +796,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [selectedRoutePatientIds, setSelectedRoutePatientIds] = useState<string[]>([])
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
   const routeMapRef = useRef<HTMLDivElement | null>(null)
+  const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const [routePlanResult, setRoutePlanResult] = useState<null | {
     ready: boolean
     suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }>
     missingCoordinates: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null }>
     totalDuration?: string | null
     totalDistanceMeters?: number | null
+    polyline?: string | null
     origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null }
     debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }> }
     message: string
@@ -931,6 +976,87 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       return haystacks.some((value) => value.toLowerCase().includes(query))
     })
   }, [searchQuery, enrichedVisits])
+
+  useEffect(() => {
+    if (!routePlanResult?.ready || !routePlanResult.origin || !routeMapRef.current || !publicGoogleMapsApiKey) return
+
+    let cancelled = false
+
+    const renderMap = () => {
+      const googleMaps = (window as Window & { google?: { maps?: GoogleMapsNamespace } }).google?.maps
+      const origin = routePlanResult.origin
+      if (cancelled || !routeMapRef.current || !googleMaps || !origin) return
+      const map = new googleMaps.Map(routeMapRef.current, {
+        center: {
+          lat: origin.latitude ?? routePlanResult.suggestedOrder[0]?.latitude ?? 35.68,
+          lng: origin.longitude ?? routePlanResult.suggestedOrder[0]?.longitude ?? 139.76,
+        },
+        zoom: 11,
+        mapTypeControl: false,
+        streetViewControl: false,
+      })
+
+      const bounds = new googleMaps.LatLngBounds()
+      if (typeof origin.latitude === 'number' && typeof origin.longitude === 'number') {
+        const originPosition = { lat: origin.latitude, lng: origin.longitude }
+        new googleMaps.Marker({ map, position: originPosition, title: `起点: ${origin.name}` })
+        bounds.extend(originPosition)
+      }
+
+      routePlanResult.suggestedOrder.forEach((patient, index) => {
+        if (typeof patient.latitude !== 'number' || typeof patient.longitude !== 'number') return
+        const position = { lat: patient.latitude, lng: patient.longitude }
+        new googleMaps.Marker({
+          map,
+          position,
+          title: `${index + 1}. ${patient.name}`,
+          label: `${index + 1}`,
+        })
+        bounds.extend(position)
+      })
+
+      if (routePlanResult.polyline) {
+        new googleMaps.Polyline({
+          map,
+          path: decodeGooglePolyline(routePlanResult.polyline),
+          strokeColor: '#6366f1',
+          strokeOpacity: 0.85,
+          strokeWeight: 4,
+        })
+      }
+
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, 48)
+      }
+    }
+
+    if ((window as Window & { google?: { maps?: GoogleMapsNamespace } }).google?.maps) {
+      renderMap()
+      return () => { cancelled = true }
+    }
+
+    const existingScript = document.getElementById(GOOGLE_MAP_SCRIPT_ID) as HTMLScriptElement | null
+    if (existingScript) {
+      existingScript.addEventListener('load', renderMap)
+      return () => {
+        cancelled = true
+        existingScript.removeEventListener('load', renderMap)
+      }
+    }
+
+    const script = document.createElement('script')
+    script.id = GOOGLE_MAP_SCRIPT_ID
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${publicGoogleMapsApiKey}`
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', renderMap)
+    document.head.appendChild(script)
+
+    return () => {
+      cancelled = true
+      script.removeEventListener('load', renderMap)
+    }
+  }, [publicGoogleMapsApiKey, routePlanResult])
 
   const helperCandidatePatientIds = useMemo(() => {
     const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]
@@ -1450,9 +1576,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     <p className="font-medium text-white">{routePlanResult.message}</p>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
-                        <div ref={routeMapRef} className="mt-3 flex h-48 items-center justify-center rounded-lg border border-dashed border-[#2a3553] bg-[#0f1728] text-xs text-gray-500">
-                          地図表示は次に接続します。いまは起点・順番・座標を確認できます。
-                        </div>
+                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-[#2a3553] bg-[#0f1728]" />
                         <p className="mt-2 text-xs text-gray-400">
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
