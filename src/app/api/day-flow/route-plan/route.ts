@@ -67,17 +67,48 @@ export async function POST(request: Request) {
     longitude: typeof patient.longitude === 'number' ? patient.longitude : null,
   }))
 
-  const withCoordinates = patients.filter((patient) => patient.latitude !== null && patient.longitude !== null)
+  const withCoordinates = [...patients]
   const missingCoordinates = patients.filter((patient) => patient.latitude === null || patient.longitude === null)
 
   if (missingCoordinates.length > 0) {
+    for (const patient of missingCoordinates) {
+      try {
+        const geocoded = await geocodeAddress(patient.address)
+        patient.latitude = geocoded.latitude
+        patient.longitude = geocoded.longitude
+
+        await supabase
+          .from('patients')
+          .update({
+            latitude: geocoded.latitude,
+            longitude: geocoded.longitude,
+            geocode_status: 'success',
+            geocoded_at: new Date().toISOString(),
+            geocode_source: 'google_maps',
+            geocode_error: null,
+            geocode_input_address: geocoded.normalizedAddress,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq('id', patient.id)
+      } catch {
+        // keep missing state for UI feedback
+      }
+    }
+  }
+
+  const readyPatients = withCoordinates.filter((patient) => patient.latitude !== null && patient.longitude !== null)
+  const stillMissingCoordinates = withCoordinates.filter((patient) => patient.latitude === null || patient.longitude === null)
+
+  if (readyPatients.length === 0 || stillMissingCoordinates.length > 0) {
     return NextResponse.json({
       ok: true,
       routePlan: {
         ready: false,
-        suggestedOrder: withCoordinates,
-        missingCoordinates,
-        message: '一部の患者で座標が未取得です。住所確認または座標取得が必要です。',
+        suggestedOrder: readyPatients,
+        missingCoordinates: stillMissingCoordinates,
+        message: stillMissingCoordinates.length > 0
+          ? '一部の患者で座標を自動取得できませんでした。住所確認が必要です。'
+          : 'ルート提案対象の座標がありません。',
       },
     })
   }
@@ -85,7 +116,7 @@ export async function POST(request: Request) {
   const origin = await geocodeAddress(pharmacyRecord.address)
   const optimized = await optimizeRoundTripRoute({
     origin: { latitude: origin.latitude, longitude: origin.longitude },
-    stops: withCoordinates.map((patient) => ({
+    stops: readyPatients.map((patient) => ({
       id: patient.id,
       name: patient.name,
       latitude: patient.latitude as number,
