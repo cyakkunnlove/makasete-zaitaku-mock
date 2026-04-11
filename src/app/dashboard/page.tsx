@@ -32,7 +32,11 @@ import {
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
-import { countVisitRuleTouches, formatVisitRuleSummary, getPatientsByPharmacyFromMaster, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { getScopedPharmacyId } from '@/lib/patient-permissions'
+import { mergePatientSources } from '@/lib/patient-read-model'
+import { isPatientInPharmacyScope } from '@/lib/patient-scope'
+import type { Patient } from '@/types/database'
 
 const mockPharmacyRequests = [
   { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
@@ -693,10 +697,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
-  const ownPharmacyId = 'PH-01'
+  const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
+  const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
-  const ownPatients = useMemo(() => getPatientsByPharmacyFromMaster(ownPharmacyId, registeredPatients), [ownPharmacyId, registeredPatients])
+  const ownPatients = useMemo(() => {
+    const merged = mergePatientSources({ databasePatients, registeredPatients })
+    return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
+  }, [databasePatients, ownPharmacyId, registeredPatients])
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -707,6 +715,28 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
+
+  useEffect(() => {
+    if (!ownPharmacyId) return
+
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [ownPharmacyId])
 
   const [flowLoadKey, setFlowLoadKey] = useState(0)
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
@@ -1218,7 +1248,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
               <Users className="h-4 w-4 text-indigo-400" />
               自局患者マスタ
-              <span className="text-xs font-normal text-gray-500">PH-01 の患者のみ</span>
+              <span className="text-xs font-normal text-gray-500">自局の患者のみ</span>
             </h2>
             <div className="space-y-2">
               {filteredMasterPatients.map((patient) => {
