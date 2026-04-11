@@ -311,6 +311,12 @@ export default function PatientDetailPage() {
   const handleSaveVisitRules = (nextVisitRules: PatientVisitRule[]) => {
     if (!patient) return
 
+    if (databasePatient) {
+      setEditSavedNotice('訪問スケジュールのDB保存は次の整理対象です。現時点では実患者への直接保存はまだ行いません。')
+      setTimeout(() => setEditSavedNotice(null), 3000)
+      return
+    }
+
     upsertRegisteredPatient({
       ...patient,
       visitRules: nextVisitRules,
@@ -468,7 +474,7 @@ export default function PatientDetailPage() {
       setDatabasePatient(result.patient)
     }
 
-    const localPatientExists = registeredPatients.some((current) => current.id === patient.id)
+    const localPatientExists = !databasePatient && registeredPatients.some((current) => current.id === patient.id)
     if (localPatientExists) {
       updateRegisteredPatient(patient.id, (current) => ({
         ...current,
@@ -887,7 +893,7 @@ export default function PatientDetailPage() {
         <VisitSchedule
           patientId={patient.id}
           visitRules={patient.visitRules ?? []}
-          canEdit={canEditThisPatient}
+          canEdit={canEditThisPatient && !databasePatient}
           onSave={handleSaveVisitRules}
         />
       </div>
