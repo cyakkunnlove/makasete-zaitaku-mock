@@ -74,6 +74,7 @@ export default function NewPatientPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [warningMessage, setWarningMessage] = useState<string | null>(null)
   const [showOptional, setShowOptional] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [customDates, setCustomDates] = useState<string[]>([])
   const [excludedDates, setExcludedDates] = useState<string[]>([])
   const ownPharmacyId = getScopedPharmacyId(user)
@@ -248,6 +249,8 @@ export default function NewPatientPage() {
   }
 
   const handleSave = async () => {
+    if (isSubmitting) return
+
     setErrorMessage(null)
     setWarningMessage(null)
 
@@ -309,21 +312,24 @@ export default function NewPatientPage() {
       },
     }
 
-    const createResponse = await fetch('/api/patients', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestPayload),
-    })
+    setIsSubmitting(true)
 
-    const createResult = await createResponse.json().catch(() => null)
-    if (!createResponse.ok || !createResult?.ok) {
-      setErrorMessage(createResult?.error === 'forbidden' ? 'このロールでは患者登録できません。' : '患者登録に失敗しました。')
-      return
-    }
+    try {
+      const createResponse = await fetch('/api/patients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload),
+      })
 
-    const patient = buildRegisteredPatientRecord(
+      const createResult = await createResponse.json().catch(() => null)
+      if (!createResponse.ok || !createResult?.ok) {
+        setErrorMessage(createResult?.error === 'forbidden' ? 'このロールでは患者登録できません。' : '患者登録に失敗しました。')
+        return
+      }
+
+      const patient = buildRegisteredPatientRecord(
       {
         name: form.name,
         dob: normalizedDob,
@@ -357,14 +363,24 @@ export default function NewPatientPage() {
       existing.length > 0 ? existing : patientData,
     )
 
-    upsertRegisteredPatient(patient)
-    const apiWarnings = Array.isArray(createResult?.warnings) ? createResult.warnings : []
-    if (apiWarnings.length > 0) {
-      setWarningMessage(apiWarnings.map((warning: { message: string }) => warning.message).join(' '))
-    } else if (!form.phone.trim()) {
-      setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
+      const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null
+      const shouldPersistLocal = createResult?.mode !== 'supabase' || !createdPatientId
+
+      if (shouldPersistLocal) {
+        upsertRegisteredPatient(patient)
+      }
+
+      const apiWarnings = Array.isArray(createResult?.warnings) ? createResult.warnings : []
+      if (apiWarnings.length > 0) {
+        setWarningMessage(apiWarnings.map((warning: { message: string }) => warning.message).join(' '))
+      } else if (!form.phone.trim()) {
+        setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
+      }
+
+      router.push(`/dashboard/patients/${createdPatientId ?? patient.id}`)
+    } finally {
+      setIsSubmitting(false)
     }
-    router.push(`/dashboard/patients/${patient.id}`)
   }
 
   if (!canEditPatients) {
@@ -619,7 +635,7 @@ export default function NewPatientPage() {
             <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
             <p>電話未入力でも登録可能です。患者詳細で警告表示します。</p>
           </div>
-          <Button onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500"><Save className="h-4 w-4" />登録する</Button>
+          <Button disabled={isSubmitting} onClick={handleSave} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
       </Card>
     </div>

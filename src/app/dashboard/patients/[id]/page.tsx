@@ -75,6 +75,7 @@ export default function PatientDetailPage() {
   const id = params.id as string
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatient, setDatabasePatient] = useState<Patient | null>(null)
+  const [detailLoadState, setDetailLoadState] = useState<'loading' | 'ready' | 'not_found'>('loading')
 
   useEffect(() => {
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
@@ -91,14 +92,33 @@ export default function PatientDetailPage() {
   useEffect(() => {
     let cancelled = false
     async function fetchPatientDetail() {
+      const localPatient = registeredPatients.find((item) => item.id === id)
+      if (localPatient) {
+        setDatabasePatient(null)
+        setDetailLoadState('ready')
+        return
+      }
+
+      setDetailLoadState('loading')
       try {
         const response = await fetch(`/api/patients/${id}/detail`, { cache: 'no-store' })
-        const result = await response.json()
-        if (!cancelled && response.ok && result?.ok && result.patient) {
+        const result = await response.json().catch(() => null)
+
+        if (cancelled) return
+
+        if (response.ok && result?.ok && result.patient) {
           setDatabasePatient(result.patient)
+          setDetailLoadState('ready')
+          return
         }
+
+        setDatabasePatient(null)
+        setDetailLoadState('not_found')
       } catch {
-        if (!cancelled) setDatabasePatient(null)
+        if (!cancelled) {
+          setDatabasePatient(null)
+          setDetailLoadState('not_found')
+        }
       }
     }
 
@@ -106,9 +126,12 @@ export default function PatientDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, registeredPatients])
 
-  const patient = useMemo(() => mergeSinglePatient({ databasePatient, registeredPatients, patientId: id }), [databasePatient, id, registeredPatients])
+  const patient = useMemo(() => {
+    if (detailLoadState === 'not_found') return null
+    return mergeSinglePatient({ databasePatient, registeredPatients, patientId: id })
+  }, [databasePatient, detailLoadState, id, registeredPatients])
 
   useEffect(() => {
     if (!patient) return
@@ -158,6 +181,18 @@ export default function PatientDetailPage() {
     amount: 9800,
     note: '',
   })
+
+  if (detailLoadState === 'loading' && !patient) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-8 text-center">
+            <p className="text-sm text-gray-400">患者情報を読み込んでいます...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (!patient) {
     return (
@@ -253,25 +288,32 @@ export default function PatientDetailPage() {
       return
     }
 
-    updateRegisteredPatient(patient.id, (current) => ({
-      ...current,
-      phone: editForm.phone || null,
-      visitNotes: editForm.visitNotes,
-      currentMeds: isPharmacyAdmin ? editForm.currentMeds : current.currentMeds,
-      medicalHistory: isPharmacyAdmin ? editForm.medicalHistory : current.medicalHistory,
-      allergies: isPharmacyAdmin ? editForm.allergies : current.allergies,
-      insuranceInfo: isPharmacyAdmin ? editForm.insuranceInfo : current.insuranceInfo,
-      registrationMeta: current.registrationMeta
-        ? {
-            ...current.registrationMeta,
-            updatedAt: new Date().toISOString(),
-            updatedById: user?.id ?? null,
-            updatedByName: user?.full_name ?? (isPharmacyAdmin ? 'Pharmacy Admin' : 'Pharmacy Staff'),
-            version: current.registrationMeta.version + 1,
-          }
-        : current.registrationMeta,
-    }))
-    setRegisteredPatients(loadRegisteredPatients())
+    if (result?.patient) {
+      setDatabasePatient(result.patient)
+    }
+
+    const localPatientExists = registeredPatients.some((current) => current.id === patient.id)
+    if (localPatientExists) {
+      updateRegisteredPatient(patient.id, (current) => ({
+        ...current,
+        phone: editForm.phone || null,
+        visitNotes: editForm.visitNotes,
+        currentMeds: isPharmacyAdmin ? editForm.currentMeds : current.currentMeds,
+        medicalHistory: isPharmacyAdmin ? editForm.medicalHistory : current.medicalHistory,
+        allergies: isPharmacyAdmin ? editForm.allergies : current.allergies,
+        insuranceInfo: isPharmacyAdmin ? editForm.insuranceInfo : current.insuranceInfo,
+        registrationMeta: current.registrationMeta
+          ? {
+              ...current.registrationMeta,
+              updatedAt: new Date().toISOString(),
+              updatedById: user?.id ?? null,
+              updatedByName: user?.full_name ?? (isPharmacyAdmin ? 'Pharmacy Admin' : 'Pharmacy Staff'),
+              version: current.registrationMeta.version + 1,
+            }
+          : current.registrationMeta,
+      }))
+      setRegisteredPatients(loadRegisteredPatients())
+    }
     setEditDialogOpen(false)
     setEditSavedNotice(isPharmacyAdmin ? '管理者権限の編集を保存しました' : '実務項目の更新を保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
