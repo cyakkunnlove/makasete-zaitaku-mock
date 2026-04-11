@@ -31,7 +31,7 @@ import {
   UserCog,
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
-import { MOCK_FLOW_DATE, mergeDayFlowTasks } from '@/lib/day-flow'
+import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
@@ -66,12 +66,21 @@ function isUuidLike(value: string | null | undefined) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-function getTodayDateKey() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
+function toDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function shiftDateKey(baseDateKey: string, diffDays: number) {
+  const date = new Date(`${baseDateKey}T00:00:00`)
+  date.setDate(date.getDate() + diffDays)
+  return toDateKey(date)
+}
+
+function getTodayDateKey() {
+  return toDateKey(new Date())
 }
 
 function formatJapanDateTime(value: string | null | undefined) {
@@ -898,11 +907,30 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }, [searchQuery, enrichedVisits])
 
+  const helperCandidatePatientIds = useMemo(() => {
+    const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]
+    const idSet = new Set<string>()
+
+    nearDates.forEach((dateKey) => {
+      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, [...dayTaskData, ...draftDayTasks]).forEach((task) => {
+        if (task.patientId) idSet.add(task.patientId)
+      })
+    })
+
+    draftDayTasks.forEach((task) => {
+      if (task.patientId) idSet.add(task.patientId)
+    })
+
+    return idSet
+  }, [dayFlowPatients, draftDayTasks, flowDate])
+
   const filteredMasterPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return ownPatients
+    if (!query) {
+      return ownPatients.filter((patient) => helperCandidatePatientIds.has(patient.id))
+    }
     return ownPatients.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query))
-  }, [searchQuery, ownPatients])
+  }, [helperCandidatePatientIds, ownPatients, searchQuery])
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
   const ownRequests = requestData.filter((request) => request.pharmacyId === ownPharmacyId)
@@ -1399,9 +1427,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
               <Users className="h-4 w-4 text-indigo-400" />
               患者一覧（簡易）
-              <span className="text-xs font-normal text-gray-500">今日の対応予定へ追加したい患者をここで確認</span>
+              <span className="text-xs font-normal text-gray-500">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
             </h2>
             <div className="space-y-2">
+              {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
+                <Card className="border-[#2a3553] bg-[#11182c]">
+                  <CardContent className="p-4 text-sm text-gray-400">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
+                </Card>
+              )}
+              {searchQuery.trim() && filteredMasterPatients.length === 0 && (
+                <Card className="border-[#2a3553] bg-[#11182c]">
+                  <CardContent className="p-4 text-sm text-gray-400">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
+                </Card>
+              )}
               {filteredMasterPatients.map((patient) => {
                 const flags = getAttentionFlags(patient)
                 const hasOvernightRequest = ownRequests.some((request) => request.patientId === patient.id)
