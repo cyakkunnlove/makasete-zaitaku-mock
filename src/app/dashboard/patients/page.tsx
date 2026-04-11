@@ -17,13 +17,16 @@ import {
 import { cn } from '@/lib/utils'
 import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
 import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
-import { countVisitRuleTouches, formatVisitRuleSummary, getPatientMasterRecords, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
+import { mergePatientSources } from '@/lib/patient-read-model'
+import type { Patient } from '@/types/database'
 
 export default function PatientsPage() {
   const { role, user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
+  const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isDayContext = canManagePatients(role)
@@ -41,7 +44,29 @@ export default function PatientsPage() {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const patientMaster = useMemo(() => getPatientMasterRecords(registeredPatients), [registeredPatients])
+  useEffect(() => {
+    if (!isDayContext || !ownPharmacyId) return
+
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [isDayContext, ownPharmacyId])
+
+  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients }), [databasePatients, registeredPatients])
 
   const visiblePatients = useMemo(() => {
     if (isDayContext) {
