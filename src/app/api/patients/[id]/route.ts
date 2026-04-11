@@ -5,6 +5,7 @@ import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
+import { geocodeAddress } from '@/lib/google-maps'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -30,9 +31,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const supabase = createServerSupabaseClient()
   const { data: existingPatient, error: fetchError } = await supabase
     .from('patients')
-    .select('id, pharmacy_id')
+    .select('id, pharmacy_id, address')
     .eq('id', params.id)
-    .maybeSingle() as unknown as { data: { id: string; pharmacy_id: string | null } | null; error: { message: string } | null }
+    .maybeSingle() as unknown as { data: { id: string; pharmacy_id: string | null; address: string } | null; error: { message: string } | null }
 
   if (fetchError) {
     return NextResponse.json({ ok: false, error: 'patient_lookup_failed', details: fetchError.message }, { status: 500 })
@@ -65,6 +66,32 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
   if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
 
+  if (typeof patch.address === 'string') {
+    const nextAddress = patch.address.trim()
+    payload.address = nextAddress || existingPatient.address
+
+    if (nextAddress && nextAddress !== existingPatient.address) {
+      try {
+        const geocoded = await geocodeAddress(nextAddress)
+        payload.latitude = geocoded.latitude
+        payload.longitude = geocoded.longitude
+        payload.geocode_status = 'success'
+        payload.geocoded_at = new Date().toISOString()
+        payload.geocode_source = 'google_maps'
+        payload.geocode_error = null
+        payload.geocode_input_address = geocoded.normalizedAddress
+      } catch (error) {
+        payload.latitude = null
+        payload.longitude = null
+        payload.geocode_status = 'failed'
+        payload.geocoded_at = null
+        payload.geocode_source = null
+        payload.geocode_error = error instanceof Error ? error.message : 'geocode_failed'
+        payload.geocode_input_address = nextAddress
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('patients')
     .update(payload as never)
@@ -85,6 +112,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       details: {
         updated_fields: Object.keys(payload).filter((key) => !['updated_at', 'updated_by'].includes(key)),
         role: user.role,
+        geocode_status: payload.geocode_status ?? null,
       },
     })
   }

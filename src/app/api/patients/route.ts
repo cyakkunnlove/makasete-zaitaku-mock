@@ -5,6 +5,7 @@ import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
+import { geocodeAddress } from '@/lib/google-maps'
 
 function normalizeDateInput(value: unknown) {
   if (typeof value !== 'string') return null
@@ -71,6 +72,35 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerSupabaseClient()
+  let geocodePayload: Record<string, unknown> = {
+    geocode_status: 'pending',
+    geocode_input_address: addressLine1,
+    geocoded_at: null,
+    geocode_source: null,
+    geocode_error: null,
+    latitude: null,
+    longitude: null,
+  }
+
+  try {
+    const geocoded = await geocodeAddress(addressLine1)
+    geocodePayload = {
+      geocode_status: 'success',
+      geocode_input_address: geocoded.normalizedAddress,
+      geocoded_at: new Date().toISOString(),
+      geocode_source: 'google_maps',
+      geocode_error: null,
+      latitude: geocoded.latitude,
+      longitude: geocoded.longitude,
+    }
+  } catch (error) {
+    geocodePayload = {
+      ...geocodePayload,
+      geocode_status: 'failed',
+      geocode_error: error instanceof Error ? error.message : 'geocode_failed',
+    }
+  }
+
   const payload = {
     organization_id: user.organization_id,
     pharmacy_id: user.pharmacy_id,
@@ -95,6 +125,7 @@ export async function POST(request: Request) {
     status: 'active' as const,
     created_by: user.id,
     updated_by: user.id,
+    ...geocodePayload,
   }
 
   const { data, error } = await supabase.from('patients').insert(payload as never).select('*').single() as unknown as {
@@ -116,6 +147,7 @@ export async function POST(request: Request) {
         phone_missing: !phone,
         has_visit_weekdays: visitWeekdays.length > 0,
         has_first_visit_date: Boolean(firstVisitDate),
+        geocode_status: geocodePayload.geocode_status,
       },
     })
   }
