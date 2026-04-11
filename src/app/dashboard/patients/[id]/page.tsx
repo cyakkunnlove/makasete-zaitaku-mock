@@ -963,6 +963,17 @@ export default function PatientDetailPage() {
               <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
               <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
             </div>
+            {typeof geocodePreview?.latitude === 'number' && typeof geocodePreview?.longitude === 'number' && (
+              <div className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
+                <iframe
+                  title="住所確認地図"
+                  className="h-56 w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps?q=${geocodePreview.latitude},${geocodePreview.longitude}&z=16&output=embed`}
+                />
+              </div>
+            )}
             {geocodePreview?.warnings?.length ? (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
                 {geocodePreview.warnings.map((warning) => (
