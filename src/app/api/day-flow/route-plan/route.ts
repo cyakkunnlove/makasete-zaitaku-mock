@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
+import { geocodeAddress, optimizeRoundTripRoute } from '@/lib/google-maps'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -25,14 +26,29 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('patients')
-    .select('id, full_name, address, latitude, longitude')
-    .eq('pharmacy_id', user.pharmacy_id)
-    .in('id', patientIds)
+  const [{ data, error }, { data: pharmacy, error: pharmacyError }] = await Promise.all([
+    supabase
+      .from('patients')
+      .select('id, full_name, address, latitude, longitude')
+      .eq('pharmacy_id', user.pharmacy_id)
+      .in('id', patientIds),
+    supabase
+      .from('pharmacies')
+      .select('id, name, address')
+      .eq('id', user.pharmacy_id)
+      .maybeSingle(),
+  ])
 
   if (error) {
     return NextResponse.json({ ok: false, error: 'patient_fetch_failed', details: error.message }, { status: 500 })
+  }
+  if (pharmacyError) {
+    return NextResponse.json({ ok: false, error: 'pharmacy_fetch_failed', details: pharmacyError.message }, { status: 500 })
+  }
+
+  const pharmacyRecord = pharmacy as { id: string; name: string; address: string | null } | null
+  if (!pharmacyRecord?.address) {
+    return NextResponse.json({ ok: false, error: 'pharmacy_address_missing' }, { status: 400 })
   }
 
   const rows = (data ?? []) as Array<{
@@ -54,15 +70,46 @@ export async function POST(request: Request) {
   const withCoordinates = patients.filter((patient) => patient.latitude !== null && patient.longitude !== null)
   const missingCoordinates = patients.filter((patient) => patient.latitude === null || patient.longitude === null)
 
+  if (missingCoordinates.length > 0) {
+    return NextResponse.json({
+      ok: true,
+      routePlan: {
+        ready: false,
+        suggestedOrder: withCoordinates,
+        missingCoordinates,
+        message: '一部の患者で座標が未取得です。住所確認または座標取得が必要です。',
+      },
+    })
+  }
+
+  const origin = await geocodeAddress(pharmacyRecord.address)
+  const optimized = await optimizeRoundTripRoute({
+    origin: { latitude: origin.latitude, longitude: origin.longitude },
+    stops: withCoordinates.map((patient) => ({
+      id: patient.id,
+      name: patient.name,
+      latitude: patient.latitude as number,
+      longitude: patient.longitude as number,
+      address: patient.address,
+    })),
+  })
+
   return NextResponse.json({
     ok: true,
     routePlan: {
-      ready: missingCoordinates.length === 0,
-      suggestedOrder: withCoordinates,
-      missingCoordinates,
-      message: missingCoordinates.length === 0
-        ? '座標が揃っている患者でルート提案できます。'
-        : '一部の患者で座標が未取得です。住所確認または座標取得が必要です。',
+      ready: true,
+      suggestedOrder: optimized.orderedStops,
+      missingCoordinates: [],
+      totalDuration: optimized.totalDuration,
+      totalDistanceMeters: optimized.totalDistanceMeters,
+      polyline: optimized.polyline,
+      origin: {
+        name: pharmacyRecord.name,
+        address: pharmacyRecord.address,
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+      },
+      message: '薬局を起点にしたおすすめ巡回順を作成しました。',
     },
   })
 }
