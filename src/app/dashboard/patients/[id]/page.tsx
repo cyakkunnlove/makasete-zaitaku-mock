@@ -190,8 +190,30 @@ export default function PatientDetailPage() {
     })
   }
 
-  const handleSavePatientEdit = () => {
+  const handleSavePatientEdit = async () => {
     if (!canEditThisPatient) return
+
+    const response = await fetch(`/api/patients/${patient.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone: editForm.phone || null,
+        visitNotes: editForm.visitNotes,
+        currentMeds: editForm.currentMeds,
+        medicalHistory: editForm.medicalHistory,
+        allergies: editForm.allergies,
+        insuranceInfo: editForm.insuranceInfo,
+      }),
+    })
+
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setEditSavedNotice('患者情報の保存に失敗しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
 
     updateRegisteredPatient(patient.id, (current) => ({
       ...current,
@@ -205,15 +227,15 @@ export default function PatientDetailPage() {
         ? {
             ...current.registrationMeta,
             updatedAt: new Date().toISOString(),
-            updatedById: null,
-            updatedByName: isPharmacyAdmin ? 'Pharmacy Admin（モック）' : 'Pharmacy Staff（モック）',
+            updatedById: user?.id ?? null,
+            updatedByName: user?.full_name ?? (isPharmacyAdmin ? 'Pharmacy Admin' : 'Pharmacy Staff'),
             version: current.registrationMeta.version + 1,
           }
         : current.registrationMeta,
     }))
     setRegisteredPatients(loadRegisteredPatients())
     setEditDialogOpen(false)
-    setEditSavedNotice(isPharmacyAdmin ? '管理者権限の編集を保存しました（モック）' : '実務項目の更新を保存しました（モック）')
+    setEditSavedNotice(isPharmacyAdmin ? '管理者権限の編集を保存しました' : '実務項目の更新を保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
   }
 
