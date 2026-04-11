@@ -14,6 +14,9 @@ export type PharmacyStatus = 'pending' | 'active' | 'suspended' | 'terminated'
 export type ForwardingStatus = 'on' | 'off'
 export type BillingStatus = 'unpaid' | 'paid' | 'overdue'
 export type PatientStatus = 'active' | 'inactive' | 'incomplete'
+export type PatientGeocodeStatus = 'pending' | 'success' | 'failed' | 'stale'
+export type PatientGeocodeSource = 'google_maps' | 'manual'
+export type PatientHomePhotoType = 'outside' | 'entrance' | 'parking' | 'landmark' | 'other'
 export type NotificationChannel = 'line' | 'phone' | 'sms' | 'email' | 'push' | 'app'
 export type NotificationStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'responded' | 'failed' | 'expired'
 export type ChecklistType = 'initial' | 'routine' | 'emergency'
@@ -111,6 +114,30 @@ export interface Patient {
   risk_score: number
   requires_multi_visit: boolean
   status: PatientStatus
+  latitude?: number | null
+  longitude?: number | null
+  geocode_status?: PatientGeocodeStatus | null
+  geocoded_at?: string | null
+  geocode_source?: PatientGeocodeSource | null
+  geocode_error?: string | null
+  geocode_input_address?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PatientHomePhoto {
+  id: string
+  patient_id: string
+  storage_path: string
+  photo_type: PatientHomePhotoType | null
+  caption: string | null
+  sort_order: number
+  taken_at: string | null
+  uploaded_by: string | null
+  uploaded_at: string
+  deleted_by: string | null
+  deleted_at: string | null
+  delete_reason: string | null
   created_at: string
   updated_at: string
 }
@@ -315,6 +342,7 @@ export interface Database {
       handovers: { Row: Handover; Insert: Partial<Handover>; Update: Partial<Handover> }
       shift_schedules: { Row: ShiftSchedule; Insert: Partial<ShiftSchedule>; Update: Partial<ShiftSchedule> }
       patient_day_tasks: { Row: PatientDayTask; Insert: Partial<PatientDayTask>; Update: Partial<PatientDayTask> }
+      patient_home_photos: { Row: PatientHomePhoto; Insert: Partial<PatientHomePhoto>; Update: Partial<PatientHomePhoto> }
       billings: { Row: Billing; Insert: Partial<Billing>; Update: Partial<Billing> }
       audit_logs: { Row: AuditLog; Insert: Partial<AuditLog>; Update: Partial<AuditLog> }
       notification_logs: { Row: NotificationLog; Insert: Partial<NotificationLog>; Update: Partial<NotificationLog> }

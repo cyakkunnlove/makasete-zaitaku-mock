@@ -27,7 +27,7 @@ import {
 import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
-import type { Patient } from '@/types/database'
+import type { Patient, PatientHomePhoto } from '@/types/database'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -43,8 +43,16 @@ import {
   ExternalLink,
   Save,
   ShieldCheck,
+  Image as ImageIcon,
+  Trash2,
+  Upload,
 } from 'lucide-react'
 import { VisitSchedule } from '@/components/visit-schedule'
+
+type PatientPhotoView = PatientHomePhoto & {
+  thumbnail_url: string | null
+  image_url: string | null
+}
 
 type VisitRecordDraft = {
   id: string
@@ -146,6 +154,33 @@ export default function PatientDetailPage() {
 
   }, [patient])
 
+  useEffect(() => {
+    const patientId = patient?.id
+    if (!databasePatient || !patientId) {
+      setPatientPhotos([])
+      return
+    }
+
+    let cancelled = false
+    async function loadPhotos() {
+      setPhotosLoading(true)
+      try {
+        const response = await fetch(`/api/patients/${patientId}/photos`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.photos)) {
+          setPatientPhotos(result.photos)
+        }
+      } finally {
+        if (!cancelled) setPhotosLoading(false)
+      }
+    }
+
+    loadPhotos()
+    return () => {
+      cancelled = true
+    }
+  }, [databasePatient, patient?.id])
+
   const pharmacy = useMemo(
     () => (patient ? pharmacyData.find((ph) => ph.id === patient.pharmacyId) : undefined),
     [patient]
@@ -165,6 +200,12 @@ export default function PatientDetailPage() {
   const [visitRecords, setVisitRecords] = useState<VisitRecordDraft[]>([])
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editSavedNotice, setEditSavedNotice] = useState<string | null>(null)
+  const [patientPhotos, setPatientPhotos] = useState<PatientPhotoView[]>([])
+  const [photosLoading, setPhotosLoading] = useState(false)
+  const [photoModalOpen, setPhotoModalOpen] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<PatientPhotoView | null>(null)
+  const [photoActionNotice, setPhotoActionNotice] = useState<string | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [editForm, setEditForm] = useState({
     phone: '',
     visitNotes: '',
@@ -267,6 +308,63 @@ export default function PatientDetailPage() {
     setRegisteredPatients(loadRegisteredPatients())
     setEditSavedNotice('訪問スケジュールを保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
+  }
+
+  const handlePhotoUpload = async (file: File | null) => {
+    if (!patient || !file) return
+    if (!databasePatient) {
+      setPhotoActionNotice('写真添付はデータベース保存の患者から対応します')
+      setTimeout(() => setPhotoActionNotice(null), 2500)
+      return
+    }
+    if (patientPhotos.length >= 3) {
+      setPhotoActionNotice('写真は3枚までです')
+      setTimeout(() => setPhotoActionNotice(null), 2500)
+      return
+    }
+
+    setPhotoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('photoType', 'outside')
+      const response = await fetch(`/api/patients/${patient.id}/photos`, {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result.photo) {
+        setPhotoActionNotice(result?.details ?? '写真の保存に失敗しました')
+      } else {
+        setPatientPhotos((prev) => [...prev, result.photo].sort((a, b) => a.sort_order - b.sort_order))
+        setPhotoActionNotice('写真を追加しました')
+      }
+    } finally {
+      setPhotoUploading(false)
+      setTimeout(() => setPhotoActionNotice(null), 2500)
+    }
+  }
+
+  const handleDeletePhoto = async (photoId: string) => {
+    if (!patient) return
+    const response = await fetch(`/api/patients/${patient.id}/photos/${photoId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deleteReason: 'patient_detail_deleted' }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setPhotoActionNotice(result?.details ?? '写真の削除に失敗しました')
+      setTimeout(() => setPhotoActionNotice(null), 2500)
+      return
+    }
+    setPatientPhotos((prev) => prev.filter((photo) => photo.id !== photoId))
+    if (selectedPhoto?.id === photoId) {
+      setPhotoModalOpen(false)
+      setSelectedPhoto(null)
+    }
+    setPhotoActionNotice('写真を削除しました')
+    setTimeout(() => setPhotoActionNotice(null), 2500)
   }
 
   const handleSavePatientEdit = async () => {
@@ -384,6 +482,12 @@ export default function PatientDetailPage() {
       {editSavedNotice && (
         <div className="fixed right-4 top-20 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg">
           {editSavedNotice}
+        </div>
+      )}
+
+      {photoActionNotice && (
+        <div className="fixed right-4 top-32 z-50 rounded-lg bg-sky-600/90 px-4 py-2 text-sm text-white shadow-lg">
+          {photoActionNotice}
         </div>
       )}
 
@@ -514,6 +618,75 @@ export default function PatientDetailPage() {
               </Link>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <ImageIcon className="h-4 w-4 text-indigo-400" />
+            訪問メモ写真
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+            <p>外観や入口など、次回訪問時の目印を共有します。常時は軽い画像で表示し、押すと拡大表示します。</p>
+            <label>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  void handlePhotoUpload(file)
+                  event.currentTarget.value = ''
+                }}
+              />
+              <Button asChild size="sm" disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3} className="bg-indigo-600 text-white hover:bg-indigo-700">
+                <span><Upload className="mr-2 h-4 w-4" />{photoUploading ? '追加中...' : `写真を追加 (${patientPhotos.length}/3)`}</span>
+              </Button>
+            </label>
+          </div>
+          {photosLoading ? (
+            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">写真を読み込んでいます...</div>
+          ) : patientPhotos.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">まだ写真はありません。必要なら外観や入口の写真を3枚まで共有できます。</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {patientPhotos.map((photo) => (
+                <div key={photo.id} className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
+                  <button
+                    type="button"
+                    className="block w-full"
+                    onClick={() => {
+                      setSelectedPhoto(photo)
+                      setPhotoModalOpen(true)
+                    }}
+                  >
+                    {photo.thumbnail_url ? (
+                      <img src={photo.thumbnail_url} alt={photo.caption ?? '患者宅写真'} className="h-40 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center bg-[#0f1728] text-gray-500">画像なし</div>
+                    )}
+                  </button>
+                  <div className="space-y-2 p-3">
+                    <div>
+                      <p className="text-xs text-gray-500">追加情報</p>
+                      <p className="text-sm text-gray-200">{photo.caption || '外観写真'}</p>
+                      <p className="mt-1 text-[11px] text-gray-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                      <p className="text-[11px] text-gray-500">追加者ID: {photo.uploaded_by ?? '不明'}</p>
+                    </div>
+                    {canEditThisPatient && (
+                      <Button size="sm" variant="outline" className="w-full border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20" onClick={() => void handleDeletePhoto(photo.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />削除
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -695,6 +868,27 @@ export default function PatientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>訪問メモ写真</DialogTitle>
+          </DialogHeader>
+          {selectedPhoto?.image_url ? (
+            <div className="space-y-3">
+              <img src={selectedPhoto.image_url} alt={selectedPhoto.caption ?? '患者宅写真'} className="max-h-[70vh] w-full rounded-lg object-contain" />
+              <div className="grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
+                <p>メモ: {selectedPhoto.caption || '外観写真'}</p>
+                <p>追加日時: {new Date(selectedPhoto.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                <p>種別: {selectedPhoto.photo_type ?? '未設定'}</p>
+                <p>追加者ID: {selectedPhoto.uploaded_by ?? '不明'}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">画像を表示できませんでした。</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-2xl">
