@@ -235,6 +235,34 @@ export interface Billing {
   created_at: string
 }
 
+export interface PatientDayTask {
+  id: string
+  organization_id: string | null
+  pharmacy_id: string | null
+  patient_id: string | null
+  flow_date: string
+  sort_order: number
+  scheduled_time: string
+  visit_type: '定期' | '臨時' | '要確認'
+  source: '自動生成' | '手動追加'
+  status: 'scheduled' | 'in_progress' | 'completed'
+  planning_status: 'unplanned' | 'planned'
+  planned_by: string | null
+  planned_by_id: string | null
+  planned_at: string | null
+  handled_by: string | null
+  handled_by_id: string | null
+  handled_at: string | null
+  completed_at: string | null
+  billable: boolean
+  collection_status: '未着手' | '請求準備OK' | '回収中' | '入金済'
+  amount: number
+  note: string
+  updated_by_id: string | null
+  updated_at: string
+  created_at: string
+}
+
 export interface AuditLog {
   id: string
   organization_id: string | null
@@ -286,6 +314,7 @@ export interface Database {
       checklists: { Row: Checklist; Insert: Partial<Checklist>; Update: Partial<Checklist> }
       handovers: { Row: Handover; Insert: Partial<Handover>; Update: Partial<Handover> }
       shift_schedules: { Row: ShiftSchedule; Insert: Partial<ShiftSchedule>; Update: Partial<ShiftSchedule> }
+      patient_day_tasks: { Row: PatientDayTask; Insert: Partial<PatientDayTask>; Update: Partial<PatientDayTask> }
       billings: { Row: Billing; Insert: Partial<Billing>; Update: Partial<Billing> }
       audit_logs: { Row: AuditLog; Insert: Partial<AuditLog>; Update: Partial<AuditLog> }
       notification_logs: { Row: NotificationLog; Insert: Partial<NotificationLog>; Update: Partial<NotificationLog> }

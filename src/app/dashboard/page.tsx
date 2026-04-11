@@ -751,46 +751,59 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   useEffect(() => {
     const patients = ownPatients
-    try {
-      const sharedRaw = window.localStorage.getItem(sharedDayTaskStorageKey)
-      if (sharedRaw) {
-        const parsed = JSON.parse(sharedRaw) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
-        if (Array.isArray(parsed.tasks)) {
-          const merged = mergeDayFlowTasks({
-            baseTasks: dayTaskData,
-            flowDate,
-            registeredPatients: patients,
-            persistedTasks: parsed.tasks,
-          })
+    let cancelled = false
+
+    async function loadFlow() {
+      try {
+        const response = await fetch(`/api/day-flow/${flowDate}/tasks`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        const persistedTasks = response.ok && result?.ok && Array.isArray(result.tasks)
+          ? (result.tasks as Array<Record<string, unknown>>).map((task) => ({
+              id: String(task.id),
+              patientId: String(task.patient_id ?? ''),
+              pharmacyId: String(task.pharmacy_id ?? ''),
+              flowDate: String(task.flow_date),
+              sortOrder: Number(task.sort_order ?? 1),
+              scheduledTime: String(task.scheduled_time ?? '10:00'),
+              visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
+              source: (task.source as DayTaskItem['source']) ?? '自動生成',
+              status: (task.status as DayTaskItem['status']) ?? 'scheduled',
+              planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
+              plannedBy: (task.planned_by as string | null) ?? null,
+              plannedById: (task.planned_by_id as string | null) ?? null,
+              plannedAt: (task.planned_at as string | null) ?? null,
+              handledBy: (task.handled_by as string | null) ?? null,
+              handledById: (task.handled_by_id as string | null) ?? null,
+              handledAt: (task.handled_at as string | null) ?? null,
+              completedAt: (task.completed_at as string | null) ?? null,
+              billable: Boolean(task.billable),
+              collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
+              amount: Number(task.amount ?? 0),
+              note: String(task.note ?? ''),
+              updatedAt: (task.updated_at as string | null) ?? null,
+              updatedById: (task.updated_by_id as string | null) ?? null,
+            }))
+          : []
+
+        const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients, persistedTasks })
+        if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)
-          setLastOrderSavedAt(parsed.savedAt ?? null)
-          setLastOrderSavedBy(parsed.savedBy ?? null)
-          return
         }
-      }
-
-      const raw = window.localStorage.getItem(dayTaskStorageKey)
-      if (raw) {
-        const parsed = JSON.parse(raw) as DayTaskItem[]
-        if (Array.isArray(parsed)) {
-          const merged = mergeDayFlowTasks({
-            baseTasks: dayTaskData,
-            flowDate,
-            registeredPatients: patients,
-            persistedTasks: parsed,
-          })
+      } catch {
+        const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients })
+        if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)
-          return
         }
       }
+    }
 
-      const merged = mergeDayFlowTasks({ baseTasks: dayTaskData, flowDate, registeredPatients: patients })
-      setDayTasks(merged)
-      setDraftDayTasks(merged)
-    } catch {}
-  }, [dayTaskStorageKey, flowDate, flowLoadKey, ownPatients, sharedDayTaskStorageKey])
+    loadFlow()
+    return () => {
+      cancelled = true
+    }
+  }, [flowDate, flowLoadKey, ownPatients])
 
   useEffect(() => {
     try {
@@ -909,38 +922,54 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return Array.from(counts.values())
   }, [draftDayTasks])
 
-  const commitTaskChange = (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
+  const persistTaskChange = async (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
     const next = updater(current)
     setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
+
+    const response = await fetch(`/api/day-flow/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: next }),
+    })
+
+    if (!response.ok) {
+      setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
+      setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
+      setSaveToast('保存に失敗しました')
+    }
   }
 
-  const handleStartTask = (taskId: string, time: string) => {
-    commitTaskChange(taskId, (task) => ({
+  const handleStartTask = async (taskId: string, time: string) => {
+    await persistTaskChange(taskId, (task) => ({
       ...task,
       status: 'in_progress',
-      handledBy: '伊藤 真理',
-      handledById: 'ST-07',
+      handledBy: user?.full_name ?? '伊藤 真理',
+      handledById: user?.id ?? 'ST-07',
       handledAt: formatMockTimestamp(time),
       completedAt: null,
       billable: false,
       collectionStatus: '未着手',
+      updatedAt: new Date().toISOString(),
+      updatedById: user?.id ?? 'ST-07',
     }), '対応開始を反映しました')
   }
 
-  const handleCompleteTask = (taskId: string, time: string) => {
-    commitTaskChange(taskId, (task) => ({
+  const handleCompleteTask = async (taskId: string, time: string) => {
+    await persistTaskChange(taskId, (task) => ({
       ...task,
       status: 'completed',
-      handledBy: task.handledBy ?? '伊藤 真理',
-      handledById: task.handledById ?? 'ST-07',
+      handledBy: task.handledBy ?? user?.full_name ?? '伊藤 真理',
+      handledById: task.handledById ?? user?.id ?? 'ST-07',
       handledAt: task.handledAt ?? formatMockTimestamp(time),
       completedAt: formatMockTimestamp(time),
       billable: task.amount > 0,
       collectionStatus: task.amount > 0 ? '請求準備OK' : '未着手',
+      updatedAt: new Date().toISOString(),
+      updatedById: user?.id ?? 'ST-07',
     }), '対応完了を反映しました')
   }
 
@@ -951,7 +980,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setUndoTarget(null)
   }
 
-  const handlePlanTask = (taskId: string) => {
+  const handlePlanTask = async (taskId: string) => {
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
 
@@ -961,13 +990,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
 
     const nextActionLabel = current.planningStatus === 'planned' ? '担当予定を解除しました' : '担当予定に設定しました'
-    commitTaskChange(taskId, (task) => ({
+    await persistTaskChange(taskId, (task) => ({
       ...task,
       planningStatus: task.planningStatus === 'planned' ? 'unplanned' : 'planned',
       plannedBy: task.planningStatus === 'planned' ? null : (user?.full_name ?? '伊藤 真理'),
       plannedById: task.planningStatus === 'planned' ? null : (user?.id ?? 'ST-07'),
-      plannedAt: task.planningStatus === 'planned' ? null : '2026-03-29 13:42',
-      updatedAt: '2026-03-29 13:42',
+      plannedAt: task.planningStatus === 'planned' ? null : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       updatedById: user?.id ?? 'ST-07',
     }), nextActionLabel)
   }
