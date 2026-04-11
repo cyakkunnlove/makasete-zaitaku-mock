@@ -1206,6 +1206,44 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
   }
 
+  const handleApplySuggestedOrder = () => {
+    if (!routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) {
+      setSaveToast('先におすすめ順を作ってください')
+      return
+    }
+
+    const suggestedIndexMap = new Map(routePlanResult.suggestedOrder.map((patient, index) => [patient.id, index]))
+
+    setDraftDayTasks((prev) => {
+      const ordered = [...prev].sort((a, b) => a.sortOrder - b.sortOrder)
+      const targeted = ordered.filter((task) => suggestedIndexMap.has(task.patientId) && task.status !== 'completed')
+      if (targeted.length === 0) return prev
+
+      const targetedBySuggestion = [...targeted].sort((a, b) => {
+        return (suggestedIndexMap.get(a.patientId) ?? 0) - (suggestedIndexMap.get(b.patientId) ?? 0)
+      })
+
+      let targetedCursor = 0
+      const normalized = ordered.map((task) => {
+        if (!suggestedIndexMap.has(task.patientId) || task.status === 'completed') {
+          return task
+        }
+        const replacement = targetedBySuggestion[targetedCursor++]
+        return replacement ?? task
+      }).map((task, index) => ({
+        ...task,
+        sortOrder: index + 1,
+        updatedAt: new Date().toISOString(),
+        updatedById: user?.id ?? 'ST-07',
+      }))
+
+      return normalized
+    })
+
+    setHasOrderDraft(true)
+    setSaveToast('おすすめ順を今日の並び順に反映しました。必要なら「順番を保存」を押してください。')
+  }
+
   const handleAddPatientToTodayFlow = async (patient: RegisteredPatientRecord) => {
     const existing = draftDayTasks.find((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
     if (existing) {
@@ -1573,7 +1611,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 </div>
                 {routePlanResult && (
                   <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-200">
-                    <p className="font-medium text-white">{routePlanResult.message}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-white">{routePlanResult.message}</p>
+                      {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                        <Button size="sm" onClick={handleApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
+                          この順番を今日の並びに反映
+                        </Button>
+                      )}
+                    </div>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
                         <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-[#2a3553] bg-[#0f1728]" />
