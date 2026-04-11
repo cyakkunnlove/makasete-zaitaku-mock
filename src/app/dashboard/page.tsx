@@ -927,6 +927,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     return Array.from(counts.values())
   }, [draftDayTasks])
 
+  const upsertTask = async (task: DayTaskItem) => {
+    const response = await fetch(`/api/day-flow/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task }),
+    })
+
+    if (!response.ok) {
+      let message = '保存に失敗しました'
+      try {
+        const result = await response.json()
+        if (result?.details) message = `保存に失敗しました: ${result.details}`
+      } catch {}
+      throw new Error(message)
+    }
+  }
+
   const persistTaskChange = async (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
@@ -935,16 +952,59 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
 
-    const response = await fetch(`/api/day-flow/tasks/${taskId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: next }),
-    })
-
-    if (!response.ok) {
+    try {
+      await upsertTask(next)
+    } catch (error) {
       setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
-      setSaveToast('保存に失敗しました')
+      setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
+    }
+  }
+
+  const handleAddPatientToTodayFlow = async (patient: RegisteredPatientRecord) => {
+    const existing = draftDayTasks.find((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
+    if (existing) {
+      setSaveToast('この患者はすでに本日のフローに入っています')
+      return
+    }
+
+    const nextTask: DayTaskItem = {
+      id: `DT-MANUAL-${flowDate.replaceAll('-', '')}-${patient.id}`,
+      patientId: patient.id,
+      pharmacyId: patient.pharmacyId,
+      flowDate,
+      sortOrder: draftDayTasks.length + 1,
+      scheduledTime: patient.visitRules?.find((rule) => rule.active && rule.preferredTime)?.preferredTime ?? '10:00',
+      visitType: '臨時',
+      source: '手動追加',
+      status: 'scheduled',
+      planningStatus: 'planned',
+      plannedBy: user?.full_name ?? null,
+      plannedById: user?.id ?? null,
+      plannedAt: new Date().toISOString(),
+      handledBy: null,
+      handledById: null,
+      handledAt: null,
+      completedAt: null,
+      billable: false,
+      collectionStatus: '未着手',
+      amount: 0,
+      note: '患者マスタから本日対応へ追加',
+      updatedAt: new Date().toISOString(),
+      updatedById: user?.id ?? null,
+    }
+
+    setDraftDayTasks((prev) => [...prev, nextTask])
+    setDayTasks((prev) => [...prev, nextTask])
+
+    try {
+      await upsertTask(nextTask)
+      setSaveToast('本日の対応フローに追加しました')
+      setFlowLoadKey((prev) => prev + 1)
+    } catch (error) {
+      setDraftDayTasks((prev) => prev.filter((task) => task.id !== nextTask.id))
+      setDayTasks((prev) => prev.filter((task) => task.id !== nextTask.id))
+      setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
     }
   }
 
@@ -1296,26 +1356,34 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const flags = getAttentionFlags(patient)
                 const hasOvernightRequest = ownRequests.some((request) => request.patientId === patient.id)
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
+                const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
-                    <Card className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-white">{patient.name}</p>
-                              {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">昨夜対応あり</Badge>}
-                              {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">夜間対応確認待ち</Badge>}
-                            </div>
-                            <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                            <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                            <p className="mt-1 text-[11px] text-amber-300">visitRules 数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
+                  <Card key={patient.id} className="border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-white hover:text-indigo-300">{patient.name}</Link>
+                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">昨夜対応あり</Badge>}
+                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">夜間対応確認待ち</Badge>}
+                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-200">本日フローに追加済み</Badge>}
                           </div>
+                          <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
+                          <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                          <p className="mt-1 text-[11px] text-amber-300">visitRules 数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                         </div>
-                        {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
-                      </CardContent>
-                    </Card>
-                  </Link>
+                        <div className="flex shrink-0 gap-2">
+                          <Button size="sm" variant="outline" className="border-[#2a3553] text-xs text-gray-200 hover:bg-[#11182c]" asChild>
+                            <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
+                          </Button>
+                          <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => handleAddPatientToTodayFlow(patient)}>
+                            今日対応予定にする
+                          </Button>
+                        </div>
+                      </div>
+                      {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>
