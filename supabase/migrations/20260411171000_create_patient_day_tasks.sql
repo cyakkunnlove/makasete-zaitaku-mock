@@ -23,8 +23,8 @@ create table if not exists patient_day_tasks (
   note text not null default '',
   updated_by_id uuid references users(id) on delete set null,
   updated_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  unique (patient_id, flow_date)
+  created_at timestamptz not null default now()
 );
 
 create index if not exists idx_patient_day_tasks_pharmacy_flow_date on patient_day_tasks (pharmacy_id, flow_date);
+create index if not exists idx_patient_day_tasks_patient_flow_date on patient_day_tasks (patient_id, flow_date);
