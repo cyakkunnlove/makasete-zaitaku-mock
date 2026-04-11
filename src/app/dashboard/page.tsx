@@ -388,7 +388,11 @@ function PharmacyDashboardSummaryCard({
                   <span className="text-sm font-medium text-white">{item.name}</span>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">完了 {item.completedCount}件</Badge>
-                    <Badge variant="outline" className="border-amber-500/40 bg-amber-500/20 text-amber-200">対応中 {item.inProgressCount}件</Badge>
+                    {item.inProgressCount > 0 ? (
+                      <Badge variant="outline" className="border-amber-400/50 bg-amber-400/20 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.25)]">● 対応中</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-500">対応中なし</Badge>
+                    )}
                     <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-200">予定 {item.plannedCount}件</Badge>
                   </div>
                 </div>
