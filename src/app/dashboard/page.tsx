@@ -726,6 +726,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
+  const [isPatientsLoading, setIsPatientsLoading] = useState(true)
+  const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
   const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
@@ -749,6 +751,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     let cancelled = false
     async function fetchPatients() {
+      if (!cancelled) setIsPatientsLoading(true)
       try {
         const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
         const result = await response.json()
@@ -757,6 +760,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         }
       } catch {
         if (!cancelled) setDatabasePatients([])
+      } finally {
+        if (!cancelled) setIsPatientsLoading(false)
       }
     }
 
@@ -779,6 +784,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     let cancelled = false
 
     async function loadFlow() {
+      if (!cancelled) setIsDayFlowLoading(true)
       try {
         const response = await fetch(`/api/day-flow/${flowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
@@ -821,6 +827,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           setDayTasks(merged)
           setDraftDayTasks(merged)
         }
+      } finally {
+        if (!cancelled) setIsDayFlowLoading(false)
       }
     }
 
@@ -1303,6 +1311,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           saveStateBadge={saveStateBadge}
           adminWarningText={adminWarningText}
         />
+
+        {(isPatientsLoading || isDayFlowLoading) && (
+          <Card className="border-sky-500/30 bg-sky-500/10">
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-100">
+              <span>Supabase から最新データを取得中です...</span>
+              <span className="text-xs text-sky-200/80">
+                {isPatientsLoading && isDayFlowLoading ? '患者 + day flow を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : 'day flow を読み込み中'}
+              </span>
+            </CardContent>
+          </Card>
+        )}
 
         {saveToast && (
           <PharmacyDashboardNoticeCard
