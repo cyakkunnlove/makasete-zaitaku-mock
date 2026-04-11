@@ -247,7 +247,7 @@ export default function NewPatientPage() {
     setCustomDates((prev) => [...prev, dateKey].sort())
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setErrorMessage(null)
     setWarningMessage(null)
 
@@ -279,6 +279,50 @@ export default function NewPatientPage() {
 
     const visitRules = previewVisitRules
     const existing = getPatientMasterRecords(loadRegisteredPatients())
+    const requestPayload = {
+      basic: {
+        fullName: form.name,
+        birthDate: normalizedDob,
+        postalCode: form.postalCode,
+        addressLine1: form.address,
+        phone: form.phone,
+        serviceStartDate: form.startedAt,
+        visitNotes: form.visitNotes,
+        emergencyContactName: form.emergencyContactName,
+        emergencyContactRelation: form.emergencyContactRelation,
+        emergencyContactPhone: form.emergencyContactPhone,
+      },
+      visitPlan: {
+        firstVisitDate: normalizeDateInput(form.firstVisitDate),
+        monthlyVisitCount: Math.max(1, Number(visitCount) || 4),
+        visitWeekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
+      },
+      medical: {
+        doctorName: form.doctorName,
+        doctorClinic: form.doctorClinic,
+        doctorPhone: form.doctorPhone,
+        currentMeds: form.currentMeds,
+        medicalHistory: form.medicalHistory,
+        allergies: form.allergies,
+        diseaseName: form.diseaseName,
+        insuranceInfo: form.insuranceInfo,
+      },
+    }
+
+    const createResponse = await fetch('/api/patients', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestPayload),
+    })
+
+    const createResult = await createResponse.json().catch(() => null)
+    if (!createResponse.ok || !createResult?.ok) {
+      setErrorMessage(createResult?.error === 'forbidden' ? 'このロールでは患者登録できません。' : '患者登録に失敗しました。')
+      return
+    }
+
     const patient = buildRegisteredPatientRecord(
       {
         name: form.name,
@@ -314,7 +358,10 @@ export default function NewPatientPage() {
     )
 
     upsertRegisteredPatient(patient)
-    if (!form.phone.trim()) {
+    const apiWarnings = Array.isArray(createResult?.warnings) ? createResult.warnings : []
+    if (apiWarnings.length > 0) {
+      setWarningMessage(apiWarnings.map((warning: { message: string }) => warning.message).join(' '))
+    } else if (!form.phone.trim()) {
       setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
     }
     router.push(`/dashboard/patients/${patient.id}`)
