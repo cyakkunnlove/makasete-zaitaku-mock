@@ -754,10 +754,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
   const [routePlanResult, setRoutePlanResult] = useState<null | {
     ready: boolean
-    suggestedOrder: Array<{ id: string; name: string; address: string; latitude?: number | null; longitude?: number | null }>
-    missingCoordinates: Array<{ id: string; name: string; address: string }>
+    suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }>
+    missingCoordinates: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null }>
     totalDuration?: string | null
     totalDistanceMeters?: number | null
+    origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null }
+    debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null }> }
     message: string
   }>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
@@ -1451,12 +1453,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
                         </p>
+                        {routePlanResult.origin && (
+                          <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0f1728] p-3 text-xs text-gray-300">
+                            <p className="font-medium text-white">起点</p>
+                            <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
+                            <p className="mt-1 text-gray-400">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
+                            <p className="mt-1 text-gray-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
+                          </div>
+                        )}
                         <ol className="mt-3 space-y-2">
                           {routePlanResult.suggestedOrder.map((patient, index) => (
                             <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2 text-sm">
-                              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
-                              <span className="font-medium text-white">{patient.name}</span>
-                              <span className="ml-2 text-xs text-gray-400">{patient.address}</span>
+                              <div>
+                                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
+                                <span className="font-medium text-white">{patient.name}</span>
+                                <span className="ml-2 text-xs text-gray-400">{patient.address}</span>
+                              </div>
+                              <p className="mt-2 text-xs text-gray-400">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
+                              <p className="mt-1 text-[11px] text-gray-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
                             </li>
                           ))}
                         </ol>
@@ -1467,7 +1481,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         <p className="font-medium text-amber-300">座標未取得の患者</p>
                         <ul className="mt-2 space-y-1">
                           {routePlanResult.missingCoordinates.map((patient) => (
-                            <li key={patient.id}>{patient.name} / {patient.address}</li>
+                            <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</li>
                           ))}
                         </ul>
                       </div>

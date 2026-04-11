@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const [{ data, error }, { data: pharmacy, error: pharmacyError }] = await Promise.all([
     supabase
       .from('patients')
-      .select('id, full_name, address, latitude, longitude')
+      .select('id, full_name, address, latitude, longitude, geocode_input_address, geocode_status')
       .eq('pharmacy_id', user.pharmacy_id)
       .in('id', patientIds),
     supabase
@@ -57,12 +57,16 @@ export async function POST(request: Request) {
     address: string
     latitude: number | null
     longitude: number | null
+    geocode_input_address?: string | null
+    geocode_status?: string | null
   }>
 
   const patients = rows.map((patient) => ({
     id: String(patient.id),
     name: String(patient.full_name),
     address: String(patient.address),
+    geocodeInputAddress: typeof patient.geocode_input_address === 'string' ? patient.geocode_input_address : null,
+    geocodeStatus: typeof patient.geocode_status === 'string' ? patient.geocode_status : null,
     latitude: typeof patient.latitude === 'number' ? patient.latitude : null,
     longitude: typeof patient.longitude === 'number' ? patient.longitude : null,
   }))
@@ -137,8 +141,12 @@ export async function POST(request: Request) {
       origin: {
         name: pharmacyRecord.name,
         address: pharmacyRecord.address,
+        geocodeInputAddress: origin.normalizedAddress,
         latitude: origin.latitude,
         longitude: origin.longitude,
+      },
+      debug: {
+        selectedPatients: readyPatients,
       },
       message: '薬局を起点にしたおすすめ巡回順を作成しました。',
     },
