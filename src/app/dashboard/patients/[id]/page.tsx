@@ -298,10 +298,10 @@ export default function PatientDetailPage() {
         ...current,
         phone: editForm.phone || null,
         visitNotes: editForm.visitNotes,
-        currentMeds: isPharmacyAdmin ? editForm.currentMeds : current.currentMeds,
-        medicalHistory: isPharmacyAdmin ? editForm.medicalHistory : current.medicalHistory,
-        allergies: isPharmacyAdmin ? editForm.allergies : current.allergies,
-        insuranceInfo: isPharmacyAdmin ? editForm.insuranceInfo : current.insuranceInfo,
+        currentMeds: editForm.currentMeds,
+        medicalHistory: editForm.medicalHistory,
+        allergies: editForm.allergies,
+        insuranceInfo: editForm.insuranceInfo,
         registrationMeta: current.registrationMeta
           ? {
               ...current.registrationMeta,
@@ -315,7 +315,7 @@ export default function PatientDetailPage() {
       setRegisteredPatients(loadRegisteredPatients())
     }
     setEditDialogOpen(false)
-    setEditSavedNotice(isPharmacyAdmin ? '管理者権限の編集を保存しました' : '実務項目の更新を保存しました')
+    setEditSavedNotice('患者情報を保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
   }
 
@@ -673,17 +673,17 @@ export default function PatientDetailPage() {
       </Card>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>患者情報を編集</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-2">
             <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
               <p className="font-medium text-white">現在の権限</p>
-              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />{isPharmacyAdmin ? 'Pharmacy Admin: 重要項目の編集が可能' : 'Pharmacy Staff: 実務項目のみ編集可能'}</p>
+              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />Pharmacy Staff / Pharmacy Admin: 患者基本・医療情報の編集が可能</p>
             </div>
             <div>
-              <p className="mb-2 text-xs text-gray-500">実務項目</p>
+              <p className="mb-2 text-xs text-gray-500">編集項目</p>
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-gray-500">電話番号</p>
@@ -693,6 +693,24 @@ export default function PatientDetailPage() {
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
                   <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className="mt-1 min-h-[110px] border-[#2a3553] bg-[#11182c] text-gray-100" />
                 </div>
+                <div>
+                  <p className="text-xs text-gray-500">現在薬</p>
+                  <Textarea value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">既往歴</p>
+                  <Textarea value={editForm.medicalHistory} onChange={(e) => setEditForm((prev) => ({ ...prev, medicalHistory: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-gray-500">アレルギー</p>
+                    <Input value={editForm.allergies} onChange={(e) => setEditForm((prev) => ({ ...prev, allergies: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">保険情報</p>
+                    <Input value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  </div>
+                </div>
               </div>
             </div>
             <div>
@@ -700,29 +718,6 @@ export default function PatientDetailPage() {
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
                 <p>患者の所属薬局やステータス変更は Pharmacy Admin の責務です。</p>
                 <p className="mt-1">他薬局の Pharmacy Staff / Pharmacy Admin、Night Pharmacist、Regional Admin、System Admin は患者情報を編集できません。</p>
-              </div>
-            </div>
-            <div>
-              <p className="mb-2 text-xs text-gray-500">管理者項目</p>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500">現在薬</p>
-                  <Textarea disabled={!isPharmacyAdmin} value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">既往歴</p>
-                  <Textarea disabled={!isPharmacyAdmin} value={editForm.medicalHistory} onChange={(e) => setEditForm((prev) => ({ ...prev, medicalHistory: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-gray-500">アレルギー</p>
-                    <Input disabled={!isPharmacyAdmin} value={editForm.allergies} onChange={(e) => setEditForm((prev) => ({ ...prev, allergies: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">保険情報</p>
-                    <Input disabled={!isPharmacyAdmin} value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100 disabled:opacity-60" />
-                  </div>
-                </div>
               </div>
             </div>
           </div>

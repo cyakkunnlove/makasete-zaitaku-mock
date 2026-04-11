@@ -13,7 +13,6 @@ export function isPatientInPharmacyScope(patient: Pick<RegisteredPatientRecord, 
   const scopeId = normalize(pharmacyId)
   if (!patientId || !scopeId) return false
   if (patientId === scopeId) return true
-  if (patientId.startsWith('ph-') && scopeId) return true
 
   const scopeAliases = new Set([scopeId, ...(LEGACY_PHARMACY_ALIASES[pharmacyId ?? ''] ?? []).map(normalize)])
   const patientAliases = new Set([patientId, ...(LEGACY_PHARMACY_ALIASES[patient.pharmacyId] ?? []).map(normalize)])

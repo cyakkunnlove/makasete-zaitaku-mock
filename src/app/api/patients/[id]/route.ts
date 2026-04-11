@@ -60,12 +60,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     payload.visit_notes = patch.visitNotes.trim() || null
   }
 
-  if (user.role === 'pharmacy_admin') {
-    if (typeof patch.currentMeds === 'string') payload.current_medications = patch.currentMeds.trim() || null
-    if (typeof patch.medicalHistory === 'string') payload.medical_history = patch.medicalHistory.trim() || null
-    if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
-    if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
-  }
+  if (typeof patch.currentMeds === 'string') payload.current_medications = patch.currentMeds.trim() || null
+  if (typeof patch.medicalHistory === 'string') payload.medical_history = patch.medicalHistory.trim() || null
+  if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
+  if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
 
   const { data, error } = await supabase
     .from('patients')
