@@ -74,10 +74,6 @@ function getTodayDateKey() {
   return `${year}-${month}-${day}`
 }
 
-function formatMockTimestamp(time: string) {
-  return `${getTodayDateKey()} ${time}`
-}
-
 function formatJapanDateTime(value: string | null | undefined) {
   if (!value) return '—'
   const normalized = value.includes('T') ? value : value.replace(' ', 'T')
@@ -1042,36 +1038,38 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
   }
 
-  const handleStartTask = async (taskId: string, time: string) => {
+  const handleStartTask = async (taskId: string) => {
+    const now = new Date().toISOString()
     await persistTaskChange(taskId, (task) => ({
       ...task,
       status: 'in_progress',
       planningStatus: 'planned',
       plannedBy: task.plannedBy ?? user?.full_name ?? '伊藤 真理',
       plannedById: task.plannedById ?? user?.id ?? 'ST-07',
-      plannedAt: task.plannedAt ?? new Date().toISOString(),
+      plannedAt: task.plannedAt ?? now,
       handledBy: user?.full_name ?? '伊藤 真理',
       handledById: user?.id ?? 'ST-07',
-      handledAt: formatMockTimestamp(time),
+      handledAt: now,
       completedAt: null,
       billable: false,
       collectionStatus: '未着手',
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
       updatedById: user?.id ?? 'ST-07',
     }), '対応開始を反映しました')
   }
 
-  const handleCompleteTask = async (taskId: string, time: string) => {
+  const handleCompleteTask = async (taskId: string) => {
+    const now = new Date().toISOString()
     await persistTaskChange(taskId, (task) => ({
       ...task,
       status: 'completed',
       handledBy: task.handledBy ?? user?.full_name ?? '伊藤 真理',
       handledById: task.handledById ?? user?.id ?? 'ST-07',
-      handledAt: task.handledAt ?? formatMockTimestamp(time),
-      completedAt: formatMockTimestamp(time),
+      handledAt: task.handledAt ?? now,
+      completedAt: now,
       billable: task.amount > 0,
       collectionStatus: task.amount > 0 ? '請求準備OK' : '未着手',
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
       updatedById: user?.id ?? 'ST-07',
     }), '対応完了を反映しました')
   }
@@ -1384,8 +1382,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     onPlanToggle={() => handlePlanTask(visit.id)}
                     onMoveUp={() => moveTask(visit.id, 'up')}
                     onMoveDown={() => moveTask(visit.id, 'down')}
-                    onStart={() => handleStartTask(visit.id, visit.scheduledTime)}
-                    onComplete={() => handleCompleteTask(visit.id, visit.scheduledTime)}
+                    onStart={() => handleStartTask(visit.id)}
+                    onComplete={() => handleCompleteTask(visit.id)}
                     completionHelpText={completionHelpText}
                     plannedLabelPrefix={plannedLabelPrefix}
                     updatedLabelPrefix={updatedLabelPrefix}
