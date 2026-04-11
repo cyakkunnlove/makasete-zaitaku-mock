@@ -501,6 +501,7 @@ function PharmacyDayTaskCardActions({
   canComplete,
   canMoveUp,
   canMoveDown,
+  canPlanToggle,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -514,6 +515,7 @@ function PharmacyDayTaskCardActions({
   canComplete: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  canPlanToggle: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -525,7 +527,7 @@ function PharmacyDayTaskCardActions({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" onClick={onPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
         {planButtonLabel}
       </Button>
       <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
@@ -583,6 +585,7 @@ function PharmacyDayTaskCard({
   canComplete,
   canMoveUp,
   canMoveDown,
+  canPlanToggle,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -608,6 +611,7 @@ function PharmacyDayTaskCard({
   canComplete: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  canPlanToggle: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -669,6 +673,7 @@ function PharmacyDayTaskCard({
           canComplete={canComplete}
           canMoveUp={canMoveUp}
           canMoveDown={canMoveDown}
+          canPlanToggle={canPlanToggle}
           onPlanToggle={onPlanToggle}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
@@ -1012,6 +1017,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     await persistTaskChange(taskId, (task) => ({
       ...task,
       status: 'in_progress',
+      planningStatus: 'planned',
+      plannedBy: task.plannedBy ?? user?.full_name ?? '伊藤 真理',
+      plannedById: task.plannedById ?? user?.id ?? 'ST-07',
+      plannedAt: task.plannedAt ?? new Date().toISOString(),
       handledBy: user?.full_name ?? '伊藤 真理',
       handledById: user?.id ?? 'ST-07',
       handledAt: formatMockTimestamp(time),
@@ -1310,6 +1319,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 if (!patient) return null
                 const status = taskStatusMeta(visit.status)
                 const collection = collectionStatusMeta(visit.collectionStatus)
+                const isCompleted = visit.status === 'completed'
+                const canPlanToggle = !isCompleted
                 const canStart = visit.status === 'scheduled'
                 const canComplete = visit.status === 'in_progress'
                 return (
@@ -1327,8 +1338,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
                     canStart={canStart}
                     canComplete={canComplete}
-                    canMoveUp={visit.status !== 'completed'}
-                    canMoveDown={visit.status !== 'completed'}
+                    canMoveUp={!isCompleted}
+                    canMoveDown={!isCompleted}
+                    canPlanToggle={canPlanToggle}
                     onPlanToggle={() => handlePlanTask(visit.id)}
                     onMoveUp={() => moveTask(visit.id, 'up')}
                     onMoveDown={() => moveTask(visit.id, 'down')}
