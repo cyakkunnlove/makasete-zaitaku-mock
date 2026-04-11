@@ -308,29 +308,46 @@ export default function PatientDetailPage() {
     })
   }
 
-  const handleSaveVisitRules = (nextVisitRules: PatientVisitRule[]) => {
+  const handleSaveVisitRules = async (nextVisitRules: PatientVisitRule[]) => {
     if (!patient) return
 
-    if (databasePatient) {
-      setEditSavedNotice('訪問スケジュールのDB保存は次の整理対象です。現時点では実患者への直接保存はまだ行いません。')
+    if (!databasePatient) {
+      upsertRegisteredPatient({
+        ...patient,
+        visitRules: nextVisitRules,
+        registrationMeta: patient.registrationMeta
+          ? {
+              ...patient.registrationMeta,
+              updatedAt: new Date().toISOString(),
+              updatedById: user?.id ?? null,
+              updatedByName: user?.full_name ?? 'Pharmacy Staff',
+              version: patient.registrationMeta.version + 1,
+            }
+          : undefined,
+      })
+      setRegisteredPatients(loadRegisteredPatients())
+      setEditSavedNotice('訪問スケジュールを保存しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    const response = await fetch(`/api/patients/${patient.id}/visit-rules`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitRules: nextVisitRules }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setEditSavedNotice(result?.details ?? '訪問スケジュールの保存に失敗しました')
       setTimeout(() => setEditSavedNotice(null), 3000)
       return
     }
 
-    upsertRegisteredPatient({
-      ...patient,
-      visitRules: nextVisitRules,
-      registrationMeta: patient.registrationMeta
-        ? {
-            ...patient.registrationMeta,
-            updatedAt: new Date().toISOString(),
-            updatedById: user?.id ?? null,
-            updatedByName: user?.full_name ?? 'Pharmacy Staff',
-            version: patient.registrationMeta.version + 1,
-          }
-        : undefined,
-    })
-    setRegisteredPatients(loadRegisteredPatients())
+    const refreshed = await fetch(`/api/patients/${patient.id}/detail`, { cache: 'no-store' })
+    const refreshedResult = await refreshed.json().catch(() => null)
+    if (refreshed.ok && refreshedResult?.ok && refreshedResult.patient) {
+      setDatabasePatient(refreshedResult.patient)
+    }
     setEditSavedNotice('訪問スケジュールを保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
   }
@@ -893,8 +910,8 @@ export default function PatientDetailPage() {
         <VisitSchedule
           patientId={patient.id}
           visitRules={patient.visitRules ?? []}
-          canEdit={canEditThisPatient && !databasePatient}
-          onSave={handleSaveVisitRules}
+          canEdit={canEditThisPatient}
+          onSave={(rules) => void handleSaveVisitRules(rules)}
         />
       </div>
 

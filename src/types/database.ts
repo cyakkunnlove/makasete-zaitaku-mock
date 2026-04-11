@@ -262,6 +262,22 @@ export interface Billing {
   created_at: string
 }
 
+export interface PatientVisitRuleRow {
+  id: string
+  patient_id: string | null
+  pattern: 'weekly' | 'biweekly' | 'custom'
+  weekday: number | null
+  interval_weeks: number
+  anchor_week: number | null
+  preferred_time: string | null
+  monthly_visit_limit: number
+  active: boolean
+  custom_dates: string[] | null
+  excluded_dates: string[] | null
+  created_at: string
+  updated_at: string
+}
+
 export interface PatientDayTask {
   id: string
   organization_id: string | null
@@ -341,6 +357,7 @@ export interface Database {
       checklists: { Row: Checklist; Insert: Partial<Checklist>; Update: Partial<Checklist> }
       handovers: { Row: Handover; Insert: Partial<Handover>; Update: Partial<Handover> }
       shift_schedules: { Row: ShiftSchedule; Insert: Partial<ShiftSchedule>; Update: Partial<ShiftSchedule> }
+      patient_visit_rules: { Row: PatientVisitRuleRow; Insert: Partial<PatientVisitRuleRow>; Update: Partial<PatientVisitRuleRow> }
       patient_day_tasks: { Row: PatientDayTask; Insert: Partial<PatientDayTask>; Update: Partial<PatientDayTask> }
       patient_home_photos: { Row: PatientHomePhoto; Insert: Partial<PatientHomePhoto>; Update: Partial<PatientHomePhoto> }
       billings: { Row: Billing; Insert: Partial<Billing>; Update: Partial<Billing> }

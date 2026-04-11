@@ -1,8 +1,8 @@
 import type { Patient } from '@/types/database'
 import { patientData, pharmacyData } from '@/lib/mock-data'
-import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
 
-export function mapDatabasePatientToPatientRecord(patient: Patient): RegisteredPatientRecord {
+export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: PatientVisitRule[] = []): RegisteredPatientRecord {
   const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacy_id)
 
   return {
@@ -34,7 +34,7 @@ export function mapDatabasePatientToPatientRecord(patient: Patient): RegisteredP
     startedAt: null,
     manualTags: [],
     derivedFlags: [],
-    visitRules: [],
+    visitRules,
   }
 }
 

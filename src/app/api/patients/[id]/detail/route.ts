@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { getPatientById } from '@/lib/repositories/patients'
+import { getPatientById, listPatientVisitRules } from '@/lib/repositories/patients'
+import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatients } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
 
@@ -24,6 +25,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
+  const visitRules = await listPatientVisitRules(params.id)
+
   await writeAuditLog({
     user,
     action: 'patient_viewed',
@@ -35,5 +38,5 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     },
   })
 
-  return NextResponse.json({ ok: true, patient })
+  return NextResponse.json({ ok: true, patient: mapDatabasePatientToPatientRecord(patient, visitRules) })
 }
