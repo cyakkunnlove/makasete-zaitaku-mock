@@ -73,6 +73,21 @@ function formatMockTimestamp(time: string) {
   return `${getTodayDateKey()} ${time}`
 }
 
+function formatJapanDateTime(value: string | null | undefined) {
+  if (!value) return '—'
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T')
+  const date = new Date(normalized)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 function taskStatusMeta(status: DayTaskItem['status']) {
   switch (status) {
     case 'completed':
@@ -453,8 +468,8 @@ function PharmacyDayTaskCardHeader({
       </div>
       <div className="text-right text-xs text-gray-400">
         <p>担当者: {visit.handledBy ?? '未対応'}</p>
-        <p>着手: {visit.handledAt ?? '—'}</p>
-        <p>完了: {visit.completedAt ?? '—'}</p>
+        <p>着手: {formatJapanDateTime(visit.handledAt)}</p>
+        <p>完了: {formatJapanDateTime(visit.completedAt)}</p>
       </div>
     </div>
   )
@@ -481,7 +496,7 @@ function PharmacyDayTaskCardMetrics({
       </div>
       <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
         <p className="text-[10px] text-gray-500">handled-at</p>
-        <p className="mt-1 text-sm text-white">{handledAt ?? '未設定'}</p>
+        <p className="mt-1 text-sm text-white">{handledAt ? formatJapanDateTime(handledAt) : '未設定'}</p>
       </div>
       <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
         <p className="text-[10px] text-gray-500">billable / 回収連携</p>
@@ -565,7 +580,7 @@ function PharmacyDayTaskCardMetaChips({
   return (
     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
       {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">{plannedLabelPrefix}{plannedBy}</span>}
-      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">{updatedLabelPrefix}{updatedAt}</span>}
+      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">{updatedLabelPrefix}{formatJapanDateTime(updatedAt)}</span>}
     </div>
   )
 }
@@ -1440,7 +1455,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               return (
                 <div key={task.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                   <p className="font-medium text-white">{patient?.name ?? task.patientId}</p>
-                  <p className="mt-1 text-gray-400">handled-by: {task.handledBy} / handled-at: {task.completedAt ?? task.handledAt}</p>
+                  <p className="mt-1 text-gray-400">handled-by: {task.handledBy} / handled-at: {formatJapanDateTime(task.completedAt ?? task.handledAt)}</p>
                   <p className="mt-1 text-gray-400">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
                 </div>
               )
