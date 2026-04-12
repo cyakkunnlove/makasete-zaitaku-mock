@@ -167,7 +167,7 @@ export default function StaffPage() {
 
     if (isSystemAdmin) {
       try {
-        const response = await fetch('/api/admin/regional-admins', {
+        const response = await fetch('/api/account-invitations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -175,6 +175,7 @@ export default function StaffPage() {
             email: formData.email,
             phone: formData.phone,
             regionId: formData.regionId,
+            targetRole: 'regional_admin',
           }),
         })
         const data = await response.json()

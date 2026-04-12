@@ -3,13 +3,14 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
 import { createAccountInvitation } from '@/lib/account-invitation-service'
+import type { UserRole } from '@/types/database'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
 
   const reauthResponse = await ensureRecentReverification(user, {
-    reason: 'regional_admin_create',
+    reason: 'account_invitation_create',
     nextPath: '/dashboard/staff',
   })
   if (reauthResponse) return reauthResponse
@@ -26,8 +27,10 @@ export async function POST(request: Request) {
       fullName: typeof (body as Record<string, unknown>).fullName === 'string' ? (body as Record<string, string>).fullName : '',
       email: typeof (body as Record<string, unknown>).email === 'string' ? (body as Record<string, string>).email : '',
       phone: typeof (body as Record<string, unknown>).phone === 'string' ? (body as Record<string, string>).phone : null,
-      targetRole: 'regional_admin',
+      targetRole: ((body as Record<string, unknown>).targetRole ?? '') as UserRole,
       regionId: typeof (body as Record<string, unknown>).regionId === 'string' ? (body as Record<string, string>).regionId : null,
+      pharmacyId: typeof (body as Record<string, unknown>).pharmacyId === 'string' ? (body as Record<string, string>).pharmacyId : null,
+      operationUnitId: typeof (body as Record<string, unknown>).operationUnitId === 'string' ? (body as Record<string, string>).operationUnitId : null,
     },
   })
 
@@ -35,12 +38,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: result.error, details: 'details' in result ? result.details : null }, { status: result.status })
   }
 
-  return NextResponse.json({
-    ok: true,
-    user: result.data.user,
-    invitation: result.data.invitation,
-    nextStep: result.data.invitation.emailSent
-      ? '招待メールを送信しました。次は受諾後の Cognito 初回登録連携です。'
-      : 'invitation は作成済みですが、メール送信は失敗しました。SES 設定確認後に再送導線をつなぐ必要があります。',
-  })
+  return NextResponse.json({ ok: true, ...result.data })
 }
