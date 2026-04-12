@@ -79,6 +79,7 @@ export default function NewPatientPage() {
   const [excludedDates, setExcludedDates] = useState<string[]>([])
   const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
   const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
+  const [postalLookupLoading, setPostalLookupLoading] = useState(false)
   const ownPharmacyId = getScopedPharmacyId(user)
   const [form, setForm] = useState({
     name: '',
@@ -185,6 +186,13 @@ export default function NewPatientPage() {
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
 
+    if (key === 'postalCode') {
+      const digits = nextValue.replace(/[^0-9]/g, '')
+      if (digits.length === 7) {
+        void lookupPostalCode(digits)
+      }
+    }
+
     if (key === 'startedAt') {
       const nextDate = new Date(`${value || MOCK_FLOW_DATE}T00:00:00`)
       if (!Number.isNaN(nextDate.getTime())) {
@@ -243,6 +251,32 @@ export default function NewPatientPage() {
     }
 
     setCustomDates((prev) => [...prev, dateKey].sort())
+  }
+
+  const lookupPostalCode = async (postalCode: string) => {
+    const normalized = postalCode.replace(/[^0-9]/g, '')
+    if (normalized.length !== 7) return
+
+    setPostalLookupLoading(true)
+    try {
+      const response = await fetch(`/api/postal-code?code=${normalized}`, { cache: 'no-store' })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        setWarningMessage('郵便番号から住所を取得できませんでした。住所を直接入力してください。')
+        return
+      }
+
+      if (!result.found || !result.address?.full) {
+        setWarningMessage('該当する住所が見つかりませんでした。住所を直接入力してください。')
+        return
+      }
+
+      setForm((prev) => (prev.address.trim() ? prev : { ...prev, address: result.address.full }))
+      setWarningMessage(null)
+    } finally {
+      setPostalLookupLoading(false)
+    }
   }
 
   const fetchGeocodePreview = async (address: string) => {
@@ -471,7 +505,7 @@ export default function NewPatientPage() {
           <div>
             <Label className="text-gray-300">郵便番号</Label>
             <Input value={form.postalCode} onChange={(e) => handleChange('postalCode', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1920012" />
-            <p className="mt-1 text-[11px] text-gray-500">入力すると住所を自動で補完できます。</p>
+            <p className="mt-1 text-[11px] text-gray-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
           </div>
           <div>
             <Label className="text-gray-300">連絡先電話</Label>
