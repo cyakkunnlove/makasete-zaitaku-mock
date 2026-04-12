@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow } from
 
 export default function PharmacySettingsPage() {
   const { role } = useAuth()
+  const { guard, requiresReverification } = useReauthGuard()
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const [toast, setToast] = useState<string | null>(null)
   const [settings, setSettings] = useState({
@@ -25,6 +27,7 @@ export default function PharmacySettingsPage() {
   })
 
   const save = () => {
+    if (guard()) return
     setToast('薬局設定を保存しました（モック）')
     setTimeout(() => setToast(null), 2500)
   }
@@ -49,6 +52,13 @@ export default function PharmacySettingsPage() {
           </Button>
         )}
       </div>
+
+      {requiresReverification && isPharmacyAdmin && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <Shield className="h-4 w-4" />
+          この画面の保存には再認証が必要です。続行時はセキュリティ確認画面へ移動します。
+        </div>
+      )}
 
       {!isPharmacyAdmin && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">

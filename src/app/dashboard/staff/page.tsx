@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import type { UserRole } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,6 +98,7 @@ const weekDays = [
 
 export default function StaffPage() {
   const { role } = useAuth()
+  const { guard, requiresReverification } = useReauthGuard()
   const [pageTab, setPageTab] = useState<PageTab>('staff')
 
   // Staff list state
@@ -130,6 +132,7 @@ export default function StaffPage() {
 
   const handleAddStaff = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (guard()) return
 
     const newStaff: StaffItem = {
       id: `ST-${Date.now()}`,
@@ -186,7 +189,10 @@ export default function StaffPage() {
 
         {pageTab === 'staff' && (
           <Button
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              if (guard()) return
+              setDialogOpen(true)
+            }}
             className="bg-indigo-500 text-white hover:bg-indigo-500/90"
           >
             <Plus className="h-4 w-4" />
@@ -194,6 +200,14 @@ export default function StaffPage() {
           </Button>
         )}
       </div>
+
+      {requiresReverification && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-4 text-sm text-amber-200">
+            スタッフ追加やシフト変更などの管理操作には再認証が必要です。操作時はセキュリティ確認画面へ移動します。
+          </CardContent>
+        </Card>
+      )}
 
       {/* Page-level tabs */}
       
@@ -346,7 +360,10 @@ export default function StaffPage() {
                             {shift ? (
                               <button
                                 type="button"
-                                onClick={() => toggleShiftType(shift.id)}
+                                onClick={() => {
+                                  if (guard()) return
+                                  toggleShiftType(shift.id)
+                                }}
                                 className="inline-block cursor-pointer transition-opacity hover:opacity-80"
                               >
                                 <Badge
@@ -402,7 +419,10 @@ export default function StaffPage() {
                           <span className="text-sm text-gray-200">{shift.pharmacistName}</span>
                           <button
                             type="button"
-                            onClick={() => toggleShiftType(shift.id)}
+                            onClick={() => {
+                              if (guard()) return
+                              toggleShiftType(shift.id)
+                            }}
                             className="cursor-pointer transition-opacity hover:opacity-80"
                           >
                             <Badge

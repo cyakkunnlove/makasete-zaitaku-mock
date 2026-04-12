@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,7 @@ const yen = new Intl.NumberFormat('ja-JP')
 
 export default function PharmacyDetailPage() {
   useAuth()
+  const { guard, requiresReverification } = useReauthGuard()
   const params = useParams()
   const id = params.id as string
 
@@ -89,12 +91,14 @@ export default function PharmacyDetailPage() {
       : 'border-gray-500/40 bg-gray-500/20 text-gray-300'
 
   const reflectManual = (mode: 'manual_on' | 'manual_off') => {
+    if (guard()) return
     setForwardingMode(mode)
     setLastUpdatedBy('薬局管理者')
     setLastUpdatedAt('2026-03-15 13:10')
   }
 
   const saveAutoSchedule = () => {
+    if (guard()) return
     setForwardingMode('auto')
     setLastUpdatedBy('薬局管理者')
     setLastUpdatedAt('2026-03-15 13:10')
@@ -149,6 +153,11 @@ export default function PharmacyDetailPage() {
             <Badge variant="outline" className={cn('border text-xs', forwardingStateClass)}>{forwardingStateLabel}</Badge>
             <span className="text-xs text-gray-500">最終更新: {lastUpdatedAt} / {lastUpdatedBy}</span>
           </div>
+          {requiresReverification && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              転送設定の変更は再認証が必要です。操作するとセキュリティ確認画面へ移動します。
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 space-y-3">
