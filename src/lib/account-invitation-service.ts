@@ -9,7 +9,7 @@ import {
   sendEmail,
 } from '@/lib/account-invitations'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import type { UserRole } from '@/types/database'
+import type { AccountInvitationStatus, UserRole } from '@/types/database'
 
 export type InvitationCreateInput = {
   fullName: string
@@ -32,6 +32,219 @@ function canInvite(actorRole: UserRole | null, targetRole: UserRole) {
     return targetRole === 'pharmacy_staff'
   }
   return false
+}
+
+function canManageTargetRole(actorRole: UserRole | null, targetRole: UserRole) {
+  return canInvite(actorRole, targetRole)
+}
+
+export async function listAccountInvitations(params: {
+  actor: RoleAwareUser & { organization_id: string }
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  let query = supabase
+    .from('account_invitations')
+    .select('id, email, role, status, region_id, pharmacy_id, expires_at, last_sent_at, created_at')
+    .eq('organization_id', params.actor.organization_id)
+    .order('created_at', { ascending: false })
+
+  if (actorRole === 'regional_admin' && actorScope.regionId) {
+    query = query.eq('region_id', actorScope.regionId)
+  }
+  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId) {
+    query = query.eq('pharmacy_id', actorScope.pharmacyId)
+  }
+
+  const response = await query.limit(50)
+  if (response.error) {
+    return { ok: false as const, status: 500, error: 'invitation_list_failed', details: response.error.message }
+  }
+
+  return { ok: true as const, status: 200, data: { invitations: response.data ?? [] } }
+}
+
+export async function resendAccountInvitation(params: {
+  actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
+  request: Request
+  invitationId: string
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  const invitationResponse = await supabase
+    .from('account_invitations')
+    .select('id, invited_user_id, email, role, status, region_id, pharmacy_id')
+    .eq('id', params.invitationId)
+    .eq('organization_id', params.actor.organization_id)
+    .maybeSingle()
+
+  const invitation = invitationResponse.data as {
+    id: string
+    invited_user_id: string
+    email: string
+    role: UserRole
+    status: AccountInvitationStatus
+    region_id: string | null
+    pharmacy_id: string | null
+  } | null
+
+  if (invitationResponse.error) {
+    return { ok: false as const, status: 500, error: 'invitation_lookup_failed', details: invitationResponse.error.message }
+  }
+  if (!invitation) {
+    return { ok: false as const, status: 404, error: 'invitation_not_found' }
+  }
+  if (!canManageTargetRole(actorRole, invitation.role)) {
+    return { ok: false as const, status: 403, error: 'forbidden_target_role' }
+  }
+  if (actorRole === 'regional_admin' && actorScope.regionId !== invitation.region_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== invitation.pharmacy_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (!['pending', 'expired'].includes(invitation.status)) {
+    return { ok: false as const, status: 400, error: 'invitation_not_resendable' }
+  }
+
+  const rawToken = createInvitationToken()
+  const now = new Date().toISOString()
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
+
+  const updateResponse = await supabase
+    .from('account_invitations')
+    .update({
+      token_hash: hashInvitationToken(rawToken),
+      status: 'pending',
+      expires_at: expiresAt,
+      last_sent_at: now,
+      updated_at: now,
+      revoked_at: null,
+    } as never)
+    .eq('id', invitation.id)
+
+  if (updateResponse.error) {
+    return { ok: false as const, status: 500, error: 'invitation_resend_prepare_failed', details: updateResponse.error.message }
+  }
+
+  const acceptUrl = buildInvitationAcceptUrl(getInvitationBaseUrl(params.request), rawToken)
+  let emailError: string | null = null
+  let messageId: string | null = null
+
+  try {
+    const emailPayload = buildRegionalAdminInvitationEmail({
+      to: invitation.email,
+      fullName: invitation.email,
+      regionName: '招待対象',
+      acceptUrl,
+      expiresAt,
+    })
+    const emailResponse = await sendEmail({
+      to: invitation.email,
+      subject: emailPayload.subject,
+      text: emailPayload.text,
+      html: emailPayload.html,
+    })
+    messageId = emailResponse.MessageId ?? null
+
+    await supabase
+      .from('account_invitations')
+      .update({ sent_at: now, last_sent_at: now, message_id: messageId, updated_at: now } as never)
+      .eq('id', invitation.id)
+  } catch (error) {
+    emailError = error instanceof Error ? error.message : 'email_send_failed'
+  }
+
+  await writeAuditLog({
+    user: params.actor as never,
+    action: 'account_invitation_resent',
+    targetType: 'invitation',
+    targetId: invitation.id,
+    details: {
+      email: invitation.email,
+      role: invitation.role,
+      message_id: messageId,
+      email_error: emailError,
+    },
+  })
+
+  return {
+    ok: true as const,
+    status: 200,
+    data: { invitationId: invitation.id, email: invitation.email, messageId, emailError, acceptUrl },
+  }
+}
+
+export async function revokeAccountInvitation(params: {
+  actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
+  invitationId: string
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  const invitationResponse = await supabase
+    .from('account_invitations')
+    .select('id, invited_user_id, email, role, status, region_id, pharmacy_id')
+    .eq('id', params.invitationId)
+    .eq('organization_id', params.actor.organization_id)
+    .maybeSingle()
+
+  const invitation = invitationResponse.data as {
+    id: string
+    invited_user_id: string
+    email: string
+    role: UserRole
+    status: AccountInvitationStatus
+    region_id: string | null
+    pharmacy_id: string | null
+  } | null
+
+  if (invitationResponse.error) {
+    return { ok: false as const, status: 500, error: 'invitation_lookup_failed', details: invitationResponse.error.message }
+  }
+  if (!invitation) {
+    return { ok: false as const, status: 404, error: 'invitation_not_found' }
+  }
+  if (!canManageTargetRole(actorRole, invitation.role)) {
+    return { ok: false as const, status: 403, error: 'forbidden_target_role' }
+  }
+  if (actorRole === 'regional_admin' && actorScope.regionId !== invitation.region_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== invitation.pharmacy_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (invitation.status !== 'pending') {
+    return { ok: false as const, status: 400, error: 'invitation_not_revokable' }
+  }
+
+  const now = new Date().toISOString()
+  const revokeResponse = await supabase
+    .from('account_invitations')
+    .update({ status: 'revoked', revoked_at: now, updated_at: now } as never)
+    .eq('id', invitation.id)
+
+  if (revokeResponse.error) {
+    return { ok: false as const, status: 500, error: 'invitation_revoke_failed', details: revokeResponse.error.message }
+  }
+
+  await writeAuditLog({
+    user: params.actor as never,
+    action: 'account_invitation_revoked',
+    targetType: 'invitation',
+    targetId: invitation.id,
+    details: {
+      email: invitation.email,
+      role: invitation.role,
+    },
+  })
+
+  return { ok: true as const, status: 200, data: { invitationId: invitation.id } }
 }
 
 export async function createAccountInvitation(params: {

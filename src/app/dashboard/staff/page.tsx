@@ -123,6 +123,8 @@ export default function StaffPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: string; expires_at: string; last_sent_at: string | null }>>([])
+  const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
@@ -204,6 +206,25 @@ export default function StaffPage() {
     }
   }, [isRegionalAdmin, isPharmacyAdmin])
 
+  useEffect(() => {
+    if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return
+    let cancelled = false
+    fetch('/api/account-invitations', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'invitation_list_failed')
+        if (cancelled) return
+        setInvitations(data.invitations ?? [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setInvitations([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isSystemAdmin, isRegionalAdmin, isPharmacyAdmin])
+
   const handleAddStaff = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (guard()) return
@@ -255,6 +276,17 @@ export default function StaffPage() {
           },
           ...prev,
         ])
+        setInvitations((prev) => [
+          {
+            id: data.invitation.id,
+            email: data.user.email,
+            role: (isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? formData.role : 'pharmacy_staff') as UserRole,
+            status: 'pending',
+            expires_at: data.invitation.expiresAt,
+            last_sent_at: data.invitation.emailSent ? new Date().toISOString() : null,
+          },
+          ...prev,
+        ])
         setDialogOpen(false)
         setFormData({
           name: '',
@@ -274,6 +306,40 @@ export default function StaffPage() {
     }
 
     setIsSubmitting(false)
+  }
+
+  const handleResendInvitation = async (invitationId: string) => {
+    if (guard()) return
+    setInvitationActionId(invitationId)
+    setErrorMessage(null)
+    try {
+      const response = await fetch(`/api/account-invitations/${invitationId}/resend`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'invitation_resend_failed')
+      setToast(`招待メールを再送しました: ${data.email}`)
+      setInvitations((prev) => prev.map((item) => item.id === invitationId ? { ...item, status: 'pending', last_sent_at: new Date().toISOString() } : item))
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'invitation_resend_failed')
+    } finally {
+      setInvitationActionId(null)
+    }
+  }
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    if (guard()) return
+    setInvitationActionId(invitationId)
+    setErrorMessage(null)
+    try {
+      const response = await fetch(`/api/account-invitations/${invitationId}/revoke`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'invitation_revoke_failed')
+      setToast('招待を取り消しました')
+      setInvitations((prev) => prev.map((item) => item.id === invitationId ? { ...item, status: 'revoked' } : item))
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'invitation_revoke_failed')
+    } finally {
+      setInvitationActionId(null)
+    }
   }
 
   const toggleShiftType = (shiftId: string) => {
@@ -442,6 +508,49 @@ export default function StaffPage() {
                 ))}
               </TableBody>
             </Table>
+          </Card>
+
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base text-white">招待中アカウント</CardTitle>
+              <CardDescription className="text-gray-400">未受諾の招待は再送または取消できます。</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {invitations.length === 0 ? (
+                <p className="text-sm text-gray-400">招待中のアカウントはまだありません。</p>
+              ) : (
+                invitations.map((invitation) => (
+                  <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1 text-sm text-gray-300">
+                      <p className="font-medium text-white">{invitation.email}</p>
+                      <p>役割: {roleLabel[invitation.role]}</p>
+                      <p>状態: {invitation.status}</p>
+                      <p>有効期限: {new Date(invitation.expires_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#24304d]"
+                        disabled={invitationActionId === invitation.id || !['pending', 'expired'].includes(invitation.status)}
+                        onClick={() => handleResendInvitation(invitation.id)}
+                      >
+                        再送
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                        disabled={invitationActionId === invitation.id || invitation.status !== 'pending'}
+                        onClick={() => handleRevokeInvitation(invitation.id)}
+                      >
+                        取消
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
           </Card>
         </>
       )}
