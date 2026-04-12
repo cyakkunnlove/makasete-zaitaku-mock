@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,9 +25,29 @@ import {
   auditLogData,
   auditActionLabel,
   auditActionClass,
-  auditUsers,
   type AuditActionType,
 } from '@/lib/mock-data'
+
+const accountAuditActions = [
+  'account_invitation_created',
+  'account_invitation_resent',
+  'account_invitation_revoked',
+  'account_user_updated',
+  'account_user_status_changed',
+] as const
+
+type AuditPageEntry = {
+  id: string
+  timestamp: string
+  user: string
+  role: string
+  scopeType: string
+  scopeLabel: string
+  action: AuditActionType
+  target: string
+  details: string | Record<string, unknown> | null
+  result: 'success' | 'warning' | 'denied'
+}
 
 const roleLabel: Record<string, string> = {
   system_admin: 'システム管理者',
@@ -47,16 +67,52 @@ function parseTimestamp(value: string) {
   return new Date(value.replace(' ', 'T'))
 }
 
+function formatDetails(value: string | Record<string, unknown> | null) {
+  if (!value) return '詳細なし'
+  if (typeof value === 'string') return value
+  return JSON.stringify(value, null, 2)
+}
+
 export default function AuditPage() {
   const { role } = useAuth()
   const [actionFilter, setActionFilter] = useState<AuditActionType | 'all'>('all')
   const [userFilter, setUserFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('2026-03-04')
-  const [endDate, setEndDate] = useState('2026-03-05')
+  const [endDate, setEndDate] = useState('2026-04-12')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [logs, setLogs] = useState<AuditPageEntry[]>(auditLogData)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+    fetch('/api/audit-logs', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'audit_logs_fetch_failed')
+        if (cancelled) return
+        setLogs((data.logs ?? []).map((entry: AuditPageEntry) => ({
+          ...entry,
+          details: typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details, null, 2),
+        })))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLogs(auditLogData)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setIsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const visibleUsers = useMemo(() => Array.from(new Set(logs.map((entry) => entry.user))), [logs])
 
   const filteredLogs = useMemo(() => {
-    return auditLogData.filter((entry) => {
+    return logs.filter((entry) => {
       if (actionFilter !== 'all' && entry.action !== actionFilter) return false
 
       if (userFilter !== 'all' && entry.user !== userFilter) return false
@@ -75,7 +131,7 @@ export default function AuditPage() {
 
       return true
     })
-  }, [actionFilter, userFilter, endDate, startDate])
+  }, [actionFilter, userFilter, endDate, startDate, logs])
 
   if (role !== 'system_admin') {
     return (
@@ -97,7 +153,7 @@ export default function AuditPage() {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-white">{filteredLogs.length}</p><p className="text-[10px] text-gray-500">表示件数</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-indigo-300">{filteredLogs.filter((entry) => entry.action.startsWith('account_')).length}</p><p className="text-[10px] text-gray-500">アカウント管理</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-indigo-300">{filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length}</p><p className="text-[10px] text-gray-500">アカウント管理</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-emerald-300">{filteredLogs.filter((entry) => entry.result === 'success').length}</p><p className="text-[10px] text-gray-500">成功</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-rose-300">{filteredLogs.filter((entry) => entry.result === 'denied').length}</p><p className="text-[10px] text-gray-500">拒否アクセス</p></CardContent></Card>
       </div>
@@ -144,7 +200,7 @@ export default function AuditPage() {
                 </SelectTrigger>
                 <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
                   <SelectItem value="all">すべて</SelectItem>
-                  {auditUsers.map((user) => (
+                  {visibleUsers.map((user) => (
                     <SelectItem key={user} value={user}>
                       {user}
                     </SelectItem>
@@ -176,7 +232,7 @@ export default function AuditPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-gray-400">表示件数: {filteredLogs.length}件</p>
+      <p className="text-xs text-gray-400">{isLoading ? '監査ログを読み込み中です。' : `表示件数: ${filteredLogs.length}件`}</p>
 
       <div className="space-y-2 lg:hidden">
         {filteredLogs.map((entry) => {
@@ -207,7 +263,7 @@ export default function AuditPage() {
 
                 {expanded && (
                   <div className="rounded-md border border-[#2a3553] bg-[#11182c] p-2 text-xs text-gray-200">
-                    {entry.details}
+                    {formatDetails(entry.details)}
                   </div>
                 )}
               </CardContent>
@@ -268,7 +324,7 @@ export default function AuditPage() {
                     {expanded && (
                       <TableRow className="border-[#2a3553] bg-[#11182c] hover:bg-[#11182c]">
                         <TableCell colSpan={5} className="space-y-1 text-sm text-gray-200">
-                          <p>{entry.details}</p>
+                          <p className="whitespace-pre-wrap">{formatDetails(entry.details)}</p>
                           <p className="text-[11px] text-gray-500">scope_type: {entry.scopeType}</p>
                         </TableCell>
                       </TableRow>
