@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,11 @@ import { cn } from '@/lib/utils'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
+type PharmacyView = PharmacyItem & {
+  regionId?: string | null
+  regionName?: string | null
+}
+
 type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
 
 type ForwardingSetting = {
@@ -44,9 +49,9 @@ const statusClass: Record<PharmacyStatus, string> = {
 }
 
 const statusLabel: Record<PharmacyStatus, string> = {
-  active: 'active',
-  pending: 'pending',
-  suspended: 'suspended',
+  active: '利用中',
+  pending: '初期設定中',
+  suspended: '停止中',
 }
 
 const initialForwardingSettings: Record<string, ForwardingSetting> = {
@@ -85,13 +90,18 @@ function getForwardingSummary(setting: ForwardingSetting) {
 
 export default function PharmaciesPage() {
   const { role, user } = useAuth()
-  const [pharmacies, setPharmacies] = useState<PharmacyItem[]>(pharmacyData)
+  const [pharmacies, setPharmacies] = useState<PharmacyView[]>(pharmacyData)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [forwardingSettings, setForwardingSettings] = useState<Record<string, ForwardingSetting>>(initialForwardingSettings)
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     area: '',
+    address: '',
     phone: '',
+    fax: '',
+    forwardingPhone: '',
     patientCount: '0',
     status: 'pending' as PharmacyStatus,
   })
@@ -124,33 +134,80 @@ export default function PharmaciesPage() {
     }))
   }
 
-  const handleAddPharmacy = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  useEffect(() => {
+    let cancelled = false
 
-    const newId = `PH-${Date.now()}`
-    const newPharmacy: PharmacyItem = {
-      id: newId,
-      name: formData.name,
-      area: formData.area,
-      address: '',
-      phone: formData.phone,
-      fax: '',
-      forwardingPhone: '',
-      patientCount: Number(formData.patientCount),
-      status: formData.status,
-      forwarding: false,
-      contractDate: new Date().toISOString().slice(0, 10),
-      saasFee: 30000,
-      nightFee: 100000,
+    const loadPharmacies = async () => {
+      if (role !== 'regional_admin') return
+      setIsLoading(true)
+      setErrorMessage(null)
+      try {
+        const response = await fetch('/api/pharmacies', { cache: 'no-store' })
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacies_fetch_failed')
+        if (cancelled) return
+        const rows = (data.pharmacies ?? []) as PharmacyView[]
+        setPharmacies(rows)
+        setForwardingSettings((prev) => {
+          const next = { ...prev }
+          for (const pharmacy of rows) {
+            next[pharmacy.id] = next[pharmacy.id] ?? {
+              mode: pharmacy.forwarding ? 'auto' : 'manual_off',
+              autoStart: '22:00',
+              autoEnd: '06:00',
+              updatedBy: '未設定',
+              updatedAt: '—',
+            }
+          }
+          return next
+        })
+      } catch (error) {
+        if (cancelled) return
+        setErrorMessage(error instanceof Error ? error.message : 'pharmacies_fetch_failed')
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
     }
 
-    setPharmacies((prev) => [newPharmacy, ...prev])
-    setForwardingSettings((prev) => ({
-      ...prev,
-      [newId]: { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
-    }))
-    setDialogOpen(false)
-    setFormData({ name: '', area: '', phone: '', patientCount: '0', status: 'pending' })
+    loadPharmacies()
+    return () => {
+      cancelled = true
+    }
+  }, [role])
+
+  const handleAddPharmacy = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setErrorMessage(null)
+
+    try {
+      const response = await fetch('/api/pharmacies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          area: formData.area,
+          address: formData.address,
+          phone: formData.phone,
+          fax: formData.fax,
+          forwardingPhone: formData.forwardingPhone,
+          patientCount: Number(formData.patientCount),
+          status: formData.status,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacy_create_failed')
+
+      const newPharmacy = data.pharmacy as PharmacyView
+      setPharmacies((prev) => [newPharmacy, ...prev])
+      setForwardingSettings((prev) => ({
+        ...prev,
+        [newPharmacy.id]: { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
+      }))
+      setDialogOpen(false)
+      setFormData({ name: '', area: '', address: '', phone: '', fax: '', forwardingPhone: '', patientCount: '0', status: 'pending' })
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'pharmacy_create_failed')
+    }
   }
 
   if (role !== 'regional_admin') {
@@ -169,7 +226,7 @@ export default function PharmaciesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '加盟店管理' : '自店設定'}</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟薬局の契約状態と転送運用を管理' : '自店の転送運用と基本設定を確認'}</p>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟店の登録状況と受け入れ準備を管理' : '自店の転送運用と基本設定を確認'}</p>
         </div>
 
         {role === 'regional_admin' && (
@@ -180,6 +237,12 @@ export default function PharmaciesPage() {
         )}
       </div>
 
+      {errorMessage && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          加盟店データの読み込みまたは保存で問題がありました: {errorMessage}
+        </div>
+      )}
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
@@ -189,7 +252,7 @@ export default function PharmaciesPage() {
         </Card>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">稼働中（active）</CardDescription>
+            <CardDescription className="text-gray-400">利用中</CardDescription>
             <CardTitle className="text-2xl text-emerald-300">{summary.active}</CardTitle>
           </CardHeader>
         </Card>
@@ -220,7 +283,15 @@ export default function PharmaciesPage() {
       </Card>
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {visiblePharmacies.map((pharmacy) => {
+        {isLoading ? (
+          <Card className="border-[#2a3553] bg-[#1a2035] lg:col-span-2">
+            <CardContent className="p-6 text-sm text-gray-400">加盟店データを読み込み中です...</CardContent>
+          </Card>
+        ) : visiblePharmacies.length === 0 ? (
+          <Card className="border-[#2a3553] bg-[#1a2035] lg:col-span-2">
+            <CardContent className="p-6 text-sm text-gray-400">このリージョンにはまだ加盟店が登録されていません。</CardContent>
+          </Card>
+        ) : visiblePharmacies.map((pharmacy) => {
           const setting = forwardingSettings[pharmacy.id] ?? { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' }
           const forwarding = getForwardingSummary(setting)
 
@@ -307,6 +378,11 @@ export default function PharmaciesPage() {
               <Input id="name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="address" className="text-gray-300">住所</Label>
+              <Input id="address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
+            </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="area" className="text-gray-300">エリア</Label>
@@ -315,6 +391,17 @@ export default function PharmaciesPage() {
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-gray-300">電話番号</Label>
                 <Input id="phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fax" className="text-gray-300">FAX</Label>
+                <Input id="fax" value={formData.fax} onChange={(event) => setFormData((prev) => ({ ...prev, fax: event.target.value }))} className="border-[#2a3553] bg-[#1a2035]" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="forwardingPhone" className="text-gray-300">転送先電話</Label>
+                <Input id="forwardingPhone" value={formData.forwardingPhone} onChange={(event) => setFormData((prev) => ({ ...prev, forwardingPhone: event.target.value }))} className="border-[#2a3553] bg-[#1a2035]" />
               </div>
             </div>
 
@@ -329,9 +416,9 @@ export default function PharmaciesPage() {
                 <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as PharmacyStatus }))}>
                   <SelectTrigger className="border-[#2a3553] bg-[#1a2035]"><SelectValue /></SelectTrigger>
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="pending">pending</SelectItem>
-                    <SelectItem value="active">active</SelectItem>
-                    <SelectItem value="suspended">suspended</SelectItem>
+                    <SelectItem value="pending">初期設定中</SelectItem>
+                    <SelectItem value="active">利用中</SelectItem>
+                    <SelectItem value="suspended">停止中</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

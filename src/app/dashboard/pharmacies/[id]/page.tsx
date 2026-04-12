@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -30,6 +30,11 @@ import {
   type PharmacyItem,
 } from '@/lib/mock-data'
 
+type PharmacyDetailView = PharmacyItem & {
+  regionId?: string | null
+  regionName?: string | null
+}
+
 const statusClass: Record<PharmacyItem['status'], string> = {
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   pending: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
@@ -50,7 +55,9 @@ export default function PharmacyDetailPage() {
   const params = useParams()
   const id = params.id as string
 
-  const pharmacy = pharmacyData.find((p) => p.id === id)
+  const [pharmacy, setPharmacy] = useState<PharmacyDetailView | null>(pharmacyData.find((p) => p.id === id) ?? null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const billings = billingData.filter((b) => b.pharmacyId === id)
   const requests = requestData.filter((r) => r.pharmacyId === id)
   const recentRequests = requests.slice(0, 5)
@@ -61,6 +68,34 @@ export default function PharmacyDetailPage() {
   const [lastUpdatedBy, setLastUpdatedBy] = useState('薬局管理者')
   const [lastUpdatedAt, setLastUpdatedAt] = useState('2026-03-15 13:10')
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPharmacy = async () => {
+      if (!id) return
+      setIsLoading(true)
+      setLoadError(null)
+      try {
+        const response = await fetch(`/api/pharmacies/${id}`, { cache: 'no-store' })
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacy_fetch_failed')
+        if (cancelled) return
+        setPharmacy(data.pharmacy)
+        setForwardingMode(data.pharmacy?.forwarding ? 'auto' : 'manual_off')
+      } catch (error) {
+        if (cancelled) return
+        setLoadError(error instanceof Error ? error.message : 'pharmacy_fetch_failed')
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    loadPharmacy()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
   if (role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
@@ -69,6 +104,18 @@ export default function PharmacyDetailPage() {
           <CardDescription className="text-gray-400">このページは Regional Admin のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
+    )
+  }
+
+  if (isLoading && !pharmacy) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <CardHeader>
+            <CardTitle className="text-base text-white">加盟店情報を読み込み中です</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
     )
   }
 
@@ -133,6 +180,12 @@ export default function PharmacyDetailPage() {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          加盟店データの読み込みで問題がありました: {loadError}
+        </div>
+      )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Building2 className="h-3.5 w-3.5" />依頼数</CardDescription><CardTitle className="text-2xl text-white">{monthlyRequestCount}件</CardTitle></CardHeader></Card>
