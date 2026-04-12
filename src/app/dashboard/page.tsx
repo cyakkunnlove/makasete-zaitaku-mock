@@ -1499,13 +1499,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <CardContent className="space-y-2 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
                 <AlertTriangle className="h-4 w-4" />
-                夜間対応の確認待ち（{unconfirmed.length}件）
+                引き継ぎ確認待ち（{unconfirmed.length}件）
               </div>
               {unconfirmed.map((ho) => (
                 <div key={ho.id} className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-amber-100">{ho.patientName} — 夜間対応 {ho.pharmacistName}</p>
+                      <p className="font-medium text-amber-100">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
                       <p className="mt-1 text-amber-200/80">{ho.situation}</p>
                       <p className="mt-1 text-amber-200/60">{ho.recommendation}</p>
                     </div>
@@ -1544,7 +1544,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">最優先</Badge>
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white">{ownUnconfirmedHandovers.length}</p>
-                <p className="text-[11px] text-gray-500">夜間対応の確認待ち</p>
+                <p className="text-[11px] text-gray-500">引き継ぎ確認待ち</p>
               </CardContent>
             </Card>
             <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -1564,7 +1564,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-200">自局</Badge>
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white">{ownActiveRequests}</p>
-                <p className="text-[11px] text-gray-500">進行中の夜間依頼</p>
+                <p className="text-[11px] text-gray-500">進行中の関連依頼</p>
               </CardContent>
             </Card>
             <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -1573,7 +1573,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   <Settings2 className="h-4 w-4 text-emerald-300" />
                   <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">{ownConfigStatus.nightDelegation}</Badge>
                 </div>
-                <p className="text-xs text-gray-400">夜間受託設定</p>
+                <p className="text-xs text-gray-400">連携設定</p>
                 <p className="text-sm font-medium text-white">{ownConfigStatus.regionLabel}</p>
                 <p className="text-[11px] text-gray-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
                 <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-300 hover:text-indigo-200">薬局設定を開く</Link>
@@ -1601,7 +1601,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm text-white">
                 <UserCog className="h-4 w-4 text-indigo-400" />
-                管理者向け朝確認（夜間対応）
+                管理者向けの引き継ぎ確認
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -1609,8 +1609,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                   <div>
                     <p className="text-sm font-medium text-white">{handover.patientName}</p>
-                    <p className="text-xs text-gray-400">夜間担当: {handover.pharmacistName} / {handover.timestamp}</p>
-                    <p className="mt-1 text-[11px] text-amber-200">夜間対応の確認待ち・朝の優先度確認が必要です</p>
+                    <p className="text-xs text-gray-400">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
+                    <p className="mt-1 text-[11px] text-amber-200">引き継ぎ内容の確認と優先度の見直しが必要です</p>
                   </div>
                   <Link href={`/dashboard/patients/${handover.patientId}`}>
                     <Button size="sm" variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">患者情報で確認</Button>
@@ -1830,13 +1830,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-white hover:text-indigo-300">{patient.name}</Link>
-                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">昨夜対応あり</Badge>}
-                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">夜間対応確認待ち</Badge>}
+                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">直近対応あり</Badge>}
+                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">引き継ぎ確認待ち</Badge>}
                             {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-200">本日フローに追加済み</Badge>}
                           </div>
                           <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
                           <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                          <p className="mt-1 text-[11px] text-amber-300">visitRules 数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
+                          <p className="mt-1 text-[11px] text-amber-300">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                         </div>
                         <div className="flex shrink-0 gap-2">
                           <Button size="sm" variant="outline" className="border-[#2a3553] text-xs text-gray-200 hover:bg-[#11182c]" asChild>
