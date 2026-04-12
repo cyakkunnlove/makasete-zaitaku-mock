@@ -378,7 +378,15 @@ export default function StaffPage() {
       const response = await fetch(endpoint, { method: 'POST' })
       const data = await response.json()
       if (!response.ok || !data.ok) throw new Error(data.error ?? 'user_status_update_failed')
-      setToast(nextStatus === 'active' ? 'アカウントを再開しました' : 'アカウントを停止しました')
+      setToast(
+        data.cognitoSync === 'ok'
+          ? nextStatus === 'active'
+            ? 'アカウントを再開しました（認証側も同期済み）'
+            : 'アカウントを停止しました（認証側も同期済み）'
+          : nextStatus === 'active'
+            ? 'アカウントは再開しましたが、認証側の同期は未完了です'
+            : 'アカウントは停止しましたが、認証側の同期は未完了です',
+      )
       setStaffMembers((prev) => prev.map((item) => item.id === userId ? { ...item, status: nextStatus } : item))
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'user_status_update_failed')

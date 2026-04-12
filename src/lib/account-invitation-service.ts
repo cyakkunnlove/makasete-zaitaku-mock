@@ -10,6 +10,7 @@ import {
 } from '@/lib/account-invitations'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import type { AccountInvitationStatus, UserRole } from '@/types/database'
+import { disableCognitoUserByEmail, enableCognitoUserByEmail } from '@/lib/cognito-admin'
 
 export type InvitationCreateInput = {
   fullName: string
@@ -268,6 +269,10 @@ export async function setManagedUserStatus(params: {
     return { ok: false as const, status: 500, error: 'user_status_update_failed', details: updateResponse.error.message }
   }
 
+  const cognitoResult = params.nextStatus === 'active'
+    ? await enableCognitoUserByEmail(targetUser.email)
+    : await disableCognitoUserByEmail(targetUser.email)
+
   await writeAuditLog({
     user: params.actor as never,
     action: params.nextStatus === 'active' ? 'managed_user_activated' : 'managed_user_suspended',
@@ -277,11 +282,22 @@ export async function setManagedUserStatus(params: {
       email: targetUser.email,
       role: targetUser.role,
       next_status: params.nextStatus,
-      cognito_sync: 'not_yet_connected',
+      cognito_sync: cognitoResult.ok ? 'ok' : 'failed_or_skipped',
+      cognito_error: cognitoResult.ok ? null : cognitoResult.error,
     },
   })
 
-  return { ok: true as const, status: 200, data: { userId: targetUser.id, email: targetUser.email, status: params.nextStatus, cognitoSync: 'not_yet_connected' } }
+  return {
+    ok: true as const,
+    status: 200,
+    data: {
+      userId: targetUser.id,
+      email: targetUser.email,
+      status: params.nextStatus,
+      cognitoSync: cognitoResult.ok ? 'ok' : 'failed_or_skipped',
+      cognitoError: cognitoResult.ok ? null : cognitoResult.error,
+    },
+  }
 }
 
 export async function listAccountInvitations(params: {
