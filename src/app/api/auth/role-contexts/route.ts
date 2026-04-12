@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  const assignments = user.authMode === 'cognito'
+  const assignments = user.id
     ? await listRoleContextsForUser(user.id)
     : []
 

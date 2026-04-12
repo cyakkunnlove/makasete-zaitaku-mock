@@ -168,6 +168,8 @@ export default function StaffPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
   const [editingMemberRole, setEditingMemberRole] = useState<UserRole | null>(null)
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
+  const [assignmentTarget, setAssignmentTarget] = useState<ManagedStaffItem | null>(null)
   const [editFormData, setEditFormData] = useState({
     name: '',
     phone: '',
@@ -175,6 +177,7 @@ export default function StaffPage() {
     pharmacyId: '',
   })
   const [newRegionName, setNewRegionName] = useState('')
+  const [assignmentRegionIds, setAssignmentRegionIds] = useState<string[]>([])
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
@@ -489,6 +492,37 @@ export default function StaffPage() {
       setErrorMessage(error instanceof Error ? error.message : 'region_create_failed')
     } finally {
       setIsCreatingRegion(false)
+    }
+  }
+
+  const openAssignmentDialog = (member: ManagedStaffItem) => {
+    setAssignmentTarget(member)
+    setAssignmentRegionIds([])
+    setAssignmentDialogOpen(true)
+  }
+
+  const handleAddAssignment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!assignmentTarget || !isSystemAdmin || guard()) return
+    setUserActionId(assignmentTarget.id)
+    setErrorMessage(null)
+    try {
+      const response = await fetch(`/api/users/${assignmentTarget.id}/assignments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetRole: 'regional_admin', regionIds: assignmentRegionIds }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'role_assignment_create_failed')
+      setToast(data.alreadyApplied ? '追加済みの所属でした' : '既存アカウントにリージョン管理者権限を追加しました')
+      loadAccountManagementLists()
+      setAssignmentDialogOpen(false)
+      setAssignmentTarget(null)
+      setAssignmentRegionIds([])
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'role_assignment_create_failed')
+    } finally {
+      setUserActionId(null)
     }
   }
 
@@ -808,6 +842,17 @@ export default function StaffPage() {
                         >
                           編集
                         </Button>
+                        {isSystemAdmin && member.role === 'system_admin' && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                            disabled={userActionId === member.id}
+                            onClick={() => openAssignmentDialog(member)}
+                          >
+                            権限を追加
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="outline"
@@ -1112,6 +1157,61 @@ export default function StaffPage() {
                 </>
               )
             })()}
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignmentDialogOpen} onOpenChange={(open) => {
+        setAssignmentDialogOpen(open)
+        if (!open) {
+          setAssignmentTarget(null)
+          setAssignmentRegionIds([])
+        }
+      }}>
+        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">既存アカウントに権限を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">system_admin の既存アカウントに regional_admin 権限を追加します。</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddAssignment} className="space-y-4">
+            <div className="space-y-1 text-sm text-gray-300">
+              <p className="font-medium text-white">{assignmentTarget?.email ?? '—'}</p>
+              <p>追加する権限: リージョン管理者</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">所属リージョン</Label>
+              <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                <div className="flex flex-wrap gap-2">
+                  {regions.map((region) => {
+                    const selected = assignmentRegionIds.includes(region.id)
+                    return (
+                      <button
+                        key={region.id}
+                        type="button"
+                        onClick={() => setAssignmentRegionIds((prev) => prev.includes(region.id) ? prev.filter((id) => id !== region.id) : [...prev, region.id])}
+                        className={cn(
+                          'rounded-full border px-3 py-1.5 text-sm transition-colors',
+                          selected
+                            ? 'border-cyan-300 bg-cyan-400/25 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.35)]'
+                            : 'border-[#2a3553] bg-[#11182c] text-gray-300 hover:border-indigo-500/30',
+                        )}
+                      >
+                        {region.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-500">複数選択できます。既に付与済みのリージョンは重複追加されません。</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setAssignmentDialogOpen(false)} disabled={Boolean(userActionId)}>
+                キャンセル
+              </Button>
+              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={Boolean(userActionId) || assignmentRegionIds.length === 0}>
+                権限を追加する
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

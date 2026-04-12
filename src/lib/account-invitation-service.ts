@@ -307,6 +307,134 @@ export async function updateManagedUser(params: {
   }
 }
 
+export async function addRoleAssignmentsToExistingUser(params: {
+  actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
+  userId: string
+  targetRole: UserRole
+  regionIds: string[]
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  if (actorRole !== 'system_admin') {
+    return { ok: false as const, status: 403, error: 'forbidden' }
+  }
+  if (params.targetRole !== 'regional_admin') {
+    return { ok: false as const, status: 400, error: 'unsupported_target_role' }
+  }
+
+  const regionIds = Array.from(new Set(params.regionIds.filter(Boolean)))
+  if (regionIds.length === 0) {
+    return { ok: false as const, status: 400, error: 'region_required' }
+  }
+
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+  const userResponse = await supabase
+    .from('users')
+    .select('id, email, role, organization_id')
+    .eq('id', params.userId)
+    .eq('organization_id', params.actor.organization_id)
+    .maybeSingle()
+
+  const targetUser = userResponse.data as { id: string; email: string; role: UserRole; organization_id: string } | null
+  if (userResponse.error) {
+    return { ok: false as const, status: 500, error: 'user_lookup_failed', details: userResponse.error.message }
+  }
+  if (!targetUser) {
+    return { ok: false as const, status: 404, error: 'user_not_found' }
+  }
+
+  const regionResponse = await supabase
+    .from('regions')
+    .select('id, name')
+    .in('id', regionIds)
+    .eq('organization_id', params.actor.organization_id)
+
+  if (regionResponse.error) {
+    return { ok: false as const, status: 500, error: 'region_lookup_failed', details: regionResponse.error.message }
+  }
+  const regions = (regionResponse.data ?? []) as Array<{ id: string; name: string }>
+  if (regions.length !== regionIds.length) {
+    return { ok: false as const, status: 404, error: 'region_not_found' }
+  }
+
+  const existingAssignmentsResponse = await supabase
+    .from('user_role_assignments')
+    .select('region_id')
+    .eq('user_id', targetUser.id)
+    .eq('role', 'regional_admin')
+    .eq('is_active', true)
+    .is('revoked_at', null)
+
+  if (existingAssignmentsResponse.error) {
+    return { ok: false as const, status: 500, error: 'role_assignment_lookup_failed', details: existingAssignmentsResponse.error.message }
+  }
+
+  const existingRegionIds = new Set(((existingAssignmentsResponse.data ?? []) as Array<{ region_id: string | null }>).map((row) => row.region_id).filter((value): value is string => Boolean(value)))
+  const regionIdsToAdd = regionIds.filter((regionId) => !existingRegionIds.has(regionId))
+  if (regionIdsToAdd.length === 0) {
+    return { ok: true as const, status: 200, data: { userId: targetUser.id, email: targetUser.email, alreadyApplied: true, regionIds } }
+  }
+
+  const defaultAssignmentResponse = await supabase
+    .from('user_role_assignments')
+    .select('id')
+    .eq('user_id', targetUser.id)
+    .eq('is_default', true)
+    .maybeSingle()
+
+  const hasDefaultAssignment = Boolean(defaultAssignmentResponse.data)
+  const now = new Date().toISOString()
+  const payload = regionIdsToAdd.map((regionId, index) => ({
+    user_id: targetUser.id,
+    organization_id: params.actor.organization_id,
+    role: 'regional_admin',
+    region_id: regionId,
+    pharmacy_id: null,
+    operation_unit_id: null,
+    is_default: !hasDefaultAssignment && index === 0,
+    is_active: true,
+    granted_by: params.actor.id,
+    granted_at: now,
+    created_at: now,
+    updated_at: now,
+  }))
+
+  const insertResponse = await supabase.from('user_role_assignments').insert(payload as never)
+  if (insertResponse.error) {
+    return { ok: false as const, status: 500, error: 'role_assignment_create_failed', details: insertResponse.error.message }
+  }
+
+  await writeAuditLog({
+    user: params.actor as never,
+    action: 'account_role_assignment_added',
+    targetType: 'user',
+    targetId: targetUser.id,
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        userId: targetUser.id,
+        email: targetUser.email,
+        role: params.targetRole,
+      },
+      changes: {
+        added_region_ids: regionIdsToAdd,
+        added_region_names: regions.filter((region) => regionIdsToAdd.includes(region.id)).map((region) => region.name),
+      },
+    }),
+  })
+
+  return {
+    ok: true as const,
+    status: 200,
+    data: {
+      userId: targetUser.id,
+      email: targetUser.email,
+      addedRegionIds: regionIdsToAdd,
+    },
+  }
+}
+
 export async function setManagedUserStatus(params: {
   actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
   userId: string

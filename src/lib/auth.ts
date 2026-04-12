@@ -86,11 +86,22 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (demoRole) {
     const bridgedUser = await findDemoUserByRole(demoRole as UserRole).catch(() => null)
     if (bridgedUser) {
+      let activeRoleContext: MockRoleContextView | null = null
+      if (bridgedUser.id) {
+        if (activeRoleAssignmentId) {
+          activeRoleContext = await getRoleContextForUser(bridgedUser.id, activeRoleAssignmentId)
+        }
+        if (!activeRoleContext) {
+          const contexts = await listRoleContextsForUser(bridgedUser.id)
+          activeRoleContext = contexts.find((item) => item.isDefault) ?? contexts[0] ?? null
+        }
+      }
+
       return {
         ...bridgedUser,
         authMode: 'mock',
         requiresReverification: false,
-        activeRoleContext: getMockActiveRoleContext(bridgedUser.role, activeRoleAssignmentId),
+        activeRoleContext: activeRoleContext ?? getMockActiveRoleContext(bridgedUser.role, activeRoleAssignmentId),
       }
     }
 
