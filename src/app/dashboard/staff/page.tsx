@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import type { UserRole } from '@/types/database'
@@ -272,8 +272,9 @@ export default function StaffPage() {
     }
   }, [isRegionalAdmin, isPharmacyAdmin])
 
-  useEffect(() => {
-    if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return
+  const loadAccountManagementLists = useCallback(() => {
+    if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return () => undefined
+
     let cancelled = false
     setIsUserListLoading(true)
     setIsInvitationListLoading(true)
@@ -313,6 +314,8 @@ export default function StaffPage() {
       cancelled = true
     }
   }, [isSystemAdmin, isRegionalAdmin, isPharmacyAdmin])
+
+  useEffect(() => loadAccountManagementLists(), [loadAccountManagementLists])
 
   const handleAddStaff = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -376,6 +379,7 @@ export default function StaffPage() {
           },
           ...prev,
         ])
+        loadAccountManagementLists()
         setDialogOpen(false)
         setFormData({
           name: '',
@@ -472,7 +476,7 @@ export default function StaffPage() {
       const data = await response.json()
       if (!response.ok || !data.ok) throw new Error(data.error ?? 'invitation_resend_failed')
       setToast(`招待メールを再送しました: ${data.email}`)
-      setInvitations((prev) => prev.map((item) => item.id === invitationId ? { ...item, status: 'pending', last_sent_at: new Date().toISOString() } : item))
+      loadAccountManagementLists()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'invitation_resend_failed')
     } finally {
@@ -489,7 +493,7 @@ export default function StaffPage() {
       const data = await response.json()
       if (!response.ok || !data.ok) throw new Error(data.error ?? 'invitation_revoke_failed')
       setToast('招待を取り消しました')
-      setInvitations((prev) => prev.map((item) => item.id === invitationId ? { ...item, status: 'revoked' } : item))
+      loadAccountManagementLists()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'invitation_revoke_failed')
     } finally {

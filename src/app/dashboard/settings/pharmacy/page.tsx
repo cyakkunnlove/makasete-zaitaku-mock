@@ -15,6 +15,7 @@ export default function PharmacySettingsPage() {
   const { role } = useAuth()
   const { guard, requiresReverification } = useReauthGuard()
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const canViewPage = role === 'pharmacy_admin' || role === 'regional_admin'
   const [toast, setToast] = useState<string | null>(null)
   const [settings, setSettings] = useState({
     pharmacyName: '城南みらい薬局',
@@ -30,6 +31,17 @@ export default function PharmacySettingsPage() {
     if (guard()) return
     setToast('薬局設定を保存しました（モック）')
     setTimeout(() => setToast(null), 2500)
+  }
+
+  if (!canViewPage) {
+    return (
+      <div className="space-y-6 text-gray-100">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <Shield className="h-4 w-4" />
+          この画面は Pharmacy Admin または Regional Admin のみ確認できます
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -63,7 +75,7 @@ export default function PharmacySettingsPage() {
       {!isPharmacyAdmin && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
           <Shield className="h-4 w-4" />
-          薬局設定の編集は Pharmacy Admin のみ可能です
+          この画面は確認できますが、編集と保存は Pharmacy Admin のみ可能です
         </div>
       )}
 

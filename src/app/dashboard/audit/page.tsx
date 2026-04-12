@@ -82,6 +82,7 @@ export default function AuditPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [logs, setLogs] = useState<AuditPageEntry[]>(auditLogData)
   const [isLoading, setIsLoading] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -112,6 +113,8 @@ export default function AuditPage() {
   const visibleUsers = useMemo(() => Array.from(new Set(logs.map((entry) => entry.user))), [logs])
 
   const filteredLogs = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
     return logs.filter((entry) => {
       if (actionFilter !== 'all' && entry.action !== actionFilter) return false
 
@@ -129,9 +132,14 @@ export default function AuditPage() {
         if (timestamp > end) return false
       }
 
+      if (query) {
+        const haystack = [entry.user, entry.target, entry.scopeLabel, roleLabel[entry.role] ?? entry.role, typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details)]
+        if (!haystack.some((value) => value.toLowerCase().includes(query))) return false
+      }
+
       return true
     })
-  }, [actionFilter, userFilter, endDate, startDate, logs])
+  }, [actionFilter, userFilter, endDate, startDate, logs, search])
 
   if (role !== 'system_admin') {
     return (
@@ -160,6 +168,12 @@ export default function AuditPage() {
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="space-y-3 p-4">
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="ユーザー名、対象、スコープ、詳細で検索"
+            className="border-[#2a3553] bg-[#11182c]"
+          />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="space-y-1.5">
               <p className="text-xs text-gray-400">アクション種別</p>
