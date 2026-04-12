@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
@@ -278,15 +279,12 @@ export default function BillingPage() {
 
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
-      <div className="space-y-4 text-gray-100">
-        <div>
-          <h1 className="text-lg font-semibold text-white">回収管理</h1>
-          <p className="text-xs text-gray-400">請求処理が終わった訪問について、入金確認や督促を行います</p>
-        </div>
+      <div className={adminPageClass}>
+        <AdminPageHeader title="回収管理" description="請求処理が終わった訪問について、入金確認や督促を行います。" />
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">回収済み</CardDescription><CardTitle className="text-xl text-emerald-300">{yen.format(summary.collected)}</CardTitle></CardHeader></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">未回収</CardDescription><CardTitle className="text-xl text-amber-300">{yen.format(summary.outstanding)}</CardTitle></CardHeader></Card>
+          <AdminStatCard label="請求総額" value={yen.format(summary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
+          <AdminStatCard label="回収済み" value={yen.format(summary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+          <AdminStatCard label="未回収" value={yen.format(summary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
         </section>
 
         <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -570,23 +568,20 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '加盟店請求' : '請求管理'}</h1>
-          <p className="text-xs text-gray-400">{isSystemAdmin ? '加盟店向けの月次請求状況を確認します' : '加盟店ごとの月次請求と回収状況を確認'}</p>
-        </div>
-
-        {isSystemAdmin && (
-          <Button onClick={() => setBatchDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+    <div className={adminPageClass}>
+      <AdminPageHeader
+        title={isSystemAdmin ? '加盟店請求' : '請求管理'}
+        description={isSystemAdmin ? '加盟店向けの月次請求状況を確認します。' : '加盟店ごとの月次請求と回収状況を確認します。'}
+        actions={isSystemAdmin ? (
+          <Button onClick={() => setBatchDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">
             <Layers className="h-4 w-4" />
             一括請求書生成
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {isSystemAdmin && (
-        <Card className="border-[#2a3553] bg-[#11182c]">
+        <Card className={adminCardClass}>
           <CardContent className="p-4 text-sm text-gray-300">
             <p className="font-medium text-white">system_admin 向け表示</p>
             <p className="mt-1 text-xs text-gray-400">ここでは加盟店への請求状態だけを扱い、患者ごとの回収処理や訪問単位の操作は表示しません。</p>
@@ -595,9 +590,9 @@ export default function BillingPage() {
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">回収済み</CardDescription><CardTitle className="text-xl text-emerald-300">{yen.format(summary.collected)}</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">未回収</CardDescription><CardTitle className="text-xl text-amber-300">{yen.format(summary.outstanding)}</CardTitle></CardHeader></Card>
+        <AdminStatCard label="請求総額" value={yen.format(summary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
+        <AdminStatCard label="回収済み" value={yen.format(summary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+        <AdminStatCard label="未回収" value={yen.format(summary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
       </section>
 
       {generatedLabel && <Card className="border-[#2a3553] bg-[#11182c]"><CardContent className="p-3 text-sm text-indigo-300">{generatedLabel}</CardContent></Card>}
