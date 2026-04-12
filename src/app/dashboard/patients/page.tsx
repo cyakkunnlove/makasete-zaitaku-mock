@@ -269,8 +269,8 @@ export default function PatientsPage() {
                     </div>
                     <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
                     <p className="mt-1 text-[11px] text-gray-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                    {patient.registrationMeta && (
-                      <p className="mt-1 text-[11px] text-cyan-300">登録経路: patient master / {countVisitRuleTouches(patient)} ルール</p>
+                    {authMode !== 'cognito' && patient.registrationMeta && (
+                      <p className="mt-1 text-[11px] text-cyan-300">登録済みメモ / {countVisitRuleTouches(patient)} ルール</p>
                     )}
                     {attentionFlags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
