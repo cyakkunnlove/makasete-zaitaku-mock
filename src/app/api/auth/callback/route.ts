@@ -80,7 +80,8 @@ export async function GET(request: Request) {
       if (invitationToken && payload?.sub) {
         const acceptance = await acceptInvitationByToken({ token: invitationToken, cognitoSub: payload.sub })
         if (!acceptance.ok) {
-          return NextResponse.redirect(new URL(`/login?error=${acceptance.error}`, request.url))
+          const failureTarget = new URL(`/invitations/accept?token=${encodeURIComponent(invitationToken)}&result=${encodeURIComponent(acceptance.error)}`, request.url)
+          return NextResponse.redirect(failureTarget)
         }
       } else {
         if (!matched.user.is_active || matched.user.status !== 'active') {
@@ -117,6 +118,10 @@ export async function GET(request: Request) {
 
     if (shouldForceChooser) {
       return new URL('/dashboard/role-chooser', request.url)
+    }
+
+    if (invitationToken) {
+      return new URL(`/invitations/accept?token=${encodeURIComponent(invitationToken)}&result=accepted`, request.url)
     }
 
     if (nextPath && nextPath.startsWith('/')) {

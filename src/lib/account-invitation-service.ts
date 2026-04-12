@@ -81,7 +81,7 @@ export async function listManagedUsers(params: {
         role: (user as Record<string, unknown>).role as UserRole,
         phone: String((user as Record<string, unknown>).phone ?? ''),
         email: String((user as Record<string, unknown>).email ?? ''),
-        status: (user as Record<string, unknown>).status === 'active' ? 'active' : 'inactive',
+        status: (((user as Record<string, unknown>).status as string | null) ?? 'invited') as 'invited' | 'active' | 'suspended',
         regionId: ((user as Record<string, unknown>).region_id as string | null) ?? null,
         pharmacyId: ((user as Record<string, unknown>).pharmacy_id as string | null) ?? null,
       })),

@@ -39,11 +39,18 @@ import { Plus, Calendar, Users } from 'lucide-react'
 import {
   shiftData,
   shiftPharmacists,
-  type StaffItem,
   type ShiftEntry,
 } from '@/lib/mock-data'
 
-type StaffStatus = 'active' | 'inactive'
+type StaffStatus = 'invited' | 'active' | 'suspended'
+type ManagedStaffItem = {
+  id: string
+  name: string
+  role: UserRole
+  phone: string
+  email: string
+  status: StaffStatus
+}
 type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 
 type RoleFilter = 'all' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
@@ -69,8 +76,9 @@ const roleClass: Record<UserRole, string> = {
 }
 
 const statusClass: Record<StaffStatus, string> = {
+  invited: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-  inactive: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+  suspended: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
 }
 
 const invitationStatusClass: Record<InvitationStatus, string> = {
@@ -81,8 +89,9 @@ const invitationStatusClass: Record<InvitationStatus, string> = {
 }
 
 const statusLabel: Record<StaffStatus, string> = {
+  invited: '招待中',
   active: '利用中',
-  inactive: '停止中',
+  suspended: '停止中',
 }
 
 const invitationStatusLabel: Record<InvitationStatus, string> = {
@@ -125,7 +134,7 @@ export default function StaffPage() {
   const [pageTab, setPageTab] = useState<PageTab>('staff')
 
   // Staff list state
-  const [staffMembers, setStaffMembers] = useState<StaffItem[]>([])
+  const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([])
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -133,7 +142,7 @@ export default function StaffPage() {
     role: 'regional_admin' as AddStaffRole,
     phone: '',
     email: '',
-    status: 'active' as StaffStatus,
+    status: 'invited' as StaffStatus,
     regionId: '',
     pharmacyId: '',
   })
@@ -174,7 +183,7 @@ export default function StaffPage() {
   }, [activeFilter, visibleStaffMembers])
 
   const activeStaffCount = visibleStaffMembers.filter((member) => member.status === 'active').length
-  const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'inactive').length
+  const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'suspended').length
   const pendingInvitationCount = invitations.filter((invitation) => invitation.status === 'pending').length
 
   useEffect(() => {
@@ -329,7 +338,7 @@ export default function StaffPage() {
                 : 'pharmacy_staff') as AddStaffRole,
             phone: formData.phone,
             email: data.user.email,
-            status: 'inactive',
+            status: 'invited',
           },
           ...prev,
         ])
@@ -350,7 +359,7 @@ export default function StaffPage() {
           role: isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? 'night_pharmacist' : 'pharmacy_staff',
           phone: '',
           email: '',
-          status: 'active',
+          status: 'invited',
           regionId: isSystemAdmin ? (regions[0]?.id ?? '') : (user?.activeRoleContext?.regionId ?? user?.region_id ?? ''),
           pharmacyId: isPharmacyAdmin ? (user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? '') : '',
         })
@@ -365,7 +374,7 @@ export default function StaffPage() {
     setIsSubmitting(false)
   }
 
-  const openEditDialog = (member: StaffItem) => {
+  const openEditDialog = (member: ManagedStaffItem) => {
     setEditingMemberId(member.id)
     setEditFormData({
       name: member.name,
@@ -405,7 +414,7 @@ export default function StaffPage() {
     }
   }
 
-  const handleUserStatusChange = async (userId: string, nextStatus: 'active' | 'inactive') => {
+  const handleUserStatusChange = async (userId: string, nextStatus: 'active' | 'suspended') => {
     if (guard()) return
     setUserActionId(userId)
     setErrorMessage(null)
@@ -639,8 +648,8 @@ export default function StaffPage() {
                         type="button"
                         variant="outline"
                         className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
-                        disabled={userActionId === member.id}
-                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
+                        disabled={userActionId === member.id || member.status === 'invited'}
                       >
                         {member.status === 'active' ? '停止' : '再開'}
                       </Button>
@@ -702,8 +711,8 @@ export default function StaffPage() {
                           type="button"
                           variant="outline"
                           className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
-                          disabled={userActionId === member.id}
-                          onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                          disabled={userActionId === member.id || member.status === 'invited'}
+                          onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
                         >
                           {member.status === 'active' ? '停止' : '再開'}
                         </Button>
