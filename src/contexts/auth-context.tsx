@@ -5,6 +5,10 @@ import type { UserRole } from '@/types/database'
 import type { AuthMode, CurrentUser } from '@/lib/auth'
 import type { MockRoleContextView } from '@/lib/mock-role-contexts'
 
+export function getEffectiveRole(user: CurrentUser | null): UserRole | null {
+  return user?.activeRoleContext?.role ?? user?.role ?? null
+}
+
 interface AuthContextType {
   user: CurrentUser | null
   role: UserRole | null
@@ -68,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        role: user?.role ?? null,
+        role: getEffectiveRole(user),
         loading,
         isDemo: authMode === 'mock',
         authMode,
