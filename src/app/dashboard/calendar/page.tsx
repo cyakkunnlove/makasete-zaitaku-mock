@@ -74,12 +74,15 @@ export default function CalendarPage() {
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [selectedRouteCandidateIds, setSelectedRouteCandidateIds] = useState<string[]>([])
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
+  const [routeShareLoading, setRouteShareLoading] = useState(false)
+  const [routeActionNotice, setRouteActionNotice] = useState<string | null>(null)
   const [routePlanResult, setRoutePlanResult] = useState<null | {
     ready: boolean
     suggestedOrder: Array<{ id: string; name: string; address: string }>
     missingCoordinates: Array<{ id: string; name: string; address: string }>
     totalDuration?: string | null
     totalDistanceMeters?: number | null
+    origin?: { name: string; address: string }
     message: string
   }>(null)
   const routeResultRef = useRef<HTMLDivElement | null>(null)
@@ -133,6 +136,7 @@ export default function CalendarPage() {
   useEffect(() => {
     setSelectedRouteCandidateIds([])
     setRoutePlanResult(null)
+    setRouteActionNotice(null)
   }, [selectedDate])
 
   const summaryByDate = useMemo(() => new Map(summaries.map((summary) => [summary.date, summary])), [summaries])
@@ -156,6 +160,43 @@ export default function CalendarPage() {
   const toggleRouteCandidate = (patientId: string | null) => {
     if (!patientId) return
     setSelectedRouteCandidateIds((current) => current.includes(patientId) ? current.filter((id) => id !== patientId) : [...current, patientId])
+  }
+
+  const moveSuggestedStop = (index: number, direction: -1 | 1) => {
+    setRoutePlanResult((current) => {
+      if (!current?.ready) return current
+      const nextIndex = index + direction
+      if (nextIndex < 0 || nextIndex >= current.suggestedOrder.length) return current
+      const suggestedOrder = [...current.suggestedOrder]
+      const temp = suggestedOrder[index]
+      suggestedOrder[index] = suggestedOrder[nextIndex]
+      suggestedOrder[nextIndex] = temp
+      return { ...current, suggestedOrder }
+    })
+  }
+
+  const handleSendRouteEmail = async () => {
+    if (!selectedDate || !routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) return
+    setRouteShareLoading(true)
+    setRouteActionNotice(null)
+    try {
+      const response = await fetch('/api/calendar/route-share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flowDate: selectedDate,
+          totalDuration: routePlanResult.totalDuration ?? null,
+          totalDistanceKm: typeof routePlanResult.totalDistanceMeters === 'number' ? routePlanResult.totalDistanceMeters / 1000 : null,
+          originName: routePlanResult.origin?.name ?? '薬局',
+          originAddress: routePlanResult.origin?.address ?? null,
+          stops: routePlanResult.suggestedOrder,
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      setRouteActionNotice(response.ok && result?.ok ? '自分のメールに送信しました。' : (result?.details ?? 'メール送信に失敗しました。'))
+    } finally {
+      setRouteShareLoading(false)
+    }
   }
 
   const handleSuggestRoute = async () => {
@@ -325,7 +366,15 @@ export default function CalendarPage() {
                 )}
                 {routePlanResult && (
                   <div ref={routeResultRef} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-200">
-                    <p className="font-medium text-white">{routePlanResult.message}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-white">{routePlanResult.message}</p>
+                      {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                        <Button size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20" disabled={routeShareLoading} onClick={() => void handleSendRouteEmail()}>
+                          {routeShareLoading ? '送信中...' : '自分のメールに送る'}
+                        </Button>
+                      )}
+                    </div>
+                    {routeActionNotice && <p className="mt-2 text-[11px] text-sky-200">{routeActionNotice}</p>}
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
                         <p className="mt-2 text-gray-400">
@@ -333,13 +382,32 @@ export default function CalendarPage() {
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
                         </p>
                         <ol className="mt-3 space-y-2">
-                          {routePlanResult.suggestedOrder.map((patient, index) => (
-                            <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2">
-                              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">{index + 1}</span>
-                              <span className="font-medium text-white">{patient.name}</span>
-                              <p className="mt-1 text-[11px] text-gray-400">{patient.address}</p>
-                            </li>
-                          ))}
+                          {routePlanResult.suggestedOrder.map((patient, index) => {
+                            const previous = index === 0 ? routePlanResult.origin : routePlanResult.suggestedOrder[index - 1]
+                            const mapsLink = previous?.address
+                              ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(previous.address)}&destination=${encodeURIComponent(patient.address)}&travelmode=driving`
+                              : null
+                            return (
+                              <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">{index + 1}</span>
+                                    <span className="font-medium text-white">{patient.name}</span>
+                                    <p className="mt-1 text-[11px] text-gray-400">{patient.address}</p>
+                                    {mapsLink && (
+                                      <a href={mapsLink} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] text-sky-300 hover:text-sky-200">
+                                        {index === 0 ? '起点→1件目のGoogle Maps' : `${index}→${index + 1} のGoogle Maps`}
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] px-2 text-gray-200" disabled={index === 0} onClick={() => moveSuggestedStop(index, -1)}>↑</Button>
+                                    <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] px-2 text-gray-200" disabled={index === routePlanResult.suggestedOrder.length - 1} onClick={() => moveSuggestedStop(index, 1)}>↓</Button>
+                                  </div>
+                                </div>
+                              </li>
+                            )
+                          })}
                         </ol>
                       </>
                     )}
