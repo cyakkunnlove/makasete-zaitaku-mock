@@ -2,6 +2,12 @@ import type { Patient } from '@/types/database'
 import { patientData, pharmacyData } from '@/lib/mock-data'
 import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
 
+type PatientSource = Patient | RegisteredPatientRecord
+
+function isRegisteredPatientRecord(patient: PatientSource): patient is RegisteredPatientRecord {
+  return 'name' in patient && 'visitRules' in patient
+}
+
 export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: PatientVisitRule[] = []): RegisteredPatientRecord {
   const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacy_id)
 
@@ -43,7 +49,7 @@ function buildPatientFingerprint(patient: Pick<RegisteredPatientRecord, 'name' |
 }
 
 export function mergePatientSources(options: {
-  databasePatients?: Patient[]
+  databasePatients?: PatientSource[]
   registeredPatients?: RegisteredPatientRecord[]
 }) {
   const merged = new Map<string, RegisteredPatientRecord>()
@@ -54,8 +60,10 @@ export function mergePatientSources(options: {
   })
 
   ;(options.databasePatients ?? []).forEach((patient) => {
-    const mapped = mapDatabasePatientToPatientRecord(patient)
-    merged.set(patient.id, mapped)
+    const mapped = isRegisteredPatientRecord(patient)
+      ? patient
+      : mapDatabasePatientToPatientRecord(patient)
+    merged.set(mapped.id, mapped)
     databaseFingerprints.add(buildPatientFingerprint(mapped))
   })
 
@@ -71,7 +79,7 @@ export function mergePatientSources(options: {
 }
 
 export function mergeSinglePatient(options: {
-  databasePatient?: Patient | null
+  databasePatient?: PatientSource | null
   registeredPatients?: RegisteredPatientRecord[]
   patientId: string
 }) {

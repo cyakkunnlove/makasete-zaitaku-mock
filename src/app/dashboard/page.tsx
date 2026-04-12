@@ -36,7 +36,6 @@ import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, 
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
-import type { Patient } from '@/types/database'
 
 const mockPharmacyRequests = [
   { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
@@ -791,7 +790,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
-  const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [isPatientsLoading, setIsPatientsLoading] = useState(true)
   const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
   const [selectedRoutePatientIds, setSelectedRoutePatientIds] = useState<string[]>([])

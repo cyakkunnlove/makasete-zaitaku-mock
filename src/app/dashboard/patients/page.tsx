@@ -27,14 +27,13 @@ function isUuidLike(value: string | null | undefined) {
 }
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
-import type { Patient } from '@/types/database'
 
 export default function PatientsPage() {
   const { role, user } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
-  const [databasePatients, setDatabasePatients] = useState<Patient[]>([])
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isDayContext = canManagePatients(role)
