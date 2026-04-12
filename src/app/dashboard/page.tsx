@@ -874,41 +874,46 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       try {
         const response = await fetch(`/api/day-flow/${flowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
+        const mapPersistedTask = (task: Record<string, unknown>): DayTaskItem => ({
+          id: String(task.id),
+          patientId: String(task.patient_id ?? ''),
+          pharmacyId: String(task.pharmacy_id ?? ''),
+          flowDate: String(task.flow_date),
+          sortOrder: Number(task.sort_order ?? 1),
+          scheduledTime: String(task.scheduled_time ?? '10:00'),
+          visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
+          source: (task.source as DayTaskItem['source']) ?? '自動生成',
+          status: (task.status as DayTaskItem['status']) ?? 'scheduled',
+          planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
+          plannedBy: (task.planned_by as string | null) ?? null,
+          plannedById: (task.planned_by_id as string | null) ?? null,
+          plannedAt: (task.planned_at as string | null) ?? null,
+          handledBy: (task.handled_by as string | null) ?? null,
+          handledById: (task.handled_by_id as string | null) ?? null,
+          handledAt: (task.handled_at as string | null) ?? null,
+          completedAt: (task.completed_at as string | null) ?? null,
+          billable: Boolean(task.billable),
+          collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
+          amount: Number(task.amount ?? 0),
+          note: String(task.note ?? ''),
+          updatedAt: (task.updated_at as string | null) ?? null,
+          updatedById: (task.updated_by_id as string | null) ?? null,
+        })
+
         const persistedTasks = response.ok && result?.ok && Array.isArray(result.tasks)
-          ? (result.tasks as Array<Record<string, unknown>>).map((task) => ({
-              id: String(task.id),
-              patientId: String(task.patient_id ?? ''),
-              pharmacyId: String(task.pharmacy_id ?? ''),
-              flowDate: String(task.flow_date),
-              sortOrder: Number(task.sort_order ?? 1),
-              scheduledTime: String(task.scheduled_time ?? '10:00'),
-              visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
-              source: (task.source as DayTaskItem['source']) ?? '自動生成',
-              status: (task.status as DayTaskItem['status']) ?? 'scheduled',
-              planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
-              plannedBy: (task.planned_by as string | null) ?? null,
-              plannedById: (task.planned_by_id as string | null) ?? null,
-              plannedAt: (task.planned_at as string | null) ?? null,
-              handledBy: (task.handled_by as string | null) ?? null,
-              handledById: (task.handled_by_id as string | null) ?? null,
-              handledAt: (task.handled_at as string | null) ?? null,
-              completedAt: (task.completed_at as string | null) ?? null,
-              billable: Boolean(task.billable),
-              collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
-              amount: Number(task.amount ?? 0),
-              note: String(task.note ?? ''),
-              updatedAt: (task.updated_at as string | null) ?? null,
-              updatedById: (task.updated_by_id as string | null) ?? null,
-            }))
+          ? (result.tasks as Array<Record<string, unknown>>).map(mapPersistedTask)
+          : []
+        const historicalTasks = response.ok && result?.ok && Array.isArray(result.historyTasks)
+          ? (result.historyTasks as Array<Record<string, unknown>>).map(mapPersistedTask)
           : []
 
-        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients, persistedTasks })
+        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients, persistedTasks, historicalTasks })
         if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)
         }
       } catch {
-        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients })
+        const merged = mergeDayFlowTasks({ baseTasks: scopedBaseDayTasks, flowDate, registeredPatients: patients, historicalTasks: [] })
         if (!cancelled) {
           setDayTasks(merged)
           setDraftDayTasks(merged)

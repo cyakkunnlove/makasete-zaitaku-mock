@@ -198,12 +198,14 @@ export function mergeDayFlowTasks(options: {
   flowDate?: string
   registeredPatients?: RegisteredPatientRecord[]
   persistedTasks?: DayTaskItem[]
+  historicalTasks?: DayTaskItem[]
 }) {
   const flowDate = options.flowDate ?? MOCK_FLOW_DATE
   const baseTasks = options.baseTasks ?? dayTaskData
   const registeredPatients = options.registeredPatients ?? []
   const persistedTasks = options.persistedTasks ?? []
-  const taskHistory = [...baseTasks, ...persistedTasks]
+  const historicalTasks = options.historicalTasks ?? []
+  const taskHistory = [...baseTasks, ...historicalTasks, ...persistedTasks]
   const generatedTasks = generateAutoDayTasksFromVisitRules(registeredPatients, flowDate, taskHistory)
 
   const persistedById = new Map(persistedTasks.map((task) => [task.id, task]))
