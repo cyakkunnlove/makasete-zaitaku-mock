@@ -497,6 +497,50 @@ export default function PatientDetailPage() {
     }
   }
 
+  const archiveMedicalInstitution = async () => {
+    if (!selectedMedicalInstitutionId) return
+    if (!window.confirm('この病院を候補一覧から外しますか？ 既存患者の表示は残ります。')) return
+
+    const response = await fetch(`/api/medical-institutions/${selectedMedicalInstitutionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: false }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setEditSavedNotice('病院の非表示に失敗しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+    setSelectedMedicalInstitutionId(null)
+    setSelectedDoctorMasterId(null)
+    setDoctorOptions([])
+    setMedicalInstitutionOptions((prev) => prev.filter((item) => item.id !== selectedMedicalInstitutionId))
+    setEditSavedNotice('病院候補から外しました')
+    setTimeout(() => setEditSavedNotice(null), 2500)
+  }
+
+  const archiveDoctor = async () => {
+    if (!selectedDoctorMasterId) return
+    if (!window.confirm('この医師を候補一覧から外しますか？ 既存患者の表示は残ります。')) return
+
+    const response = await fetch(`/api/doctor-masters/${selectedDoctorMasterId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: false }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setEditSavedNotice('医師の非表示に失敗しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+    setSelectedDoctorMasterId(null)
+    setDoctorOptions((prev) => prev.filter((item) => item.id !== selectedDoctorMasterId))
+    setEditSavedNotice('医師候補から外しました')
+    setTimeout(() => setEditSavedNotice(null), 2500)
+  }
+
   const createDoctor = async () => {
     if (!selectedMedicalInstitutionId) {
       setEditSavedNotice('先に病院を選択してください')
@@ -1262,6 +1306,11 @@ export default function PatientDetailPage() {
                     <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setInstitutionForm({ name: editForm.doctorClinic, phone: '', address: '' }); setInstitutionDialogOpen(true) }}>
                       この病院を追加
                     </Button>
+                    {selectedMedicalInstitutionId && (
+                      <Button type="button" variant="ghost" className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" onClick={() => void archiveMedicalInstitution()}>
+                        候補から外す
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -1299,6 +1348,11 @@ export default function PatientDetailPage() {
                     <Button type="button" variant="outline" disabled={!selectedMedicalInstitutionId} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setDoctorForm({ fullName: editForm.doctorName, phone: editForm.doctorPhone, department: '' }); setDoctorDialogOpen(true) }}>
                       この医師を追加
                     </Button>
+                    {selectedDoctorMasterId && (
+                      <Button type="button" variant="ghost" className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" onClick={() => void archiveDoctor()}>
+                        候補から外す
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div>

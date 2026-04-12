@@ -421,6 +421,46 @@ export default function NewPatientPage() {
     }
   }
 
+  const archiveMedicalInstitution = async () => {
+    if (!selectedMedicalInstitutionId) return
+    if (!window.confirm('この病院を候補一覧から外しますか？ 既存患者の表示は残ります。')) return
+
+    const response = await fetch(`/api/medical-institutions/${selectedMedicalInstitutionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: false }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setWarningMessage('病院の非表示に失敗しました。')
+      return
+    }
+    setSelectedMedicalInstitutionId(null)
+    setSelectedDoctorMasterId(null)
+    setDoctorOptions([])
+    setMedicalInstitutionOptions((prev) => prev.filter((item) => item.id !== selectedMedicalInstitutionId))
+    setWarningMessage('病院候補から外しました。')
+  }
+
+  const archiveDoctor = async () => {
+    if (!selectedDoctorMasterId) return
+    if (!window.confirm('この医師を候補一覧から外しますか？ 既存患者の表示は残ります。')) return
+
+    const response = await fetch(`/api/doctor-masters/${selectedDoctorMasterId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: false }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setWarningMessage('医師の非表示に失敗しました。')
+      return
+    }
+    setSelectedDoctorMasterId(null)
+    setDoctorOptions((prev) => prev.filter((item) => item.id !== selectedDoctorMasterId))
+    setWarningMessage('医師候補から外しました。')
+  }
+
   const createDoctor = async () => {
     if (!selectedMedicalInstitutionId) {
       setWarningMessage('先に病院を選択してください。')
@@ -933,18 +973,28 @@ export default function NewPatientPage() {
                     この病院を追加
                   </Button>
                   {selectedMedicalInstitutionId && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-gray-400 hover:bg-[#11182c] hover:text-white"
-                      onClick={() => {
-                        setSelectedMedicalInstitutionId(null)
-                        setSelectedDoctorMasterId(null)
-                        setDoctorOptions([])
-                      }}
-                    >
-                      選択を外す
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                        onClick={() => {
+                          setSelectedMedicalInstitutionId(null)
+                          setSelectedDoctorMasterId(null)
+                          setDoctorOptions([])
+                        }}
+                      >
+                        選択を外す
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                        onClick={() => void archiveMedicalInstitution()}
+                      >
+                        候補から外す
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -985,14 +1035,24 @@ export default function NewPatientPage() {
                     この医師を追加
                   </Button>
                   {selectedDoctorMasterId && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-gray-400 hover:bg-[#11182c] hover:text-white"
-                      onClick={() => setSelectedDoctorMasterId(null)}
-                    >
-                      選択を外す
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                        onClick={() => setSelectedDoctorMasterId(null)}
+                      >
+                        選択を外す
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                        onClick={() => void archiveDoctor()}
+                      >
+                        候補から外す
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
