@@ -7,7 +7,7 @@ import { writeAuditLog } from '@/lib/audit-log'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import type { PharmacyStatus } from '@/types/database'
 
-function toPharmacyView(row: Record<string, unknown>) {
+function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: number; pharmacyAdminStatus?: string }) {
   return {
     id: String(row.id),
     name: typeof row.name === 'string' ? row.name : '',
@@ -16,7 +16,7 @@ function toPharmacyView(row: Record<string, unknown>) {
     phone: typeof row.phone === 'string' ? row.phone : '',
     fax: typeof row.fax === 'string' ? row.fax : '',
     forwardingPhone: typeof row.forwarding_phone === 'string' ? row.forwarding_phone : '',
-    patientCount: typeof row.patient_count === 'number' ? row.patient_count : 0,
+    patientCount: extras?.patientCount ?? (typeof row.patient_count === 'number' ? row.patient_count : 0),
     status: typeof row.status === 'string' ? row.status : 'pending',
     contractDate: typeof row.contract_date === 'string' ? row.contract_date : '',
     saasFee: typeof row.saas_monthly_fee === 'number' ? row.saas_monthly_fee : Number(row.saas_monthly_fee ?? 0),
@@ -25,9 +25,67 @@ function toPharmacyView(row: Record<string, unknown>) {
     forwardingStatus: row.forwarding_status === 'on' ? 'on' : 'off',
     regionId: typeof row.region_id === 'string' ? row.region_id : null,
     regionName: typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null,
+    pharmacyAdminStatus: extras?.pharmacyAdminStatus ?? 'uninvited',
     createdAt: typeof row.created_at === 'string' ? row.created_at : null,
     updatedAt: typeof row.updated_at === 'string' ? row.updated_at : null,
   }
+}
+
+async function buildPharmacyDerivedMaps(supabase: ReturnType<typeof createServerSupabaseClient>, pharmacyIds: string[]) {
+  const patientMap = new Map<string, number>()
+  const adminStatusMap = new Map<string, string>()
+  if (pharmacyIds.length === 0) return { patientMap, adminStatusMap }
+
+  const patientResponse = await supabase
+    .from('patients')
+    .select('pharmacy_id, status')
+    .in('pharmacy_id', pharmacyIds)
+    .eq('status', 'active')
+
+  if (!patientResponse.error) {
+    for (const row of patientResponse.data ?? []) {
+      const pharmacyId = (row as Record<string, unknown>).pharmacy_id as string | null
+      if (!pharmacyId) continue
+      patientMap.set(pharmacyId, (patientMap.get(pharmacyId) ?? 0) + 1)
+    }
+  }
+
+  const invitationResponse = await supabase
+    .from('account_invitations')
+    .select('pharmacy_id, role, status, created_at')
+    .in('pharmacy_id', pharmacyIds)
+    .eq('role', 'pharmacy_admin')
+    .order('created_at', { ascending: false })
+
+  if (!invitationResponse.error) {
+    for (const row of invitationResponse.data ?? []) {
+      const pharmacyId = (row as Record<string, unknown>).pharmacy_id as string | null
+      if (!pharmacyId || adminStatusMap.has(pharmacyId)) continue
+      const status = (row as Record<string, unknown>).status as string | null
+      adminStatusMap.set(pharmacyId, status === 'accepted' ? 'active' : status === 'pending' ? 'invited' : 'uninvited')
+    }
+  }
+
+  const userResponse = await supabase
+    .from('users')
+    .select('pharmacy_id, role, status')
+    .in('pharmacy_id', pharmacyIds)
+    .eq('role', 'pharmacy_admin')
+
+  if (!userResponse.error) {
+    for (const row of userResponse.data ?? []) {
+      const pharmacyId = (row as Record<string, unknown>).pharmacy_id as string | null
+      if (!pharmacyId) continue
+      const status = (row as Record<string, unknown>).status as string | null
+      if (status === 'active') {
+        adminStatusMap.set(pharmacyId, 'active')
+      } else if (!adminStatusMap.has(pharmacyId) && status === 'invited') {
+        adminStatusMap.set(pharmacyId, 'invited')
+      }
+    }
+  }
+
+  return { patientMap, adminStatusMap }
 }
 
 export async function GET() {
@@ -59,7 +117,17 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'pharmacies_fetch_failed', details: response.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, pharmacies: (response.data ?? []).map((row) => toPharmacyView(row as Record<string, unknown>)) })
+  const rows = (response.data ?? []) as Array<Record<string, unknown>>
+  const pharmacyIds = rows.map((row) => String(row.id))
+  const { patientMap, adminStatusMap } = await buildPharmacyDerivedMaps(supabase, pharmacyIds)
+
+  return NextResponse.json({
+    ok: true,
+    pharmacies: rows.map((row) => toPharmacyView(row, {
+      patientCount: patientMap.get(String(row.id)) ?? 0,
+      pharmacyAdminStatus: adminStatusMap.get(String(row.id)) ?? 'uninvited',
+    })),
+  })
 }
 
 export async function POST(request: Request) {

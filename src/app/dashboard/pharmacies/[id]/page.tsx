@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -14,13 +14,10 @@ import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
   Building2,
-  Phone,
-  Printer,
-  MapPin,
   CreditCard,
-  Calendar,
   Clock3,
   Settings2,
+  Users,
 } from 'lucide-react'
 import {
   pharmacyData,
@@ -30,9 +27,12 @@ import {
   type PharmacyItem,
 } from '@/lib/mock-data'
 
+type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
+
 type PharmacyDetailView = PharmacyItem & {
   regionId?: string | null
   regionName?: string | null
+  pharmacyAdminStatus?: PharmacyAdminStatus
 }
 
 const statusClass: Record<PharmacyItem['status'], string> = {
@@ -49,6 +49,18 @@ const billingStatusClass: Record<string, string> = {
 
 const yen = new Intl.NumberFormat('ja-JP')
 
+const adminStatusLabel: Record<PharmacyAdminStatus, string> = {
+  uninvited: '未招待',
+  invited: '招待中',
+  active: '利用中',
+}
+
+const adminStatusClass: Record<PharmacyAdminStatus, string> = {
+  uninvited: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+  invited: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+}
+
 export default function PharmacyDetailPage() {
   const { role } = useAuth()
   const { guard, requiresReverification } = useReauthGuard()
@@ -63,6 +75,9 @@ export default function PharmacyDetailPage() {
   const recentRequests = requests.slice(0, 5)
 
   const [forwardingMode, setForwardingMode] = useState<'manual_on' | 'manual_off' | 'auto'>(pharmacy?.forwarding ? 'auto' : 'manual_off')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', address: '', phone: '', fax: '', forwardingPhone: '' })
   const [autoStart, setAutoStart] = useState('22:00')
   const [autoEnd, setAutoEnd] = useState('06:00')
   const [lastUpdatedBy, setLastUpdatedBy] = useState('薬局管理者')
@@ -82,6 +97,13 @@ export default function PharmacyDetailPage() {
         if (cancelled) return
         setPharmacy(data.pharmacy)
         setForwardingMode(data.pharmacy?.forwarding ? 'auto' : 'manual_off')
+        setEditForm({
+          name: data.pharmacy?.name ?? '',
+          address: data.pharmacy?.address ?? '',
+          phone: data.pharmacy?.phone ?? '',
+          fax: data.pharmacy?.fax ?? '',
+          forwardingPhone: data.pharmacy?.forwardingPhone ?? '',
+        })
       } catch (error) {
         if (cancelled) return
         setLoadError(error instanceof Error ? error.message : 'pharmacy_fetch_failed')
@@ -162,6 +184,34 @@ export default function PharmacyDetailPage() {
     setLastUpdatedAt('2026-03-15 13:10')
   }
 
+  const handleSaveBasicInfo = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (guard()) return
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      const response = await fetch(`/api/pharmacies/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacy_update_failed')
+      setPharmacy(data.pharmacy)
+      setEditForm({
+        name: data.pharmacy?.name ?? '',
+        address: data.pharmacy?.address ?? '',
+        phone: data.pharmacy?.phone ?? '',
+        fax: data.pharmacy?.fax ?? '',
+        forwardingPhone: data.pharmacy?.forwardingPhone ?? '',
+      })
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'pharmacy_update_failed')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -190,23 +240,33 @@ export default function PharmacyDetailPage() {
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Users className="h-3.5 w-3.5" />アクティブ患者数</CardDescription><CardTitle className="text-2xl text-white">{pharmacy.patientCount}名</CardTitle></CardHeader></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Building2 className="h-3.5 w-3.5" />依頼数</CardDescription><CardTitle className="text-2xl text-white">{monthlyRequestCount}件</CardTitle></CardHeader></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><CreditCard className="h-3.5 w-3.5" />月額売上</CardDescription><CardTitle className="text-2xl text-indigo-300">{yen.format(pharmacy.saasFee + pharmacy.nightFee)}円</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Clock3 className="h-3.5 w-3.5" />転送運用</CardDescription><CardTitle className="text-xl text-white">{forwardingStateLabel}</CardTitle></CardHeader></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Clock3 className="h-3.5 w-3.5" />薬局管理者</CardDescription><div className="pt-2"><Badge variant="outline" className={cn('border text-xs', adminStatusClass[pharmacy.pharmacyAdminStatus ?? 'uninvited'])}>{adminStatusLabel[pharmacy.pharmacyAdminStatus ?? 'uninvited']}</Badge></div></CardHeader></Card>
       </section>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-base text-white">契約情報</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-2 text-gray-300"><Calendar className="h-4 w-4 text-gray-500" /><span className="text-gray-400">契約日:</span>{pharmacy.contractDate || '未設定'}</div>
-            <div className="flex items-center gap-2 text-gray-300"><MapPin className="h-4 w-4 text-gray-500" /><span className="text-gray-400">リージョン:</span>{pharmacy.regionName || '未設定'}</div>
-            <div className="flex items-start gap-2 text-gray-300 sm:col-span-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" /><span className="text-gray-400">住所:</span>{pharmacy.address}</div>
-            <div className="flex items-center gap-2 text-gray-300"><Phone className="h-4 w-4 text-gray-500" /><span className="text-gray-400">電話:</span>{pharmacy.phone}</div>
-            <div className="flex items-center gap-2 text-gray-300"><Printer className="h-4 w-4 text-gray-500" /><span className="text-gray-400">FAX:</span>{pharmacy.fax}</div>
-            <div className="flex items-center gap-2 text-gray-300"><Phone className="h-4 w-4 text-gray-500" /><span className="text-gray-400">転送先:</span>{pharmacy.forwardingPhone}</div>
-          </div>
+        <CardHeader className="pb-2"><CardTitle className="text-base text-white">基本情報</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          {saveError && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">保存で問題がありました: {saveError}</div>}
+          <form onSubmit={handleSaveBasicInfo} className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label className="text-gray-300">薬局名</Label><Input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+              <div className="space-y-2"><Label className="text-gray-300">リージョン</Label><div className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300">{pharmacy.regionName || '未設定'}</div></div>
+            </div>
+            <div className="space-y-2"><Label className="text-gray-300">住所</Label><Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label className="text-gray-300">電話</Label><Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+              <div className="space-y-2"><Label className="text-gray-300">FAX</Label><Input value={editForm.fax} onChange={(e) => setEditForm((prev) => ({ ...prev, fax: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label className="text-gray-300">転送先電話</Label><Input value={editForm.forwardingPhone} onChange={(e) => setEditForm((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+              <div className="space-y-2"><Label className="text-gray-300">契約日</Label><div className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300">{pharmacy.contractDate || '未設定'}</div></div>
+            </div>
+            <div className="flex justify-end"><Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={isSaving}>{isSaving ? '保存中...' : '基本情報を保存'}</Button></div>
+          </form>
         </CardContent>
       </Card>
 

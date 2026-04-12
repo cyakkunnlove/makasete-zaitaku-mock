@@ -20,9 +20,12 @@ import { cn } from '@/lib/utils'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
+type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
+
 type PharmacyView = PharmacyItem & {
   regionId?: string | null
   regionName?: string | null
+  pharmacyAdminStatus?: PharmacyAdminStatus
 }
 
 type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
@@ -45,6 +48,18 @@ const statusLabel: Record<PharmacyStatus, string> = {
   active: '利用中',
   pending: '初期設定中',
   suspended: '停止中',
+}
+
+const adminStatusLabel: Record<PharmacyAdminStatus, string> = {
+  uninvited: '未招待',
+  invited: '招待中',
+  active: '利用中',
+}
+
+const adminStatusClass: Record<PharmacyAdminStatus, string> = {
+  uninvited: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+  invited: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
 }
 
 const initialForwardingSettings: Record<string, ForwardingSetting> = {
@@ -338,8 +353,12 @@ export default function PharmaciesPage() {
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
-                    <p className="inline-flex items-center gap-1 font-medium text-white"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />夜間受託状態</p>
-                    <p className="mt-1">{pharmacy.status === 'active' ? '受け入れ可能' : '初期設定または停止中'}</p>
+                    <p className="inline-flex items-center gap-1 font-medium text-white"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />薬局管理者</p>
+                    <div className="mt-2">
+                      <Badge variant="outline" className={cn('border text-xs', adminStatusClass[pharmacy.pharmacyAdminStatus ?? 'uninvited'])}>
+                        {adminStatusLabel[pharmacy.pharmacyAdminStatus ?? 'uninvited']}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
                     <p className="inline-flex items-center gap-1 font-medium text-white"><AlertTriangle className="h-3.5 w-3.5 text-amber-400" />運用メモ</p>

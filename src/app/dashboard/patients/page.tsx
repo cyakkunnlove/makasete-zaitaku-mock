@@ -34,6 +34,7 @@ export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
+  const [isSearchLoading, setIsSearchLoading] = useState(false)
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isRegionalAdmin = role === 'regional_admin'
@@ -74,19 +75,52 @@ export default function PatientsPage() {
     }
   }, [isDayContext, ownPharmacyId])
 
+  useEffect(() => {
+    if (!isRegionalAdmin) return
+    const query = searchQuery.trim()
+    if (!query) {
+      setDatabasePatients([])
+      return
+    }
+
+    let cancelled = false
+    setIsSearchLoading(true)
+    fetch(`/api/patients/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'patient_search_failed')
+        if (cancelled) return
+        setDatabasePatients(Array.isArray(data.patients) ? data.patients : [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDatabasePatients([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearchLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isRegionalAdmin, searchQuery])
+
   const fallbackRegisteredPatients = useMemo(() => {
     if (!isDayContext || databasePatients.length === 0) return registeredPatients
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
   }, [databasePatients.length, isDayContext, registeredPatients])
 
-  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients])
+  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients, isRegionalAdmin])
 
   const visiblePatients = useMemo(() => {
+    if (isRegionalAdmin) {
+      return databasePatients
+    }
     if (isDayContext) {
       return patientMaster.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
     }
     return patientMaster
-  }, [isDayContext, ownPharmacyId, patientMaster])
+  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -165,7 +199,15 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {filteredPatients.length === 0 && (
+      {isRegionalAdmin && isSearchLoading && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="p-6 text-center text-sm text-gray-400">
+            患者候補を検索中です...
+          </CardContent>
+        </Card>
+      )}
+
+      {filteredPatients.length === 0 && !isSearchLoading && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-6 text-center text-sm text-gray-400">
             {isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません。検索すると候補が表示されます。' : '該当する患者が見つかりません。'}
