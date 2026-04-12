@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route } from 'lucide-react'
 
@@ -188,8 +189,20 @@ export default function CalendarPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-7 gap-2 text-center text-xs text-gray-500">
-              {DAY_LABELS.map((label) => <div key={label}>{label}</div>)}
+            <div className="grid grid-cols-7 gap-2 text-center text-xs">
+              {DAY_LABELS.map((label, index) => (
+                <div
+                  key={label}
+                  className={cn(
+                    'font-medium',
+                    index === 0 && 'text-rose-400',
+                    index === 6 && 'text-sky-400',
+                    index !== 0 && index !== 6 && 'text-gray-500',
+                  )}
+                >
+                  {label}
+                </div>
+              ))}
             </div>
             <div className="grid grid-cols-7 gap-2">
               {Array.from({ length: monthGrid.firstDay }).map((_, index) => <div key={`empty-${index}`} className="h-28 rounded-lg border border-transparent" />)}
@@ -198,6 +211,7 @@ export default function CalendarPage() {
                 const dateKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                 const summary = summaryByDate.get(dateKey)
                 const isSelected = selectedDate === dateKey
+                const weekDayIndex = new Date(`${dateKey}T00:00:00`).getDay()
                 const toneClass = summary?.completedCount
                   ? 'border-emerald-500/40 bg-emerald-500/10'
                   : summary?.inProgressCount
@@ -218,7 +232,12 @@ export default function CalendarPage() {
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-white">{day}</span>
+                      <span className={cn(
+                        'text-sm font-semibold',
+                        weekDayIndex === 0 && 'text-rose-300',
+                        weekDayIndex === 6 && 'text-sky-300',
+                        weekDayIndex !== 0 && weekDayIndex !== 6 && 'text-white',
+                      )}>{day}</span>
                       {summary?.isToday && <Badge className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">今日</Badge>}
                     </div>
                     <div className="mt-2 space-y-1 text-[11px] text-gray-300">
@@ -296,9 +315,17 @@ export default function CalendarPage() {
                     </div>
                     {task.note ? <p className="mt-2 text-xs text-gray-300">{task.note}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
-                        詳細を見る
-                      </Button>
+                      {task.patientId ? (
+                        <Button asChild size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                          <Link href={`/dashboard/patients/${task.patientId}`}>
+                            詳細を見る
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                          詳細を見る
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
                         <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
                       </Button>
