@@ -154,6 +154,8 @@ export default function StaffPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: InvitationStatus; expires_at: string; last_sent_at: string | null; region_name?: string | null; pharmacy_name?: string | null }>>([])
+  const [staffSearch, setStaffSearch] = useState('')
+  const [invitationSearch, setInvitationSearch] = useState('')
   const [isUserListLoading, setIsUserListLoading] = useState(false)
   const [isInvitationListLoading, setIsInvitationListLoading] = useState(false)
   const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
@@ -180,9 +182,28 @@ export default function StaffPage() {
   const availableFilterItems = isPharmacyAdmin ? pharmacyFilterItems : regionalFilterItems
 
   const filteredStaff = useMemo(() => {
-    if (activeFilter === 'all') return visibleStaffMembers
-    return visibleStaffMembers.filter((member) => member.role === activeFilter)
-  }, [activeFilter, visibleStaffMembers])
+    const base = activeFilter === 'all'
+      ? visibleStaffMembers
+      : visibleStaffMembers.filter((member) => member.role === activeFilter)
+
+    const query = staffSearch.trim().toLowerCase()
+    if (!query) return base
+
+    return base.filter((member) =>
+      [member.name, member.email, member.phone, member.regionName ?? '', member.pharmacyName ?? '', roleLabel[member.role], statusLabel[member.status]]
+        .some((value) => value.toLowerCase().includes(query)),
+    )
+  }, [activeFilter, staffSearch, visibleStaffMembers])
+
+  const filteredInvitations = useMemo(() => {
+    const query = invitationSearch.trim().toLowerCase()
+    if (!query) return invitations
+
+    return invitations.filter((invitation) =>
+      [invitation.email, invitation.region_name ?? '', invitation.pharmacy_name ?? '', roleLabel[invitation.role], invitationStatusLabel[invitation.status]]
+        .some((value) => value.toLowerCase().includes(query)),
+    )
+  }, [invitationSearch, invitations])
 
   const activeStaffCount = visibleStaffMembers.filter((member) => member.status === 'active').length
   const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'suspended').length
@@ -593,7 +614,13 @@ export default function StaffPage() {
           </div>
 
           <Card className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4">
+            <CardContent className="space-y-3 p-4">
+              <Input
+                value={staffSearch}
+                onChange={(event) => setStaffSearch(event.target.value)}
+                placeholder="氏名、メール、電話、所属で検索"
+                className="border-[#2a3553] bg-[#11182c]"
+              />
               <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as RoleFilter)}>
                 <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-[#11182c] p-1">
                   {availableFilterItems.map((item) => (
@@ -742,12 +769,18 @@ export default function StaffPage() {
               <CardDescription className="text-gray-400">未受諾の招待は再送または取消できます。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <Input
+                value={invitationSearch}
+                onChange={(event) => setInvitationSearch(event.target.value)}
+                placeholder="メール、役割、所属で検索"
+                className="border-[#2a3553] bg-[#11182c]"
+              />
               {isInvitationListLoading ? (
                 <p className="text-sm text-gray-400">招待一覧を読み込み中です。</p>
-              ) : invitations.length === 0 ? (
-                <p className="text-sm text-gray-400">招待中のアカウントはまだありません。</p>
+              ) : filteredInvitations.length === 0 ? (
+                <p className="text-sm text-gray-400">条件に合う招待はまだありません。</p>
               ) : (
-                invitations.map((invitation) => (
+                filteredInvitations.map((invitation) => (
                   <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1 text-sm text-gray-300">
                       <p className="font-medium text-white">{invitation.email}</p>
