@@ -6,10 +6,29 @@ import { ensureRecentReverification } from '@/lib/api-reauth'
 import { writeAuditLog } from '@/lib/audit-log'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
+function deriveOnboarding(row: Record<string, unknown>, pharmacyAdminStatus: string) {
+  const checks = [
+    { key: 'basic_info', label: '基本情報', done: Boolean(String(row.name ?? '').trim() && String(row.address ?? '').trim() && String(row.phone ?? '').trim()) },
+    { key: 'pharmacy_admin', label: '薬局管理者', done: pharmacyAdminStatus === 'active' },
+    { key: 'forwarding_phone', label: '転送先電話', done: Boolean(String(row.forwarding_phone ?? '').trim()) },
+    { key: 'forwarding_config', label: '転送運用設定', done: ['manual_on', 'manual_off', 'auto'].includes(String(row.forwarding_mode ?? 'manual_off')) },
+  ]
+  const completed = checks.filter((item) => item.done).length
+  return {
+    checks,
+    completed,
+    total: checks.length,
+    ready: completed === checks.length,
+    needs: checks.filter((item) => !item.done).map((item) => item.label),
+  }
+}
+
 function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: number; pharmacyAdminStatus?: string }) {
   const forwardingMode = row.forwarding_mode === 'manual_on' || row.forwarding_mode === 'manual_off' || row.forwarding_mode === 'auto'
     ? row.forwarding_mode
     : (row.forwarding_status === 'on' ? 'auto' : 'manual_off')
+  const pharmacyAdminStatus = extras?.pharmacyAdminStatus ?? 'uninvited'
+  const onboarding = deriveOnboarding({ ...row, forwarding_mode: forwardingMode }, pharmacyAdminStatus)
 
   return {
     id: String(row.id),
@@ -33,8 +52,35 @@ function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: 
     forwardingUpdatedAt: typeof row.forwarding_updated_at === 'string' ? row.forwarding_updated_at : null,
     regionId: typeof row.region_id === 'string' ? row.region_id : null,
     regionName: typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null,
-    pharmacyAdminStatus: extras?.pharmacyAdminStatus ?? 'uninvited',
+    pharmacyAdminStatus,
+    onboarding,
   }
+}
+
+async function getPharmacyAdminStatus(supabase: ReturnType<typeof createServerSupabaseClient>, pharmacyId: string) {
+  const invitationResponse = await supabase
+    .from('account_invitations')
+    .select('status, created_at')
+    .eq('pharmacy_id', pharmacyId)
+    .eq('role', 'pharmacy_admin')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const userResponse = await supabase
+    .from('users')
+    .select('status')
+    .eq('pharmacy_id', pharmacyId)
+    .eq('role', 'pharmacy_admin')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let pharmacyAdminStatus = 'uninvited'
+  if (invitationResponse.data && (invitationResponse.data as Record<string, unknown>).status === 'pending') pharmacyAdminStatus = 'invited'
+  if (userResponse.data && (userResponse.data as Record<string, unknown>).status === 'active') pharmacyAdminStatus = 'active'
+  else if (userResponse.data && (userResponse.data as Record<string, unknown>).status === 'invited') pharmacyAdminStatus = 'invited'
+  return pharmacyAdminStatus
 }
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
@@ -75,29 +121,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     .eq('pharmacy_id', params.id)
     .eq('status', 'active')
 
-  const invitationResponse = await supabase
-    .from('account_invitations')
-    .select('status, created_at')
-    .eq('pharmacy_id', params.id)
-    .eq('role', 'pharmacy_admin')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const userResponse = await supabase
-    .from('users')
-    .select('status')
-    .eq('pharmacy_id', params.id)
-    .eq('role', 'pharmacy_admin')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
   const patientCount = patientResponse.error ? 0 : (patientResponse.data ?? []).length
-  let pharmacyAdminStatus = 'uninvited'
-  if (invitationResponse.data && (invitationResponse.data as Record<string, unknown>).status === 'pending') pharmacyAdminStatus = 'invited'
-  if (userResponse.data && (userResponse.data as Record<string, unknown>).status === 'active') pharmacyAdminStatus = 'active'
-  else if (userResponse.data && (userResponse.data as Record<string, unknown>).status === 'invited') pharmacyAdminStatus = 'invited'
+  const pharmacyAdminStatus = await getPharmacyAdminStatus(supabase, params.id)
 
   return NextResponse.json({ ok: true, pharmacy: toPharmacyView(pharmacy, { patientCount, pharmacyAdminStatus }) })
 }
@@ -124,7 +149,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const supabase = createServerSupabaseClient()
   const currentResponse = await supabase
     .from('pharmacies')
-    .select('id, region_id, name, address, phone, fax, forwarding_phone, forwarding_status, forwarding_mode, forwarding_auto_start, forwarding_auto_end')
+    .select('id, region_id, name, address, phone, fax, forwarding_phone, forwarding_status, forwarding_mode, forwarding_auto_start, forwarding_auto_end, status')
     .eq('organization_id', user.organization_id)
     .eq('id', params.id)
     .maybeSingle()
@@ -147,9 +172,25 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const forwardingAutoStart = typeof body.forwardingAutoStart === 'string' && body.forwardingAutoStart ? body.forwardingAutoStart : String(current.forwarding_auto_start ?? '22:00')
   const forwardingAutoEnd = typeof body.forwardingAutoEnd === 'string' && body.forwardingAutoEnd ? body.forwardingAutoEnd : String(current.forwarding_auto_end ?? '06:00')
   const forwardingStatus = forwardingMode === 'manual_on' || forwardingMode === 'auto' ? 'on' : 'off'
+  const requestedStatus = body.status === 'active' || body.status === 'pending' || body.status === 'suspended' || body.status === 'terminated'
+    ? body.status
+    : String(current.status ?? 'pending')
 
   if (!name || !address || !phone) {
     return NextResponse.json({ ok: false, error: 'required_fields_missing' }, { status: 400 })
+  }
+
+  const pharmacyAdminStatus = await getPharmacyAdminStatus(supabase, params.id)
+  const onboarding = deriveOnboarding({
+    name,
+    address,
+    phone,
+    forwarding_phone: forwardingPhone,
+    forwarding_mode: forwardingMode,
+  }, pharmacyAdminStatus)
+
+  if (requestedStatus === 'active' && !onboarding.ready) {
+    return NextResponse.json({ ok: false, error: 'onboarding_incomplete', needs: onboarding.needs }, { status: 400 })
   }
 
   const now = new Date().toISOString()
@@ -167,6 +208,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       forwarding_auto_end: forwardingAutoEnd,
       forwarding_updated_by_name: user.full_name,
       forwarding_updated_at: now,
+      status: requestedStatus,
       updated_at: now,
     } as never)
     .eq('id', params.id)
@@ -187,6 +229,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       actor_role: actorRole,
       target_name: name,
       changes: {
+        status: requestedStatus,
         forwarding_phone: forwardingPhone || null,
         forwarding_mode: forwardingMode,
         forwarding_auto_start: forwardingAutoStart,
@@ -195,5 +238,5 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     },
   })
 
-  return NextResponse.json({ ok: true, pharmacy: toPharmacyView(updated) })
+  return NextResponse.json({ ok: true, pharmacy: toPharmacyView(updated, { pharmacyAdminStatus }) })
 }

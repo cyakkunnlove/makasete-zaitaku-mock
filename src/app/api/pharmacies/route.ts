@@ -7,10 +7,29 @@ import { writeAuditLog } from '@/lib/audit-log'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import type { PharmacyStatus } from '@/types/database'
 
+function deriveOnboarding(row: Record<string, unknown>, pharmacyAdminStatus: string) {
+  const checks = [
+    { key: 'basic_info', label: '基本情報', done: Boolean(String(row.name ?? '').trim() && String(row.address ?? '').trim() && String(row.phone ?? '').trim()) },
+    { key: 'pharmacy_admin', label: '薬局管理者', done: pharmacyAdminStatus === 'active' },
+    { key: 'forwarding_phone', label: '転送先電話', done: Boolean(String(row.forwarding_phone ?? '').trim()) },
+    { key: 'forwarding_config', label: '転送運用設定', done: ['manual_on', 'manual_off', 'auto'].includes(String(row.forwarding_mode ?? 'manual_off')) },
+  ]
+  const completed = checks.filter((item) => item.done).length
+  return {
+    checks,
+    completed,
+    total: checks.length,
+    ready: completed === checks.length,
+    needs: checks.filter((item) => !item.done).map((item) => item.label),
+  }
+}
+
 function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: number; pharmacyAdminStatus?: string }) {
   const forwardingMode = row.forwarding_mode === 'manual_on' || row.forwarding_mode === 'manual_off' || row.forwarding_mode === 'auto'
     ? row.forwarding_mode
     : (row.forwarding_status === 'on' ? 'auto' : 'manual_off')
+  const pharmacyAdminStatus = extras?.pharmacyAdminStatus ?? 'uninvited'
+  const onboarding = deriveOnboarding({ ...row, forwarding_mode: forwardingMode }, pharmacyAdminStatus)
 
   return {
     id: String(row.id),
@@ -34,7 +53,8 @@ function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: 
     forwardingUpdatedAt: typeof row.forwarding_updated_at === 'string' ? row.forwarding_updated_at : null,
     regionId: typeof row.region_id === 'string' ? row.region_id : null,
     regionName: typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null,
-    pharmacyAdminStatus: extras?.pharmacyAdminStatus ?? 'uninvited',
+    pharmacyAdminStatus,
+    onboarding,
     createdAt: typeof row.created_at === 'string' ? row.created_at : null,
     updatedAt: typeof row.updated_at === 'string' ? row.updated_at : null,
   }

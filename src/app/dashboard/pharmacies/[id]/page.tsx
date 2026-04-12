@@ -26,6 +26,13 @@ type PharmacyDetailView = PharmacyItem & {
   forwardingAutoEnd?: string | null
   forwardingUpdatedByName?: string | null
   forwardingUpdatedAt?: string | null
+  onboarding?: {
+    checks: { key: string; label: string; done: boolean }[]
+    completed: number
+    total: number
+    ready: boolean
+    needs: string[]
+  }
 }
 
 const statusClass: Record<PharmacyItem['status'], string> = {
@@ -122,20 +129,14 @@ export default function PharmacyDetailPage() {
   }, [id])
 
   const onboardingChecks = useMemo(() => {
-    const checks = [
-      { label: '基本情報', done: Boolean(editForm.name.trim() && editForm.address.trim() && editForm.phone.trim()) },
-      { label: '薬局管理者', done: pharmacy?.pharmacyAdminStatus === 'active' },
-      { label: '転送先電話', done: Boolean(editForm.forwardingPhone.trim()) },
-      { label: '転送運用設定', done: forwardingMode === 'manual_on' || forwardingMode === 'manual_off' || forwardingMode === 'auto' },
-    ]
-    const completed = checks.filter((item) => item.done).length
-    return {
-      checks,
-      completed,
-      total: checks.length,
-      ready: completed === checks.length,
+    return pharmacy?.onboarding ?? {
+      checks: [],
+      completed: 0,
+      total: 0,
+      ready: false,
+      needs: [],
     }
-  }, [editForm.address, editForm.forwardingPhone, editForm.name, editForm.phone, forwardingMode, pharmacy?.pharmacyAdminStatus])
+  }, [pharmacy])
 
   if (role !== 'regional_admin') {
     return (
@@ -189,7 +190,7 @@ export default function PharmacyDetailPage() {
       ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
       : 'border-gray-500/40 bg-gray-500/20 text-gray-300'
 
-  const savePharmacy = async (overrides?: Partial<{ forwardingMode: ForwardingMode; forwardingAutoStart: string; forwardingAutoEnd: string }>) => {
+  const savePharmacy = async (overrides?: Partial<{ forwardingMode: ForwardingMode; forwardingAutoStart: string; forwardingAutoEnd: string; status: 'pending' | 'active' | 'suspended' | 'terminated' }>) => {
     if (guard()) return false
     setIsSaving(true)
     setSaveError(null)
@@ -202,6 +203,7 @@ export default function PharmacyDetailPage() {
           forwardingMode: overrides?.forwardingMode ?? forwardingMode,
           forwardingAutoStart: overrides?.forwardingAutoStart ?? autoStart,
           forwardingAutoEnd: overrides?.forwardingAutoEnd ?? autoEnd,
+          status: overrides?.status,
         }),
       })
       const data = await response.json()
@@ -293,6 +295,21 @@ export default function PharmacyDetailPage() {
             <Badge variant="outline" className={cn('border text-xs', onboardingChecks.ready ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
               {onboardingChecks.ready ? '利用開始の目安を満たしています' : 'まだ初期設定があります'}
             </Badge>
+          </div>
+          {onboardingChecks.needs.length > 0 && (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              未完了: {onboardingChecks.needs.join(' / ')}
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              disabled={isSaving || pharmacy.status === 'active' || !onboardingChecks.ready}
+              onClick={() => void savePharmacy({ status: 'active' })}
+              className="bg-emerald-600 text-white hover:bg-emerald-600/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {pharmacy.status === 'active' ? '利用開始済み' : '利用開始にする'}
+            </Button>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {onboardingChecks.checks.map((item) => (

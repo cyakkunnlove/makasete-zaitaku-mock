@@ -32,6 +32,13 @@ type PharmacyView = PharmacyItem & {
   forwardingAutoEnd?: string | null
   forwardingUpdatedByName?: string | null
   forwardingUpdatedAt?: string | null
+  onboarding?: {
+    checks: { key: string; label: string; done: boolean }[]
+    completed: number
+    total: number
+    ready: boolean
+    needs: string[]
+  }
 }
 
 const statusClass: Record<PharmacyStatus, string> = {
@@ -311,7 +318,7 @@ export default function PharmaciesPage() {
                   </div>
                   <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
                     <p className="inline-flex items-center gap-1 font-medium text-white"><AlertTriangle className="h-3.5 w-3.5 text-amber-400" />運用メモ</p>
-                    <p className="mt-1">{pharmacy.status === 'pending' ? '加盟後の初期設定・受託設定確認が必要' : '地域運用に接続済み。転送ルールの定期見直し対象'}</p>
+                    <p className="mt-1">{pharmacy.status === 'pending' ? ((pharmacy.onboarding?.needs?.length ?? 0) > 0 ? `未完了: ${pharmacy.onboarding?.needs?.join(' / ')}` : '加盟後の初期設定・受託設定確認が必要') : '地域運用に接続済み。転送ルールの定期見直し対象'}</p>
                   </div>
                 </div>
               </CardContent>
