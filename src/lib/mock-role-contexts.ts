@@ -10,6 +10,10 @@ export type MockRoleContextView = {
   isActive: boolean
 }
 
+export function getMockRoleContextLabel(context: Pick<MockRoleContextView, 'role' | 'regionName' | 'pharmacyName' | 'operationUnitName'>) {
+  return [context.role, context.regionName, context.pharmacyName, context.operationUnitName].filter(Boolean).join(' / ')
+}
+
 function nowIso() {
   return new Date().toISOString()
 }
@@ -171,4 +175,14 @@ export function toMockRoleContextViews(assignments: UserRoleAssignment[]): MockR
     isDefault: assignment.is_default,
     isActive: assignment.is_active,
   }))
+}
+
+export function getMockActiveRoleContext(role: UserRole, assignmentId?: string | null): MockRoleContextView | null {
+  const contexts = toMockRoleContextViews(getMockRoleAssignmentsByRole(role)).filter((item) => item.isActive)
+  if (contexts.length === 0) return null
+  if (assignmentId) {
+    const matched = contexts.find((item) => item.assignmentId === assignmentId)
+    if (matched) return matched
+  }
+  return contexts.find((item) => item.isDefault) ?? contexts[0] ?? null
 }

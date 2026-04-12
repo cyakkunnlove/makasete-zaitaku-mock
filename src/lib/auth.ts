@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import type { User, UserRole } from '@/types/database'
 import { MOCK_USERS } from '@/lib/mock-data'
 import { findAppUserByIdentity, findDemoUserByRole } from '@/lib/auth/user-bridge'
+import { getMockActiveRoleContext, type MockRoleContextView } from '@/lib/mock-role-contexts'
 
 export type AuthMode = 'cognito' | 'mock'
 
@@ -25,6 +26,7 @@ type JwtPayload = {
 export type CurrentUser = User & {
   authMode: AuthMode
   requiresReverification: boolean
+  activeRoleContext: MockRoleContextView | null
 }
 
 export function getAuthCookieNames() {
@@ -59,7 +61,7 @@ export function isReverificationRequired(lastReverifiedAt: string | null | undef
   return Date.now() - timestamp > REVERIFICATION_WINDOW_MS
 }
 
-function buildMockUser(role: UserRole): CurrentUser | null {
+function buildMockUser(role: UserRole, assignmentId?: string | null): CurrentUser | null {
   const mockUser = MOCK_USERS[role]
   if (!mockUser) return null
   return {
@@ -67,6 +69,7 @@ function buildMockUser(role: UserRole): CurrentUser | null {
     last_reverified_at: mockUser.last_reverified_at ?? mockUser.last_login_at ?? null,
     authMode: 'mock',
     requiresReverification: false,
+    activeRoleContext: getMockActiveRoleContext(role, assignmentId),
   }
 }
 
@@ -78,6 +81,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies()
 
   const demoRole = cookieStore.get(DEMO_SESSION_COOKIE)?.value
+  const activeRoleAssignmentId = cookieStore.get(ACTIVE_ROLE_ASSIGNMENT_COOKIE)?.value ?? null
   if (demoRole) {
     const bridgedUser = await findDemoUserByRole(demoRole as UserRole).catch(() => null)
     if (bridgedUser) {
@@ -85,10 +89,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
         ...bridgedUser,
         authMode: 'mock',
         requiresReverification: false,
+        activeRoleContext: getMockActiveRoleContext(bridgedUser.role, activeRoleAssignmentId),
       }
     }
 
-    const user = buildMockUser(demoRole as UserRole)
+    const user = buildMockUser(demoRole as UserRole, activeRoleAssignmentId)
     if (user) return user
   }
 
@@ -112,5 +117,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     ...appUser.user,
     authMode: 'cognito',
     requiresReverification: isReverificationRequired(appUser.user.last_reverified_at),
+    activeRoleContext: null,
   }
 }

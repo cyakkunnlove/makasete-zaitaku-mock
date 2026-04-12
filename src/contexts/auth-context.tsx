@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { UserRole } from '@/types/database'
 import type { AuthMode, CurrentUser } from '@/lib/auth'
+import type { MockRoleContextView } from '@/lib/mock-role-contexts'
 
 interface AuthContextType {
   user: CurrentUser | null
@@ -11,6 +12,7 @@ interface AuthContextType {
   isDemo: boolean
   authMode: AuthMode | null
   requiresReverification: boolean
+  activeRoleContext: MockRoleContextView | null
   signOut: () => Promise<void>
   switchRole: (role: string) => void
 }
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   isDemo: true,
   authMode: null,
   requiresReverification: false,
+  activeRoleContext: null,
   signOut: async () => {},
   switchRole: () => {},
 })
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isDemo: authMode === 'mock',
         authMode,
         requiresReverification: Boolean(user?.requiresReverification),
+        activeRoleContext: user?.activeRoleContext ?? null,
         signOut,
         switchRole,
       }}

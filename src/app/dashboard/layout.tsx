@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
+import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
 
 interface NavItem {
   href: string
@@ -117,7 +118,7 @@ function NightBadge() {
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, role, loading, signOut, authMode, requiresReverification } = useAuth()
+  const { user, role, loading, signOut, authMode, requiresReverification, activeRoleContext } = useAuth()
   const unreadFaxCount = 2
   const candidateCount = 3
   const pharmacyStaffStats = {
@@ -340,7 +341,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-200 truncate">{user?.full_name}</p>
-              <p className="text-xs text-gray-500">{role}</p>
+              <p className="text-xs text-gray-500">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role}</p>
             </div>
           </div>
           <Button
@@ -440,7 +441,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {authMode === 'mock' && (
         <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-100">
-          🎭 デモログイン中です。画面確認用の暫定モードで、最終的には Cognito ログインへ統一予定です。
+          🎭 デモログイン中です。画面確認用の暫定モードです。
+          {activeRoleContext && <span className="ml-2 text-amber-50">現在の立場: {getMockRoleContextLabel(activeRoleContext)}</span>}
         </div>
       )}
 

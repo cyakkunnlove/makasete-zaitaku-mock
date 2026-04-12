@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
 import { getUnifiedRoleLabel } from '@/lib/mock-data'
+import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -104,7 +105,7 @@ const settingsItems: MenuItem[] = [
 ]
 
 export default function MorePage() {
-  const { user, role, signOut, authMode } = useAuth()
+  const { user, role, signOut, authMode, activeRoleContext } = useAuth()
 
   const visibleItems = menuItems
     .filter((item) => canAccess(role, item.permission))
@@ -131,9 +132,10 @@ export default function MorePage() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-white">{user?.full_name ?? 'ゲスト'}</p>
-              <p className="text-xs text-gray-400">{role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
+              <p className="text-xs text-gray-400">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
               {authMode && <p className="text-[10px] text-gray-500">auth: {authMode}</p>}
+              {activeRoleContext && <p className="text-[10px] text-gray-500">assignment: {activeRoleContext.assignmentId}</p>}
             </div>
             <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg px-2.5 py-1.5">
               <Moon size={14} className="text-indigo-400" />
