@@ -39,6 +39,37 @@ function canManageTargetRole(actorRole: UserRole | null, targetRole: UserRole) {
   return canInvite(actorRole, targetRole)
 }
 
+function buildAccountAuditDetails(params: {
+  actorRole: UserRole | null
+  actorScope: ReturnType<typeof getCurrentScope>
+  target?: {
+    userId?: string | null
+    invitationId?: string | null
+    email?: string | null
+    role?: UserRole | null
+    regionId?: string | null
+    pharmacyId?: string | null
+  }
+  changes?: Record<string, unknown>
+  delivery?: Record<string, unknown>
+  auth?: Record<string, unknown>
+}) {
+  return {
+    actor_role: params.actorRole,
+    actor_region_id: params.actorScope.regionId,
+    actor_pharmacy_id: params.actorScope.pharmacyId,
+    target_user_id: params.target?.userId ?? null,
+    target_invitation_id: params.target?.invitationId ?? null,
+    target_email: params.target?.email ?? null,
+    target_role: params.target?.role ?? null,
+    target_region_id: params.target?.regionId ?? null,
+    target_pharmacy_id: params.target?.pharmacyId ?? null,
+    changes: params.changes ?? null,
+    delivery: params.delivery ?? null,
+    auth: params.auth ?? null,
+  }
+}
+
 export async function listManagedUsers(params: {
   actor: RoleAwareUser & { organization_id: string }
 }) {
@@ -187,15 +218,26 @@ export async function updateManagedUser(params: {
 
   await writeAuditLog({
     user: params.actor as never,
-    action: 'managed_user_updated',
+    action: 'account_user_updated',
     targetType: 'user',
     targetId: targetUser.id,
-    details: {
-      email: targetUser.email,
-      role: targetUser.role,
-      next_region_id: nextRegionId,
-      next_pharmacy_id: nextPharmacyId,
-    },
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        userId: targetUser.id,
+        email: targetUser.email,
+        role: targetUser.role,
+        regionId: nextRegionId,
+        pharmacyId: nextPharmacyId,
+      },
+      changes: {
+        full_name: normalizedName,
+        phone: normalizedPhone,
+        region_id: nextRegionId,
+        pharmacy_id: nextPharmacyId,
+      },
+    }),
   })
 
   return {
@@ -277,16 +319,27 @@ export async function setManagedUserStatus(params: {
 
   await writeAuditLog({
     user: params.actor as never,
-    action: params.nextStatus === 'active' ? 'managed_user_activated' : 'managed_user_suspended',
+    action: 'account_user_status_changed',
     targetType: 'user',
     targetId: targetUser.id,
-    details: {
-      email: targetUser.email,
-      role: targetUser.role,
-      next_status: params.nextStatus,
-      cognito_sync: cognitoResult.ok ? 'ok' : 'failed_or_skipped',
-      cognito_error: cognitoResult.ok ? null : cognitoResult.error,
-    },
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        userId: targetUser.id,
+        email: targetUser.email,
+        role: targetUser.role,
+        regionId: targetUser.region_id,
+        pharmacyId: targetUser.pharmacy_id,
+      },
+      changes: {
+        status: params.nextStatus,
+      },
+      auth: {
+        cognito_sync: cognitoResult.ok ? 'ok' : 'failed_or_skipped',
+        cognito_error: cognitoResult.ok ? null : cognitoResult.error,
+      },
+    }),
   })
 
   return {
@@ -449,12 +502,23 @@ export async function resendAccountInvitation(params: {
     action: 'account_invitation_resent',
     targetType: 'invitation',
     targetId: invitation.id,
-    details: {
-      email: invitation.email,
-      role: invitation.role,
-      message_id: messageId,
-      email_error: emailError,
-    },
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        invitationId: invitation.id,
+        userId: invitation.invited_user_id,
+        email: invitation.email,
+        role: invitation.role,
+        regionId: invitation.region_id,
+        pharmacyId: invitation.pharmacy_id,
+      },
+      delivery: {
+        email_sent: emailError === null,
+        message_id: messageId,
+        email_error: emailError,
+      },
+    }),
   })
 
   return {
@@ -523,10 +587,18 @@ export async function revokeAccountInvitation(params: {
     action: 'account_invitation_revoked',
     targetType: 'invitation',
     targetId: invitation.id,
-    details: {
-      email: invitation.email,
-      role: invitation.role,
-    },
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        invitationId: invitation.id,
+        userId: invitation.invited_user_id,
+        email: invitation.email,
+        role: invitation.role,
+        regionId: invitation.region_id,
+        pharmacyId: invitation.pharmacy_id,
+      },
+    }),
   })
 
   return { ok: true as const, status: 200, data: { invitationId: invitation.id } }
@@ -755,17 +827,30 @@ export async function createAccountInvitation(params: {
     action: 'account_invitation_created',
     targetType: 'user',
     targetId: createdUser.id,
-    details: {
-      created_email: createdUser.email,
-      created_role: createdUser.role,
-      region_id: normalized.regionId,
-      pharmacy_id: normalized.pharmacyId,
-      invitation_id: createdInvitation.id,
-      invitation_email_sent: emailSent,
-      invitation_message_id: messageId,
-      invitation_email_error: emailError,
-      auth_setup: 'cognito_signup_pending',
-    },
+    details: buildAccountAuditDetails({
+      actorRole,
+      actorScope,
+      target: {
+        userId: createdUser.id,
+        invitationId: createdInvitation.id,
+        email: createdUser.email,
+        role: createdUser.role,
+        regionId: normalized.regionId,
+        pharmacyId: normalized.pharmacyId,
+      },
+      changes: {
+        full_name: createdUser.full_name,
+        status: createdUser.status,
+      },
+      delivery: {
+        email_sent: emailSent,
+        message_id: messageId,
+        email_error: emailError,
+      },
+      auth: {
+        setup: 'cognito_signup_pending',
+      },
+    }),
   })
 
   return {
