@@ -1,15 +1,16 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { User, UserRole } from '@/types/database'
-import type { AuthMode } from '@/lib/auth'
+import type { UserRole } from '@/types/database'
+import type { AuthMode, CurrentUser } from '@/lib/auth'
 
 interface AuthContextType {
-  user: User | null
+  user: CurrentUser | null
   role: UserRole | null
   loading: boolean
   isDemo: boolean
   authMode: AuthMode | null
+  requiresReverification: boolean
   signOut: () => Promise<void>
   switchRole: (role: string) => void
 }
@@ -20,12 +21,13 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isDemo: true,
   authMode: null,
+  requiresReverification: false,
   signOut: async () => {},
   switchRole: () => {},
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<CurrentUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
 
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isDemo: authMode === 'mock',
         authMode,
+        requiresReverification: Boolean(user?.requiresReverification),
         signOut,
         switchRole,
       }}

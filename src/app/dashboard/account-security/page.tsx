@@ -12,6 +12,8 @@ export default function AccountSecurityPage() {
   const searchParams = useSearchParams()
   const passkeyStatus = searchParams.get('passkey')
   const passkeyError = searchParams.get('passkey_error')
+  const reauthRequired = searchParams.get('reauth') === 'required'
+  const nextPath = searchParams.get('next')
 
   const passkeyMessage = (() => {
     if (passkeyStatus === 'added') {
@@ -51,6 +53,18 @@ export default function AccountSecurityPage() {
           </Link>
         </Button>
       </div>
+
+      {reauthRequired && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm font-semibold text-white">再認証が必要です</p>
+            <p className="text-xs leading-6 text-gray-200/90">
+              12時間を超えたため、続行前にもう一度本人確認をお願いします。パスキーが使える場合はそちらを優先してください。
+            </p>
+            {nextPath && <p className="text-[11px] leading-5 text-gray-300">再認証後の戻り先: {nextPath}</p>}
+          </CardContent>
+        </Card>
+      )}
 
       {passkeyMessage && (
         <Card
@@ -143,7 +157,7 @@ export default function AccountSecurityPage() {
             <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
               <a href="/api/auth/login">
                 <LogIn size={16} className="mr-2" />
-                通常ログインを開く
+                {reauthRequired ? '再認証する' : '通常ログインを開く'}
               </a>
             </Button>
           </div>

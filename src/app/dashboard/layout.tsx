@@ -117,7 +117,7 @@ function NightBadge() {
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, role, loading, signOut, authMode } = useAuth()
+  const { user, role, loading, signOut, authMode, requiresReverification } = useAuth()
   const unreadFaxCount = 2
   const candidateCount = 3
   const pharmacyStaffStats = {
@@ -171,10 +171,30 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const unreadNotifCount = 3 // Mock unread count
 
+  useEffect(() => {
+    if (loading) return
+    if (authMode !== 'cognito') return
+    if (!requiresReverification) return
+    if (pathname.startsWith('/dashboard/account-security')) return
+
+    router.replace(`/dashboard/account-security?reauth=required&next=${encodeURIComponent(pathname)}`)
+  }, [authMode, loading, pathname, requiresReverification, router])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
         <div className="text-gray-400">読み込み中...</div>
+      </div>
+    )
+  }
+
+  if (authMode === 'cognito' && requiresReverification && !pathname.startsWith('/dashboard/account-security')) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center px-4 text-center">
+        <div className="max-w-md rounded-xl border border-[#2a3553] bg-[#111827] p-6 text-gray-200">
+          <p className="text-base font-semibold text-white">再認証が必要です</p>
+          <p className="mt-2 text-sm leading-6 text-gray-400">12時間を超えたため、セキュリティ確認画面へ移動しています。</p>
+        </div>
       </div>
     )
   }
