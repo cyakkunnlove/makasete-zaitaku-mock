@@ -30,6 +30,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/pharmacies', label: '加盟店管理', icon: <Building2 size={20} />, permission: 'pharmacies' },
   { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, permission: 'staff' },
   { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, permission: 'patients' },
+  { href: '/dashboard/calendar', label: 'カレンダー', icon: <Calendar size={20} />, permission: 'patients' },
   { href: '/dashboard/night-patients', label: '夜間患者検索', icon: <Search size={20} />, permission: 'patients' },
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
@@ -59,6 +60,7 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/requests')) return 'requests'
   if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
   if (pathname.startsWith('/dashboard/night-patients')) return 'patients'
+  if (pathname.startsWith('/dashboard/calendar')) return 'patients'
   if (pathname.startsWith('/dashboard/patients')) return 'patients'
   if (pathname.startsWith('/dashboard/pharmacies')) return 'pharmacies'
   if (pathname.startsWith('/dashboard/staff')) return 'staff'
@@ -255,6 +257,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             if (role === 'night_pharmacist' && item.href === '/dashboard/patients') return false
             if (item.href === '/dashboard/handovers') return false
             if ((role === 'pharmacy_staff' || role === 'pharmacy_admin') && item.href === '/dashboard/night-patients') return false
+            if ((role === 'regional_admin' || role === 'night_pharmacist') && item.href === '/dashboard/calendar') return false
             return true
           })
           .map((item) => {
