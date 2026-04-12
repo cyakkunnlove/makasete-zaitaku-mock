@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DEMO_ROLE, MOCK_USERS } from '@/lib/mock-data'
 
 const roleOptions = [
-  { value: 'system_admin', label: 'System Admin', destination: '/dashboard' },
-  { value: 'regional_admin', label: 'Regional Admin', destination: '/dashboard' },
-  { value: 'pharmacy_admin', label: 'Pharmacy Admin', destination: '/dashboard' },
-  { value: 'pharmacy_staff', label: 'Pharmacy Staff', destination: '/dashboard' },
-  { value: 'night_pharmacist', label: 'Night Pharmacist', destination: '/dashboard/night-patients' },
+  { value: 'system_admin', label: 'システム管理者', destination: '/dashboard' },
+  { value: 'regional_admin', label: 'リージョン管理者', destination: '/dashboard' },
+  { value: 'pharmacy_admin', label: '薬局管理者', destination: '/dashboard' },
+  { value: 'pharmacy_staff', label: '薬局スタッフ', destination: '/dashboard' },
+  { value: 'night_pharmacist', label: '夜間薬剤師', destination: '/dashboard/night-patients' },
 ]
 
 function LoginPageContent() {
@@ -35,7 +35,7 @@ function LoginPageContent() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-2xl">🧭</div>
             <div>
               <h1 className="text-xl font-bold text-white">ログイン</h1>
-              <p className="text-sm text-gray-400">Cognito 本番ログインと、移行期間用のデモログインを選べます。対応環境では、ログイン時にパスキーを利用できる場合があります。</p>
+              <p className="text-sm text-gray-400">本番ログインと確認用デモログインを選べます。対応環境では、メールアドレス入力後にパスキーを利用できる場合があります。</p>
             </div>
           </div>
         </CardHeader>
@@ -48,14 +48,14 @@ function LoginPageContent() {
           )}
 
           <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-4 text-sm text-gray-300">
-            <p>本番は Cognito 認証で入り、アカウント属性に応じた role / 表示内容へ切り替えます。移行期間中はデモログインも残します。</p>
+            <p>本番は Cognito 認証で入り、アカウント情報に応じて立場や表示内容が切り替わります。移行期間中は確認用のデモログインも残しています。</p>
           </div>
 
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100/90">
             <p className="font-medium text-white">ログイン方法について</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-6">
               <li>パスキーは任意です</li>
-              <li>対応環境では、Eメール入力後にパスキーを利用できる場合があります</li>
+              <li>対応環境では、メールアドレス入力後にパスキーを利用できる場合があります</li>
               <li>パスキーが使えない場合でも、通常ログインを利用できます</li>
             </ul>
           </div>
@@ -63,15 +63,15 @@ function LoginPageContent() {
           <div className="space-y-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4">
             <div>
               <p className="text-sm font-semibold text-white">本番ログイン</p>
-              <p className="mt-1 text-xs text-indigo-100/80">Cognito の認証画面に移動してログインします。対応環境では、Eメール入力後にパスキーを利用できる場合があります。うまくいかない場合は通常のログイン方法も利用できます。</p>
+              <p className="mt-1 text-xs text-indigo-100/80">Cognito の認証画面に移動してログインします。対応環境では、メールアドレス入力後にパスキーを利用できる場合があります。うまくいかない場合は通常のパスワードログインも利用できます。</p>
             </div>
             <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-500" onClick={() => router.push('/api/auth/login')}>
-              Cognitoでログイン
+              本番環境でログイン
             </Button>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-gray-300">デモログインするロール</Label>
+            <Label className="text-gray-300">デモログインする立場</Label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-200">
                 <SelectValue placeholder="ロールを選択" />
@@ -89,12 +89,12 @@ function LoginPageContent() {
           <div className="rounded-lg border border-[#2a3553] bg-[#0f172a] p-4 text-sm text-gray-300">
             <p className="font-medium text-white">選択中</p>
             <p className="mt-2">ユーザー: {MOCK_USERS[role]?.full_name}</p>
-            <p className="text-gray-400">遷移先: {selected.destination}（デモ）</p>
+            <p className="text-gray-400">移動先: {selected.destination}（デモ）</p>
           </div>
 
           <div className="flex gap-3">
             <Button className="flex-1 bg-indigo-600 text-white hover:bg-indigo-500" onClick={handleDemoLogin}>
-              このロールでデモログイン
+              この立場でデモログイン
             </Button>
             <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => router.push('/')}>
               入口へ戻る
