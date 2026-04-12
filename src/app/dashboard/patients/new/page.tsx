@@ -717,7 +717,7 @@ export default function NewPatientPage() {
       <div className="space-y-4 text-gray-100">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">患者登録は自局の Pharmacy Staff / Pharmacy Admin のみが行えます。</p>
+          <p className="text-xs text-gray-400">患者登録は自局の薬局スタッフ・薬局管理者のみが行えます。</p>
         </div>
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-6 text-sm text-gray-300">
@@ -733,7 +733,7 @@ export default function NewPatientPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">まずは最低限の情報で登録できます。必要な情報はあとから追加できます。</p>
+          <p className="text-xs text-gray-400">まずは必要最小限で登録できます。細かい情報はあとから落ち着いて追加できます。</p>
         </div>
         <div className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
           登録先: <span className="font-medium text-white">現在の所属先</span>
@@ -791,7 +791,7 @@ export default function NewPatientPage() {
           </div>
           <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
             <p className="font-medium text-white">登録ルール</p>
-            <p className="mt-1">氏名、生年月日、住所、初回訪問予定日または訪問曜日が入っていれば登録できます。ステータスと所属先は自動で設定します。</p>
+            <p className="mt-1">氏名、生年月日、住所に加えて、初回訪問予定日または訪問曜日が入っていれば登録できます。状態と所属先は自動で設定します。</p>
           </div>
         </CardContent>
       </Card>
@@ -933,7 +933,7 @@ export default function NewPatientPage() {
           <CardContent className="space-y-4">
             <p className="text-xs text-gray-400">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
             <div className="grid gap-3 md:grid-cols-2">
-              <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 夜間訪問注意 など" /></div>
+              <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
               <div className="space-y-3">
                 <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
                 <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>

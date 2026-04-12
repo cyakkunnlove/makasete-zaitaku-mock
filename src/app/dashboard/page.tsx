@@ -212,7 +212,7 @@ function RegionalAdminDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-              <p className="text-[10px] text-emerald-200/80">夜間受託有効</p>
+              <p className="text-[10px] text-emerald-200/80">転送運用設定済み</p>
               <p className="mt-1 text-2xl font-bold text-emerald-300">{forwardingReady}</p>
             </div>
             <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
@@ -253,7 +253,7 @@ function RegionalAdminDashboard() {
               <p className="mt-1 text-2xl font-bold text-indigo-300">{unassignedRequests}</p>
             </div>
             <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
-              <p className="text-[10px] text-cyan-200/80">未確認申し送り</p>
+              <p className="text-[10px] text-cyan-200/80">未確認の連携事項</p>
               <p className="mt-1 text-2xl font-bold text-cyan-300">{unconfirmedHandovers}</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ function RegionalAdminDashboard() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <Timer className="h-4 w-4 text-indigo-400" />
-            SLA達成率（今夜）
+            当日対応の基準達成率
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -282,7 +282,7 @@ function RegionalAdminDashboard() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white">
             <Stethoscope className="h-4 w-4 text-indigo-400" />
-            本日の当直スタッフ
+            本日の担当スタッフ
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -290,7 +290,7 @@ function RegionalAdminDashboard() {
             const today = MOCK_FLOW_DATE
             const todayShifts = shiftData.filter((shift) => shift.shiftDate === today)
             if (todayShifts.length === 0) {
-              return <p className="text-xs text-gray-500">本日の当直データがありません。</p>
+              return <p className="text-xs text-gray-500">本日の担当データがありません。</p>
             }
             return todayShifts.map((shift) => {
               const activeRequest = requestData.find((req) => req.assigneeId === shift.pharmacistId && ['dispatched', 'arrived', 'in_progress'].includes(req.status))
