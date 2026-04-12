@@ -38,6 +38,80 @@ function canManageTargetRole(actorRole: UserRole | null, targetRole: UserRole) {
   return canInvite(actorRole, targetRole)
 }
 
+export async function setManagedUserStatus(params: {
+  actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
+  userId: string
+  nextStatus: 'active' | 'suspended'
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  const userResponse = await supabase
+    .from('users')
+    .select('id, email, role, status, region_id, pharmacy_id')
+    .eq('id', params.userId)
+    .eq('organization_id', params.actor.organization_id)
+    .maybeSingle()
+
+  const targetUser = userResponse.data as {
+    id: string
+    email: string
+    role: UserRole
+    status: string
+    region_id: string | null
+    pharmacy_id: string | null
+  } | null
+
+  if (userResponse.error) {
+    return { ok: false as const, status: 500, error: 'user_lookup_failed', details: userResponse.error.message }
+  }
+  if (!targetUser) {
+    return { ok: false as const, status: 404, error: 'user_not_found' }
+  }
+  if (!canManageTargetRole(actorRole, targetUser.role)) {
+    return { ok: false as const, status: 403, error: 'forbidden_target_role' }
+  }
+  if (actorRole === 'regional_admin' && actorScope.regionId !== targetUser.region_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== targetUser.pharmacy_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (targetUser.status === params.nextStatus) {
+    return { ok: true as const, status: 200, data: { userId: targetUser.id, email: targetUser.email, status: targetUser.status, alreadyApplied: true } }
+  }
+
+  const now = new Date().toISOString()
+  const updateResponse = await supabase
+    .from('users')
+    .update({
+      status: params.nextStatus,
+      is_active: params.nextStatus === 'active',
+      updated_at: now,
+    } as never)
+    .eq('id', targetUser.id)
+
+  if (updateResponse.error) {
+    return { ok: false as const, status: 500, error: 'user_status_update_failed', details: updateResponse.error.message }
+  }
+
+  await writeAuditLog({
+    user: params.actor as never,
+    action: params.nextStatus === 'active' ? 'managed_user_activated' : 'managed_user_suspended',
+    targetType: 'user',
+    targetId: targetUser.id,
+    details: {
+      email: targetUser.email,
+      role: targetUser.role,
+      next_status: params.nextStatus,
+      cognito_sync: 'not_yet_connected',
+    },
+  })
+
+  return { ok: true as const, status: 200, data: { userId: targetUser.id, email: targetUser.email, status: params.nextStatus, cognitoSync: 'not_yet_connected' } }
+}
+
 export async function listAccountInvitations(params: {
   actor: RoleAwareUser & { organization_id: string }
 }) {

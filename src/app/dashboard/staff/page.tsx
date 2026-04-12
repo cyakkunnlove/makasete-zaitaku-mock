@@ -125,6 +125,7 @@ export default function StaffPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: string; expires_at: string; last_sent_at: string | null }>>([])
   const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
+  const [userActionId, setUserActionId] = useState<string | null>(null)
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
@@ -308,6 +309,24 @@ export default function StaffPage() {
     setIsSubmitting(false)
   }
 
+  const handleUserStatusChange = async (userId: string, nextStatus: 'active' | 'inactive') => {
+    if (guard()) return
+    setUserActionId(userId)
+    setErrorMessage(null)
+    try {
+      const endpoint = nextStatus === 'active' ? `/api/users/${userId}/activate` : `/api/users/${userId}/suspend`
+      const response = await fetch(endpoint, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'user_status_update_failed')
+      setToast(nextStatus === 'active' ? 'アカウントを再開しました' : 'アカウントを停止しました')
+      setStaffMembers((prev) => prev.map((item) => item.id === userId ? { ...item, status: nextStatus } : item))
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'user_status_update_failed')
+    } finally {
+      setUserActionId(null)
+    }
+  }
+
   const handleResendInvitation = async (invitationId: string) => {
     if (guard()) return
     setInvitationActionId(invitationId)
@@ -469,9 +488,20 @@ export default function StaffPage() {
                     <p>電話: {member.phone}</p>
                     <p>メール: {member.email}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
-                    {member.status === 'active' ? 'active' : 'inactive'}
-                  </Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
+                      {member.status === 'active' ? 'active' : 'inactive'}
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
+                      disabled={userActionId === member.id}
+                      onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                    >
+                      {member.status === 'active' ? '停止' : '再開'}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -485,7 +515,8 @@ export default function StaffPage() {
                   <TableHead className="text-gray-400">役割</TableHead>
                   <TableHead className="text-gray-400">電話</TableHead>
                   <TableHead className="text-gray-400">メール</TableHead>
-                  <TableHead className="text-right text-gray-400">状態</TableHead>
+                  <TableHead className="text-gray-400">状態</TableHead>
+                  <TableHead className="text-right text-gray-400">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -499,10 +530,21 @@ export default function StaffPage() {
                     </TableCell>
                     <TableCell className="text-gray-300">{member.phone}</TableCell>
                     <TableCell className="text-gray-300">{member.email}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
                         {member.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
+                        disabled={userActionId === member.id}
+                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                      >
+                        {member.status === 'active' ? '停止' : '再開'}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

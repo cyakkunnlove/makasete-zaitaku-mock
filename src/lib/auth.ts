@@ -125,6 +125,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     }
   }
 
+  if (!appUser.user.is_active || appUser.user.status !== 'active') {
+    return null
+  }
+
   return {
     ...appUser.user,
     authMode: 'cognito',
