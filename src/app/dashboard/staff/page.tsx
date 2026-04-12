@@ -44,6 +44,7 @@ import {
 } from '@/lib/mock-data'
 
 type StaffStatus = 'active' | 'inactive'
+type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 
 type RoleFilter = 'all' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type AddStaffRole = 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
@@ -70,6 +71,25 @@ const roleClass: Record<UserRole, string> = {
 const statusClass: Record<StaffStatus, string> = {
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   inactive: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+}
+
+const invitationStatusClass: Record<InvitationStatus, string> = {
+  pending: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  expired: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+  accepted: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  revoked: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+}
+
+const statusLabel: Record<StaffStatus, string> = {
+  active: '利用中',
+  inactive: '停止中',
+}
+
+const invitationStatusLabel: Record<InvitationStatus, string> = {
+  pending: '招待中',
+  expired: '期限切れ',
+  accepted: '受諾済み',
+  revoked: '取消済み',
 }
 
 const regionalFilterItems: Array<{ key: RoleFilter; label: string }> = [
@@ -122,7 +142,9 @@ export default function StaffPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: string; expires_at: string; last_sent_at: string | null }>>([])
+  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: InvitationStatus; expires_at: string; last_sent_at: string | null }>>([])
+  const [isUserListLoading, setIsUserListLoading] = useState(false)
+  const [isInvitationListLoading, setIsInvitationListLoading] = useState(false)
   const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
   const [userActionId, setUserActionId] = useState<string | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -150,6 +172,10 @@ export default function StaffPage() {
     if (activeFilter === 'all') return visibleStaffMembers
     return visibleStaffMembers.filter((member) => member.role === activeFilter)
   }, [activeFilter, visibleStaffMembers])
+
+  const activeStaffCount = visibleStaffMembers.filter((member) => member.status === 'active').length
+  const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'inactive').length
+  const pendingInvitationCount = invitations.filter((invitation) => invitation.status === 'pending').length
 
   useEffect(() => {
     if (!isSystemAdmin) return
@@ -217,6 +243,8 @@ export default function StaffPage() {
   useEffect(() => {
     if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return
     let cancelled = false
+    setIsUserListLoading(true)
+    setIsInvitationListLoading(true)
 
     fetch('/api/account-invitations?resource=users', { cache: 'no-store' })
       .then(async (response) => {
@@ -229,6 +257,10 @@ export default function StaffPage() {
         if (cancelled) return
         setStaffMembers([])
       })
+      .finally(() => {
+        if (cancelled) return
+        setIsUserListLoading(false)
+      })
 
     fetch('/api/account-invitations', { cache: 'no-store' })
       .then(async (response) => {
@@ -240,6 +272,10 @@ export default function StaffPage() {
       .catch(() => {
         if (cancelled) return
         setInvitations([])
+      })
+      .finally(() => {
+        if (cancelled) return
+        setIsInvitationListLoading(false)
       })
     return () => {
       cancelled = true
@@ -293,7 +329,7 @@ export default function StaffPage() {
                 : 'pharmacy_staff') as AddStaffRole,
             phone: formData.phone,
             email: data.user.email,
-            status: 'active',
+            status: 'inactive',
           },
           ...prev,
         ])
@@ -459,7 +495,7 @@ export default function StaffPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待メール送信を行います' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の作成、夜間シフト管理を行います' : '自店スタッフの作成・停止・連絡先を管理'}</p>
+          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の招待、状態変更、連絡先更新を行います' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、夜間シフト管理を行います' : '自店スタッフの招待、状態変更、連絡先更新を行います'}</p>
         </div>
 
         {pageTab === 'staff' && (
@@ -471,7 +507,7 @@ export default function StaffPage() {
             className="bg-indigo-500 text-white hover:bg-indigo-500/90"
           >
             <Plus className="h-4 w-4" />
-            スタッフ追加
+            招待する
           </Button>
         )}
       </div>
@@ -524,6 +560,27 @@ export default function StaffPage() {
       {/* ===== Staff List Tab ===== */}
       {(isSystemAdmin || isPharmacyAdmin || pageTab === 'staff') && (
         <>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <p className="text-xs text-gray-400">現在利用中</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{activeStaffCount}人</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <p className="text-xs text-gray-400">停止中</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{inactiveStaffCount}人</p>
+              </CardContent>
+            </Card>
+            <Card className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="p-4">
+                <p className="text-xs text-gray-400">招待中</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{pendingInvitationCount}件</p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardContent className="p-4">
               <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as RoleFilter)}>
@@ -543,7 +600,15 @@ export default function StaffPage() {
           </Card>
 
           <div className="grid grid-cols-1 gap-3 lg:hidden">
-            {filteredStaff.map((member) => (
+            {isUserListLoading ? (
+              <Card className="border-[#2a3553] bg-[#1a2035]">
+                <CardContent className="p-4 text-sm text-gray-400">アカウント一覧を読み込み中です。</CardContent>
+              </Card>
+            ) : filteredStaff.length === 0 ? (
+              <Card className="border-[#2a3553] bg-[#1a2035]">
+                <CardContent className="p-4 text-sm text-gray-400">表示できるアカウントはまだありません。</CardContent>
+              </Card>
+            ) : filteredStaff.map((member) => (
               <Card key={member.id} className="border-[#2a3553] bg-[#1a2035]">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -558,7 +623,7 @@ export default function StaffPage() {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
-                      {member.status === 'active' ? 'active' : 'inactive'}
+                      {statusLabel[member.status]}
                     </Badge>
                     <div className="flex gap-2">
                       <Button
@@ -599,7 +664,15 @@ export default function StaffPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStaff.map((member) => (
+                {isUserListLoading ? (
+                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
+                    <TableCell colSpan={6} className="text-center text-sm text-gray-400">アカウント一覧を読み込み中です。</TableCell>
+                  </TableRow>
+                ) : filteredStaff.length === 0 ? (
+                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
+                    <TableCell colSpan={6} className="text-center text-sm text-gray-400">表示できるアカウントはまだありません。</TableCell>
+                  </TableRow>
+                ) : filteredStaff.map((member) => (
                   <TableRow key={member.id} className="border-[#2a3553] hover:bg-[#11182c]">
                     <TableCell className="font-medium text-white">{member.name}</TableCell>
                     <TableCell>
@@ -611,7 +684,7 @@ export default function StaffPage() {
                     <TableCell className="text-gray-300">{member.email}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
-                        {member.status}
+                        {statusLabel[member.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -648,7 +721,9 @@ export default function StaffPage() {
               <CardDescription className="text-gray-400">未受諾の招待は再送または取消できます。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {invitations.length === 0 ? (
+              {isInvitationListLoading ? (
+                <p className="text-sm text-gray-400">招待一覧を読み込み中です。</p>
+              ) : invitations.length === 0 ? (
                 <p className="text-sm text-gray-400">招待中のアカウントはまだありません。</p>
               ) : (
                 invitations.map((invitation) => (
@@ -656,8 +731,16 @@ export default function StaffPage() {
                     <div className="space-y-1 text-sm text-gray-300">
                       <p className="font-medium text-white">{invitation.email}</p>
                       <p>役割: {roleLabel[invitation.role]}</p>
-                      <p>状態: {invitation.status}</p>
+                      <div className="flex items-center gap-2">
+                        <span>状態:</span>
+                        <Badge variant="outline" className={cn('border text-xs', invitationStatusClass[invitation.status])}>
+                          {invitationStatusLabel[invitation.status]}
+                        </Badge>
+                      </div>
                       <p>有効期限: {new Date(invitation.expires_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                      {invitation.last_sent_at && (
+                        <p>最終送信: {new Date(invitation.last_sent_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -898,8 +981,8 @@ export default function StaffPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-white">スタッフを追加</DialogTitle>
-            <DialogDescription className="text-gray-400">権限と連絡先を登録します。</DialogDescription>
+            <DialogTitle className="text-white">アカウントを招待</DialogTitle>
+            <DialogDescription className="text-gray-400">氏名、役割、連絡先を登録して招待メールを送ります。</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddStaff} className="space-y-4">
@@ -937,22 +1020,10 @@ export default function StaffPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-300">状態</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, status: value as StaffStatus }))
-                  }
-                  disabled={isSystemAdmin}
-                >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="active">active</SelectItem>
-                    <SelectItem value="inactive">inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-gray-300">招待後の扱い</Label>
+                <div className="rounded-md border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-sm text-gray-300">
+                  招待メールを送信し、受諾後に利用開始します。
+                </div>
               </div>
             </div>
 
