@@ -29,7 +29,7 @@ import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 
 export default function PatientsPage() {
-  const { role, user } = useAuth()
+  const { role, user, authMode } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
@@ -42,6 +42,11 @@ export default function PatientsPage() {
   const ownPharmacyId = getScopedPharmacyId(user)
 
   useEffect(() => {
+    if (authMode === 'cognito') {
+      setRegisteredPatients([])
+      return
+    }
+
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
@@ -51,7 +56,7 @@ export default function PatientsPage() {
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+  }, [authMode])
 
   useEffect(() => {
     if (!isDayContext || !ownPharmacyId) return
@@ -105,9 +110,10 @@ export default function PatientsPage() {
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
   const fallbackRegisteredPatients = useMemo(() => {
+    if (authMode === 'cognito') return []
     if (!isDayContext || databasePatients.length === 0 || searchQuery.trim()) return registeredPatients
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
-  }, [databasePatients.length, isDayContext, registeredPatients, searchQuery])
+  }, [authMode, databasePatients.length, isDayContext, registeredPatients, searchQuery])
 
   const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients, isRegionalAdmin])
 
