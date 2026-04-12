@@ -87,7 +87,7 @@ function getPathPermission(pathname: string): PermissionKey {
   return 'dashboard'
 }
 
-function NightBadge() {
+function NightBadge({ role }: { role: string | null | undefined }) {
   const [isNight, setIsNight] = useState(false)
   const [countdown, setCountdown] = useState('')
 
@@ -119,11 +119,13 @@ function NightBadge() {
 
   if (!isNight) return null
 
+  const label = role === 'night_pharmacist' ? '夜間対応時間' : '時間外表示'
+
   return (
-    <div className="flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 rounded-lg px-3 py-2 text-sm">
+    <div className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/20 px-3 py-2 text-sm">
       <Moon size={16} className="text-indigo-400" />
-      <span className="text-indigo-300 font-medium">夜間モード</span>
-      <span className="text-indigo-400 text-xs ml-auto">残り {countdown}</span>
+      <span className="font-medium text-indigo-300">{label}</span>
+      <span className="ml-auto text-xs text-indigo-400">残り {countdown}</span>
     </div>
   )
 }
@@ -221,14 +223,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             <span className="text-3xl">🌙</span>
             <div>
               <h1 className="font-bold text-white text-lg">マカセテ在宅</h1>
-              <p className="text-xs text-gray-500">夜間薬局コーディネーション</p>
+              <p className="text-xs text-gray-500">在宅訪問オペレーション</p>
             </div>
           </div>
         </div>
 
         {/* Night Badge */}
         <div className="px-4 pt-4">
-          <NightBadge />
+          <NightBadge role={role} />
         </div>
 
         {role === 'night_pharmacist' && (

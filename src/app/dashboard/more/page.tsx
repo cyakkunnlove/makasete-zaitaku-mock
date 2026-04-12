@@ -157,9 +157,9 @@ export default function MorePage() {
               {authMode && <p className="text-[10px] text-gray-500">auth: {authMode}</p>}
               {activeRoleContext && <p className="text-[10px] text-gray-500">assignment: {activeRoleContext.assignmentId}</p>}
             </div>
-            <div className="flex items-center gap-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/20 px-2.5 py-1.5">
               <Moon size={14} className="text-indigo-400" />
-              <span className="text-xs text-indigo-300">夜間</span>
+              <span className="text-xs text-indigo-300">稼働中</span>
             </div>
           </div>
         </CardContent>
