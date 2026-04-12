@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -11,28 +11,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import {
-  ArrowLeft,
-  Building2,
-  CreditCard,
-  Clock3,
-  Settings2,
-  Users,
-} from 'lucide-react'
-import {
-  pharmacyData,
-  billingData,
-  requestData,
-  statusMeta,
-  type PharmacyItem,
-} from '@/lib/mock-data'
+import { ArrowLeft, Building2, CheckCircle2, Clock3, CreditCard, Settings2, Users } from 'lucide-react'
+import { billingData, requestData, type PharmacyItem } from '@/lib/mock-data'
 
 type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
+type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
 
 type PharmacyDetailView = PharmacyItem & {
   regionId?: string | null
   regionName?: string | null
   pharmacyAdminStatus?: PharmacyAdminStatus
+  forwardingMode?: ForwardingMode
+  forwardingAutoStart?: string | null
+  forwardingAutoEnd?: string | null
+  forwardingUpdatedByName?: string | null
+  forwardingUpdatedAt?: string | null
 }
 
 const statusClass: Record<PharmacyItem['status'], string> = {
@@ -61,27 +54,32 @@ const adminStatusClass: Record<PharmacyAdminStatus, string> = {
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
 }
 
+function formatJst(value?: string | null) {
+  if (!value) return '未設定'
+  return new Date(value).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
+}
+
 export default function PharmacyDetailPage() {
   const { role } = useAuth()
   const { guard, requiresReverification } = useReauthGuard()
   const params = useParams()
   const id = params.id as string
 
-  const [pharmacy, setPharmacy] = useState<PharmacyDetailView | null>(pharmacyData.find((p) => p.id === id) ?? null)
+  const [pharmacy, setPharmacy] = useState<PharmacyDetailView | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const billings = billingData.filter((b) => b.pharmacyId === id)
   const requests = requestData.filter((r) => r.pharmacyId === id)
   const recentRequests = requests.slice(0, 5)
 
-  const [forwardingMode, setForwardingMode] = useState<'manual_on' | 'manual_off' | 'auto'>(pharmacy?.forwarding ? 'auto' : 'manual_off')
+  const [forwardingMode, setForwardingMode] = useState<ForwardingMode>('manual_off')
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: '', address: '', phone: '', fax: '', forwardingPhone: '' })
   const [autoStart, setAutoStart] = useState('22:00')
   const [autoEnd, setAutoEnd] = useState('06:00')
-  const [lastUpdatedBy, setLastUpdatedBy] = useState('薬局管理者')
-  const [lastUpdatedAt, setLastUpdatedAt] = useState('2026-03-15 13:10')
+  const [lastUpdatedBy, setLastUpdatedBy] = useState('未設定')
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -95,14 +93,19 @@ export default function PharmacyDetailPage() {
         const data = await response.json()
         if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacy_fetch_failed')
         if (cancelled) return
-        setPharmacy(data.pharmacy)
-        setForwardingMode(data.pharmacy?.forwarding ? 'auto' : 'manual_off')
+        const nextPharmacy = data.pharmacy as PharmacyDetailView
+        setPharmacy(nextPharmacy)
+        setForwardingMode(nextPharmacy.forwardingMode ?? (nextPharmacy.forwarding ? 'auto' : 'manual_off'))
+        setAutoStart(nextPharmacy.forwardingAutoStart ?? '22:00')
+        setAutoEnd(nextPharmacy.forwardingAutoEnd ?? '06:00')
+        setLastUpdatedBy(nextPharmacy.forwardingUpdatedByName ?? '未設定')
+        setLastUpdatedAt(nextPharmacy.forwardingUpdatedAt ?? null)
         setEditForm({
-          name: data.pharmacy?.name ?? '',
-          address: data.pharmacy?.address ?? '',
-          phone: data.pharmacy?.phone ?? '',
-          fax: data.pharmacy?.fax ?? '',
-          forwardingPhone: data.pharmacy?.forwardingPhone ?? '',
+          name: nextPharmacy.name ?? '',
+          address: nextPharmacy.address ?? '',
+          phone: nextPharmacy.phone ?? '',
+          fax: nextPharmacy.fax ?? '',
+          forwardingPhone: nextPharmacy.forwardingPhone ?? '',
         })
       } catch (error) {
         if (cancelled) return
@@ -117,6 +120,22 @@ export default function PharmacyDetailPage() {
       cancelled = true
     }
   }, [id])
+
+  const onboardingChecks = useMemo(() => {
+    const checks = [
+      { label: '基本情報', done: Boolean(editForm.name.trim() && editForm.address.trim() && editForm.phone.trim()) },
+      { label: '薬局管理者', done: pharmacy?.pharmacyAdminStatus === 'active' },
+      { label: '転送先電話', done: Boolean(editForm.forwardingPhone.trim()) },
+      { label: '転送運用設定', done: forwardingMode === 'manual_on' || forwardingMode === 'manual_off' || forwardingMode === 'auto' },
+    ]
+    const completed = checks.filter((item) => item.done).length
+    return {
+      checks,
+      completed,
+      total: checks.length,
+      ready: completed === checks.length,
+    }
+  }, [editForm.address, editForm.forwardingPhone, editForm.name, editForm.phone, forwardingMode, pharmacy?.pharmacyAdminStatus])
 
   if (role !== 'regional_admin') {
     return (
@@ -170,46 +189,59 @@ export default function PharmacyDetailPage() {
       ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
       : 'border-gray-500/40 bg-gray-500/20 text-gray-300'
 
-  const reflectManual = (mode: 'manual_on' | 'manual_off') => {
-    if (guard()) return
-    setForwardingMode(mode)
-    setLastUpdatedBy('薬局管理者')
-    setLastUpdatedAt('2026-03-15 13:10')
-  }
-
-  const saveAutoSchedule = () => {
-    if (guard()) return
-    setForwardingMode('auto')
-    setLastUpdatedBy('薬局管理者')
-    setLastUpdatedAt('2026-03-15 13:10')
-  }
-
-  const handleSaveBasicInfo = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (guard()) return
+  const savePharmacy = async (overrides?: Partial<{ forwardingMode: ForwardingMode; forwardingAutoStart: string; forwardingAutoEnd: string }>) => {
+    if (guard()) return false
     setIsSaving(true)
     setSaveError(null)
     try {
       const response = await fetch(`/api/pharmacies/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          ...editForm,
+          forwardingMode: overrides?.forwardingMode ?? forwardingMode,
+          forwardingAutoStart: overrides?.forwardingAutoStart ?? autoStart,
+          forwardingAutoEnd: overrides?.forwardingAutoEnd ?? autoEnd,
+        }),
       })
       const data = await response.json()
       if (!response.ok || !data.ok) throw new Error(data.error ?? 'pharmacy_update_failed')
-      setPharmacy(data.pharmacy)
+      const nextPharmacy = data.pharmacy as PharmacyDetailView
+      setPharmacy(nextPharmacy)
+      setForwardingMode(nextPharmacy.forwardingMode ?? 'manual_off')
+      setAutoStart(nextPharmacy.forwardingAutoStart ?? '22:00')
+      setAutoEnd(nextPharmacy.forwardingAutoEnd ?? '06:00')
+      setLastUpdatedBy(nextPharmacy.forwardingUpdatedByName ?? '未設定')
+      setLastUpdatedAt(nextPharmacy.forwardingUpdatedAt ?? null)
       setEditForm({
-        name: data.pharmacy?.name ?? '',
-        address: data.pharmacy?.address ?? '',
-        phone: data.pharmacy?.phone ?? '',
-        fax: data.pharmacy?.fax ?? '',
-        forwardingPhone: data.pharmacy?.forwardingPhone ?? '',
+        name: nextPharmacy.name ?? '',
+        address: nextPharmacy.address ?? '',
+        phone: nextPharmacy.phone ?? '',
+        fax: nextPharmacy.fax ?? '',
+        forwardingPhone: nextPharmacy.forwardingPhone ?? '',
       })
+      return true
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'pharmacy_update_failed')
+      return false
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const reflectManual = async (mode: 'manual_on' | 'manual_off') => {
+    const saved = await savePharmacy({ forwardingMode: mode })
+    if (saved) setForwardingMode(mode)
+  }
+
+  const saveAutoSchedule = async () => {
+    const saved = await savePharmacy({ forwardingMode: 'auto', forwardingAutoStart: autoStart, forwardingAutoEnd: autoEnd })
+    if (saved) setForwardingMode('auto')
+  }
+
+  const handleSaveBasicInfo = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    await savePharmacy()
   }
 
   return (
@@ -248,6 +280,32 @@ export default function PharmacyDetailPage() {
       </section>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base text-white"><CheckCircle2 className="h-4 w-4 text-emerald-400" />利用開始の目安</CardTitle>
+          <CardDescription className="text-gray-400">危ない自動切替はまだ入れず、まずは加盟店ごとの準備状況が見えるようにしています。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-white">準備状況</p>
+              <p className="text-xs text-gray-400">{onboardingChecks.completed} / {onboardingChecks.total} 項目完了</p>
+            </div>
+            <Badge variant="outline" className={cn('border text-xs', onboardingChecks.ready ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
+              {onboardingChecks.ready ? '利用開始の目安を満たしています' : 'まだ初期設定があります'}
+            </Badge>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {onboardingChecks.checks.map((item) => (
+              <div key={item.label} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm">
+                <span className="text-gray-300">{item.label}</span>
+                <span className={item.done ? 'text-emerald-300' : 'text-amber-300'}>{item.done ? '完了' : '未完了'}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-base text-white">基本情報</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {saveError && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">保存で問題がありました: {saveError}</div>}
@@ -273,12 +331,12 @@ export default function PharmacyDetailPage() {
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base text-white"><Settings2 className="h-4 w-4 text-indigo-400" />電話転送の運用設定</CardTitle>
-          <CardDescription className="text-gray-400">加盟店管理者が手動反映する運用と、店舗ごとの規定時間による自動切替の両方に対応する想定です。</CardDescription>
+          <CardDescription className="text-gray-400">加盟店管理者が手動反映する運用と、店舗ごとの規定時間による自動切替の両方に対応します。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={cn('border text-xs', forwardingStateClass)}>{forwardingStateLabel}</Badge>
-            <span className="text-xs text-gray-500">最終更新: {lastUpdatedAt} / {lastUpdatedBy}</span>
+            <span className="text-xs text-gray-500">最終更新: {formatJst(lastUpdatedAt)} / {lastUpdatedBy}</span>
           </div>
           {requiresReverification && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
@@ -291,19 +349,19 @@ export default function PharmacyDetailPage() {
               <p className="text-sm font-medium text-white">手動反映</p>
               <p className="text-xs text-gray-400">加盟店の管理者アカウントが、実際に転送をかけた/止めたタイミングで反映します。</p>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => reflectManual('manual_on')} className="bg-emerald-600 text-white hover:bg-emerald-600/90">転送をかけた</Button>
-                <Button onClick={() => reflectManual('manual_off')} className="bg-[#2a3553] text-white hover:bg-[#334166]">転送を止めた</Button>
+                <Button onClick={() => void reflectManual('manual_on')} disabled={isSaving} className="bg-emerald-600 text-white hover:bg-emerald-600/90">転送をかけた</Button>
+                <Button onClick={() => void reflectManual('manual_off')} disabled={isSaving} className="bg-[#2a3553] text-white hover:bg-[#334166]">転送を止めた</Button>
               </div>
             </div>
 
             <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 space-y-3">
               <p className="text-sm font-medium text-white">自動切替時間</p>
-              <p className="text-xs text-gray-400">各加盟店ごとに夜間の規定時間を設定し、その時間帯は自動でON/OFFが切り替わる想定です。</p>
+              <p className="text-xs text-gray-400">各加盟店ごとに夜間の規定時間を設定し、その時間帯は自動でON/OFFが切り替わる前提です。</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label className="text-gray-300">自動ON</Label><Input type="time" value={autoStart} onChange={(e) => setAutoStart(e.target.value)} className="border-[#2a3553] bg-[#1a2035]" /></div>
                 <div className="space-y-2"><Label className="text-gray-300">自動OFF</Label><Input type="time" value={autoEnd} onChange={(e) => setAutoEnd(e.target.value)} className="border-[#2a3553] bg-[#1a2035]" /></div>
               </div>
-              <Button onClick={saveAutoSchedule} className="bg-indigo-600 text-white hover:bg-indigo-600/90">自動運用として保存</Button>
+              <Button onClick={() => void saveAutoSchedule()} disabled={isSaving} className="bg-indigo-600 text-white hover:bg-indigo-600/90">自動運用として保存</Button>
             </div>
           </div>
         </CardContent>
@@ -322,7 +380,7 @@ export default function PharmacyDetailPage() {
         <CardHeader className="pb-2"><CardTitle className="text-base text-white">最近の依頼</CardTitle></CardHeader>
         <CardContent>
           {recentRequests.length === 0 ? <p className="py-4 text-center text-sm text-gray-400">依頼データはありません</p> : (
-            <div className="space-y-2">{recentRequests.map((req) => (<div key={req.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-3"><span className="text-xs font-mono text-gray-400">{req.id}</span><span className="text-sm text-white">{req.patientId ? '患者特定済' : '患者未特定'}</span></div><div className="flex items-center gap-2"><span className="text-xs text-gray-400">{req.receivedDate} {req.receivedAt}</span><Badge variant="outline" className={cn('border text-xs', statusMeta[req.status].className)}>{statusMeta[req.status].label}</Badge></div></div></div>))}</div>
+            <div className="space-y-2">{recentRequests.map((request) => (<div key={request.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300"><div className="flex items-center justify-between gap-3"><span>{request.patientName ?? '患者未特定'}</span><span className="text-xs text-gray-500">{request.receivedDate} {request.receivedAt}</span></div></div>))}</div>
           )}
         </CardContent>
       </Card>

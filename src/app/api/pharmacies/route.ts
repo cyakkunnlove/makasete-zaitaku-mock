@@ -8,6 +8,10 @@ import { createClient as createServerSupabaseClient } from '@/lib/supabase/serve
 import type { PharmacyStatus } from '@/types/database'
 
 function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: number; pharmacyAdminStatus?: string }) {
+  const forwardingMode = row.forwarding_mode === 'manual_on' || row.forwarding_mode === 'manual_off' || row.forwarding_mode === 'auto'
+    ? row.forwarding_mode
+    : (row.forwarding_status === 'on' ? 'auto' : 'manual_off')
+
   return {
     id: String(row.id),
     name: typeof row.name === 'string' ? row.name : '',
@@ -23,6 +27,11 @@ function toPharmacyView(row: Record<string, unknown>, extras?: { patientCount?: 
     nightFee: typeof row.night_monthly_fee === 'number' ? row.night_monthly_fee : Number(row.night_monthly_fee ?? 0),
     forwarding: row.forwarding_status === 'on',
     forwardingStatus: row.forwarding_status === 'on' ? 'on' : 'off',
+    forwardingMode,
+    forwardingAutoStart: typeof row.forwarding_auto_start === 'string' ? row.forwarding_auto_start.slice(0, 5) : '22:00',
+    forwardingAutoEnd: typeof row.forwarding_auto_end === 'string' ? row.forwarding_auto_end.slice(0, 5) : '06:00',
+    forwardingUpdatedByName: typeof row.forwarding_updated_by_name === 'string' ? row.forwarding_updated_by_name : null,
+    forwardingUpdatedAt: typeof row.forwarding_updated_at === 'string' ? row.forwarding_updated_at : null,
     regionId: typeof row.region_id === 'string' ? row.region_id : null,
     regionName: typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null,
     pharmacyAdminStatus: extras?.pharmacyAdminStatus ?? 'uninvited',
@@ -101,7 +110,7 @@ export async function GET() {
   const supabase = createServerSupabaseClient()
   let query = supabase
     .from('pharmacies')
-    .select('id, name, area, address, phone, fax, forwarding_phone, patient_count, status, contract_date, saas_monthly_fee, night_monthly_fee, forwarding_status, region_id, created_at, updated_at, region:regions(name)')
+    .select('id, name, area, address, phone, fax, forwarding_phone, patient_count, status, contract_date, saas_monthly_fee, night_monthly_fee, forwarding_status, forwarding_mode, forwarding_auto_start, forwarding_auto_end, forwarding_updated_by_name, forwarding_updated_at, region_id, created_at, updated_at, region:regions(name)')
     .eq('organization_id', user.organization_id)
     .order('created_at', { ascending: false })
 
@@ -177,6 +186,11 @@ export async function POST(request: Request) {
       patient_count: 0,
       status,
       forwarding_status: 'off',
+      forwarding_mode: 'manual_off',
+      forwarding_auto_start: '22:00',
+      forwarding_auto_end: '06:00',
+      forwarding_updated_by_name: user.full_name,
+      forwarding_updated_at: now,
       contract_date: null,
       night_delegation_enabled: false,
       saas_monthly_fee: 0,
@@ -184,7 +198,7 @@ export async function POST(request: Request) {
       created_at: now,
       updated_at: now,
     } as never)
-    .select('id, name, area, address, phone, fax, forwarding_phone, patient_count, status, contract_date, saas_monthly_fee, night_monthly_fee, forwarding_status, region_id, created_at, updated_at, region:regions(name)')
+    .select('id, name, area, address, phone, fax, forwarding_phone, patient_count, status, contract_date, saas_monthly_fee, night_monthly_fee, forwarding_status, forwarding_mode, forwarding_auto_start, forwarding_auto_end, forwarding_updated_by_name, forwarding_updated_at, region_id, created_at, updated_at, region:regions(name)')
     .single()
 
   const createdPharmacy = insertResponse.data as Record<string, unknown> | null

@@ -12,6 +12,7 @@ export type OperationUnitKind = 'night_ops' | 'regional_ops' | 'pharmacy_ops'
 export type OperationUnitStatus = 'active' | 'suspended' | 'archived'
 export type PharmacyStatus = 'pending' | 'active' | 'suspended' | 'terminated'
 export type ForwardingStatus = 'on' | 'off'
+export type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
 export type BillingStatus = 'unpaid' | 'paid' | 'overdue'
 export type PatientStatus = 'active' | 'inactive' | 'incomplete'
 export type PatientGeocodeStatus = 'pending' | 'success' | 'failed' | 'stale'
@@ -62,6 +63,13 @@ export interface Pharmacy {
   address: string | null
   phone: string | null
   fax: string | null
+  forwarding_phone: string | null
+  forwarding_status: ForwardingStatus
+  forwarding_mode: ForwardingMode
+  forwarding_auto_start: string | null
+  forwarding_auto_end: string | null
+  forwarding_updated_by_name: string | null
+  forwarding_updated_at: string | null
   status: PharmacyStatus
   night_delegation_enabled: boolean
   contract_start_date: string | null

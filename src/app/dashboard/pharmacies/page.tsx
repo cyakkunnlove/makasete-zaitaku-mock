@@ -21,21 +21,17 @@ import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTri
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
 type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
+type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
 
 type PharmacyView = PharmacyItem & {
   regionId?: string | null
   regionName?: string | null
   pharmacyAdminStatus?: PharmacyAdminStatus
-}
-
-type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
-
-type ForwardingSetting = {
-  mode: ForwardingMode
-  autoStart: string
-  autoEnd: string
-  updatedBy: string
-  updatedAt: string
+  forwardingMode?: ForwardingMode
+  forwardingAutoStart?: string | null
+  forwardingAutoEnd?: string | null
+  forwardingUpdatedByName?: string | null
+  forwardingUpdatedAt?: string | null
 }
 
 const statusClass: Record<PharmacyStatus, string> = {
@@ -62,27 +58,19 @@ const adminStatusClass: Record<PharmacyAdminStatus, string> = {
   active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
 }
 
-const initialForwardingSettings: Record<string, ForwardingSetting> = {
-  'PH-01': { mode: 'auto', autoStart: '22:00', autoEnd: '06:00', updatedBy: '山田 美咲', updatedAt: '2026-03-05 21:40' },
-  'PH-02': { mode: 'manual_on', autoStart: '22:00', autoEnd: '06:00', updatedBy: '小林 恒一', updatedAt: '2026-03-05 22:05' },
-  'PH-03': { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
-  'PH-04': { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
-  'PH-05': { mode: 'auto', autoStart: '21:30', autoEnd: '06:30', updatedBy: '薬局管理者', updatedAt: '2026-03-05 20:10' },
-  'PH-06': { mode: 'manual_on', autoStart: '22:00', autoEnd: '06:00', updatedBy: '薬局管理者', updatedAt: '2026-03-05 22:11' },
-  'PH-07': { mode: 'auto', autoStart: '22:00', autoEnd: '06:00', updatedBy: '薬局管理者', updatedAt: '2026-03-05 21:55' },
-  'PH-08': { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '薬局管理者', updatedAt: '2026-03-05 18:00' },
-  'PH-09': { mode: 'auto', autoStart: '22:00', autoEnd: '06:00', updatedBy: '薬局管理者', updatedAt: '2026-03-05 21:20' },
-}
+function getForwardingSummary(pharmacy: PharmacyView) {
+  const mode = pharmacy.forwardingMode ?? (pharmacy.forwarding ? 'auto' : 'manual_off')
+  const autoStart = pharmacy.forwardingAutoStart ?? '22:00'
+  const autoEnd = pharmacy.forwardingAutoEnd ?? '06:00'
 
-function getForwardingSummary(setting: ForwardingSetting) {
-  if (setting.mode === 'manual_on') {
+  if (mode === 'manual_on') {
     return {
       label: '手動ON',
       detail: `薬局管理者が手動で転送開始`,
       className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
     }
   }
-  if (setting.mode === 'manual_off') {
+  if (mode === 'manual_off') {
     return {
       label: '手動OFF',
       detail: `薬局管理者が手動で停止`,
@@ -91,7 +79,7 @@ function getForwardingSummary(setting: ForwardingSetting) {
   }
   return {
     label: '自動運用',
-    detail: `${setting.autoStart}〜${setting.autoEnd} で自動切替`,
+    detail: `${autoStart}〜${autoEnd} で自動切替`,
     className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
   }
 }
@@ -100,7 +88,6 @@ export default function PharmaciesPage() {
   const { role, user } = useAuth()
   const [pharmacies, setPharmacies] = useState<PharmacyView[]>(pharmacyData)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [forwardingSettings, setForwardingSettings] = useState<Record<string, ForwardingSetting>>(initialForwardingSettings)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -121,23 +108,11 @@ export default function PharmaciesPage() {
   const summary = useMemo(() => {
     const total = visiblePharmacies.length
     const active = visiblePharmacies.filter((pharmacy) => pharmacy.status === 'active').length
-    const autoManaged = visiblePharmacies.filter((pharmacy) => forwardingSettings[pharmacy.id]?.mode === 'auto').length
+    const autoManaged = visiblePharmacies.filter((pharmacy) => (pharmacy.forwardingMode ?? (pharmacy.forwarding ? 'auto' : 'manual_off')) === 'auto').length
     const pending = visiblePharmacies.filter((pharmacy) => pharmacy.status === 'pending').length
 
     return { total, active, autoManaged, pending }
-  }, [visiblePharmacies, forwardingSettings])
-
-  const updateForwardingMode = (id: string, mode: ForwardingMode) => {
-    setForwardingSettings((prev) => ({
-      ...prev,
-      [id]: {
-        ...(prev[id] ?? { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '薬局管理者', updatedAt: '—' }),
-        mode,
-        updatedBy: '薬局管理者',
-        updatedAt: '2026-03-15 13:10',
-      },
-    }))
-  }
+  }, [visiblePharmacies])
 
   useEffect(() => {
     let cancelled = false
@@ -153,19 +128,6 @@ export default function PharmaciesPage() {
         if (cancelled) return
         const rows = (data.pharmacies ?? []) as PharmacyView[]
         setPharmacies(rows)
-        setForwardingSettings((prev) => {
-          const next = { ...prev }
-          for (const pharmacy of rows) {
-            next[pharmacy.id] = next[pharmacy.id] ?? {
-              mode: pharmacy.forwarding ? 'auto' : 'manual_off',
-              autoStart: '22:00',
-              autoEnd: '06:00',
-              updatedBy: '未設定',
-              updatedAt: '—',
-            }
-          }
-          return next
-        })
       } catch (error) {
         if (cancelled) return
         setErrorMessage(error instanceof Error ? error.message : 'pharmacies_fetch_failed')
@@ -201,10 +163,6 @@ export default function PharmaciesPage() {
 
       const newPharmacy = data.pharmacy as PharmacyView
       setPharmacies((prev) => [newPharmacy, ...prev])
-      setForwardingSettings((prev) => ({
-        ...prev,
-        [newPharmacy.id]: { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
-      }))
       setDialogOpen(false)
       setFormData({ name: '', address: '', phone: '', fax: '', forwardingPhone: '' })
     } catch (error) {
@@ -294,8 +252,7 @@ export default function PharmaciesPage() {
             <CardContent className="p-6 text-sm text-gray-400">このリージョンにはまだ加盟店が登録されていません。</CardContent>
           </Card>
         ) : visiblePharmacies.map((pharmacy) => {
-          const setting = forwardingSettings[pharmacy.id] ?? { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' }
-          const forwarding = getForwardingSummary(setting)
+          const forwarding = getForwardingSummary(pharmacy)
 
           return (
             <Card key={pharmacy.id} className="border-[#2a3553] bg-[#1a2035]">
@@ -336,18 +293,10 @@ export default function PharmaciesPage() {
                   <p className="text-xs text-gray-400">{forwarding.detail}</p>
                   <p className="flex items-center gap-1.5 text-xs text-gray-500">
                     <Clock3 className="h-3 w-3" />
-                    最終更新: {setting.updatedAt} / {setting.updatedBy}
+                    最終更新: {pharmacy.forwardingUpdatedAt ? new Date(pharmacy.forwardingUpdatedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '未設定'} / {pharmacy.forwardingUpdatedByName ?? '未設定'}
                   </p>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button size="sm" onClick={() => updateForwardingMode(pharmacy.id, 'manual_on')} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
-                      手動でON反映
-                    </Button>
-                    <Button size="sm" onClick={() => updateForwardingMode(pharmacy.id, 'manual_off')} className="bg-[#2a3553] text-white hover:bg-[#334166]">
-                      手動でOFF反映
-                    </Button>
-                    <Button size="sm" onClick={() => updateForwardingMode(pharmacy.id, 'auto')} className="bg-indigo-600 text-white hover:bg-indigo-600/90">
-                      自動運用に戻す
-                    </Button>
+                  <div className="pt-1 text-xs text-gray-500">
+                    詳細画面で転送設定を保存すると、ここにも反映されます。
                   </div>
                 </div>
 
