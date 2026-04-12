@@ -23,6 +23,7 @@ type JwtPayload = {
 
 export type CurrentUser = User & {
   authMode: AuthMode
+  requiresReverification: boolean
 }
 
 export function getAuthCookieNames() {
@@ -45,12 +46,25 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
+const REVERIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
+
+function isReverificationRequired(lastReverifiedAt: string | null | undefined) {
+  if (!lastReverifiedAt) return true
+
+  const timestamp = new Date(lastReverifiedAt).getTime()
+  if (Number.isNaN(timestamp)) return true
+
+  return Date.now() - timestamp > REVERIFICATION_WINDOW_MS
+}
+
 function buildMockUser(role: UserRole): CurrentUser | null {
   const mockUser = MOCK_USERS[role]
   if (!mockUser) return null
   return {
     ...mockUser,
+    last_reverified_at: mockUser.last_reverified_at ?? mockUser.last_login_at ?? null,
     authMode: 'mock',
+    requiresReverification: false,
   }
 }
 
@@ -64,6 +78,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       return {
         ...bridgedUser,
         authMode: 'mock',
+        requiresReverification: false,
       }
     }
 
@@ -90,5 +105,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return {
     ...appUser.user,
     authMode: 'cognito',
+    requiresReverification: isReverificationRequired(appUser.user.last_reverified_at),
   }
 }

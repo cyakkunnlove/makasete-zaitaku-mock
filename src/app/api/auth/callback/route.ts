@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getAuthCookieNames } from '@/lib/auth'
-import { attachCognitoSubToUser, findAppUserByIdentity, touchLastLogin } from '@/lib/auth/user-bridge'
+import { attachCognitoSubToUser, findAppUserByIdentity, touchLastReverified } from '@/lib/auth/user-bridge'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -73,9 +73,9 @@ export async function GET(request: Request) {
 
       if (matched.matchedBy === 'email' && payload?.sub && !matched.user.cognito_sub) {
         await attachCognitoSubToUser(matched.user.id, payload.sub)
+      } else {
+        await touchLastReverified(matched.user.id)
       }
-
-      await touchLastLogin(matched.user.id)
     } catch {
       return NextResponse.redirect(new URL('/login?error=user_lookup_failed', request.url))
     }

@@ -87,6 +87,7 @@ export interface User {
   is_active: boolean
   status: UserStatus
   last_login_at: string | null
+  last_reverified_at: string | null
   created_at: string
   updated_at: string
 }

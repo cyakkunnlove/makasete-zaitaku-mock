@@ -69,10 +69,15 @@ export async function findDemoUserByRole(role: UserRole): Promise<User | null> {
 export async function attachCognitoSubToUser(userId: string, cognitoSub: string) {
   if (!hasSupabaseEnv()) return
 
+  const now = new Date().toISOString()
   const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('users')
-    .update({ cognito_sub: cognitoSub, last_login_at: new Date().toISOString() } as never)
+    .update({
+      cognito_sub: cognitoSub,
+      last_login_at: now,
+      last_reverified_at: now,
+    } as never)
     .eq('id', userId)
 
   if (error) throw error
@@ -85,6 +90,22 @@ export async function touchLastLogin(userId: string) {
   const { error } = await supabase
     .from('users')
     .update({ last_login_at: new Date().toISOString() } as never)
+    .eq('id', userId)
+
+  if (error) throw error
+}
+
+export async function touchLastReverified(userId: string) {
+  if (!hasSupabaseEnv()) return
+
+  const now = new Date().toISOString()
+  const supabase = createServerSupabaseClient()
+  const { error } = await supabase
+    .from('users')
+    .update({
+      last_login_at: now,
+      last_reverified_at: now,
+    } as never)
     .eq('id', userId)
 
   if (error) throw error
