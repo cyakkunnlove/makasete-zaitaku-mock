@@ -126,6 +126,14 @@ export default function StaffPage() {
   const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: string; expires_at: string; last_sent_at: string | null }>>([])
   const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
   const [userActionId, setUserActionId] = useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    phone: '',
+    regionId: '',
+    pharmacyId: '',
+  })
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
@@ -307,6 +315,46 @@ export default function StaffPage() {
     }
 
     setIsSubmitting(false)
+  }
+
+  const openEditDialog = (member: StaffItem) => {
+    setEditingMemberId(member.id)
+    setEditFormData({
+      name: member.name,
+      phone: member.phone,
+      regionId: user?.activeRoleContext?.regionId ?? user?.region_id ?? formData.regionId,
+      pharmacyId: user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? formData.pharmacyId,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleEditStaff = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingMemberId || guard()) return
+    setUserActionId(editingMemberId)
+    setErrorMessage(null)
+    try {
+      const response = await fetch(`/api/users/${editingMemberId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: editFormData.name,
+          phone: editFormData.phone,
+          regionId: editFormData.regionId,
+          pharmacyId: editFormData.pharmacyId,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'user_update_failed')
+      setToast('アカウント情報を更新しました')
+      setStaffMembers((prev) => prev.map((item) => item.id === editingMemberId ? { ...item, name: editFormData.name, phone: editFormData.phone } : item))
+      setEditDialogOpen(false)
+      setEditingMemberId(null)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'user_update_failed')
+    } finally {
+      setUserActionId(null)
+    }
   }
 
   const handleUserStatusChange = async (userId: string, nextStatus: 'active' | 'inactive') => {
@@ -492,15 +540,26 @@ export default function StaffPage() {
                     <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
                       {member.status === 'active' ? 'active' : 'inactive'}
                     </Badge>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
-                      disabled={userActionId === member.id}
-                      onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
-                    >
-                      {member.status === 'active' ? '停止' : '再開'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
+                        disabled={userActionId === member.id}
+                        onClick={() => openEditDialog(member)}
+                      >
+                        編集
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
+                        disabled={userActionId === member.id}
+                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                      >
+                        {member.status === 'active' ? '停止' : '再開'}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -536,15 +595,26 @@ export default function StaffPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
-                        disabled={userActionId === member.id}
-                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
-                      >
-                        {member.status === 'active' ? '停止' : '再開'}
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
+                          disabled={userActionId === member.id}
+                          onClick={() => openEditDialog(member)}
+                        >
+                          編集
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
+                          disabled={userActionId === member.id}
+                          onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'inactive' : 'active')}
+                        >
+                          {member.status === 'active' ? '停止' : '再開'}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -732,6 +802,77 @@ export default function StaffPage() {
           </div>
         </>
       )}
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">アカウント情報を編集</DialogTitle>
+            <DialogDescription className="text-gray-400">氏名、電話、必要に応じて所属を更新します。</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleEditStaff} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">氏名</Label>
+              <Input
+                value={editFormData.name}
+                onChange={(event) => setEditFormData((prev) => ({ ...prev, name: event.target.value }))}
+                required
+                className="border-[#2a3553] bg-[#1a2035]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">電話</Label>
+              <Input
+                value={editFormData.phone}
+                onChange={(event) => setEditFormData((prev) => ({ ...prev, phone: event.target.value }))}
+                className="border-[#2a3553] bg-[#1a2035]"
+              />
+            </div>
+
+            {isSystemAdmin && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">所属リージョン</Label>
+                <Select value={editFormData.regionId} onValueChange={(value) => setEditFormData((prev) => ({ ...prev, regionId: value, pharmacyId: '' }))}>
+                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                    <SelectValue placeholder="リージョンを選択" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                    {regions.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>{region.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {isRegionalAdmin && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">対象薬局</Label>
+                <Select value={editFormData.pharmacyId} onValueChange={(value) => setEditFormData((prev) => ({ ...prev, pharmacyId: value }))}>
+                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                    <SelectValue placeholder="薬局を選択" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                    {pharmacies.map((pharmacy) => (
+                      <SelectItem key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)} disabled={Boolean(userActionId)}>
+                キャンセル
+              </Button>
+              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={Boolean(userActionId)}>
+                保存する
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Staff Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -38,6 +38,128 @@ function canManageTargetRole(actorRole: UserRole | null, targetRole: UserRole) {
   return canInvite(actorRole, targetRole)
 }
 
+export async function updateManagedUser(params: {
+  actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
+  userId: string
+  fullName: string
+  phone?: string | null
+  regionId?: string | null
+  pharmacyId?: string | null
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  const userResponse = await supabase
+    .from('users')
+    .select('id, email, role, status, region_id, pharmacy_id')
+    .eq('id', params.userId)
+    .eq('organization_id', params.actor.organization_id)
+    .maybeSingle()
+
+  const targetUser = userResponse.data as {
+    id: string
+    email: string
+    role: UserRole
+    status: string
+    region_id: string | null
+    pharmacy_id: string | null
+  } | null
+
+  if (userResponse.error) {
+    return { ok: false as const, status: 500, error: 'user_lookup_failed', details: userResponse.error.message }
+  }
+  if (!targetUser) {
+    return { ok: false as const, status: 404, error: 'user_not_found' }
+  }
+  if (!canManageTargetRole(actorRole, targetUser.role)) {
+    return { ok: false as const, status: 403, error: 'forbidden_target_role' }
+  }
+  if (actorRole === 'regional_admin' && actorScope.regionId !== targetUser.region_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== targetUser.pharmacy_id) {
+    return { ok: false as const, status: 403, error: 'forbidden_scope' }
+  }
+
+  const normalizedName = params.fullName.trim()
+  const normalizedPhone = params.phone?.trim() || null
+  let nextRegionId = params.regionId ?? targetUser.region_id
+  let nextPharmacyId = params.pharmacyId ?? targetUser.pharmacy_id
+
+  if (!normalizedName) {
+    return { ok: false as const, status: 400, error: 'full_name_required' }
+  }
+
+  if (actorRole === 'regional_admin') {
+    nextRegionId = actorScope.regionId
+    if ((targetUser.role === 'pharmacy_admin' || targetUser.role === 'night_pharmacist') && !nextPharmacyId) {
+      return { ok: false as const, status: 400, error: 'pharmacy_required' }
+    }
+  }
+  if (actorRole === 'pharmacy_admin') {
+    nextRegionId = actorScope.regionId
+    nextPharmacyId = actorScope.pharmacyId
+  }
+
+  const now = new Date().toISOString()
+  const updateResponse = await supabase
+    .from('users')
+    .update({
+      full_name: normalizedName,
+      phone: normalizedPhone,
+      region_id: nextRegionId,
+      pharmacy_id: nextPharmacyId,
+      updated_at: now,
+    } as never)
+    .eq('id', targetUser.id)
+
+  if (updateResponse.error) {
+    return { ok: false as const, status: 500, error: 'user_update_failed', details: updateResponse.error.message }
+  }
+
+  const assignmentUpdate = await supabase
+    .from('user_role_assignments')
+    .update({
+      region_id: nextRegionId,
+      pharmacy_id: nextPharmacyId,
+      updated_at: now,
+    } as never)
+    .eq('user_id', targetUser.id)
+    .eq('role', targetUser.role)
+
+  if (assignmentUpdate.error) {
+    return { ok: false as const, status: 500, error: 'role_assignment_update_failed', details: assignmentUpdate.error.message }
+  }
+
+  await writeAuditLog({
+    user: params.actor as never,
+    action: 'managed_user_updated',
+    targetType: 'user',
+    targetId: targetUser.id,
+    details: {
+      email: targetUser.email,
+      role: targetUser.role,
+      next_region_id: nextRegionId,
+      next_pharmacy_id: nextPharmacyId,
+    },
+  })
+
+  return {
+    ok: true as const,
+    status: 200,
+    data: {
+      userId: targetUser.id,
+      email: targetUser.email,
+      role: targetUser.role,
+      fullName: normalizedName,
+      phone: normalizedPhone,
+      regionId: nextRegionId,
+      pharmacyId: nextPharmacyId,
+    },
+  }
+}
+
 export async function setManagedUserStatus(params: {
   actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
   userId: string
