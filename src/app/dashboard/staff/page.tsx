@@ -50,6 +50,8 @@ type ManagedStaffItem = {
   phone: string
   email: string
   status: StaffStatus
+  regionId?: string | null
+  pharmacyId?: string | null
   regionName?: string | null
   pharmacyName?: string | null
 }
@@ -163,6 +165,7 @@ export default function StaffPage() {
   const [userActionId, setUserActionId] = useState<string | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
+  const [editingMemberRole, setEditingMemberRole] = useState<UserRole | null>(null)
   const [editFormData, setEditFormData] = useState({
     name: '',
     phone: '',
@@ -415,11 +418,12 @@ export default function StaffPage() {
 
   const openEditDialog = (member: ManagedStaffItem) => {
     setEditingMemberId(member.id)
+    setEditingMemberRole(member.role)
     setEditFormData({
       name: member.name,
       phone: member.phone,
-      regionId: user?.activeRoleContext?.regionId ?? user?.region_id ?? formData.regionId,
-      pharmacyId: user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? formData.pharmacyId,
+      regionId: member.regionId ?? user?.activeRoleContext?.regionId ?? user?.region_id ?? formData.regionId,
+      pharmacyId: member.pharmacyId ?? user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? formData.pharmacyId,
     })
     setEditDialogOpen(true)
   }
@@ -446,6 +450,7 @@ export default function StaffPage() {
       setStaffMembers((prev) => prev.map((item) => item.id === editingMemberId ? { ...item, name: editFormData.name, phone: editFormData.phone } : item))
       setEditDialogOpen(false)
       setEditingMemberId(null)
+      setEditingMemberRole(null)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'user_update_failed')
     } finally {
@@ -985,7 +990,13 @@ export default function StaffPage() {
         </>
       )}
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open)
+        if (!open) {
+          setEditingMemberId(null)
+          setEditingMemberRole(null)
+        }
+      }}>
         <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white">アカウント情報を編集</DialogTitle>
@@ -993,6 +1004,13 @@ export default function StaffPage() {
           </DialogHeader>
 
           <form onSubmit={handleEditStaff} className="space-y-4">
+            {(() => {
+              const isSelfEditing = editingMemberId === user?.id
+              const canEditRegionalAffiliation = isSystemAdmin && editingMemberRole === 'regional_admin' && !isSelfEditing
+              const canEditPharmacyAffiliation = isRegionalAdmin && !isSelfEditing
+
+              return (
+                <>
             <div className="space-y-2">
               <Label className="text-gray-300">氏名</Label>
               <Input
@@ -1012,7 +1030,7 @@ export default function StaffPage() {
               />
             </div>
 
-            {isSystemAdmin && (
+            {canEditRegionalAffiliation && (
               <div className="space-y-2">
                 <Label className="text-gray-300">所属リージョン</Label>
                 <Select value={editFormData.regionId} onValueChange={(value) => setEditFormData((prev) => ({ ...prev, regionId: value, pharmacyId: '' }))}>
@@ -1025,10 +1043,11 @@ export default function StaffPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-[11px] text-gray-500">所属変更は system_admin のみ行えます。</p>
               </div>
             )}
 
-            {isRegionalAdmin && (
+            {canEditPharmacyAffiliation && (
               <div className="space-y-2">
                 <Label className="text-gray-300">対象薬局</Label>
                 <Select value={editFormData.pharmacyId} onValueChange={(value) => setEditFormData((prev) => ({ ...prev, pharmacyId: value }))}>
@@ -1044,6 +1063,10 @@ export default function StaffPage() {
               </div>
             )}
 
+            {!canEditRegionalAffiliation && isSystemAdmin && editingMemberRole === 'regional_admin' && isSelfEditing && (
+              <p className="text-[11px] text-gray-500">自分の所属リージョンはここでは変更できません。</p>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)} disabled={Boolean(userActionId)}>
                 キャンセル
@@ -1052,6 +1075,9 @@ export default function StaffPage() {
                 保存する
               </Button>
             </DialogFooter>
+                </>
+              )
+            })()}
           </form>
         </DialogContent>
       </Dialog>
