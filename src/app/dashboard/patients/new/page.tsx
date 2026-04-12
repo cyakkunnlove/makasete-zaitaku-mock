@@ -75,7 +75,7 @@ type GeocodePreview = {
 
 export default function NewPatientPage() {
   const router = useRouter()
-  const { user, role } = useAuth()
+  const { user, role, authMode } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -342,7 +342,6 @@ export default function NewPatientPage() {
     }
 
     const visitRules = previewVisitRules
-    const existing = loadRegisteredPatients()
     const requestPayload = {
       basic: {
         fullName: form.name,
@@ -404,45 +403,47 @@ export default function NewPatientPage() {
         return
       }
 
-      const patient = buildRegisteredPatientRecord(
-      {
-        name: form.name,
-        dob: normalizedDob,
-        phone: form.phone,
-        pharmacyId: ownPharmacyId,
-        address: `${form.postalCode ? `〒${form.postalCode} ` : ''}${form.address}`.trim(),
-        startedAt: form.startedAt,
-        status: 'active',
-        manualTags: selectedTags,
-        emergencyContactName: form.emergencyContactName,
-        emergencyContactRelation: form.emergencyContactRelation,
-        emergencyContactPhone: form.emergencyContactPhone,
-        doctorName: form.doctorName,
-        doctorClinic: form.doctorClinic,
-        doctorPhone: form.doctorPhone,
-        currentMeds: form.currentMeds,
-        medicalHistory: form.medicalHistory,
-        allergies: form.allergies,
-        diseaseName: form.diseaseName,
-        visitNotes: form.visitNotes,
-        insuranceInfo: form.insuranceInfo,
-        preferredTime: form.preferredTime,
-        visitCount: Math.max(1, Number(visitCount) || 4),
-        visitRules,
-        manualSyncAt: null,
-      },
-      {
-        id: user?.id ?? null,
-        name: user?.full_name ?? 'Pharmacy Staff',
-      },
-      existing,
-    )
-
       const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null
-      const shouldPersistLocal = createResult?.mode !== 'supabase' || !createdPatientId
+      let fallbackPatientId: string | null = null
+      const shouldPersistLocal = authMode !== 'cognito' && (createResult?.mode !== 'supabase' || !createdPatientId)
 
       if (shouldPersistLocal) {
+        const existing = loadRegisteredPatients()
+        const patient = buildRegisteredPatientRecord(
+          {
+            name: form.name,
+            dob: normalizedDob,
+            phone: form.phone,
+            pharmacyId: ownPharmacyId,
+            address: `${form.postalCode ? `〒${form.postalCode} ` : ''}${form.address}`.trim(),
+            startedAt: form.startedAt,
+            status: 'active',
+            manualTags: selectedTags,
+            emergencyContactName: form.emergencyContactName,
+            emergencyContactRelation: form.emergencyContactRelation,
+            emergencyContactPhone: form.emergencyContactPhone,
+            doctorName: form.doctorName,
+            doctorClinic: form.doctorClinic,
+            doctorPhone: form.doctorPhone,
+            currentMeds: form.currentMeds,
+            medicalHistory: form.medicalHistory,
+            allergies: form.allergies,
+            diseaseName: form.diseaseName,
+            visitNotes: form.visitNotes,
+            insuranceInfo: form.insuranceInfo,
+            preferredTime: form.preferredTime,
+            visitCount: Math.max(1, Number(visitCount) || 4),
+            visitRules,
+            manualSyncAt: null,
+          },
+          {
+            id: user?.id ?? null,
+            name: user?.full_name ?? 'Pharmacy Staff',
+          },
+          existing,
+        )
         upsertRegisteredPatient(patient)
+        fallbackPatientId = patient.id
       }
 
       const apiWarnings = Array.isArray(createResult?.warnings) ? createResult.warnings : []
@@ -454,7 +455,7 @@ export default function NewPatientPage() {
 
       setGeocodeConfirmOpen(false)
       setGeocodePreview(null)
-      router.push(`/dashboard/patients/${createdPatientId ?? patient.id}`)
+      router.push(`/dashboard/patients/${createdPatientId ?? fallbackPatientId}`)
     } finally {
       setIsSubmitting(false)
     }
