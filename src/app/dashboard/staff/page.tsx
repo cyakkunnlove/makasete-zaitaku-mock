@@ -1227,7 +1227,7 @@ export default function StaffPage() {
                           className={cn(
                             'rounded-full border px-3 py-1.5 text-sm transition-colors',
                             selected
-                              ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-200'
+                              ? 'border-cyan-300 bg-cyan-400/25 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.35)]'
                               : 'border-[#2a3553] bg-[#11182c] text-gray-300 hover:border-indigo-500/30',
                           )}
                         >
