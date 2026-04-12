@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Building2, Users, CreditCard, BarChart3,
   Shield, LogOut, Moon, Settings, Bell,
-  MessageCircle, Calendar
+  MessageCircle, Calendar, ArrowLeftRight
 } from 'lucide-react'
 
 interface MenuItem {
@@ -78,6 +78,13 @@ const settingsItems: MenuItem[] = [
     label: 'アカウント / セキュリティ',
     description: 'パスキー設定・ログイン方針の確認',
     icon: <Shield size={20} className="text-emerald-400" />,
+    permission: 'dashboard',
+  },
+  {
+    href: '/dashboard/role-chooser',
+    label: '立場を切り替える（draft）',
+    description: '複数ロール時の chooser 画面モック',
+    icon: <ArrowLeftRight size={20} className="text-sky-400" />,
     permission: 'dashboard',
   },
   {
