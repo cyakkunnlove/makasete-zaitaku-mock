@@ -140,6 +140,12 @@ export default function NewPatientPage() {
   const [doctorLoading, setDoctorLoading] = useState(false)
   const [selectedMedicalInstitutionId, setSelectedMedicalInstitutionId] = useState<string | null>(null)
   const [selectedDoctorMasterId, setSelectedDoctorMasterId] = useState<string | null>(null)
+  const [institutionDialogOpen, setInstitutionDialogOpen] = useState(false)
+  const [doctorDialogOpen, setDoctorDialogOpen] = useState(false)
+  const [institutionSubmitting, setInstitutionSubmitting] = useState(false)
+  const [doctorSubmitting, setDoctorSubmitting] = useState(false)
+  const [institutionForm, setInstitutionForm] = useState({ name: '', phone: '', address: '' })
+  const [doctorForm, setDoctorForm] = useState({ fullName: '', phone: '', department: '' })
   const ownPharmacyId = getScopedPharmacyId(user)
   const [form, setForm] = useState({
     name: '',
@@ -374,6 +380,85 @@ export default function NewPatientPage() {
       setDoctorOptions(result.doctors)
     } finally {
       setDoctorLoading(false)
+    }
+  }
+
+  const createMedicalInstitution = async () => {
+    const name = institutionForm.name.trim() || form.doctorClinic.trim()
+    if (!name) {
+      setWarningMessage('病院名を入力してください。')
+      return
+    }
+
+    setInstitutionSubmitting(true)
+    try {
+      const response = await fetch('/api/medical-institutions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone: institutionForm.phone,
+          address: institutionForm.address,
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result.medicalInstitution) {
+        setWarningMessage('病院の追加に失敗しました。')
+        return
+      }
+
+      const created = result.medicalInstitution as MedicalInstitutionOption
+      setSelectedMedicalInstitutionId(created.id)
+      setSelectedDoctorMasterId(null)
+      setForm((prev) => ({ ...prev, doctorClinic: created.name }))
+      setMedicalInstitutionOptions((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
+      setInstitutionDialogOpen(false)
+      setInstitutionForm({ name: '', phone: '', address: '' })
+      setWarningMessage(null)
+      await searchDoctors(created.id)
+    } finally {
+      setInstitutionSubmitting(false)
+    }
+  }
+
+  const createDoctor = async () => {
+    if (!selectedMedicalInstitutionId) {
+      setWarningMessage('先に病院を選択してください。')
+      return
+    }
+
+    const fullName = doctorForm.fullName.trim() || form.doctorName.trim()
+    if (!fullName) {
+      setWarningMessage('医師名を入力してください。')
+      return
+    }
+
+    setDoctorSubmitting(true)
+    try {
+      const response = await fetch(`/api/medical-institutions/${selectedMedicalInstitutionId}/doctors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          phone: doctorForm.phone,
+          department: doctorForm.department,
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result.doctor) {
+        setWarningMessage('医師の追加に失敗しました。')
+        return
+      }
+
+      const created = result.doctor as DoctorOption
+      setSelectedDoctorMasterId(created.id)
+      setForm((prev) => ({ ...prev, doctorName: created.fullName, doctorPhone: normalizePhone(created.phone) }))
+      setDoctorOptions((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
+      setDoctorDialogOpen(false)
+      setDoctorForm({ fullName: '', phone: '', department: '' })
+      setWarningMessage(null)
+    } finally {
+      setDoctorSubmitting(false)
     }
   }
 
@@ -835,6 +920,33 @@ export default function NewPatientPage() {
                     ))}
                   </div>
                 )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]"
+                    onClick={() => {
+                      setInstitutionForm({ name: form.doctorClinic, phone: '', address: '' })
+                      setInstitutionDialogOpen(true)
+                    }}
+                  >
+                    この病院を追加
+                  </Button>
+                  {selectedMedicalInstitutionId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                      onClick={() => {
+                        setSelectedMedicalInstitutionId(null)
+                        setSelectedDoctorMasterId(null)
+                        setDoctorOptions([])
+                      }}
+                    >
+                      選択を外す
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-gray-300">主治医</Label>
@@ -859,6 +971,30 @@ export default function NewPatientPage() {
                     ))}
                   </div>
                 )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]"
+                    disabled={!selectedMedicalInstitutionId}
+                    onClick={() => {
+                      setDoctorForm({ fullName: form.doctorName, phone: form.doctorPhone, department: '' })
+                      setDoctorDialogOpen(true)
+                    }}
+                  >
+                    この医師を追加
+                  </Button>
+                  {selectedDoctorMasterId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                      onClick={() => setSelectedDoctorMasterId(null)}
+                    >
+                      選択を外す
+                    </Button>
+                  )}
+                </div>
               </div>
               <div><Label className="text-gray-300">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" /></div>
               <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="ラシックス など" /></div>
@@ -893,6 +1029,60 @@ export default function NewPatientPage() {
           <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
       </Card>
+
+      <Dialog open={institutionDialogOpen} onOpenChange={setInstitutionDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>病院を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">候補にない病院は、その場で追加できます。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-gray-300">病院名</Label>
+              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" />
+            </div>
+            <div>
+              <Label className="text-gray-300">電話</Label>
+              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" />
+            </div>
+            <div>
+              <Label className="text-gray-300">住所</Label>
+              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button onClick={() => void createMedicalInstitution()} disabled={institutionSubmitting} className="bg-indigo-600 text-white hover:bg-indigo-500">{institutionSubmitting ? '追加中...' : '病院を追加'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={doctorDialogOpen} onOpenChange={setDoctorDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>医師を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">選択中の病院に医師を追加します。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-gray-300">医師名</Label>
+              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" />
+            </div>
+            <div>
+              <Label className="text-gray-300">診療科</Label>
+              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="内科" />
+            </div>
+            <div>
+              <Label className="text-gray-300">電話</Label>
+              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button onClick={() => void createDoctor()} disabled={doctorSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-500">{doctorSubmitting ? '追加中...' : '医師を追加'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
         <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
