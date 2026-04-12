@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { getAuthCookieNames } from '@/lib/auth'
 import { attachCognitoSubToUser, findAppUserByIdentity, touchLastReverified } from '@/lib/auth/user-bridge'
+import { listRoleContextsForUser } from '@/lib/repositories/role-contexts'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -59,6 +60,10 @@ export async function GET(request: Request) {
     }
   })()
 
+  let matchedUserId: string | null = null
+  let roleContextsCount = 0
+  let defaultAssignmentId: string | null = null
+
   if (payload?.sub || payload?.email) {
     try {
       const matched = await findAppUserByIdentity({
@@ -74,15 +79,23 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL('/login?error=user_inactive', request.url))
       }
 
+      matchedUserId = matched.user.id
+
       if (matched.matchedBy === 'email' && payload?.sub && !matched.user.cognito_sub) {
         await attachCognitoSubToUser(matched.user.id, payload.sub)
       } else {
         await touchLastReverified(matched.user.id)
       }
+
+      const roleContexts = await listRoleContextsForUser(matched.user.id)
+      roleContextsCount = roleContexts.length
+      defaultAssignmentId = roleContexts.find((item) => item.isDefault)?.assignmentId ?? roleContexts[0]?.assignmentId ?? null
     } catch {
       return NextResponse.redirect(new URL('/login?error=user_lookup_failed', request.url))
     }
   }
+
+  const shouldForceChooser = !isPasskeySetupFlow && !nextPath && matchedUserId && roleContextsCount > 1
 
   const redirectTarget = (() => {
     if (isPasskeySetupFlow) {
@@ -91,6 +104,10 @@ export async function GET(request: Request) {
         target.searchParams.set('next', nextPath)
       }
       return target
+    }
+
+    if (shouldForceChooser) {
+      return new URL('/dashboard/role-chooser', request.url)
     }
 
     if (nextPath && nextPath.startsWith('/')) {
@@ -107,9 +124,21 @@ export async function GET(request: Request) {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
     DEMO_SESSION_COOKIE,
+    ACTIVE_ROLE_ASSIGNMENT_COOKIE,
   } = getAuthCookieNames()
 
   response.cookies.delete(DEMO_SESSION_COOKIE)
+  if (shouldForceChooser) {
+    response.cookies.delete(ACTIVE_ROLE_ASSIGNMENT_COOKIE)
+  } else if (defaultAssignmentId) {
+    response.cookies.set(ACTIVE_ROLE_ASSIGNMENT_COOKIE, defaultAssignmentId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: tokenJson.expires_in,
+    })
+  }
   response.cookies.set(AUTH_MODE_COOKIE, 'cognito', {
     httpOnly: true,
     secure: true,
