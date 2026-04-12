@@ -71,7 +71,7 @@ function buildAccountAuditDetails(params: {
 }
 
 export async function listManagedUsers(params: {
-  actor: RoleAwareUser & { organization_id: string }
+  actor: RoleAwareUser & { id: string; organization_id: string; email?: string | null; full_name?: string | null }
 }) {
   const actorRole = getCurrentActorRole(params.actor)
   const actorScope = getCurrentScope(params.actor)
@@ -102,21 +102,65 @@ export async function listManagedUsers(params: {
     return { ok: false as const, status: 500, error: 'managed_users_list_failed', details: response.error.message }
   }
 
+  const rows = (response.data ?? []).map((user) => ({
+    id: String((user as Record<string, unknown>).id ?? ''),
+    name: String((user as Record<string, unknown>).full_name ?? ''),
+    role: (user as Record<string, unknown>).role as UserRole,
+    phone: String((user as Record<string, unknown>).phone ?? ''),
+    email: String((user as Record<string, unknown>).email ?? ''),
+    status: (((user as Record<string, unknown>).status as string | null) ?? 'invited') as 'invited' | 'active' | 'suspended',
+    regionId: ((user as Record<string, unknown>).region_id as string | null) ?? null,
+    regionName: typeof ((user as Record<string, unknown>).region as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).region as { name: string }).name : null,
+    pharmacyId: ((user as Record<string, unknown>).pharmacy_id as string | null) ?? null,
+    pharmacyName: typeof ((user as Record<string, unknown>).pharmacy as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).pharmacy as { name: string }).name : null,
+  }))
+
+  if (actorRole === 'system_admin' || actorRole === 'regional_admin' || actorRole === 'pharmacy_admin') {
+    const selfExists = rows.some((item) => item.id === params.actor.id)
+    if (!selfExists) {
+      rows.unshift({
+        id: params.actor.id,
+        name: params.actor.full_name ?? '',
+        role: actorRole,
+        phone: '',
+        email: params.actor.email ?? '',
+        status: 'active',
+        regionId: actorScope.regionId,
+        regionName: null,
+        pharmacyId: actorScope.pharmacyId,
+        pharmacyName: null,
+      })
+    }
+  }
+
+  const assignmentsResponse = await supabase
+    .from('user_role_assignments')
+    .select('user_id, region:regions(name), pharmacy:pharmacies(name)')
+    .in('user_id', rows.map((item) => item.id))
+    .eq('is_active', true)
+
+  const assignmentMap = new Map<string, { regionNames: string[]; pharmacyNames: string[] }>()
+  if (!assignmentsResponse.error) {
+    for (const assignment of assignmentsResponse.data ?? []) {
+      const row = assignment as Record<string, unknown>
+      const userId = String(row.user_id ?? '')
+      const current = assignmentMap.get(userId) ?? { regionNames: [], pharmacyNames: [] }
+      const regionName = typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null
+      const pharmacyName = typeof (row.pharmacy as { name?: unknown } | null)?.name === 'string' ? (row.pharmacy as { name: string }).name : null
+      if (regionName && !current.regionNames.includes(regionName)) current.regionNames.push(regionName)
+      if (pharmacyName && !current.pharmacyNames.includes(pharmacyName)) current.pharmacyNames.push(pharmacyName)
+      assignmentMap.set(userId, current)
+    }
+  }
+
   return {
     ok: true as const,
     status: 200,
     data: {
-      users: (response.data ?? []).map((user) => ({
-        id: String((user as Record<string, unknown>).id ?? ''),
-        name: String((user as Record<string, unknown>).full_name ?? ''),
-        role: (user as Record<string, unknown>).role as UserRole,
-        phone: String((user as Record<string, unknown>).phone ?? ''),
-        email: String((user as Record<string, unknown>).email ?? ''),
-        status: (((user as Record<string, unknown>).status as string | null) ?? 'invited') as 'invited' | 'active' | 'suspended',
-        regionId: ((user as Record<string, unknown>).region_id as string | null) ?? null,
-        regionName: typeof ((user as Record<string, unknown>).region as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).region as { name: string }).name : null,
-        pharmacyId: ((user as Record<string, unknown>).pharmacy_id as string | null) ?? null,
-        pharmacyName: typeof ((user as Record<string, unknown>).pharmacy as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).pharmacy as { name: string }).name : null,
+      users: rows.map((user) => ({
+        ...user,
+        regionName: assignmentMap.get(user.id)?.regionNames.join(' / ') || user.regionName,
+        pharmacyName: assignmentMap.get(user.id)?.pharmacyNames.join(' / ') || user.pharmacyName,
       })),
     },
   }
@@ -156,13 +200,16 @@ export async function updateManagedUser(params: {
   if (!targetUser) {
     return { ok: false as const, status: 404, error: 'user_not_found' }
   }
-  if (!canManageTargetRole(actorRole, targetUser.role)) {
+  const isSelfEdit = params.actor.id === targetUser.id
+  const canSelfEdit = isSelfEdit && (actorRole === 'system_admin' || actorRole === 'regional_admin' || actorRole === 'pharmacy_admin')
+
+  if (!canManageTargetRole(actorRole, targetUser.role) && !canSelfEdit) {
     return { ok: false as const, status: 403, error: 'forbidden_target_role' }
   }
-  if (actorRole === 'regional_admin' && actorScope.regionId !== targetUser.region_id) {
+  if (!isSelfEdit && actorRole === 'regional_admin' && actorScope.regionId !== targetUser.region_id) {
     return { ok: false as const, status: 403, error: 'forbidden_scope' }
   }
-  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== targetUser.pharmacy_id) {
+  if (!isSelfEdit && actorRole === 'pharmacy_admin' && actorScope.pharmacyId !== targetUser.pharmacy_id) {
     return { ok: false as const, status: 403, error: 'forbidden_scope' }
   }
 
@@ -175,13 +222,16 @@ export async function updateManagedUser(params: {
     return { ok: false as const, status: 400, error: 'full_name_required' }
   }
 
-  if (actorRole === 'regional_admin') {
+  if (isSelfEdit) {
+    nextRegionId = targetUser.region_id
+    nextPharmacyId = targetUser.pharmacy_id
+  } else if (actorRole === 'regional_admin') {
     nextRegionId = actorScope.regionId
     if ((targetUser.role === 'pharmacy_admin' || targetUser.role === 'night_pharmacist') && !nextPharmacyId) {
       return { ok: false as const, status: 400, error: 'pharmacy_required' }
     }
   }
-  if (actorRole === 'pharmacy_admin') {
+  if (!isSelfEdit && actorRole === 'pharmacy_admin') {
     nextRegionId = actorScope.regionId
     nextPharmacyId = actorScope.pharmacyId
   }
@@ -202,18 +252,20 @@ export async function updateManagedUser(params: {
     return { ok: false as const, status: 500, error: 'user_update_failed', details: updateResponse.error.message }
   }
 
-  const assignmentUpdate = await supabase
-    .from('user_role_assignments')
-    .update({
-      region_id: nextRegionId,
-      pharmacy_id: nextPharmacyId,
-      updated_at: now,
-    } as never)
-    .eq('user_id', targetUser.id)
-    .eq('role', targetUser.role)
+  if (!isSelfEdit) {
+    const assignmentUpdate = await supabase
+      .from('user_role_assignments')
+      .update({
+        region_id: nextRegionId,
+        pharmacy_id: nextPharmacyId,
+        updated_at: now,
+      } as never)
+      .eq('user_id', targetUser.id)
+      .eq('role', targetUser.role)
 
-  if (assignmentUpdate.error) {
-    return { ok: false as const, status: 500, error: 'role_assignment_update_failed', details: assignmentUpdate.error.message }
+    if (assignmentUpdate.error) {
+      return { ok: false as const, status: 500, error: 'role_assignment_update_failed', details: assignmentUpdate.error.message }
+    }
   }
 
   await writeAuditLog({

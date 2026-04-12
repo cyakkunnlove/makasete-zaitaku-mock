@@ -729,9 +729,16 @@ export default function StaffPage() {
                   <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
                     <TableCell colSpan={7} className="text-center text-sm text-gray-400">表示できるアカウントはまだありません。</TableCell>
                   </TableRow>
-                ) : filteredStaff.map((member) => (
+                ) : filteredStaff.map((member) => {
+                  const isSelf = member.id === user?.id
+                  return (
                   <TableRow key={member.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                    <TableCell className="font-medium text-white">{member.name}</TableCell>
+                    <TableCell className="font-medium text-white">
+                      <div className="flex items-center gap-2">
+                        <span>{member.name}</span>
+                        {isSelf && <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-200">自分</Badge>}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('border text-xs', roleClass[member.role])}>
                         {roleLabel[member.role]}
@@ -766,7 +773,7 @@ export default function StaffPage() {
                           type="button"
                           variant="outline"
                           className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
-                          disabled={userActionId === member.id || member.status === 'invited'}
+                          disabled={isSelf || userActionId === member.id || member.status === 'invited'}
                           onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
                         >
                           {member.status === 'active' ? '停止' : '再開'}
@@ -774,7 +781,7 @@ export default function StaffPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
           </Card>
