@@ -72,6 +72,7 @@ export default function CalendarPage() {
   const [detail, setDetail] = useState<CalendarDayDetail | null>(null)
   const [loadingMonth, setLoadingMonth] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [selectedRouteCandidateIds, setSelectedRouteCandidateIds] = useState<string[]>([])
   const { role } = useAuth()
 
   useEffect(() => {
@@ -119,7 +120,12 @@ export default function CalendarPage() {
     return () => { cancelled = true }
   }, [selectedDate])
 
+  useEffect(() => {
+    setSelectedRouteCandidateIds([])
+  }, [selectedDate])
+
   const summaryByDate = useMemo(() => new Map(summaries.map((summary) => [summary.date, summary])), [summaries])
+  const futureSelectedCount = selectedRouteCandidateIds.length
   const selectedSummary = selectedDate ? summaryByDate.get(selectedDate) ?? null : null
   const monthGrid = getMonthGrid(viewYear, viewMonth)
 
@@ -132,6 +138,11 @@ export default function CalendarPage() {
     }
     setSelectedDate(null)
     setDetail(null)
+  }
+
+  const toggleRouteCandidate = (patientId: string | null) => {
+    if (!patientId) return
+    setSelectedRouteCandidateIds((current) => current.includes(patientId) ? current.filter((id) => id !== patientId) : [...current, patientId])
   }
 
   const nextMonth = () => {
@@ -261,11 +272,23 @@ export default function CalendarPage() {
               {detail?.canEditPast && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">Adminのみ過去修正可</Badge>}
             </div>
             {selectedSummary && (
-              <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-                <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">予定 {selectedSummary.plannedCount}</Badge>
-                <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">対応中 {selectedSummary.inProgressCount}</Badge>
-                <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">完了 {selectedSummary.completedCount}</Badge>
-                <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">初回 {selectedSummary.firstVisitCount}</Badge>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 text-xs text-gray-300">
+                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">予定 {selectedSummary.plannedCount}</Badge>
+                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">対応中 {selectedSummary.inProgressCount}</Badge>
+                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">完了 {selectedSummary.completedCount}</Badge>
+                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">初回 {selectedSummary.firstVisitCount}</Badge>
+                </div>
+                {selectedDate && selectedDate >= `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}` && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
+                    <span>ルート候補 {futureSelectedCount}人</span>
+                    <Button asChild size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0}>
+                      <Link href={`/dashboard?routeCandidates=${selectedRouteCandidateIds.join(',')}&routeDate=${selectedDate}`}>
+                        選んだ患者でルートを作る
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardHeader>
@@ -327,14 +350,23 @@ export default function CalendarPage() {
                         </Button>
                       )}
                       {task.patientId ? (
-                        <Button asChild size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
-                          <Link href={`/dashboard?routeCandidates=${task.patientId}&routeDate=${detail?.date ?? selectedDate ?? ''}`}>
-                            <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
-                          </Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleRouteCandidate(task.patientId)}
+                          className={cn(
+                            'border-[#2a3553] text-gray-200 hover:bg-[#1a2035]',
+                            selectedRouteCandidateIds.includes(task.patientId)
+                              ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-100'
+                              : 'bg-[#0f1728]'
+                          )}
+                        >
+                          <Route className="mr-1 h-3.5 w-3.5" />
+                          {selectedRouteCandidateIds.includes(task.patientId) ? '候補に追加済み' : 'ルート候補に追加'}
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
-                          <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
+                          <Route className="mr-1 h-3.5 w-3.5" />ルート候補に追加
                         </Button>
                       )}
                     </div>
