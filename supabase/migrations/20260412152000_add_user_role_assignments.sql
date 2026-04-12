@@ -64,7 +64,14 @@ select
   u.organization_id,
   u.role,
   u.region_id,
-  u.pharmacy_id,
+  case
+    when u.role = 'night_pharmacist' then coalesce(
+      u.pharmacy_id,
+      inferred_pharmacy.id,
+      inferred_region_pharmacy.id
+    )
+    else u.pharmacy_id
+  end as pharmacy_id,
   u.operation_unit_id,
   true,
   (u.status = 'active' and coalesce(u.is_active, true) = true),
@@ -72,13 +79,41 @@ select
   coalesce(u.created_at, now()),
   coalesce(u.updated_at, now())
 from users u
-where not exists (
+left join lateral (
+  select p.id
+  from pharmacies p
+  where u.operation_unit_id is not null
+    and p.operation_unit_id = u.operation_unit_id
+  order by p.created_at asc
+  limit 1
+) inferred_pharmacy on true
+left join lateral (
+  select p.id
+  from pharmacies p
+  where u.pharmacy_id is null
+    and u.operation_unit_id is null
+    and u.region_id is not null
+    and p.region_id = u.region_id
+  order by p.created_at asc
+  limit 1
+) inferred_region_pharmacy on true
+where (
+  u.role <> 'night_pharmacist'
+  or coalesce(u.pharmacy_id, inferred_pharmacy.id, inferred_region_pharmacy.id) is not null
+)
+and not exists (
   select 1
   from user_role_assignments a
   where a.user_id = u.id
     and a.role = u.role
     and coalesce(a.region_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(u.region_id, '00000000-0000-0000-0000-000000000000'::uuid)
-    and coalesce(a.pharmacy_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(u.pharmacy_id, '00000000-0000-0000-0000-000000000000'::uuid)
+    and coalesce(a.pharmacy_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(
+      case
+        when u.role = 'night_pharmacist' then coalesce(u.pharmacy_id, inferred_pharmacy.id, inferred_region_pharmacy.id)
+        else u.pharmacy_id
+      end,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
     and coalesce(a.operation_unit_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(u.operation_unit_id, '00000000-0000-0000-0000-000000000000'::uuid)
     and a.revoked_at is null
 );
