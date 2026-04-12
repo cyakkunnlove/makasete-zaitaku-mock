@@ -207,7 +207,7 @@ export function buildCalendarDayDetail(input: {
     const patient = task.patient_id ? input.patientsById?.get(task.patient_id) : null
     const priorDates = task.patient_id ? (completedDatesByPatient.get(task.patient_id) ?? []).filter((date) => date < input.date) : []
     const lastDate = priorDates.length > 0 ? priorDates[priorDates.length - 1] : null
-    const isLongGapVisit = lastDate ? diffDays(lastDate, input.date) >= 7 : false
+    const isLongGapVisit = lastDate ? diffDays(lastDate, input.date) >= 42 : false
 
     return {
       taskId: task.id,

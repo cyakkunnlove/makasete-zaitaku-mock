@@ -452,7 +452,7 @@ export default function CalendarPage() {
                   <div key={task.taskId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-white">{task.patientName}</p>
-                      <Badge className="border-[#2a3553] bg-[#0f1728] text-gray-200">{task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '未着手'}</Badge>
+                      <Badge className="border-[#2a3553] bg-[#0f1728] text-gray-200">{task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'}</Badge>
                       {task.isFirstVisit && <Badge className="border-sky-500/40 bg-sky-500/20 text-sky-200">初回</Badge>}
                       {task.isLongGapVisit && <Badge className="border-violet-500/40 bg-violet-500/20 text-violet-200">久しぶり</Badge>}
                       {task.hasNightHandover && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">夜間申し送りあり</Badge>}
