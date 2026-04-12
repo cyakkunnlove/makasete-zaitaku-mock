@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -758,7 +759,15 @@ export default function PatientDetailPage() {
                     }}
                   >
                     {photo.thumbnail_url ? (
-                      <img src={photo.thumbnail_url} alt={photo.caption ?? '患者宅写真'} className="h-40 w-full object-cover" />
+                      <div className="relative h-40 w-full">
+                        <Image
+                          src={photo.thumbnail_url}
+                          alt={photo.caption ?? '患者宅写真'}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="flex h-40 items-center justify-center bg-[#0f1728] text-gray-500">画像なし</div>
                     )}
@@ -969,7 +978,15 @@ export default function PatientDetailPage() {
           </DialogHeader>
           {selectedPhoto?.image_url ? (
             <div className="space-y-3">
-              <img src={selectedPhoto.image_url} alt={selectedPhoto.caption ?? '患者宅写真'} className="max-h-[70vh] w-full rounded-lg object-contain" />
+              <div className="relative h-[70vh] w-full overflow-hidden rounded-lg">
+                <Image
+                  src={selectedPhoto.image_url}
+                  alt={selectedPhoto.caption ?? '患者宅写真'}
+                  fill
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              </div>
               <div className="grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
                 <p>メモ: {selectedPhoto.caption || '外観写真'}</p>
                 <p>追加日時: {new Date(selectedPhoto.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
