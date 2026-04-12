@@ -92,6 +92,23 @@ export interface User {
   updated_at: string
 }
 
+export interface UserRoleAssignment {
+  id: string
+  user_id: string
+  organization_id: string
+  role: UserRole
+  region_id: string | null
+  pharmacy_id: string | null
+  operation_unit_id: string | null
+  is_default: boolean
+  is_active: boolean
+  granted_by: string | null
+  granted_at: string
+  revoked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Patient {
   id: string
   organization_id: string | null

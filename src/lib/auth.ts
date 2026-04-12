@@ -11,6 +11,7 @@ const ID_TOKEN_COOKIE = 'id_token'
 const ACCESS_TOKEN_COOKIE = 'access_token'
 const REFRESH_TOKEN_COOKIE = 'refresh_token'
 const DEMO_SESSION_COOKIE = 'demo_session'
+const ACTIVE_ROLE_ASSIGNMENT_COOKIE = 'active_role_assignment_id'
 
 type JwtPayload = {
   sub?: string
@@ -33,6 +34,7 @@ export function getAuthCookieNames() {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
     DEMO_SESSION_COOKIE,
+    ACTIVE_ROLE_ASSIGNMENT_COOKIE,
   }
 }
 

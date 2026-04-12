@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   }
 
   const response = NextResponse.redirect(new URL('/dashboard', request.url))
-  const { AUTH_MODE_COOKIE, DEMO_SESSION_COOKIE, ID_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } = getAuthCookieNames()
+  const { AUTH_MODE_COOKIE, DEMO_SESSION_COOKIE, ID_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, ACTIVE_ROLE_ASSIGNMENT_COOKIE } = getAuthCookieNames()
 
   response.cookies.set(AUTH_MODE_COOKIE, 'mock', {
     httpOnly: true,
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
   response.cookies.delete(ID_TOKEN_COOKIE)
   response.cookies.delete(ACCESS_TOKEN_COOKIE)
   response.cookies.delete(REFRESH_TOKEN_COOKIE)
+  response.cookies.delete(ACTIVE_ROLE_ASSIGNMENT_COOKIE)
 
   return response
 }

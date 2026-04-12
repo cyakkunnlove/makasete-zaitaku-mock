@@ -26,9 +26,10 @@ export async function GET(request: Request) {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
     DEMO_SESSION_COOKIE,
+    ACTIVE_ROLE_ASSIGNMENT_COOKIE,
   } = getAuthCookieNames()
 
-  for (const cookieName of [AUTH_MODE_COOKIE, ID_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, DEMO_SESSION_COOKIE]) {
+  for (const cookieName of [AUTH_MODE_COOKIE, ID_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, DEMO_SESSION_COOKIE, ACTIVE_ROLE_ASSIGNMENT_COOKIE]) {
     response.cookies.set(cookieName, '', {
       httpOnly: true,
       secure: requestUrl.protocol === 'https:',

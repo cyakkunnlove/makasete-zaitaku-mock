@@ -1,109 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeftRight, Building2, CheckCircle2, LogOut, Shield, Store, UserCircle2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/auth-context'
+import { useRoleContexts } from '@/hooks/use-role-contexts'
+import type { UserRole } from '@/types/database'
 
-type RoleAssignmentCard = {
-  id: string
-  role: 'system_admin' | 'regional_admin' | 'pharmacy_admin' | 'pharmacy_staff' | 'night_pharmacist'
-  regionName: string | null
-  pharmacyName: string | null
-  operationUnitName: string | null
-  isDefault: boolean
-  note?: string
-}
-
-const mockAssignmentsByRole: Record<string, RoleAssignmentCard[]> = {
-  system_admin: [
-    {
-      id: 'assign-system-admin-kanto',
-      role: 'system_admin',
-      regionName: null,
-      pharmacyName: null,
-      operationUnitName: null,
-      isDefault: true,
-      note: 'システム管理全体',
-    },
-    {
-      id: 'assign-regional-admin-kanto',
-      role: 'regional_admin',
-      regionName: '関東リージョン',
-      pharmacyName: null,
-      operationUnitName: null,
-      isDefault: false,
-      note: '関東の加盟店・夜間体制を管理',
-    },
-  ],
-  regional_admin: [
-    {
-      id: 'assign-regional-admin-kanto',
-      role: 'regional_admin',
-      regionName: '関東リージョン',
-      pharmacyName: null,
-      operationUnitName: null,
-      isDefault: true,
-      note: '関東リージョンの管理者',
-    },
-    {
-      id: 'assign-night-pharmacist-jonan',
-      role: 'night_pharmacist',
-      regionName: '関東リージョン',
-      pharmacyName: '城南みらい薬局',
-      operationUnitName: '夜間運用ユニットA',
-      isDefault: false,
-      note: '夜間の実務応援に入る想定',
-    },
-  ],
-  pharmacy_admin: [
-    {
-      id: 'assign-pharmacy-admin-jonan',
-      role: 'pharmacy_admin',
-      regionName: '関東リージョン',
-      pharmacyName: '城南みらい薬局',
-      operationUnitName: null,
-      isDefault: true,
-      note: '自局の管理責任者',
-    },
-    {
-      id: 'assign-night-pharmacist-jonan',
-      role: 'night_pharmacist',
-      regionName: '関東リージョン',
-      pharmacyName: '城南みらい薬局',
-      operationUnitName: '夜間運用ユニットA',
-      isDefault: false,
-      note: '夜間担当も兼務する想定',
-    },
-  ],
-  pharmacy_staff: [
-    {
-      id: 'assign-pharmacy-staff-jonan',
-      role: 'pharmacy_staff',
-      regionName: '関東リージョン',
-      pharmacyName: '城南みらい薬局',
-      operationUnitName: null,
-      isDefault: true,
-      note: '自局の実務担当',
-    },
-  ],
-  night_pharmacist: [
-    {
-      id: 'assign-night-pharmacist-jonan',
-      role: 'night_pharmacist',
-      regionName: '関東リージョン',
-      pharmacyName: '城南みらい薬局',
-      operationUnitName: '夜間運用ユニットA',
-      isDefault: true,
-      note: '夜間専任の想定',
-    },
-  ],
-}
-
-const roleLabels: Record<RoleAssignmentCard['role'], string> = {
+const roleLabels: Record<UserRole, string> = {
   system_admin: 'System Admin',
   regional_admin: 'Regional Admin',
   pharmacy_admin: 'Pharmacy Admin',
@@ -111,7 +19,7 @@ const roleLabels: Record<RoleAssignmentCard['role'], string> = {
   night_pharmacist: 'Night Pharmacist',
 }
 
-const roleBadgeClass: Record<RoleAssignmentCard['role'], string> = {
+const roleBadgeClass: Record<UserRole, string> = {
   system_admin: 'border-violet-500/40 bg-violet-500/20 text-violet-300',
   regional_admin: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
   pharmacy_admin: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
@@ -121,7 +29,8 @@ const roleBadgeClass: Record<RoleAssignmentCard['role'], string> = {
 
 export default function RoleChooserPage() {
   const { user, role, signOut } = useAuth()
-  const assignments = mockAssignmentsByRole[role ?? 'pharmacy_staff'] ?? []
+  const router = useRouter()
+  const { assignments, loading, saving, error, selectAssignment } = useRoleContexts()
 
   return (
     <div className="space-y-6 text-gray-100">
@@ -145,22 +54,32 @@ export default function RoleChooserPage() {
             <div className="mt-2 space-y-1 text-xs text-gray-400">
               <p>氏名: {user?.full_name ?? '不明'}</p>
               <p>メール: {user?.email ?? '不明'}</p>
-              <p>現在のロール表示: {role ? roleLabels[role as RoleAssignmentCard['role']] ?? role : '未選択'}</p>
+              <p>現在のロール表示: {role ? roleLabels[role] : '未選択'}</p>
             </div>
           </div>
 
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100/90">
-            <p className="font-medium">これは UI モックです</p>
+            <p className="font-medium">現在は mock API 接続です</p>
             <p className="mt-1">
-              実装時は `user_role_assignments` と active role context cookie を使って、ここで選んだ立場を session に保存します。
+              いまは mock assignment を API 経由で返し、選択結果は active role context cookie へ保存する土台まで入っています。
             </p>
           </div>
+
+          {error && (
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-xs leading-6 text-rose-100/90">
+              {error}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {assignments.map((assignment) => (
-          <Card key={assignment.id} className="border-[#2a3553] bg-[#1a2035]">
+        {loading ? (
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardContent className="p-5 text-sm text-gray-400">立場候補を読み込み中です...</CardContent>
+          </Card>
+        ) : assignments.map((assignment) => (
+          <Card key={assignment.assignmentId} className="border-[#2a3553] bg-[#1a2035]">
             <CardContent className="space-y-4 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className={roleBadgeClass[assignment.role]}>
@@ -171,12 +90,17 @@ export default function RoleChooserPage() {
                     通常使う立場
                   </Badge>
                 )}
+                {!assignment.isActive && (
+                  <Badge variant="outline" className="border-rose-500/40 bg-rose-500/10 text-rose-200">
+                    無効
+                  </Badge>
+                )}
               </div>
 
               <div className="space-y-2 text-sm text-gray-300">
                 <div className="flex items-center gap-2">
                   <UserCircle2 className="h-4 w-4 text-gray-500" />
-                  <span>{assignment.note ?? '役割説明なし'}</span>
+                  <span>{assignment.isDefault ? '通常使う立場として設定' : '追加で持っている立場'}</span>
                 </div>
                 {assignment.regionName && (
                   <div className="flex items-center gap-2">
@@ -199,9 +123,16 @@ export default function RoleChooserPage() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button className="bg-indigo-600 text-white hover:bg-indigo-500">
+                <Button
+                  className="bg-indigo-600 text-white hover:bg-indigo-500"
+                  disabled={saving || !assignment.isActive}
+                  onClick={async () => {
+                    const ok = await selectAssignment(assignment.assignmentId)
+                    if (ok) router.push('/dashboard')
+                  }}
+                >
                   <CheckCircle2 className="h-4 w-4" />
-                  この立場で入る
+                  {saving ? '保存中...' : 'この立場で入る'}
                 </Button>
                 <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
                   詳細を見る
