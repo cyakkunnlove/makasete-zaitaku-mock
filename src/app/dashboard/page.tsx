@@ -810,6 +810,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }> }
     message: string
   }>(null)
+  const routeEmailHref = useMemo(() => {
+    if (!user?.email || !routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) return null
+
+    const subject = `【マカセテ在宅】${flowDate} の巡回ルート`
+    const lines = [
+      `${flowDate} の巡回ルートです。`,
+      '',
+      routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : null,
+      typeof routePlanResult.totalDistanceMeters === 'number' ? `総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : null,
+      '',
+      '巡回順',
+      ...routePlanResult.suggestedOrder.map((patient, index) => `${index + 1}. ${patient.name} / ${patient.address}`),
+    ].filter(Boolean)
+
+    return `mailto:${encodeURIComponent(user.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`
+  }, [flowDate, routePlanResult, user?.email])
+
   const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
@@ -1657,11 +1674,18 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-200">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-medium text-white">{routePlanResult.message}</p>
-                      {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
-                        <Button size="sm" onClick={handleApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
-                          この順番を今日の並びに反映
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {routeEmailHref && (
+                          <Button asChild size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20">
+                            <a href={routeEmailHref}>自分のメールに送る</a>
+                          </Button>
+                        )}
+                        {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                          <Button size="sm" onClick={handleApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
+                            この順番を今日の並びに反映
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>

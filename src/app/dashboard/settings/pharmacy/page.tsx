@@ -16,7 +16,6 @@ export default function PharmacySettingsPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [settings, setSettings] = useState({
     pharmacyName: '城南みらい薬局',
-    regionName: '世田谷・城南リージョン',
     emergencyRoute: 'Regional Admin 受付',
     nightDelegationEnabled: 'on',
     forwardingPhone: '03-1234-5678',
@@ -62,16 +61,12 @@ export default function PharmacySettingsPage() {
         <Card className="border-[#2a3553] bg-[#111827]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-white"><Building2 className="h-4 w-4 text-indigo-400" />所属・責任者情報</CardTitle>
-            <CardDescription className="text-gray-400">Supabase 移行時は pharmacy / region / owner カラムに対応</CardDescription>
+            <CardDescription className="text-gray-400">Supabase 移行時は pharmacy / owner カラムを中心に対応</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <Label className="text-gray-300">薬局名</Label>
               <Input value={settings.pharmacyName} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, pharmacyName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
-            </div>
-            <div>
-              <Label className="text-gray-300">所属リージョン</Label>
-              <Input value={settings.regionName} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, regionName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
             </div>
             <div>
               <Label className="text-gray-300">管理責任者</Label>

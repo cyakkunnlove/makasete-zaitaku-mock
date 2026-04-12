@@ -145,7 +145,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       return item
     })
 
-  const filteredSettings = settingsNavItems.filter((item) => canAccess(role, item.permission))
+  const filteredSettings = settingsNavItems
+    .filter((item) => canAccess(role, item.permission))
+    .filter((item) => !(role === 'pharmacy_admin' && item.href === '/dashboard/settings/region'))
 
   const visibleMobileNavItems = mobileNavItems.filter((item) => {
     if (!canAccess(role, item.permission)) return false
