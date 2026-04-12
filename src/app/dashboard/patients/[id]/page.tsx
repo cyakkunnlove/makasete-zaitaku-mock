@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,6 +77,7 @@ function calculateAge(dob: string): number {
 export default function PatientDetailPage() {
   const { role, user, authMode } = useAuth()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatient, setDatabasePatient] = useState<Patient | null>(null)
@@ -161,6 +162,13 @@ export default function PatientDetailPage() {
     })
 
   }, [patient])
+
+  useEffect(() => {
+    if (searchParams.get('created') !== '1') return
+    setEditSavedNotice('患者を登録しました')
+    const timer = window.setTimeout(() => setEditSavedNotice(null), 2500)
+    return () => window.clearTimeout(timer)
+  }, [searchParams])
 
   useEffect(() => {
     const patientId = patient?.id

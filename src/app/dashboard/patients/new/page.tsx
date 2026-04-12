@@ -453,9 +453,16 @@ export default function NewPatientPage() {
         setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
       }
 
+      const destinationPatientId = createdPatientId ?? fallbackPatientId
+      if (!destinationPatientId) {
+        setErrorMessage('登録後の画面遷移に失敗しました。患者一覧から確認してください。')
+        router.push('/dashboard/patients')
+        return
+      }
+
       setGeocodeConfirmOpen(false)
       setGeocodePreview(null)
-      router.push(`/dashboard/patients/${createdPatientId ?? fallbackPatientId}`)
+      router.push(`/dashboard/patients/${destinationPatientId}?created=1`)
     } finally {
       setIsSubmitting(false)
     }
