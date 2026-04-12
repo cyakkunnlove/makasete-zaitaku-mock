@@ -7,7 +7,10 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const state = requestUrl.searchParams.get('state')
-  const isPasskeySetupFlow = state === 'passkey_setup'
+
+  const [stateKind, encodedNextPath] = (state ?? '').split(':', 2)
+  const nextPath = encodedNextPath ? decodeURIComponent(encodedNextPath) : null
+  const isPasskeySetupFlow = stateKind === 'passkey_setup'
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', request.url))
@@ -81,9 +84,21 @@ export async function GET(request: Request) {
     }
   }
 
-  const redirectTarget = isPasskeySetupFlow
-    ? new URL('/dashboard/account-security?passkey=added', request.url)
-    : new URL('/dashboard', request.url)
+  const redirectTarget = (() => {
+    if (isPasskeySetupFlow) {
+      const target = new URL('/dashboard/account-security?passkey=added', request.url)
+      if (nextPath) {
+        target.searchParams.set('next', nextPath)
+      }
+      return target
+    }
+
+    if (nextPath && nextPath.startsWith('/')) {
+      return new URL(nextPath, request.url)
+    }
+
+    return new URL('/dashboard', request.url)
+  })()
 
   const response = NextResponse.redirect(redirectTarget)
   const {

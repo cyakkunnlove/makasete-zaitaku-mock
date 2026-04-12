@@ -1,19 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Shield, KeyRound, LogIn, ArrowLeft } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 
 export default function AccountSecurityPage() {
-  const { user, role } = useAuth()
+  const { user, role, requiresReverification } = useAuth()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const passkeyStatus = searchParams.get('passkey')
   const passkeyError = searchParams.get('passkey_error')
   const reauthRequired = searchParams.get('reauth') === 'required'
   const nextPath = searchParams.get('next')
+
+  const continuePath = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
 
   const passkeyMessage = (() => {
     if (passkeyStatus === 'added') {
@@ -47,7 +50,7 @@ export default function AccountSecurityPage() {
     <div className="space-y-6 text-gray-100">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" className="gap-2 text-gray-300 hover:text-white">
-          <Link href="/dashboard/more">
+          <Link href={continuePath}>
             <ArrowLeft size={16} />
             戻る
           </Link>
@@ -152,14 +155,23 @@ export default function AccountSecurityPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
-              <a href="/api/auth/passkey-setup">パスキーを追加</a>
+              <a href={`/api/auth/passkey-setup?next=${encodeURIComponent(continuePath)}`}>パスキーを追加</a>
             </Button>
             <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
-              <a href="/api/auth/login">
+              <a href={`/api/auth/login?next=${encodeURIComponent(continuePath)}`}>
                 <LogIn size={16} className="mr-2" />
                 {reauthRequired ? '再認証する' : '通常ログインを開く'}
               </a>
             </Button>
+            {!requiresReverification && (
+              <Button
+                variant="ghost"
+                className="text-gray-300 hover:text-white"
+                onClick={() => router.push(continuePath)}
+              >
+                元の画面へ戻る
+              </Button>
+            )}
           </div>
 
           <p className="text-xs leading-6 text-gray-500">
