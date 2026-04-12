@@ -2,14 +2,19 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
-import { createAccountInvitation, listAccountInvitations } from '@/lib/account-invitation-service'
+import { createAccountInvitation, listAccountInvitations, listManagedUsers } from '@/lib/account-invitation-service'
 import type { UserRole } from '@/types/database'
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
 
-  const result = await listAccountInvitations({ actor: user })
+  const url = new URL(request.url)
+  const resource = url.searchParams.get('resource')
+
+  const result = resource === 'users'
+    ? await listManagedUsers({ actor: user })
+    : await listAccountInvitations({ actor: user })
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error, details: 'details' in result ? result.details : null }, { status: result.status })
   }

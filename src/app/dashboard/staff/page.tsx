@@ -37,7 +37,6 @@ import { cn } from '@/lib/utils'
 import { Plus, Calendar, Users } from 'lucide-react'
 
 import {
-  staffData,
   shiftData,
   shiftPharmacists,
   type StaffItem,
@@ -106,7 +105,7 @@ export default function StaffPage() {
   const [pageTab, setPageTab] = useState<PageTab>('staff')
 
   // Staff list state
-  const [staffMembers, setStaffMembers] = useState<StaffItem[]>(staffData)
+  const [staffMembers, setStaffMembers] = useState<StaffItem[]>([])
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -218,6 +217,19 @@ export default function StaffPage() {
   useEffect(() => {
     if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return
     let cancelled = false
+
+    fetch('/api/account-invitations?resource=users', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'managed_users_list_failed')
+        if (cancelled) return
+        setStaffMembers(data.users ?? [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStaffMembers([])
+      })
+
     fetch('/api/account-invitations', { cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json()

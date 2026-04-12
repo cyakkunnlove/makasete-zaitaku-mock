@@ -38,6 +38,56 @@ function canManageTargetRole(actorRole: UserRole | null, targetRole: UserRole) {
   return canInvite(actorRole, targetRole)
 }
 
+export async function listManagedUsers(params: {
+  actor: RoleAwareUser & { organization_id: string }
+}) {
+  const actorRole = getCurrentActorRole(params.actor)
+  const actorScope = getCurrentScope(params.actor)
+  const supabase = createServerSupabaseClient()
+
+  let query = supabase
+    .from('users')
+    .select('id, full_name, role, phone, email, status, region_id, pharmacy_id, created_at')
+    .eq('organization_id', params.actor.organization_id)
+    .order('created_at', { ascending: false })
+
+  if (actorRole === 'system_admin') {
+    query = query.in('role', ['regional_admin'])
+  } else if (actorRole === 'regional_admin' && actorScope.regionId) {
+    query = query
+      .in('role', ['pharmacy_admin', 'night_pharmacist'])
+      .eq('region_id', actorScope.regionId)
+  } else if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId) {
+    query = query
+      .in('role', ['pharmacy_staff'])
+      .eq('pharmacy_id', actorScope.pharmacyId)
+  } else {
+    return { ok: false as const, status: 403, error: 'forbidden' }
+  }
+
+  const response = await query.limit(100)
+  if (response.error) {
+    return { ok: false as const, status: 500, error: 'managed_users_list_failed', details: response.error.message }
+  }
+
+  return {
+    ok: true as const,
+    status: 200,
+    data: {
+      users: (response.data ?? []).map((user) => ({
+        id: String((user as Record<string, unknown>).id ?? ''),
+        name: String((user as Record<string, unknown>).full_name ?? ''),
+        role: (user as Record<string, unknown>).role as UserRole,
+        phone: String((user as Record<string, unknown>).phone ?? ''),
+        email: String((user as Record<string, unknown>).email ?? ''),
+        status: (user as Record<string, unknown>).status === 'active' ? 'active' : 'inactive',
+        regionId: ((user as Record<string, unknown>).region_id as string | null) ?? null,
+        pharmacyId: ((user as Record<string, unknown>).pharmacy_id as string | null) ?? null,
+      })),
+    },
+  }
+}
+
 export async function updateManagedUser(params: {
   actor: RoleAwareUser & { id: string; organization_id: string; email: string; full_name: string }
   userId: string
