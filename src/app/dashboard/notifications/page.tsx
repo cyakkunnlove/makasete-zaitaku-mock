@@ -37,6 +37,17 @@ export default function NotificationsPage() {
   const [logs, setLogs] = useState<NotificationLogItem[]>(notificationLogData)
   const [toast, setToast] = useState<string | null>(null)
 
+  if (role !== 'regional_admin') {
+    return (
+      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <CardContent className="p-6">
+          <h1 className="text-base font-semibold text-white">通知ログ</h1>
+          <p className="mt-2 text-sm text-gray-400">このページは Regional Admin のみ確認できます。</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const filtered = logs.filter((log) => {
     if (channelFilter !== 'all' && log.channel !== channelFilter) return false
     if (statusFilter !== 'all' && log.status !== statusFilter) return false
