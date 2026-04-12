@@ -71,6 +71,7 @@ export interface Pharmacy {
 }
 
 export type UserStatus = 'invited' | 'active' | 'suspended' | 'disabled'
+export type AccountInvitationStatus = 'pending' | 'accepted' | 'revoked' | 'expired'
 
 export interface User {
   id: string
@@ -105,6 +106,28 @@ export interface UserRoleAssignment {
   granted_by: string | null
   granted_at: string
   revoked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AccountInvitation {
+  id: string
+  organization_id: string
+  invited_user_id: string
+  role: UserRole
+  email: string
+  region_id: string | null
+  pharmacy_id: string | null
+  operation_unit_id: string | null
+  token_hash: string
+  status: AccountInvitationStatus
+  expires_at: string
+  sent_at: string | null
+  last_sent_at: string | null
+  accepted_at: string | null
+  revoked_at: string | null
+  created_by: string | null
+  message_id: string | null
   created_at: string
   updated_at: string
 }
@@ -370,6 +393,7 @@ export interface Database {
       operation_units: { Row: OperationUnit; Insert: Partial<OperationUnit>; Update: Partial<OperationUnit> }
       users: { Row: User; Insert: Partial<User>; Update: Partial<User> }
       user_role_assignments: { Row: UserRoleAssignment; Insert: Partial<UserRoleAssignment>; Update: Partial<UserRoleAssignment> }
+      account_invitations: { Row: AccountInvitation; Insert: Partial<AccountInvitation>; Update: Partial<AccountInvitation> }
       patients: { Row: Patient; Insert: Partial<Patient>; Update: Partial<Patient> }
       requests: { Row: Request; Insert: Partial<Request>; Update: Partial<Request> }
       assignments: { Row: Assignment; Insert: Partial<Assignment>; Update: Partial<Assignment> }

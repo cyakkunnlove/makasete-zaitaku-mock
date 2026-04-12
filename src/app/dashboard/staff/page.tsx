@@ -182,7 +182,11 @@ export default function StaffPage() {
           throw new Error(data.error ?? 'regional_admin_create_failed')
         }
 
-        setToast(`リージョン管理者を作成しました: ${data.user.email}`)
+        setToast(
+          data.invitation?.emailSent
+            ? `リージョン管理者を作成し、招待メールも送信しました: ${data.user.email}`
+            : `リージョン管理者は作成済みですが、招待メール送信は未完了です: ${data.user.email}`,
+        )
         setStaffMembers((prev) => [
           {
             id: data.user.id,
@@ -256,7 +260,7 @@ export default function StaffPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? '夜間スタッフ管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待前準備を行います' : isRegionalAdmin ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
+          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待メール送信を行います' : isRegionalAdmin ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
         </div>
 
         {pageTab === 'staff' && (

@@ -5,6 +5,14 @@ import { getCurrentActorRole } from '@/lib/active-role'
 import { ensureRecentReverification } from '@/lib/api-reauth'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { writeAuditLog } from '@/lib/audit-log'
+import {
+  buildInvitationAcceptUrl,
+  getInvitationBaseUrl,
+  buildRegionalAdminInvitationEmail,
+  createInvitationToken,
+  hashInvitationToken,
+  sendEmail,
+} from '@/lib/account-invitations'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -122,6 +130,68 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'role_assignment_create_failed', details: assignmentError.message }, { status: 500 })
   }
 
+  const rawToken = createInvitationToken()
+  const tokenHash = hashInvitationToken(rawToken)
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString()
+
+  const invitationInsert = await supabase
+    .from('account_invitations')
+    .insert({
+      organization_id: user.organization_id,
+      invited_user_id: createdUser.id,
+      role: 'regional_admin',
+      email: createdUser.email,
+      region_id: region.id,
+      pharmacy_id: null,
+      operation_unit_id: null,
+      token_hash: tokenHash,
+      status: 'pending',
+      expires_at: expiresAt,
+      created_by: user.id,
+      created_at: now,
+      updated_at: now,
+    } as never)
+    .select('id')
+    .single()
+
+  const createdInvitation = invitationInsert.data as { id: string } | null
+
+  if (invitationInsert.error || !createdInvitation) {
+    await supabase.from('user_role_assignments').delete().eq('user_id', createdUser.id)
+    await supabase.from('users').delete().eq('id', createdUser.id)
+    return NextResponse.json({ ok: false, error: 'invitation_create_failed', details: invitationInsert.error?.message ?? null }, { status: 500 })
+  }
+
+  const acceptUrl = buildInvitationAcceptUrl(getInvitationBaseUrl(request), rawToken)
+  let emailSent = false
+  let emailError: string | null = null
+  let messageId: string | null = null
+
+  try {
+    const emailPayload = buildRegionalAdminInvitationEmail({
+      to: createdUser.email,
+      fullName: createdUser.full_name,
+      regionName: region.name,
+      acceptUrl,
+      expiresAt,
+    })
+    const emailResponse = await sendEmail({
+      to: createdUser.email,
+      subject: emailPayload.subject,
+      text: emailPayload.text,
+      html: emailPayload.html,
+    })
+    emailSent = true
+    messageId = emailResponse.MessageId ?? null
+
+    await supabase
+      .from('account_invitations')
+      .update({ sent_at: new Date().toISOString(), last_sent_at: new Date().toISOString(), message_id: messageId, updated_at: new Date().toISOString() } as never)
+      .eq('id', createdInvitation.id)
+  } catch (error) {
+    emailError = error instanceof Error ? error.message : 'email_send_failed'
+  }
+
   await writeAuditLog({
     user,
     action: 'regional_admin_created',
@@ -132,7 +202,11 @@ export async function POST(request: Request) {
       created_role: createdUser.role,
       region_id: region.id,
       region_name: region.name,
-      invitation_status: 'invited',
+      invitation_status: 'pending',
+      invitation_id: createdInvitation.id,
+      invitation_email_sent: emailSent,
+      invitation_message_id: messageId,
+      invitation_email_error: emailError,
       auth_setup: 'cognito_signup_pending',
     },
   })
@@ -141,6 +215,16 @@ export async function POST(request: Request) {
     ok: true,
     user: createdUser,
     region: { id: region.id, name: region.name },
-    nextStep: 'Cognito 側で同じメールアドレスの認証アカウント作成、または招待フロー接続が必要です。',
+    invitation: {
+      id: createdInvitation.id,
+      expiresAt,
+      emailSent,
+      messageId,
+      emailError,
+      acceptUrl,
+    },
+    nextStep: emailSent
+      ? '招待メールを送信しました。次は受諾後の Cognito 初回登録連携です。'
+      : 'invitation は作成済みですが、メール送信は失敗しました。SES 設定確認後に再送導線をつなぐ必要があります。',
   })
 }
