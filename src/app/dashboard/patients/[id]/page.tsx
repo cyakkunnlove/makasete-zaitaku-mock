@@ -18,13 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  requestData,
-  handoverData,
-  getAttentionFlags,
-  getAttentionFlagClass,
-  statusMeta,
-} from '@/lib/mock-data'
+import { getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
@@ -206,16 +200,6 @@ export default function PatientDetailPage() {
       cancelled = true
     }
   }, [databasePatient, patient?.id])
-
-  const patientRequests = useMemo(
-    () => (authMode === 'cognito' || !patient ? [] : requestData.filter((r) => r.patientId === patient.id)),
-    [authMode, patient]
-  )
-
-  const patientHandovers = useMemo(
-    () => (authMode === 'cognito' || !patient ? [] : handoverData.filter((h) => h.patientId === patient.id)),
-    [authMode, patient]
-  )
 
   const [visitDialogOpen, setVisitDialogOpen] = useState(false)
   const [visitRecords, setVisitRecords] = useState<VisitRecordDraft[]>([])
@@ -1196,95 +1180,55 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Request History */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Clock3 className="h-4 w-4 text-indigo-400" />
-            依頼履歴
-            <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
-              {patientRequests.length}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {patientRequests.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">{authMode === 'cognito' ? '依頼履歴はこれからデータベース連携します。' : '依頼履歴はありません。'}</p>
-          ) : (
-            <div className="space-y-2">
-              {patientRequests.map((req) => {
-                const meta = statusMeta[req.status]
-                return (
-                  <Link key={req.id} href={`/dashboard/requests/${req.id}`} className="block">
-                    <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#111827] p-3 transition hover:border-indigo-500/40">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-300">{req.id}</span>
-                          <Badge variant="outline" className={cn('border text-[10px]', meta.className)}>
-                            {meta.label}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 truncate text-xs text-gray-400">{req.symptom}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-xs text-gray-500">{req.receivedDate}</p>
-                        <p className="text-xs text-gray-400">{req.receivedAt}</p>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {(authMode !== 'cognito') && (
+        <>
+          {/* Request History */}
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <Clock3 className="h-4 w-4 text-indigo-400" />
+                依頼履歴
+                <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+                  準備中
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="py-4 text-center text-xs text-gray-500">依頼履歴の表示はデータベース連携に合わせて整理中です。</p>
+            </CardContent>
+          </Card>
 
-      {/* Handover History */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <FileText className="h-4 w-4 text-purple-400" />
-            夜間対応履歴
-            <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
-              {patientHandovers.length}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {patientHandovers.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">{authMode === 'cognito' ? '夜間対応履歴はこれからデータベース連携します。' : '夜間対応履歴はありません。'}</p>
-          ) : (
-            <div className="space-y-2">
-              {patientHandovers.map((ho) => (
-                <Link key={ho.id} href={`/dashboard/handovers/${ho.id}`} className="block">
-                  <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#111827] p-3 transition hover:border-indigo-500/40">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-300">{ho.id}</span>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'border text-[10px]',
-                            ho.confirmed
-                              ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-                              : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-                          )}
-                        >
-                          {ho.confirmed ? '確認済' : '未確認'}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-400">夜間対応: {ho.pharmacistName}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-xs text-gray-500">{ho.timestamp}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          {/* Handover History */}
+          <Card className="border-[#2a3553] bg-[#1a2035]">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm text-white">
+                <FileText className="h-4 w-4 text-purple-400" />
+                夜間対応履歴
+                <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+                  準備中
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="py-4 text-center text-xs text-gray-500">夜間対応履歴の表示はデータベース連携に合わせて整理中です。</p>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {authMode === 'cognito' && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm text-white">
+              <FileText className="h-4 w-4 text-purple-400" />
+              履歴表示
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="py-2 text-sm text-gray-400">依頼履歴と夜間対応履歴は、これからデータベース連携します。</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
