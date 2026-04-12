@@ -813,18 +813,18 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
-      {(patient.manualTags?.length || patient.registrationMeta || patient.visitRules?.length) && (
+      {(patient.manualTags?.length || (authMode !== 'cognito' && patient.registrationMeta) || patient.visitRules?.length) && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm text-white">
               <Clock3 className="h-4 w-4 text-cyan-400" />
-              patient master 登録情報
+              補足情報
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-gray-200">
             {patient.manualTags && patient.manualTags.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500">manualTags</p>
+                <p className="text-xs text-gray-500">共有メモ</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {patient.manualTags.map((tag) => (
                     <Badge key={tag} variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">
@@ -836,16 +836,16 @@ export default function PatientDetailPage() {
             )}
             {patient.visitRules && patient.visitRules.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500">visitRules</p>
+                <p className="text-xs text-gray-500">訪問の目安</p>
                 <p className="mt-1">{formatVisitRuleSummary(patient)}</p>
               </div>
             )}
-            {patient.registrationMeta && (
+            {authMode !== 'cognito' && patient.registrationMeta && (
               <div className="grid gap-2 sm:grid-cols-2 text-xs text-gray-400">
-                <p>作成者: {patient.registrationMeta.createdByName}</p>
-                <p>作成日時: {patient.registrationMeta.createdAt}</p>
+                <p>登録者: {patient.registrationMeta.createdByName}</p>
+                <p>登録日時: {new Date(patient.registrationMeta.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                 <p>最終更新者: {patient.registrationMeta.updatedByName}</p>
-                <p>手動同期: {patient.registrationMeta.manualSyncAt ?? '-'}</p>
+                <p>反映メモ: {patient.registrationMeta.manualSyncAt ? new Date(patient.registrationMeta.manualSyncAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '-'}</p>
               </div>
             )}
           </CardContent>
@@ -980,7 +980,7 @@ export default function PatientDetailPage() {
           <div className="space-y-4 pb-2">
             <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
               <p className="font-medium text-white">現在の権限</p>
-              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />Pharmacy Staff / Pharmacy Admin: 患者基本・医療情報の編集が可能</p>
+              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />薬局管理者・薬局スタッフは、患者基本情報と医療情報を編集できます。</p>
             </div>
             <div>
               <p className="mb-2 text-xs text-gray-500">編集項目</p>
