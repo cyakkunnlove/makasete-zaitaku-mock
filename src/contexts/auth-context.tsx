@@ -4,9 +4,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { UserRole } from '@/types/database'
 import type { AuthMode, CurrentUser } from '@/lib/auth'
 import type { MockRoleContextView } from '@/lib/mock-role-contexts'
+import { getCurrentActorRole } from '@/lib/active-role'
 
 export function getEffectiveRole(user: CurrentUser | null): UserRole | null {
-  return user?.activeRoleContext?.role ?? user?.role ?? null
+  return getCurrentActorRole(user)
 }
 
 interface AuthContextType {

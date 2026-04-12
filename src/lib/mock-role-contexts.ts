@@ -3,6 +3,9 @@ import type { UserRole, UserRoleAssignment } from '@/types/database'
 export type MockRoleContextView = {
   assignmentId: string
   role: UserRole
+  regionId: string | null
+  pharmacyId: string | null
+  operationUnitId: string | null
   regionName: string | null
   pharmacyName: string | null
   operationUnitName: string | null
@@ -169,6 +172,9 @@ export function toMockRoleContextViews(assignments: UserRoleAssignment[]): MockR
   return assignments.map((assignment) => ({
     assignmentId: assignment.id,
     role: assignment.role,
+    regionId: assignment.region_id,
+    pharmacyId: assignment.pharmacy_id,
+    operationUnitId: assignment.operation_unit_id,
     regionName: assignment.region_id === 'region-001' ? '関東リージョン' : null,
     pharmacyName: assignment.pharmacy_id === 'PH-01' ? '城南みらい薬局' : null,
     operationUnitName: assignment.operation_unit_id === 'ou-night-001' ? '夜間運用ユニットA' : null,

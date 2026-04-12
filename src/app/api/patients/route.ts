@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
 import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  if (!canManagePatients(user.role)) {
+  if (!canManagePatientsForUser(user)) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
   const payload = {
     organization_id: user.organization_id,
-    pharmacy_id: user.pharmacy_id,
+    pharmacy_id: getScopedPharmacyId(user),
     full_name: fullName,
     date_of_birth: birthDate,
     address: addressLine1,
