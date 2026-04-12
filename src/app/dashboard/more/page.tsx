@@ -83,8 +83,8 @@ const settingsItems: MenuItem[] = [
   },
   {
     href: '/dashboard/role-chooser',
-    label: '立場を切り替える（draft）',
-    description: '複数ロール時の chooser 画面モック',
+    label: '立場を切り替える',
+    description: '現在の立場を切り替える',
     icon: <ArrowLeftRight size={20} className="text-sky-400" />,
     permission: 'dashboard',
   },
@@ -144,6 +144,20 @@ export default function MorePage() {
           </div>
         </CardContent>
       </Card>
+
+      {activeRoleContext && (
+        <Card className="border-[#2a3553] bg-[#1a2035]">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">現在の立場</p>
+              <p className="mt-1 text-xs text-gray-400">{getMockRoleContextLabel(activeRoleContext)}</p>
+            </div>
+            <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+              <Link href="/dashboard/role-chooser">立場を切り替える</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-300 px-1">メニュー</h3>

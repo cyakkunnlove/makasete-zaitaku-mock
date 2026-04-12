@@ -45,7 +45,7 @@ const billingStatusClass: Record<string, string> = {
 const yen = new Intl.NumberFormat('ja-JP')
 
 export default function PharmacyDetailPage() {
-  useAuth()
+  const { role } = useAuth()
   const { guard, requiresReverification } = useReauthGuard()
   const params = useParams()
   const id = params.id as string
@@ -60,6 +60,17 @@ export default function PharmacyDetailPage() {
   const [autoEnd, setAutoEnd] = useState('06:00')
   const [lastUpdatedBy, setLastUpdatedBy] = useState('薬局管理者')
   const [lastUpdatedAt, setLastUpdatedAt] = useState('2026-03-15 13:10')
+
+  if (role !== 'regional_admin') {
+    return (
+      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <CardHeader>
+          <CardTitle className="text-base text-white">加盟店詳細</CardTitle>
+          <CardDescription className="text-gray-400">このページは Regional Admin のみ閲覧できます。</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   if (!pharmacy) {
     return (

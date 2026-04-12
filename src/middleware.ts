@@ -9,7 +9,11 @@ export async function middleware(request: NextRequest) {
   if (!isAuthenticated && (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding'))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    url.searchParams.set('next', pathname)
+
+    const response = NextResponse.redirect(url)
+    response.cookies.delete('active_role_assignment_id')
+    return response
   }
 
   return NextResponse.next()
