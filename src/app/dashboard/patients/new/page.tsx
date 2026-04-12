@@ -55,6 +55,16 @@ function normalizeDateInput(value: string) {
   return trimmed
 }
 
+function normalizePostalCode(value: string) {
+  return value.replace(/[^0-9]/g, '').slice(0, 7)
+}
+
+function formatPostalCode(value: string) {
+  const digits = normalizePostalCode(value)
+  if (digits.length <= 3) return digits
+  return `${digits.slice(0, 3)}-${digits.slice(3)}`
+}
+
 type GeocodePreview = {
   inputAddress: string
   normalizedAddress: string | null
@@ -80,6 +90,7 @@ export default function NewPatientPage() {
   const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
   const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
   const [postalLookupLoading, setPostalLookupLoading] = useState(false)
+  const [postalLookupMessage, setPostalLookupMessage] = useState<string | null>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
   const [form, setForm] = useState({
     name: '',
@@ -180,8 +191,8 @@ export default function NewPatientPage() {
     }
 
     if (key === 'postalCode') {
-      const digits = value.replace(/[^0-9]/g, '').slice(0, 7)
-      nextValue = digits
+      nextValue = normalizePostalCode(value)
+      setPostalLookupMessage(null)
     }
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -254,7 +265,7 @@ export default function NewPatientPage() {
   }
 
   const lookupPostalCode = async (postalCode: string) => {
-    const normalized = postalCode.replace(/[^0-9]/g, '')
+    const normalized = normalizePostalCode(postalCode)
     if (normalized.length !== 7) return
 
     setPostalLookupLoading(true)
@@ -263,17 +274,17 @@ export default function NewPatientPage() {
       const result = await response.json().catch(() => null)
 
       if (!response.ok || !result?.ok) {
-        setWarningMessage('郵便番号から住所を取得できませんでした。住所を直接入力してください。')
+        setPostalLookupMessage('郵便番号から住所を取得できませんでした。住所を直接入力してください。')
         return
       }
 
       if (!result.found || !result.address?.full) {
-        setWarningMessage('該当する住所が見つかりませんでした。住所を直接入力してください。')
+        setPostalLookupMessage('該当する住所が見つかりませんでした。住所を直接入力してください。')
         return
       }
 
       setForm((prev) => (prev.address.trim() ? prev : { ...prev, address: result.address.full }))
-      setWarningMessage(null)
+      setPostalLookupMessage(`住所候補を確認しました: ${result.address.full}`)
     } finally {
       setPostalLookupLoading(false)
     }
@@ -504,8 +515,13 @@ export default function NewPatientPage() {
           </div>
           <div>
             <Label className="text-gray-300">郵便番号</Label>
-            <Input value={form.postalCode} onChange={(e) => handleChange('postalCode', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="1920012" />
-            <p className="mt-1 text-[11px] text-gray-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
+            <div className="mt-1 flex gap-2">
+              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="192-0012" />
+              <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
+                再取得
+              </Button>
+            </div>
+            <p className="mt-1 text-[11px] text-gray-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
           </div>
           <div>
             <Label className="text-gray-300">連絡先電話</Label>
