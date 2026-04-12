@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import {
   Building2, Users, CreditCard, BarChart3,
   Shield, LogOut, Moon, Settings, Bell,
-  MessageCircle, Calendar, ArrowLeftRight
+  MessageCircle, Calendar, ArrowLeftRight, Stethoscope
 } from 'lucide-react'
 
 interface MenuItem {
@@ -42,6 +42,13 @@ const menuItems: MenuItem[] = [
     description: 'スタッフの権限・連絡先',
     icon: <Users size={20} className="text-indigo-400" />,
     permission: 'staff',
+  },
+  {
+    href: '/dashboard/medical-masters',
+    label: '病院・医師管理',
+    description: '候補の確認と軽い整理',
+    icon: <Stethoscope size={20} className="text-sky-400" />,
+    permission: 'patients',
   },
   {
     href: '/dashboard/shifts',

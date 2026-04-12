@@ -1300,7 +1300,12 @@ export default function PatientDetailPage() {
                           }}
                           className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
                         >
-                          <p className="font-medium">{option.name}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium">{option.name}</p>
+                            {editForm.doctorClinic.trim() && option.name === editForm.doctorClinic.trim() && (
+                              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
+                            )}
+                          </div>
                           <p className="mt-1 text-[11px] text-gray-400">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
                         </button>
                       ))}
@@ -1347,7 +1352,12 @@ export default function PatientDetailPage() {
                           }}
                           className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
                         >
-                          <p className="font-medium">{option.fullName}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium">{option.fullName}</p>
+                            {editForm.doctorName.trim() && option.fullName === editForm.doctorName.trim() && (
+                              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
+                            )}
+                          </div>
                           <p className="mt-1 text-[11px] text-gray-400">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
                         </button>
                       ))}
