@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
 
 export async function PATCH(request: Request, { params }: { params: { taskId: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (!canManagePatients(user.role) || !user.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -24,7 +25,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const payload = {
     id: params.taskId,
     organization_id: user.organization_id,
-    pharmacy_id: user.pharmacy_id,
+    pharmacy_id: scopedPharmacyId,
     patient_id: typeof task.patientId === 'string' ? task.patientId : null,
     flow_date: typeof task.flowDate === 'string' ? task.flowDate : null,
     sort_order: typeof task.sortOrder === 'number' ? task.sortOrder : 1,

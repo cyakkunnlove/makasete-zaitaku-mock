@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
+import { getCurrentActorRole } from '@/lib/active-role'
 import { getPatientById, listPatientVisitRules } from '@/lib/repositories/patients'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
@@ -18,8 +19,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 })
   }
 
-  const samePharmacy = Boolean(user.pharmacy_id && patient.pharmacy_id === user.pharmacy_id)
-  const canView = canManagePatients(user.role) ? samePharmacy : user.role === 'night_pharmacist' || user.role === 'regional_admin'
+  const actorRole = getCurrentActorRole(user)
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  const samePharmacy = Boolean(scopedPharmacyId && patient.pharmacy_id === scopedPharmacyId)
+  const canView = canManagePatientsForUser(user) ? samePharmacy : actorRole === 'night_pharmacist' || actorRole === 'regional_admin'
 
   if (!canView) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
@@ -34,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     targetId: patient.id,
     details: {
       patient_name: patient.full_name,
-      view_role: user.role,
+      view_role: actorRole,
     },
   })
 

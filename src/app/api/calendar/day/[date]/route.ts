@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 
 import type { PatientDayTask } from '@/types/database'
 import { getCurrentUser } from '@/lib/auth'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { getCurrentActorRole } from '@/lib/active-role'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { buildCalendarDayDetail } from '@/lib/calendar-read-model'
 import { generateAutoDayTasksFromVisitRules } from '@/lib/day-flow'
@@ -78,7 +79,9 @@ function mapGeneratedTaskToCalendarTask(task: ReturnType<typeof generateAutoDayT
 export async function GET(_request: Request, { params }: { params: { date: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (!canManagePatients(user.role) || !user.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  const actorRole = getCurrentActorRole(user)
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -93,7 +96,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     supabase
       .from('patient_day_tasks')
       .select('*')
-      .eq('pharmacy_id', user.pharmacy_id)
+      .eq('pharmacy_id', scopedPharmacyId)
       .gte('flow_date', monthStart)
       .lte('flow_date', params.date)
       .order('flow_date', { ascending: true })
@@ -101,7 +104,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     supabase
       .from('patients')
       .select(PATIENT_LIST_SELECT)
-      .eq('pharmacy_id', user.pharmacy_id),
+      .eq('pharmacy_id', scopedPharmacyId),
   ])
 
   if (taskResult.error) {
@@ -118,7 +121,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     patients.map(async (patient) => mapDatabasePatientToPatientRecord({
       id: patient.id,
       organization_id: patient.organization_id ?? null,
-      pharmacy_id: patient.pharmacy_id ?? user.pharmacy_id,
+      pharmacy_id: patient.pharmacy_id ?? scopedPharmacyId,
       full_name: patient.full_name,
       date_of_birth: patient.date_of_birth ?? null,
       address: patient.address ?? '',
@@ -152,7 +155,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
   const detail = buildCalendarDayDetail({
     tasks: mergedTasks,
     date: params.date,
-    canEditPast: user.role === 'pharmacy_admin',
+    canEditPast: actorRole === 'pharmacy_admin',
     patientsById,
   })
 

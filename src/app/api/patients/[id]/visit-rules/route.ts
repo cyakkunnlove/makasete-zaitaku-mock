@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
-import { canEditPatientRecord } from '@/lib/patient-permissions'
+import { getCurrentActorRole } from '@/lib/active-role'
+import { canEditPatientRecord, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { getPatientById } from '@/lib/repositories/patients'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { writeAuditLog } from '@/lib/audit-log'
@@ -40,11 +41,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 })
   }
 
-  if (!patient.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!patient.pharmacy_id || !scopedPharmacyId || patient.pharmacy_id !== scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
-  const canEdit = canEditPatientRecord({ role: user.role, user, patient: { pharmacyId: patient.pharmacy_id } })
+  const canEdit = canEditPatientRecord({ role: getCurrentActorRole(user), user: { pharmacy_id: scopedPharmacyId }, patient: { pharmacyId: patient.pharmacy_id } })
   if (!canEdit) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import type { PatientDayTask } from '@/types/database'
 import { getCurrentUser } from '@/lib/auth'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { buildCalendarMonthSummary } from '@/lib/calendar-read-model'
 import { generateAutoDayTasksFromVisitRules } from '@/lib/day-flow'
@@ -55,7 +55,8 @@ function mapGeneratedTaskToCalendarTask(task: ReturnType<typeof generateAutoDayT
 export async function GET(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (!canManagePatients(user.role) || !user.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -75,12 +76,12 @@ export async function GET(request: Request) {
     supabase
       .from('patient_day_tasks')
       .select('*')
-      .eq('pharmacy_id', user.pharmacy_id)
+      .eq('pharmacy_id', scopedPharmacyId)
       .gte('flow_date', monthStart)
       .lte('flow_date', monthEndKey)
       .order('flow_date', { ascending: true })
       .order('sort_order', { ascending: true }),
-    listPatientsByPharmacy(user.pharmacy_id),
+    listPatientsByPharmacy(scopedPharmacyId),
   ])
 
   if (error) {
