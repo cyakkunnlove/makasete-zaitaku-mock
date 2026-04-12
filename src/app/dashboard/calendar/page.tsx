@@ -330,9 +330,9 @@ export default function CalendarPage() {
                       <p>初回 {summary?.firstVisitCount ?? 0}</p>
                       {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
                     </div>
-                    <div className="mt-2 space-y-1 text-[10px] text-gray-300 sm:hidden">
-                      <p>{summary?.plannedCount ?? 0}/{summary?.completedCount ?? 0}</p>
-                      <p className="text-[9px] text-gray-500">予/完</p>
+                    <div className="mt-2 sm:hidden">
+                      <p className="text-xs font-medium text-gray-200">{(summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)}人</p>
+                      <p className="text-[9px] text-gray-500">その日の患者数</p>
                     </div>
                   </button>
                 )
@@ -362,6 +362,11 @@ export default function CalendarPage() {
                     <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0 || routePlanLoading} onClick={() => void handleSuggestRoute()}>
                       {routePlanLoading ? '作成中...' : '選んだ患者でルートを作る'}
                     </Button>
+                    {routePlanResult?.ready && routePlanResult.suggestedOrder.length > 0 && (
+                      <Button size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20" disabled={routeShareLoading} onClick={() => void handleSendRouteEmail()}>
+                        {routeShareLoading ? '送信中...' : 'このルートをメール送信'}
+                      </Button>
+                    )}
                   </div>
                 )}
                 {routePlanResult && (
@@ -369,9 +374,7 @@ export default function CalendarPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-medium text-white">{routePlanResult.message}</p>
                       {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
-                        <Button size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20" disabled={routeShareLoading} onClick={() => void handleSendRouteEmail()}>
-                          {routeShareLoading ? '送信中...' : '自分のメールに送る'}
-                        </Button>
+                        <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-100">メール送信可</Badge>
                       )}
                     </div>
                     {routeActionNotice && <p className="mt-2 text-[11px] text-sky-200">{routeActionNotice}</p>}
