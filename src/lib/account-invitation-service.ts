@@ -48,7 +48,7 @@ export async function listManagedUsers(params: {
 
   let query = supabase
     .from('users')
-    .select('id, full_name, role, phone, email, status, region_id, pharmacy_id, created_at')
+    .select('id, full_name, role, phone, email, status, region_id, pharmacy_id, created_at, region:regions(name), pharmacy:pharmacies(name)')
     .eq('organization_id', params.actor.organization_id)
     .order('created_at', { ascending: false })
 
@@ -83,7 +83,9 @@ export async function listManagedUsers(params: {
         email: String((user as Record<string, unknown>).email ?? ''),
         status: (((user as Record<string, unknown>).status as string | null) ?? 'invited') as 'invited' | 'active' | 'suspended',
         regionId: ((user as Record<string, unknown>).region_id as string | null) ?? null,
+        regionName: typeof ((user as Record<string, unknown>).region as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).region as { name: string }).name : null,
         pharmacyId: ((user as Record<string, unknown>).pharmacy_id as string | null) ?? null,
+        pharmacyName: typeof ((user as Record<string, unknown>).pharmacy as { name?: unknown } | null)?.name === 'string' ? ((user as Record<string, unknown>).pharmacy as { name: string }).name : null,
       })),
     },
   }
@@ -309,7 +311,7 @@ export async function listAccountInvitations(params: {
 
   let query = supabase
     .from('account_invitations')
-    .select('id, email, role, status, region_id, pharmacy_id, expires_at, last_sent_at, created_at')
+    .select('id, email, role, status, region_id, pharmacy_id, expires_at, last_sent_at, created_at, region:regions(name), pharmacy:pharmacies(name)')
     .eq('organization_id', params.actor.organization_id)
     .order('created_at', { ascending: false })
 
@@ -325,7 +327,28 @@ export async function listAccountInvitations(params: {
     return { ok: false as const, status: 500, error: 'invitation_list_failed', details: response.error.message }
   }
 
-  return { ok: true as const, status: 200, data: { invitations: response.data ?? [] } }
+  return {
+    ok: true as const,
+    status: 200,
+    data: {
+      invitations: (response.data ?? []).map((item) => {
+        const row = item as Record<string, unknown>
+        return {
+          id: String(row.id ?? ''),
+          email: String(row.email ?? ''),
+          role: row.role as UserRole,
+          status: row.status as AccountInvitationStatus,
+          region_id: (row.region_id as string | null) ?? null,
+          pharmacy_id: (row.pharmacy_id as string | null) ?? null,
+          expires_at: String(row.expires_at ?? ''),
+          last_sent_at: (row.last_sent_at as string | null) ?? null,
+          created_at: String(row.created_at ?? ''),
+          region_name: typeof (row.region as { name?: unknown } | null)?.name === 'string' ? (row.region as { name: string }).name : null,
+          pharmacy_name: typeof (row.pharmacy as { name?: unknown } | null)?.name === 'string' ? (row.pharmacy as { name: string }).name : null,
+        }
+      }),
+    },
+  }
 }
 
 export async function resendAccountInvitation(params: {

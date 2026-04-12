@@ -50,6 +50,8 @@ type ManagedStaffItem = {
   phone: string
   email: string
   status: StaffStatus
+  regionName?: string | null
+  pharmacyName?: string | null
 }
 type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 
@@ -151,7 +153,7 @@ export default function StaffPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: InvitationStatus; expires_at: string; last_sent_at: string | null }>>([])
+  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: InvitationStatus; expires_at: string; last_sent_at: string | null; region_name?: string | null; pharmacy_name?: string | null }>>([])
   const [isUserListLoading, setIsUserListLoading] = useState(false)
   const [isInvitationListLoading, setIsInvitationListLoading] = useState(false)
   const [invitationActionId, setInvitationActionId] = useState<string | null>(null)
@@ -629,6 +631,8 @@ export default function StaffPage() {
                   <div className="space-y-1 text-xs text-gray-300">
                     <p>電話: {member.phone}</p>
                     <p>メール: {member.email}</p>
+                    {member.regionName && <p>リージョン: {member.regionName}</p>}
+                    {member.pharmacyName && <p>薬局: {member.pharmacyName}</p>}
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
@@ -668,6 +672,7 @@ export default function StaffPage() {
                   <TableHead className="text-gray-400">役割</TableHead>
                   <TableHead className="text-gray-400">電話</TableHead>
                   <TableHead className="text-gray-400">メール</TableHead>
+                  <TableHead className="text-gray-400">所属</TableHead>
                   <TableHead className="text-gray-400">状態</TableHead>
                   <TableHead className="text-right text-gray-400">操作</TableHead>
                 </TableRow>
@@ -675,11 +680,11 @@ export default function StaffPage() {
               <TableBody>
                 {isUserListLoading ? (
                   <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableCell colSpan={6} className="text-center text-sm text-gray-400">アカウント一覧を読み込み中です。</TableCell>
+                    <TableCell colSpan={7} className="text-center text-sm text-gray-400">アカウント一覧を読み込み中です。</TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
                   <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableCell colSpan={6} className="text-center text-sm text-gray-400">表示できるアカウントはまだありません。</TableCell>
+                    <TableCell colSpan={7} className="text-center text-sm text-gray-400">表示できるアカウントはまだありません。</TableCell>
                   </TableRow>
                 ) : filteredStaff.map((member) => (
                   <TableRow key={member.id} className="border-[#2a3553] hover:bg-[#11182c]">
@@ -691,6 +696,13 @@ export default function StaffPage() {
                     </TableCell>
                     <TableCell className="text-gray-300">{member.phone}</TableCell>
                     <TableCell className="text-gray-300">{member.email}</TableCell>
+                    <TableCell className="text-xs text-gray-300">
+                      <div className="space-y-1">
+                        {member.regionName && <p>リージョン: {member.regionName}</p>}
+                        {member.pharmacyName && <p>薬局: {member.pharmacyName}</p>}
+                        {!member.regionName && !member.pharmacyName && <p>未設定</p>}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
                         {statusLabel[member.status]}
@@ -746,6 +758,8 @@ export default function StaffPage() {
                           {invitationStatusLabel[invitation.status]}
                         </Badge>
                       </div>
+                      {invitation.region_name && <p>リージョン: {invitation.region_name}</p>}
+                      {invitation.pharmacy_name && <p>薬局: {invitation.pharmacy_name}</p>}
                       <p>有効期限: {new Date(invitation.expires_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                       {invitation.last_sent_at && (
                         <p>最終送信: {new Date(invitation.last_sent_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
