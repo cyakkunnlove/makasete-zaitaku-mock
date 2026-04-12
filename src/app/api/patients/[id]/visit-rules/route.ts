@@ -9,7 +9,6 @@ import type { PatientVisitRule } from '@/lib/patient-master'
 
 function normalizeRule(rule: PatientVisitRule) {
   return {
-    id: rule.id,
     pattern: rule.pattern,
     weekday: typeof rule.weekday === 'number' ? rule.weekday : null,
     interval_weeks: Number(rule.intervalWeeks ?? 1),
