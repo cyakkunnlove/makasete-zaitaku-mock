@@ -69,12 +69,15 @@ export default async function InvitationAcceptPage({
                   <p>状態: {invitation.status}</p>
                   <p>有効期限: {new Date(invitation.expiresAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                 </div>
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100">
-                  この段階では、招待内容の確認まで接続しています。初回登録の最終完了は、次の Cognito 連携仕上げでつなぎ込みます。
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs leading-6 text-emerald-100">
+                  この招待を受けて初回登録する場合は、下のボタンから進んでください。認証完了後に、この招待は受諾済みとなりアカウントが有効化されます。
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Button asChild className="bg-indigo-600 text-white hover:bg-indigo-500">
-                    <Link href="/login">ログイン画面へ</Link>
+                    <Link href={`/api/auth/login?next=/dashboard&invitationToken=${encodeURIComponent(token ?? '')}`}>初回登録を進める</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+                    <Link href="/login">通常のログイン画面へ</Link>
                   </Button>
                 </div>
               </>

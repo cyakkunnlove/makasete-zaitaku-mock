@@ -3,14 +3,16 @@ import { NextResponse } from 'next/server'
 import { getAuthCookieNames } from '@/lib/auth'
 import { attachCognitoSubToUser, findAppUserByIdentity, touchLastReverified } from '@/lib/auth/user-bridge'
 import { listRoleContextsForUser } from '@/lib/repositories/role-contexts'
+import { acceptInvitationByToken } from '@/lib/account-invitation-accept'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const state = requestUrl.searchParams.get('state')
 
-  const [stateKind, encodedNextPath] = (state ?? '').split(':', 2)
+  const [stateKind, encodedNextPath, encodedInvitationToken] = (state ?? '').split(':', 3)
   const nextPath = encodedNextPath ? decodeURIComponent(encodedNextPath) : null
+  const invitationToken = encodedInvitationToken ? decodeURIComponent(encodedInvitationToken) : null
   const isPasskeySetupFlow = stateKind === 'passkey_setup'
 
   if (!code) {
@@ -75,17 +77,24 @@ export async function GET(request: Request) {
         return NextResponse.redirect(new URL('/login?error=user_not_provisioned', request.url))
       }
 
-      if (!matched.user.is_active || matched.user.status !== 'active') {
-        return NextResponse.redirect(new URL('/login?error=user_inactive', request.url))
+      if (invitationToken && payload?.sub) {
+        const acceptance = await acceptInvitationByToken({ token: invitationToken, cognitoSub: payload.sub })
+        if (!acceptance.ok) {
+          return NextResponse.redirect(new URL(`/login?error=${acceptance.error}`, request.url))
+        }
+      } else {
+        if (!matched.user.is_active || matched.user.status !== 'active') {
+          return NextResponse.redirect(new URL('/login?error=user_inactive', request.url))
+        }
+
+        if (matched.matchedBy === 'email' && payload?.sub && !matched.user.cognito_sub) {
+          await attachCognitoSubToUser(matched.user.id, payload.sub)
+        } else {
+          await touchLastReverified(matched.user.id)
+        }
       }
 
       matchedUserId = matched.user.id
-
-      if (matched.matchedBy === 'email' && payload?.sub && !matched.user.cognito_sub) {
-        await attachCognitoSubToUser(matched.user.id, payload.sub)
-      } else {
-        await touchLastReverified(matched.user.id)
-      }
 
       const roleContexts = await listRoleContextsForUser(matched.user.id)
       roleContextsCount = roleContexts.length

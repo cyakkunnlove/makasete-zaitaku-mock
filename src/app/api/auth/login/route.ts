@@ -11,13 +11,17 @@ export async function GET(request: Request) {
 
   const requestUrl = new URL(request.url)
   const nextPath = requestUrl.searchParams.get('next') || '/dashboard'
+  const invitationToken = requestUrl.searchParams.get('invitationToken')
 
   const url = new URL(`${domain}/login`)
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid email')
   url.searchParams.set('redirect_uri', redirectUri)
-  url.searchParams.set('state', `login:${encodeURIComponent(nextPath)}`)
+  const statePayload = invitationToken
+    ? `login:${encodeURIComponent(nextPath)}:${encodeURIComponent(invitationToken)}`
+    : `login:${encodeURIComponent(nextPath)}`
+  url.searchParams.set('state', statePayload)
 
   return NextResponse.redirect(url)
 }
