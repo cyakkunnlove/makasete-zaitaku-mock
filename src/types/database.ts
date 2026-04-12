@@ -369,6 +369,7 @@ export interface Database {
       pharmacies: { Row: Pharmacy; Insert: Partial<Pharmacy>; Update: Partial<Pharmacy> }
       operation_units: { Row: OperationUnit; Insert: Partial<OperationUnit>; Update: Partial<OperationUnit> }
       users: { Row: User; Insert: Partial<User>; Update: Partial<User> }
+      user_role_assignments: { Row: UserRoleAssignment; Insert: Partial<UserRoleAssignment>; Update: Partial<UserRoleAssignment> }
       patients: { Row: Patient; Insert: Partial<Patient>; Update: Partial<Patient> }
       requests: { Row: Request; Insert: Partial<Request>; Update: Partial<Request> }
       assignments: { Row: Assignment; Insert: Partial<Assignment>; Update: Partial<Assignment> }

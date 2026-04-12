@@ -4,6 +4,7 @@ import type { User, UserRole } from '@/types/database'
 import { MOCK_USERS } from '@/lib/mock-data'
 import { findAppUserByIdentity, findDemoUserByRole } from '@/lib/auth/user-bridge'
 import { getMockActiveRoleContext, type MockRoleContextView } from '@/lib/mock-role-contexts'
+import { getRoleContextForUser, listRoleContextsForUser } from '@/lib/repositories/role-contexts'
 
 export type AuthMode = 'cognito' | 'mock'
 
@@ -113,10 +114,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   if (!appUser.user) return null
 
+  let activeRoleContext: MockRoleContextView | null = null
+  if (appUser.user.id) {
+    if (activeRoleAssignmentId) {
+      activeRoleContext = await getRoleContextForUser(appUser.user.id, activeRoleAssignmentId)
+    }
+    if (!activeRoleContext) {
+      const contexts = await listRoleContextsForUser(appUser.user.id)
+      activeRoleContext = contexts.find((item) => item.isDefault) ?? contexts[0] ?? null
+    }
+  }
+
   return {
     ...appUser.user,
     authMode: 'cognito',
     requiresReverification: isReverificationRequired(appUser.user.last_reverified_at),
-    activeRoleContext: null,
+    activeRoleContext,
   }
 }

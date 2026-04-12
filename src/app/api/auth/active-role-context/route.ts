@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 
 import { getAuthCookieNames, getCurrentUser } from '@/lib/auth'
 import { getMockRoleAssignmentsByRole } from '@/lib/mock-role-contexts'
+import { getRoleContextForUser } from '@/lib/repositories/role-contexts'
+import { writeAuditLog } from '@/lib/audit-log'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -19,12 +21,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'assignment_id_required' }, { status: 400 })
   }
 
+  const dbAssignment = user.authMode === 'cognito'
+    ? await getRoleContextForUser(user.id, assignmentId)
+    : null
+
   const assignments = getMockRoleAssignmentsByRole(user.role)
-  const assignment = assignments.find((item) => item.id === assignmentId && item.is_active)
+  const assignment = dbAssignment ?? assignments.find((item) => item.id === assignmentId && item.is_active)
 
   if (!assignment) {
     return NextResponse.json({ ok: false, error: 'assignment_not_found' }, { status: 404 })
   }
+
+  await writeAuditLog({
+    user,
+    action: 'role_context_selected',
+    targetType: 'user_role_assignment',
+    targetId: assignmentId,
+    details: {
+      selected_role: 'role' in assignment ? assignment.role : null,
+      selected_pharmacy_id: 'pharmacyId' in assignment ? assignment.pharmacyId : ('pharmacy_id' in assignment ? assignment.pharmacy_id : null),
+      selected_region_id: 'regionId' in assignment ? assignment.regionId : ('region_id' in assignment ? assignment.region_id : null),
+      selected_operation_unit_id: 'operationUnitId' in assignment ? assignment.operationUnitId : ('operation_unit_id' in assignment ? assignment.operation_unit_id : null),
+    },
+  })
 
   const { ACTIVE_ROLE_ASSIGNMENT_COOKIE } = getAuthCookieNames()
   const response = NextResponse.json({ ok: true, assignmentId })

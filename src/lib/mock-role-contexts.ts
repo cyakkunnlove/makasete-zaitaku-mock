@@ -1,5 +1,11 @@
 import type { UserRole, UserRoleAssignment } from '@/types/database'
 
+export type UserRoleAssignmentWithNames = UserRoleAssignment & {
+  region_name?: string | null
+  pharmacy_name?: string | null
+  operation_unit_name?: string | null
+}
+
 export type MockRoleContextView = {
   assignmentId: string
   role: UserRole
@@ -178,6 +184,21 @@ export function toMockRoleContextViews(assignments: UserRoleAssignment[]): MockR
     regionName: assignment.region_id === 'region-001' ? '関東リージョン' : null,
     pharmacyName: assignment.pharmacy_id === 'PH-01' ? '城南みらい薬局' : null,
     operationUnitName: assignment.operation_unit_id === 'ou-night-001' ? '夜間運用ユニットA' : null,
+    isDefault: assignment.is_default,
+    isActive: assignment.is_active,
+  }))
+}
+
+export function toRoleContextViews(assignments: UserRoleAssignmentWithNames[]): MockRoleContextView[] {
+  return assignments.map((assignment) => ({
+    assignmentId: assignment.id,
+    role: assignment.role,
+    regionId: assignment.region_id,
+    pharmacyId: assignment.pharmacy_id,
+    operationUnitId: assignment.operation_unit_id,
+    regionName: assignment.region_name ?? null,
+    pharmacyName: assignment.pharmacy_name ?? null,
+    operationUnitName: assignment.operation_unit_name ?? null,
     isDefault: assignment.is_default,
     isActive: assignment.is_active,
   }))
