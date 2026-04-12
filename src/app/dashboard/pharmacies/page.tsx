@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
@@ -189,20 +190,17 @@ export default function PharmaciesPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '加盟店管理' : '自店設定'}</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟店の基本情報と受け入れ準備を管理' : '自店の転送運用と基本設定を確認'}</p>
-        </div>
-
-        {role === 'regional_admin' && (
-          <Button onClick={() => setDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+    <div className={adminPageClass}>
+      <AdminPageHeader
+        title={role === 'regional_admin' ? '加盟店管理' : '自店設定'}
+        description={role === 'regional_admin' ? '加盟店の基本情報と受け入れ準備を管理します。' : '自店の転送運用と基本設定を確認します。'}
+        actions={role === 'regional_admin' ? (
+          <Button onClick={() => setDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">
             <Plus className="h-4 w-4" />
             加盟店を追加
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {errorMessage && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
@@ -211,30 +209,10 @@ export default function PharmaciesPage() {
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">総加盟店数</CardDescription>
-            <CardTitle className="text-2xl text-white">{summary.total}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">利用中</CardDescription>
-            <CardTitle className="text-2xl text-emerald-300">{summary.active}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">自動切替設定済み</CardDescription>
-            <CardTitle className="text-2xl text-indigo-300">{summary.autoManaged}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">初期設定待ち</CardDescription>
-            <CardTitle className="text-2xl text-amber-300">{summary.pending}</CardTitle>
-          </CardHeader>
-        </Card>
+        <AdminStatCard label="総加盟店数" value={summary.total} icon={<Building2 className="h-4 w-4" />} />
+        <AdminStatCard label="利用中" value={summary.active} tone="success" icon={<ShieldCheck className="h-4 w-4" />} />
+        <AdminStatCard label="自動切替設定済み" value={summary.autoManaged} tone="primary" icon={<Clock3 className="h-4 w-4" />} />
+        <AdminStatCard label="初期設定待ち" value={summary.pending} tone="warning" icon={<AlertTriangle className="h-4 w-4" />} />
       </section>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -251,18 +229,18 @@ export default function PharmaciesPage() {
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {isLoading ? (
-          <Card className="border-[#2a3553] bg-[#1a2035] lg:col-span-2">
+          <Card className={`${adminCardClass} lg:col-span-2`}>
             <CardContent className="p-6 text-sm text-gray-400">加盟店データを読み込み中です...</CardContent>
           </Card>
         ) : visiblePharmacies.length === 0 ? (
-          <Card className="border-[#2a3553] bg-[#1a2035] lg:col-span-2">
+          <Card className={`${adminCardClass} lg:col-span-2`}>
             <CardContent className="p-6 text-sm text-gray-400">このリージョンにはまだ加盟店が登録されていません。</CardContent>
           </Card>
         ) : visiblePharmacies.map((pharmacy) => {
           const forwarding = getForwardingSummary(pharmacy)
 
           return (
-            <Card key={pharmacy.id} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={pharmacy.id} className={adminCardClass}>
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>

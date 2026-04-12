@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
 import {
   auditLogData,
   auditActionLabel,
@@ -153,20 +154,17 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
-      <div>
-        <h1 className="text-lg font-semibold text-white">監査ログ</h1>
-        <p className="text-xs text-gray-400">操作履歴を時系列で確認します。アカウント管理、患者操作、拒否アクセスもここで追えます。</p>
-      </div>
+    <div className={adminPageClass}>
+      <AdminPageHeader title="監査ログ" description="操作履歴を時系列で確認します。アカウント管理、患者操作、拒否アクセスもここで追えます。" />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-white">{filteredLogs.length}</p><p className="text-[10px] text-gray-500">表示件数</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-indigo-300">{filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length}</p><p className="text-[10px] text-gray-500">アカウント管理</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-emerald-300">{filteredLogs.filter((entry) => entry.result === 'success').length}</p><p className="text-[10px] text-gray-500">成功</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-rose-300">{filteredLogs.filter((entry) => entry.result === 'denied').length}</p><p className="text-[10px] text-gray-500">拒否アクセス</p></CardContent></Card>
+        <AdminStatCard label="表示件数" value={filteredLogs.length} />
+        <AdminStatCard label="アカウント管理" value={filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length} tone="primary" />
+        <AdminStatCard label="成功" value={filteredLogs.filter((entry) => entry.result === 'success').length} tone="success" />
+        <AdminStatCard label="拒否アクセス" value={filteredLogs.filter((entry) => entry.result === 'denied').length} tone="danger" />
       </div>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardContent className="space-y-3 p-4">
           <Input
             value={search}

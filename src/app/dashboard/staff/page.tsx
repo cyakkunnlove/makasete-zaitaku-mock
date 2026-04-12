@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminInputClass, adminPageClass } from '@/components/admin-ui'
 import { Plus, Calendar, Users } from 'lucide-react'
 
 import {
@@ -629,42 +630,39 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の招待、状態変更、連絡先更新を行います' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、夜間シフト管理を行います' : '自店スタッフの招待、状態変更、連絡先更新を行います'}</p>
-        </div>
-
-        {pageTab === 'staff' && (
+    <div className={adminPageClass}>
+      <AdminPageHeader
+        title={isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}
+        description={isSystemAdmin ? 'リージョン管理者の招待、状態変更、連絡先更新を行います。' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、シフト管理を行います。' : '自店スタッフの招待、状態変更、連絡先更新を行います。'}
+        actions={pageTab === 'staff' ? (
           <Button
             onClick={() => {
               if (guard()) return
               setDialogOpen(true)
             }}
-            className="bg-indigo-500 text-white hover:bg-indigo-500/90"
+            className="bg-indigo-600 text-white hover:bg-indigo-500"
           >
             <Plus className="h-4 w-4" />
             招待する
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {toast && (
-        <Card className="border-emerald-500/30 bg-emerald-500/10">
-          <CardContent className="p-4 text-sm text-emerald-200">{toast}</CardContent>
+        <Card className="border-emerald-200 bg-emerald-50 text-emerald-900 shadow-sm">
+          <CardContent className="p-4 text-sm">{toast}</CardContent>
         </Card>
       )}
 
       {errorMessage && (
-        <Card className="border-rose-500/30 bg-rose-500/10">
-          <CardContent className="p-4 text-sm text-rose-200">{errorMessage}</CardContent>
+        <Card className="border-rose-200 bg-rose-50 text-rose-900 shadow-sm">
+          <CardContent className="p-4 text-sm">{errorMessage}</CardContent>
         </Card>
       )}
 
       {requiresReverification && (
-        <Card className="border-amber-500/30 bg-amber-500/10">
-          <CardContent className="p-4 text-sm text-amber-200">
+        <Card className="border-amber-200 bg-amber-50 text-amber-900 shadow-sm">
+          <CardContent className="p-4 text-sm">
             スタッフ追加やシフト変更などの管理操作には再認証が必要です。操作時はセキュリティ確認画面へ移動します。
           </CardContent>
         </Card>
@@ -699,41 +697,26 @@ export default function StaffPage() {
       {(isSystemAdmin || isPharmacyAdmin || pageTab === 'staff') && (
         <>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-4">
-                <p className="text-xs text-gray-400">現在利用中</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{activeStaffCount}人</p>
-              </CardContent>
-            </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-4">
-                <p className="text-xs text-gray-400">停止中</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{inactiveStaffCount}人</p>
-              </CardContent>
-            </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
-              <CardContent className="p-4">
-                <p className="text-xs text-gray-400">招待中</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{pendingInvitationCount}件</p>
-              </CardContent>
-            </Card>
+            <AdminStatCard label="現在利用中" value={`${activeStaffCount}人`} tone="success" icon={<Users className="h-4 w-4" />} />
+            <AdminStatCard label="停止中" value={`${inactiveStaffCount}人`} tone="warning" icon={<Users className="h-4 w-4" />} />
+            <AdminStatCard label="招待中" value={`${pendingInvitationCount}件`} tone="primary" icon={<Plus className="h-4 w-4" />} />
           </div>
 
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardContent className="space-y-3 p-4">
               <Input
                 value={staffSearch}
                 onChange={(event) => setStaffSearch(event.target.value)}
                 placeholder="氏名、メール、電話、所属で検索"
-                className="border-[#2a3553] bg-[#11182c]"
+                className={adminInputClass}
               />
               <Tabs value={activeFilter} onValueChange={(value) => setActiveFilter(value as RoleFilter)}>
-                <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-[#11182c] p-1">
+                <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-slate-100 p-1">
                   {availableFilterItems.map((item) => (
                     <TabsTrigger
                       key={item.key}
                       value={item.key}
-                      className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                      className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
                     >
                       {item.label}
                     </TabsTrigger>
