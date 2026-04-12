@@ -100,6 +100,22 @@ type GeocodePreview = {
   warnings: Array<{ code: string; message: string }>
 }
 
+type MedicalInstitutionOption = {
+  id: string
+  name: string
+  phone: string
+  address: string
+  doctorCount: number
+}
+
+type DoctorOption = {
+  id: string
+  medicalInstitutionId: string | null
+  fullName: string
+  department: string
+  phone: string
+}
+
 export default function NewPatientPage() {
   const router = useRouter()
   const { user, role, authMode } = useAuth()
@@ -118,6 +134,12 @@ export default function NewPatientPage() {
   const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
   const [postalLookupLoading, setPostalLookupLoading] = useState(false)
   const [postalLookupMessage, setPostalLookupMessage] = useState<string | null>(null)
+  const [medicalInstitutionOptions, setMedicalInstitutionOptions] = useState<MedicalInstitutionOption[]>([])
+  const [medicalInstitutionLoading, setMedicalInstitutionLoading] = useState(false)
+  const [doctorOptions, setDoctorOptions] = useState<DoctorOption[]>([])
+  const [doctorLoading, setDoctorLoading] = useState(false)
+  const [selectedMedicalInstitutionId, setSelectedMedicalInstitutionId] = useState<string | null>(null)
+  const [selectedDoctorMasterId, setSelectedDoctorMasterId] = useState<string | null>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
   const [form, setForm] = useState({
     name: '',
@@ -232,6 +254,20 @@ export default function NewPatientPage() {
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
 
+    if (key === 'doctorClinic') {
+      setSelectedMedicalInstitutionId(null)
+      setSelectedDoctorMasterId(null)
+      setDoctorOptions([])
+      void searchMedicalInstitutions(nextValue)
+    }
+
+    if (key === 'doctorName') {
+      setSelectedDoctorMasterId(null)
+      if (selectedMedicalInstitutionId) {
+        void searchDoctors(selectedMedicalInstitutionId, nextValue)
+      }
+    }
+
     if (key === 'postalCode') {
       const digits = nextValue.replace(/[^0-9]/g, '')
       if (digits.length === 7) {
@@ -297,6 +333,48 @@ export default function NewPatientPage() {
     }
 
     setCustomDates((prev) => [...prev, dateKey].sort())
+  }
+
+  const searchMedicalInstitutions = async (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      setMedicalInstitutionOptions([])
+      return
+    }
+
+    setMedicalInstitutionLoading(true)
+    try {
+      const response = await fetch(`/api/medical-institutions?q=${encodeURIComponent(trimmed)}`, { cache: 'no-store' })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !Array.isArray(result.medicalInstitutions)) {
+        setMedicalInstitutionOptions([])
+        return
+      }
+      setMedicalInstitutionOptions(result.medicalInstitutions)
+    } finally {
+      setMedicalInstitutionLoading(false)
+    }
+  }
+
+  const searchDoctors = async (medicalInstitutionId: string, query?: string) => {
+    if (!medicalInstitutionId) {
+      setDoctorOptions([])
+      return
+    }
+
+    setDoctorLoading(true)
+    try {
+      const suffix = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''
+      const response = await fetch(`/api/medical-institutions/${medicalInstitutionId}/doctors${suffix}`, { cache: 'no-store' })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !Array.isArray(result.doctors)) {
+        setDoctorOptions([])
+        return
+      }
+      setDoctorOptions(result.doctors)
+    } finally {
+      setDoctorLoading(false)
+    }
   }
 
   const lookupPostalCode = async (postalCode: string) => {
@@ -396,6 +474,8 @@ export default function NewPatientPage() {
         visitWeekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
       },
       medical: {
+        medicalInstitutionId: selectedMedicalInstitutionId,
+        doctorMasterId: selectedDoctorMasterId,
         doctorName: form.doctorName,
         doctorClinic: form.doctorClinic,
         doctorPhone: form.doctorPhone,
@@ -730,8 +810,56 @@ export default function NewPatientPage() {
                 <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
                 <div><Label className="text-gray-300">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" /></div>
               </div>
-              <div><Label className="text-gray-300">主治医</Label><Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" /></div>
-              <div><Label className="text-gray-300">クリニック</Label><Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" /></div>
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-gray-300">病院・クリニック</Label>
+                <Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" />
+                <p className="text-[11px] text-gray-500">過去に登録した病院があれば候補を表示します。なければこの名前のまま登録できます。</p>
+                {medicalInstitutionLoading && <p className="text-[11px] text-gray-500">病院候補を確認中です...</p>}
+                {!medicalInstitutionLoading && medicalInstitutionOptions.length > 0 && (
+                  <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                    {medicalInstitutionOptions.slice(0, 5).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMedicalInstitutionId(option.id)
+                          setSelectedDoctorMasterId(null)
+                          setForm((prev) => ({ ...prev, doctorClinic: option.name }))
+                          void searchDoctors(option.id)
+                        }}
+                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                      >
+                        <p className="font-medium">{option.name}</p>
+                        <p className="mt-1 text-[11px] text-gray-400">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-gray-300">主治医</Label>
+                <Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" />
+                <p className="text-[11px] text-gray-500">病院を選ぶと、その病院に登録済みの医師候補が出ます。</p>
+                {doctorLoading && selectedMedicalInstitutionId && <p className="text-[11px] text-gray-500">医師候補を確認中です...</p>}
+                {!doctorLoading && selectedMedicalInstitutionId && doctorOptions.length > 0 && (
+                  <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                    {doctorOptions.slice(0, 5).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDoctorMasterId(option.id)
+                          setForm((prev) => ({ ...prev, doctorName: option.fullName, doctorPhone: normalizePhone(option.phone) }))
+                        }}
+                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                      >
+                        <p className="font-medium">{option.fullName}</p>
+                        <p className="mt-1 text-[11px] text-gray-400">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div><Label className="text-gray-300">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" /></div>
               <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="ラシックス など" /></div>
               <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全 など" /></div>
