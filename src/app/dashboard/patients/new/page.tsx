@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -63,6 +63,33 @@ function formatPostalCode(value: string) {
   const digits = normalizePostalCode(value)
   if (digits.length <= 3) return digits
   return `${digits.slice(0, 3)}-${digits.slice(3)}`
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/[^0-9]/g, '').slice(0, 11)
+}
+
+function formatPhone(value: string) {
+  const digits = normalizePhone(value)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  if (digits.length === 10) return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+}
+
+function normalizeVisitCount(value: string) {
+  const digits = value.replace(/[^0-9]/g, '').slice(0, 2)
+  if (!digits) return ''
+  return String(Math.max(1, Number(digits)))
+}
+
+function RequiredLabel({ children }: { children: ReactNode }) {
+  return (
+    <Label className="text-gray-300">
+      {children}
+      <span className="ml-1 text-rose-300">*</span>
+    </Label>
+  )
 }
 
 type GeocodePreview = {
@@ -193,6 +220,14 @@ export default function NewPatientPage() {
     if (key === 'postalCode') {
       nextValue = normalizePostalCode(value)
       setPostalLookupMessage(null)
+    }
+
+    if (key === 'phone' || key === 'emergencyContactPhone' || key === 'doctorPhone') {
+      nextValue = normalizePhone(value)
+    }
+
+    if (key === 'preferredTime') {
+      nextValue = value.slice(0, 5)
     }
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -514,12 +549,13 @@ export default function NewPatientPage() {
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">基本情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           <div>
-            <Label className="text-gray-300">氏名</Label>
+            <RequiredLabel>氏名</RequiredLabel>
             <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" />
           </div>
           <div>
-            <Label className="text-gray-300">生年月日</Label>
-            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="19500412 / 1950-04-12" />
+            <RequiredLabel>生年月日</RequiredLabel>
+            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
+            <p className="mt-1 text-[11px] text-gray-500">8桁でも入力できます。自動で日付の形に整えます。</p>
           </div>
           <div>
             <Label className="text-gray-300">郵便番号</Label>
@@ -533,19 +569,20 @@ export default function NewPatientPage() {
           </div>
           <div>
             <Label className="text-gray-300">連絡先電話</Label>
-            <Input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" />
+            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" />
+            <p className="mt-1 text-[11px] text-gray-500">数字だけでも入力できます。</p>
           </div>
           <div className="md:col-span-2">
-            <Label className="text-gray-300">住所</Label>
+            <RequiredLabel>住所</RequiredLabel>
             <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." />
           </div>
           <div>
             <Label className="text-gray-300">利用開始日</Label>
-            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-11" />
+            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-11" inputMode="numeric" />
           </div>
           <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
             <p className="font-medium text-white">登録ルール</p>
-            <p className="mt-1">ステータスは active で自動設定されます。所属薬局はログイン中ユーザーの所属から自動反映します。</p>
+            <p className="mt-1">氏名、生年月日、住所、初回訪問予定日または訪問曜日が入っていれば登録できます。ステータスと所属先は自動で設定します。</p>
           </div>
         </CardContent>
       </Card>
@@ -556,7 +593,7 @@ export default function NewPatientPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <Label className="text-gray-300">初回訪問予定日</Label>
-              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-14" />
+              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-14" inputMode="numeric" />
             </div>
             <div>
               <Label className="text-gray-300">訪問パターン</Label>
@@ -575,7 +612,7 @@ export default function NewPatientPage() {
             </div>
             <div>
               <Label className="text-gray-300">月回数</Label>
-              <Input value={visitCount} onChange={(e) => setVisitCount(e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              <Input value={visitCount} onChange={(e) => setVisitCount(normalizeVisitCount(e.target.value))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="numeric" />
             </div>
           </div>
 
@@ -596,7 +633,7 @@ export default function NewPatientPage() {
 
           <div>
             <Label className="text-gray-300">希望時間</Label>
-            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" />
+            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" inputMode="numeric" />
           </div>
 
           {isExceeded && (
@@ -691,11 +728,11 @@ export default function NewPatientPage() {
               <div className="space-y-3">
                 <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
                 <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
-                <div><Label className="text-gray-300">緊急連絡先電話</Label><Input value={form.emergencyContactPhone} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-xxxx-xxxx" /></div>
+                <div><Label className="text-gray-300">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" /></div>
               </div>
               <div><Label className="text-gray-300">主治医</Label><Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" /></div>
               <div><Label className="text-gray-300">クリニック</Label><Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" /></div>
-              <div><Label className="text-gray-300">医師電話</Label><Input value={form.doctorPhone} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-xxxx-xxxx" /></div>
+              <div><Label className="text-gray-300">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" /></div>
               <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="ラシックス など" /></div>
               <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全 など" /></div>
               <div className="md:col-span-2"><Label className="text-gray-300">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴を入力" /></div>
@@ -723,7 +760,7 @@ export default function NewPatientPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
           <div>
             <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
-            <p>電話未入力でも登録可能です。患者詳細で警告表示します。</p>
+            <p><span className="text-rose-300">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
           </div>
           <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
