@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -777,6 +778,7 @@ function PharmacyDayTaskCard({
 
 function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: boolean }) {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [flowDate, setFlowDate] = useState(getTodayDateKey())
   const [dayTasks, setDayTasks] = useState<DayTaskItem[]>([])
@@ -1080,6 +1082,25 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       script.removeEventListener('load', renderMap)
     }
   }, [publicGoogleMapsApiKey, routePlanResult])
+
+  useEffect(() => {
+    const routeCandidateParam = searchParams.get('routeCandidates')
+    const routeDateParam = searchParams.get('routeDate')
+    if (!routeCandidateParam) return
+
+    const candidateIds = routeCandidateParam
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+
+    if (routeDateParam && /^\d{4}-\d{2}-\d{2}$/.test(routeDateParam) && routeDateParam !== flowDate) {
+      setFlowDate(routeDateParam)
+    }
+
+    if (candidateIds.length > 0) {
+      setSelectedRoutePatientIds((current) => Array.from(new Set([...current, ...candidateIds])))
+    }
+  }, [flowDate, searchParams])
 
   const helperCandidatePatientIds = useMemo(() => {
     const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]

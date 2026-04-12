@@ -326,9 +326,17 @@ export default function CalendarPage() {
                           詳細を見る
                         </Button>
                       )}
-                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
-                        <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
-                      </Button>
+                      {task.patientId ? (
+                        <Button asChild size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                          <Link href={`/dashboard?routeCandidates=${task.patientId}&routeDate=${detail?.date ?? selectedDate ?? ''}`}>
+                            <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                          <Route className="mr-1 h-3.5 w-3.5" />次の候補に入れる
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
