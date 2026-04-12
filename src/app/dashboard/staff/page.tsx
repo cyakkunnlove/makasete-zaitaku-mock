@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import type { UserRole } from '@/types/database'
@@ -46,8 +46,8 @@ import {
 
 type StaffStatus = 'active' | 'inactive'
 
-type RoleFilter = 'all' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
-type AddStaffRole = 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type RoleFilter = 'all' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type AddStaffRole = 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 
 const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
@@ -75,9 +75,10 @@ const statusClass: Record<StaffStatus, string> = {
 
 const regionalFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
-  { key: 'night_pharmacist', label: 'Night Pharmacist' },
-  { key: 'pharmacy_admin', label: 'Pharmacy Admin' },
-  { key: 'pharmacy_staff', label: 'Pharmacy Staff' },
+  { key: 'regional_admin', label: 'リージョン管理者' },
+  { key: 'night_pharmacist', label: '夜間薬剤師' },
+  { key: 'pharmacy_admin', label: '薬局管理者' },
+  { key: 'pharmacy_staff', label: '薬局スタッフ' },
 ]
 
 const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
@@ -98,6 +99,9 @@ const weekDays = [
 
 export default function StaffPage() {
   const { role } = useAuth()
+  const isSystemAdmin = role === 'system_admin'
+  const isRegionalAdmin = role === 'regional_admin'
+  const isPharmacyAdmin = role === 'pharmacy_admin'
   const { guard, requiresReverification } = useReauthGuard()
   const [pageTab, setPageTab] = useState<PageTab>('staff')
 
@@ -107,37 +111,103 @@ export default function StaffPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    role: 'night_pharmacist' as AddStaffRole,
+    role: 'regional_admin' as AddStaffRole,
     phone: '',
     email: '',
     status: 'active' as StaffStatus,
+    regionId: '',
   })
+  const [regions, setRegions] = useState<Array<{ id: string; name: string }>>([])
+  const [toast, setToast] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
 
   const visibleStaffMembers = useMemo(() => {
-    if (role === 'pharmacy_admin') {
+    if (isPharmacyAdmin) {
       return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith(PHARMACY_ADMIN_EMAIL_DOMAIN))
     }
     return staffMembers
-  }, [role, staffMembers])
+  }, [isPharmacyAdmin, staffMembers])
 
-  const availableFilterItems = role === 'pharmacy_admin' ? pharmacyFilterItems : regionalFilterItems
+  const availableFilterItems = isPharmacyAdmin ? pharmacyFilterItems : regionalFilterItems
 
   const filteredStaff = useMemo(() => {
     if (activeFilter === 'all') return visibleStaffMembers
     return visibleStaffMembers.filter((member) => member.role === activeFilter)
   }, [activeFilter, visibleStaffMembers])
 
-  const handleAddStaff = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (!isSystemAdmin) return
+    let cancelled = false
+    fetch('/api/admin/regions', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error(data.error ?? 'regions_fetch_failed')
+        if (cancelled) return
+        setRegions(data.regions ?? [])
+        setFormData((prev) => ({ ...prev, regionId: prev.regionId || data.regions?.[0]?.id || '' }))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setRegions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isSystemAdmin])
+
+  const handleAddStaff = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (guard()) return
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    if (isSystemAdmin) {
+      try {
+        const response = await fetch('/api/admin/regional-admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            regionId: formData.regionId,
+          }),
+        })
+        const data = await response.json()
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error ?? 'regional_admin_create_failed')
+        }
+
+        setToast(`リージョン管理者を作成しました: ${data.user.email}`)
+        setStaffMembers((prev) => [
+          {
+            id: data.user.id,
+            name: data.user.full_name,
+            role: 'regional_admin',
+            phone: formData.phone,
+            email: data.user.email,
+            status: 'active',
+          },
+          ...prev,
+        ])
+        setDialogOpen(false)
+        setFormData({ name: '', role: 'regional_admin', phone: '', email: '', status: 'active', regionId: regions[0]?.id ?? '' })
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'regional_admin_create_failed')
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
 
     const newStaff: StaffItem = {
       id: `ST-${Date.now()}`,
       name: formData.name,
-      role: role === 'pharmacy_admin' ? (formData.role === 'pharmacy_admin' ? 'pharmacy_admin' : 'pharmacy_staff') : formData.role,
+      role: isPharmacyAdmin ? (formData.role === 'pharmacy_admin' ? 'pharmacy_admin' : 'pharmacy_staff') : formData.role,
       phone: formData.phone,
       email: formData.email,
       status: formData.status,
@@ -147,11 +217,13 @@ export default function StaffPage() {
     setDialogOpen(false)
     setFormData({
       name: '',
-      role: 'night_pharmacist',
+      role: isRegionalAdmin ? 'night_pharmacist' : 'regional_admin',
       phone: '',
       email: '',
       status: 'active',
+      regionId: regions[0]?.id ?? '',
     })
+    setIsSubmitting(false)
   }
 
   const toggleShiftType = (shiftId: string) => {
@@ -168,7 +240,7 @@ export default function StaffPage() {
     return shifts.find((s) => s.pharmacistId === pharmacistId && s.shiftDate === date)
   }
 
-  if (role !== 'regional_admin' && role !== 'pharmacy_admin') {
+  if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
@@ -183,8 +255,8 @@ export default function StaffPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '夜間スタッフ管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
+          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? '夜間スタッフ管理' : '自店スタッフ管理'}</h1>
+          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待前準備を行います' : isRegionalAdmin ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
         </div>
 
         {pageTab === 'staff' && (
@@ -201,6 +273,18 @@ export default function StaffPage() {
         )}
       </div>
 
+      {toast && (
+        <Card className="border-emerald-500/30 bg-emerald-500/10">
+          <CardContent className="p-4 text-sm text-emerald-200">{toast}</CardContent>
+        </Card>
+      )}
+
+      {errorMessage && (
+        <Card className="border-rose-500/30 bg-rose-500/10">
+          <CardContent className="p-4 text-sm text-rose-200">{errorMessage}</CardContent>
+        </Card>
+      )}
+
       {requiresReverification && (
         <Card className="border-amber-500/30 bg-amber-500/10">
           <CardContent className="p-4 text-sm text-amber-200">
@@ -211,7 +295,7 @@ export default function StaffPage() {
 
       {/* Page-level tabs */}
       
-      {role === 'regional_admin' && (<Card className="border-[#2a3553] bg-[#1a2035]">
+      {isRegionalAdmin && (<Card className="border-[#2a3553] bg-[#1a2035]">
         <CardContent className="p-4">
           <Tabs value={pageTab} onValueChange={(value) => setPageTab(value as PageTab)}>
             <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#11182c] p-1">
@@ -235,7 +319,7 @@ export default function StaffPage() {
       </Card>)}
 
       {/* ===== Staff List Tab ===== */}
-      {(role === 'pharmacy_admin' || pageTab === 'staff') && (
+      {(isSystemAdmin || isPharmacyAdmin || pageTab === 'staff') && (
         <>
           <Card className="border-[#2a3553] bg-[#1a2035]">
             <CardContent className="p-4">
@@ -476,14 +560,16 @@ export default function StaffPage() {
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, role: value as AddStaffRole }))
                   }
+                  disabled={isSystemAdmin}
                 >
                   <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    {role === 'regional_admin' && <SelectItem value="night_pharmacist">Night Pharmacist</SelectItem>}
-                    <SelectItem value="pharmacy_admin">Pharmacy Admin</SelectItem>
-                    <SelectItem value="pharmacy_staff">Pharmacy Staff</SelectItem>
+                    {isSystemAdmin && <SelectItem value="regional_admin">リージョン管理者</SelectItem>}
+                    {isRegionalAdmin && <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>}
+                    {!isSystemAdmin && <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>}
+                    {!isSystemAdmin && <SelectItem value="pharmacy_staff">薬局スタッフ</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -495,6 +581,7 @@ export default function StaffPage() {
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, status: value as StaffStatus }))
                   }
+                  disabled={isSystemAdmin}
                 >
                   <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
                     <SelectValue />
@@ -506,6 +593,25 @@ export default function StaffPage() {
                 </Select>
               </div>
             </div>
+
+            {isSystemAdmin && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">所属リージョン</Label>
+                <Select
+                  value={formData.regionId}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, regionId: value }))}
+                >
+                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                    <SelectValue placeholder="リージョンを選択" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                    {regions.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>{region.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-gray-300">電話</Label>
@@ -531,11 +637,11 @@ export default function StaffPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
                 キャンセル
               </Button>
-              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90">
-                追加する
+              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={isSubmitting}>
+                {isSubmitting ? '作成中...' : '追加する'}
               </Button>
             </DialogFooter>
           </form>
