@@ -303,10 +303,11 @@ export default function PatientDetailPage() {
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getPatientAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
+  const isLocalOnlyPatient = authMode !== 'cognito' && !databasePatient
   const handleSaveVisitRules = async (nextVisitRules: PatientVisitRule[]) => {
     if (!patient) return
 
-    if (!databasePatient) {
+    if (isLocalOnlyPatient) {
       upsertRegisteredPatient({
         ...patient,
         visitRules: nextVisitRules,
@@ -651,7 +652,7 @@ export default function PatientDetailPage() {
       setDatabasePatient(result.patient)
     }
 
-    const localPatientExists = !databasePatient && registeredPatients.some((current) => current.id === patient.id)
+    const localPatientExists = isLocalOnlyPatient && registeredPatients.some((current) => current.id === patient.id)
     if (localPatientExists) {
       updateRegisteredPatient(patient.id, (current) => ({
         ...current,
