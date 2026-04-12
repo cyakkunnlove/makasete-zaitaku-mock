@@ -208,13 +208,13 @@ export default function PatientDetailPage() {
   }, [databasePatient, patient?.id])
 
   const patientRequests = useMemo(
-    () => (patient ? requestData.filter((r) => r.patientId === patient.id) : []),
-    [patient]
+    () => (authMode === 'cognito' || !patient ? [] : requestData.filter((r) => r.patientId === patient.id)),
+    [authMode, patient]
   )
 
   const patientHandovers = useMemo(
-    () => (patient ? handoverData.filter((h) => h.patientId === patient.id) : []),
-    [patient]
+    () => (authMode === 'cognito' || !patient ? [] : handoverData.filter((h) => h.patientId === patient.id)),
+    [authMode, patient]
   )
 
   const [visitDialogOpen, setVisitDialogOpen] = useState(false)
@@ -1209,7 +1209,7 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent>
           {patientRequests.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">依頼履歴はありません。</p>
+            <p className="py-4 text-center text-xs text-gray-500">{authMode === 'cognito' ? '依頼履歴はこれからデータベース連携します。' : '依頼履歴はありません。'}</p>
           ) : (
             <div className="space-y-2">
               {patientRequests.map((req) => {
@@ -1252,7 +1252,7 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent>
           {patientHandovers.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">夜間対応履歴はありません。</p>
+            <p className="py-4 text-center text-xs text-gray-500">{authMode === 'cognito' ? '夜間対応履歴はこれからデータベース連携します。' : '夜間対応履歴はありません。'}</p>
           ) : (
             <div className="space-y-2">
               {patientHandovers.map((ho) => (
