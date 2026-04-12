@@ -58,18 +58,6 @@ type GeocodePreview = {
   warnings: Array<{ code: string; message: string }>
 }
 
-type VisitRecordDraft = {
-  id: string
-  visitDate: string
-  visitType: string
-  staffName: string
-  completed: boolean
-  billable: boolean
-  amount: number
-  billingStatus: 'unbilled' | 'ready' | 'billed'
-  note: string
-}
-
 function isUuidLike(value: string | null | undefined) {
   if (!value) return false
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
@@ -201,8 +189,6 @@ export default function PatientDetailPage() {
     }
   }, [databasePatient, patient?.id])
 
-  const [visitDialogOpen, setVisitDialogOpen] = useState(false)
-  const [visitRecords, setVisitRecords] = useState<VisitRecordDraft[]>([])
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editSavedNotice, setEditSavedNotice] = useState<string | null>(null)
   const [patientPhotos, setPatientPhotos] = useState<PatientPhotoView[]>([])
@@ -221,15 +207,6 @@ export default function PatientDetailPage() {
     medicalHistory: '',
     allergies: '',
     insuranceInfo: '',
-  })
-  const [visitForm, setVisitForm] = useState({
-    visitDate: '2026-03-16',
-    visitType: '定期',
-    staffName: '小林 薫',
-    completed: true,
-    billable: true,
-    amount: 9800,
-    note: '',
   })
 
   if (detailLoadState === 'loading' && !patient) {
@@ -270,33 +247,6 @@ export default function PatientDetailPage() {
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getPatientAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
-  const unbilledRecords = visitRecords.filter((record) => record.completed && record.billable && record.billingStatus === 'unbilled')
-
-  const handleAddVisitRecord = () => {
-    const newRecord: VisitRecordDraft = {
-      id: `VR-${String(visitRecords.length + 1).padStart(3, '0')}`,
-      visitDate: visitForm.visitDate,
-      visitType: visitForm.visitType,
-      staffName: visitForm.staffName,
-      completed: visitForm.completed,
-      billable: visitForm.billable,
-      amount: visitForm.amount,
-      billingStatus: visitForm.completed && visitForm.billable ? 'unbilled' : 'ready',
-      note: visitForm.note || '患者詳細から追加した訪問記録',
-    }
-    setVisitRecords((prev) => [newRecord, ...prev])
-    setVisitDialogOpen(false)
-    setVisitForm({
-      visitDate: '2026-03-16',
-      visitType: '定期',
-      staffName: '小林 薫',
-      completed: true,
-      billable: true,
-      amount: 9800,
-      note: '',
-    })
-  }
-
   const handleSaveVisitRules = async (nextVisitRules: PatientVisitRule[]) => {
     if (!patient) return
 
@@ -1082,103 +1032,24 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Visit Records / Unbilled */}
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Clock3 className="h-4 w-4 text-emerald-400" />
-              訪問記録 / 未請求候補
-              <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
-                未請求 {unbilledRecords.length}
-              </Badge>
-            </CardTitle>
-            <Button size="sm" onClick={() => setVisitDialogOpen(true)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
-              訪問記録を追加
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <Clock3 className="h-4 w-4 text-emerald-400" />
+            訪問記録
+            <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+              準備中
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-[#2a3553] bg-[#111827] p-3 text-xs text-gray-300">
-            <p className="font-medium text-white">運用イメージ</p>
-            <p className="mt-1 text-gray-400">訪問記録を追加 → 実施済 & 算定対象なら自動で「未請求候補」に入る、というモックです。</p>
+          <div className="rounded-lg border border-[#2a3553] bg-[#111827] p-3 text-sm text-gray-300">
+            <p className="font-medium text-white">これから連携する内容</p>
+            <p className="mt-1 text-gray-400">訪問記録、請求候補、請求済み状態はデータベース連携に合わせてここへ表示します。</p>
           </div>
-
-          {visitRecords.length === 0 ? (
-            <p className="py-4 text-center text-xs text-gray-500">まだ訪問記録はありません。まず「訪問記録を追加」を押してください。</p>
-          ) : (
-            <div className="space-y-2">
-              {visitRecords.map((record) => (
-                <div key={record.id} className="rounded-lg border border-[#2a3553] bg-[#111827] p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-white">{record.visitDate} / {record.visitType}</p>
-                      <p className="mt-1 text-xs text-gray-400">担当: {record.staffName} ・ {record.note}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={cn('border text-[10px]', record.completed ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                        {record.completed ? '実施済' : '未実施'}
-                      </Badge>
-                      <Badge variant="outline" className={cn('border text-[10px]', record.billable ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                        {record.billable ? '算定対象' : '算定対象外'}
-                      </Badge>
-                      <Badge variant="outline" className={cn('border text-[10px]', record.billingStatus === 'unbilled' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : record.billingStatus === 'billed' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-sky-500/40 bg-sky-500/20 text-sky-300')}>
-                        {record.billingStatus === 'unbilled' ? '未請求候補' : record.billingStatus === 'billed' ? '請求済み' : '確認待ち'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
-                    <span>請求想定額: ¥{record.amount.toLocaleString('ja-JP')}</span>
-                    {record.billingStatus === 'unbilled' && <span className="text-amber-300">→ billing の未請求処理へ載せる想定</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="text-xs text-gray-500">今は訪問スケジュールと患者基本情報の整理を優先しています。</p>
         </CardContent>
       </Card>
-
-      <Dialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-          <DialogHeader>
-            <DialogTitle>訪問記録を追加</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <p className="mb-1 text-xs text-gray-400">訪問日</p>
-              <Input type="date" value={visitForm.visitDate} onChange={(e) => setVisitForm((prev) => ({ ...prev, visitDate: e.target.value }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs text-gray-400">訪問種別</p>
-              <Input value={visitForm.visitType} onChange={(e) => setVisitForm((prev) => ({ ...prev, visitType: e.target.value }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs text-gray-400">担当者</p>
-              <Input value={visitForm.staffName} onChange={(e) => setVisitForm((prev) => ({ ...prev, staffName: e.target.value }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs text-gray-400">金額</p>
-              <Input type="number" value={visitForm.amount} onChange={(e) => setVisitForm((prev) => ({ ...prev, amount: Number(e.target.value) || 0 }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs text-gray-400">実施済み (yes/no)</p>
-              <Input value={visitForm.completed ? 'yes' : 'no'} onChange={(e) => setVisitForm((prev) => ({ ...prev, completed: e.target.value.toLowerCase() !== 'no' }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs text-gray-400">算定対象 (yes/no)</p>
-              <Input value={visitForm.billable ? 'yes' : 'no'} onChange={(e) => setVisitForm((prev) => ({ ...prev, billable: e.target.value.toLowerCase() !== 'no' }))} className="border-[#2a3553] bg-[#11182c]" />
-            </div>
-            <div className="sm:col-span-2">
-              <p className="mb-1 text-xs text-gray-400">メモ</p>
-              <Input value={visitForm.note} onChange={(e) => setVisitForm((prev) => ({ ...prev, note: e.target.value }))} className="border-[#2a3553] bg-[#11182c]" placeholder="例: 夜間引継ぎ後の定期訪問" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setVisitDialogOpen(false)} className="border-[#2a3553] bg-[#11182c] text-gray-300">キャンセル</Button>
-            <Button onClick={handleAddVisitRecord} className="bg-emerald-600 text-white hover:bg-emerald-600/90">保存して未請求判定</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {(authMode !== 'cognito') && (
         <>
