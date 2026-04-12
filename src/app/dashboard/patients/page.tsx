@@ -16,8 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { Search, Phone, MapPin, GripVertical, Plus } from 'lucide-react'
-import { pharmacyData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
+import { getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 
@@ -240,7 +240,6 @@ export default function PatientsPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
             {orderedPatients.map((patient) => {
               const attentionFlags = getAttentionFlags(patient)
-              const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacyId)
               return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
@@ -267,18 +266,6 @@ export default function PatientsPage() {
                         <MapPin className="h-3.5 w-3.5 text-indigo-400" />
                         {patient.address}
                       </a>
-                      {pharmacy?.phone && (
-                        <div>
-                          <a
-                            href={`tel:${pharmacy.phone}`}
-                            className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Phone className="h-3.5 w-3.5" />
-                            {pharmacy.phone}
-                          </a>
-                        </div>
-                      )}
                     </div>
                     <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
                     <p className="mt-1 text-[11px] text-gray-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
@@ -318,7 +305,6 @@ export default function PatientsPage() {
                 <TableBody>
                   {orderedPatients.map((patient) => {
                     const attentionFlags = getAttentionFlags(patient)
-                    const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacyId)
                     return (
                     <TableRow
                       key={patient.id}
@@ -352,16 +338,6 @@ export default function PatientsPage() {
                       {!isDayContext && (
                         <TableCell className="space-y-1">
                           <p className="text-indigo-300">{patient.pharmacyName}</p>
-                          {pharmacy?.phone && (
-                            <a
-                              href={`tel:${pharmacy.phone}`}
-                              className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Phone className="h-3.5 w-3.5" />
-                              {pharmacy.phone}
-                            </a>
-                          )}
                         </TableCell>
                       )}
                       <TableCell>

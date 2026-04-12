@@ -21,7 +21,6 @@ import {
 import {
   requestData,
   handoverData,
-  pharmacyData,
   getAttentionFlags,
   getAttentionFlagClass,
   statusMeta,
@@ -207,11 +206,6 @@ export default function PatientDetailPage() {
       cancelled = true
     }
   }, [databasePatient, patient?.id])
-
-  const pharmacy = useMemo(
-    () => (patient ? pharmacyData.find((ph) => ph.id === patient.pharmacyId) : undefined),
-    [patient]
-  )
 
   const patientRequests = useMemo(
     () => (patient ? requestData.filter((r) => r.patientId === patient.id) : []),
@@ -700,7 +694,7 @@ export default function PatientDetailPage() {
                 <Phone className="h-3 w-3" />
                 電話番号
               </p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.phone ?? pharmacy?.phone ?? '-'}</p>
+              <p className="mt-0.5 text-sm text-gray-200">{patient.phone ?? '-'}</p>
             </div>
             <div className="sm:col-span-2 lg:col-span-2">
               <p className="text-xs text-gray-500">担当薬局</p>
