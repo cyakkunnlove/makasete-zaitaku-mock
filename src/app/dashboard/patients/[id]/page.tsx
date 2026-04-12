@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
@@ -268,7 +268,7 @@ export default function PatientDetailPage() {
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const canEditThisPatient = canEditPatientRecord({ role, user, patient })
   const hasAllergies = patient.allergies !== 'なし'
-  const attentionFlags = getAttentionFlags(patient)
+  const attentionFlags = getPatientAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
   const unbilledRecords = visitRecords.filter((record) => record.completed && record.billable && record.billingStatus === 'unbilled')
 
@@ -539,7 +539,7 @@ export default function PatientDetailPage() {
               {attentionFlags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {attentionFlags.slice(0, 4).map((flag) => (
-                    <Badge key={flag.key} variant="outline" className={cn('border text-xs', getAttentionFlagClass(flag.tone))}>
+                    <Badge key={flag.key} variant="outline" className={cn('border text-xs', getPatientAttentionFlagClass(flag.tone))}>
                       {flag.label}
                     </Badge>
                   ))}
@@ -940,7 +940,7 @@ export default function PatientDetailPage() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {attentionFlags.map((flag) => (
-                <Badge key={flag.key} variant="outline" className={cn('border text-xs', getAttentionFlagClass(flag.tone))}>
+                <Badge key={flag.key} variant="outline" className={cn('border text-xs', getPatientAttentionFlagClass(flag.tone))}>
                   {flag.label}
                 </Badge>
               ))}

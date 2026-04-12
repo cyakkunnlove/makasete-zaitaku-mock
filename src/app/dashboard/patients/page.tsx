@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
-import { getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 
@@ -239,7 +239,7 @@ export default function PatientsPage() {
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
             {orderedPatients.map((patient) => {
-              const attentionFlags = getAttentionFlags(patient)
+              const attentionFlags = getPatientAttentionFlags(patient)
               return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
@@ -275,7 +275,7 @@ export default function PatientsPage() {
                     {attentionFlags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {attentionFlags.slice(0, 3).map((flag) => (
-                          <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>
+                          <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getPatientAttentionFlagClass(flag.tone))}>
                             {flag.label}
                           </Badge>
                         ))}
@@ -304,7 +304,7 @@ export default function PatientsPage() {
                 </TableHeader>
                 <TableBody>
                   {orderedPatients.map((patient) => {
-                    const attentionFlags = getAttentionFlags(patient)
+                    const attentionFlags = getPatientAttentionFlags(patient)
                     return (
                     <TableRow
                       key={patient.id}
@@ -346,7 +346,7 @@ export default function PatientsPage() {
                             <Badge
                               key={flag.key}
                               variant="outline"
-                              className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}
+                              className={cn('border text-[10px]', getPatientAttentionFlagClass(flag.tone))}
                             >
                               {flag.label}
                             </Badge>
