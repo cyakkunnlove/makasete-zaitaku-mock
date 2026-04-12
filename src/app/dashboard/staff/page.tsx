@@ -141,6 +141,7 @@ export default function StaffPage() {
   const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([])
   const [activeFilter, setActiveFilter] = useState<RoleFilter>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [regionDialogOpen, setRegionDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     role: 'regional_admin' as AddStaffRole,
@@ -156,6 +157,7 @@ export default function StaffPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCreatingRegion, setIsCreatingRegion] = useState(false)
   const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: UserRole; status: InvitationStatus; expires_at: string; last_sent_at: string | null; region_name?: string | null; pharmacy_name?: string | null }>>([])
   const [staffSearch, setStaffSearch] = useState('')
   const [invitationSearch, setInvitationSearch] = useState('')
@@ -172,6 +174,7 @@ export default function StaffPage() {
     regionId: '',
     pharmacyId: '',
   })
+  const [newRegionName, setNewRegionName] = useState('')
 
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
@@ -455,6 +458,37 @@ export default function StaffPage() {
       setErrorMessage(error instanceof Error ? error.message : 'user_update_failed')
     } finally {
       setUserActionId(null)
+    }
+  }
+
+  const handleCreateRegion = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!isSystemAdmin || guard()) return
+    setErrorMessage(null)
+    setIsCreatingRegion(true)
+
+    try {
+      const response = await fetch('/api/admin/regions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newRegionName }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error ?? 'region_create_failed')
+
+      setRegions((prev) => [...prev, data.region])
+      setFormData((prev) => ({
+        ...prev,
+        regionId: prev.regionId || data.region.id,
+        regionIds: prev.regionIds.includes(data.region.id) ? prev.regionIds : [...prev.regionIds, data.region.id],
+      }))
+      setToast(`リージョンを追加しました: ${data.region.name}`)
+      setRegionDialogOpen(false)
+      setNewRegionName('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'region_create_failed')
+    } finally {
+      setIsCreatingRegion(false)
     }
   }
 
@@ -1082,6 +1116,36 @@ export default function StaffPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={regionDialogOpen} onOpenChange={setRegionDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">リージョンを追加</DialogTitle>
+            <DialogDescription className="text-gray-400">system_admin が招待前に新しいリージョンを登録します。</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateRegion} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-region-name" className="text-gray-300">リージョン名</Label>
+              <Input
+                id="new-region-name"
+                value={newRegionName}
+                onChange={(event) => setNewRegionName(event.target.value)}
+                required
+                className="border-[#2a3553] bg-[#1a2035]"
+                placeholder="例: 北海道リージョン"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setRegionDialogOpen(false)} disabled={isCreatingRegion}>
+                キャンセル
+              </Button>
+              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={isCreatingRegion}>
+                {isCreatingRegion ? '作成中...' : 'リージョンを追加'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Staff Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
@@ -1134,7 +1198,12 @@ export default function StaffPage() {
 
             {isSystemAdmin && (
               <div className="space-y-2">
-                <Label className="text-gray-300">所属リージョン</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-gray-300">所属リージョン</Label>
+                  <Button type="button" variant="outline" size="sm" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]" onClick={() => setRegionDialogOpen(true)}>
+                    新しいリージョンを追加
+                  </Button>
+                </div>
                 <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
                   <div className="flex flex-wrap gap-2">
                     {regions.map((region) => {
