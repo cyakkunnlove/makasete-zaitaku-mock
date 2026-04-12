@@ -125,6 +125,8 @@ export default function CalendarPage() {
   }, [selectedDate])
 
   const summaryByDate = useMemo(() => new Map(summaries.map((summary) => [summary.date, summary])), [summaries])
+  const todayDateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const canBuildRouteForSelectedDate = Boolean(selectedDate && selectedDate >= todayDateKey)
   const futureSelectedCount = selectedRouteCandidateIds.length
   const selectedSummary = selectedDate ? summaryByDate.get(selectedDate) ?? null : null
   const monthGrid = getMonthGrid(viewYear, viewMonth)
@@ -279,7 +281,7 @@ export default function CalendarPage() {
                   <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">完了 {selectedSummary.completedCount}</Badge>
                   <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">初回 {selectedSummary.firstVisitCount}</Badge>
                 </div>
-                {selectedDate && selectedDate >= `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}` && (
+                {canBuildRouteForSelectedDate && (
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
                     <span>ルート候補 {futureSelectedCount}人</span>
                     <Button asChild size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0}>
@@ -349,26 +351,28 @@ export default function CalendarPage() {
                           詳細を見る
                         </Button>
                       )}
-                      {task.patientId ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toggleRouteCandidate(task.patientId)}
-                          className={cn(
-                            'border-[#2a3553] text-gray-200 hover:bg-[#1a2035]',
-                            selectedRouteCandidateIds.includes(task.patientId)
-                              ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-100'
-                              : 'bg-[#0f1728]'
-                          )}
-                        >
-                          <Route className="mr-1 h-3.5 w-3.5" />
-                          {selectedRouteCandidateIds.includes(task.patientId) ? '候補に追加済み' : 'ルート候補に追加'}
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
-                          <Route className="mr-1 h-3.5 w-3.5" />ルート候補に追加
-                        </Button>
-                      )}
+                      {canBuildRouteForSelectedDate ? (
+                        task.patientId ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleRouteCandidate(task.patientId)}
+                            className={cn(
+                              'border-[#2a3553] text-gray-200 hover:bg-[#1a2035]',
+                              selectedRouteCandidateIds.includes(task.patientId)
+                                ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-100'
+                                : 'bg-[#0f1728]'
+                            )}
+                          >
+                            <Route className="mr-1 h-3.5 w-3.5" />
+                            {selectedRouteCandidateIds.includes(task.patientId) ? '候補に追加済み' : 'ルート候補に追加'}
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                            <Route className="mr-1 h-3.5 w-3.5" />ルート候補に追加
+                          </Button>
+                        )
+                      ) : null}
                     </div>
                   </div>
                 ))}
