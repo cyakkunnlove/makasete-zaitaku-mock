@@ -115,7 +115,15 @@ export default function PatientsPage() {
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
   }, [authMode, databasePatients.length, isDayContext, registeredPatients, searchQuery])
 
-  const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients, isRegionalAdmin])
+  const patientMaster = useMemo(
+    () =>
+      mergePatientSources({
+        databasePatients,
+        registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients,
+        includeMockPatients: authMode !== 'cognito',
+      }),
+    [authMode, databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
+  )
 
   const visiblePatients = useMemo(() => {
     if (isRegionalAdmin) {

@@ -49,13 +49,16 @@ function buildPatientFingerprint(patient: Pick<RegisteredPatientRecord, 'name' |
 export function mergePatientSources(options: {
   databasePatients?: PatientSource[]
   registeredPatients?: RegisteredPatientRecord[]
+  includeMockPatients?: boolean
 }) {
   const merged = new Map<string, RegisteredPatientRecord>()
   const databaseFingerprints = new Set<string>()
 
-  patientData.forEach((patient) => {
-    merged.set(patient.id, patient)
-  })
+  if (options.includeMockPatients) {
+    patientData.forEach((patient) => {
+      merged.set(patient.id, patient)
+    })
+  }
 
   ;(options.databasePatients ?? []).forEach((patient) => {
     const mapped = isRegisteredPatientRecord(patient)
@@ -80,10 +83,12 @@ export function mergeSinglePatient(options: {
   databasePatient?: PatientSource | null
   registeredPatients?: RegisteredPatientRecord[]
   patientId: string
+  includeMockPatients?: boolean
 }) {
   const merged = mergePatientSources({
     databasePatients: options.databasePatient ? [options.databasePatient] : [],
     registeredPatients: options.registeredPatients,
+    includeMockPatients: options.includeMockPatients,
   })
 
   return merged.find((patient) => patient.id === options.patientId) ?? null

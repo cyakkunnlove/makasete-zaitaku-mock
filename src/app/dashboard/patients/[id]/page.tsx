@@ -158,7 +158,12 @@ export default function PatientDetailPage() {
 
   const patient = useMemo(() => {
     if (detailLoadState === 'not_found') return null
-    return mergeSinglePatient({ databasePatient, registeredPatients: authMode === 'cognito' ? [] : registeredPatients, patientId: id })
+    return mergeSinglePatient({
+      databasePatient,
+      registeredPatients: authMode === 'cognito' ? [] : registeredPatients,
+      patientId: id,
+      includeMockPatients: authMode !== 'cognito',
+    })
   }, [authMode, databasePatient, detailLoadState, id, registeredPatients])
 
   useEffect(() => {
