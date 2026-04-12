@@ -22,6 +22,27 @@ export type CalendarDaySummary = {
   staffSummaries: StaffSummary[]
 }
 
+export type CalendarDayTaskDetail = {
+  taskId: string
+  patientId: string | null
+  patientName: string
+  scheduledTime: string
+  status: PatientDayTask['status']
+  handledBy: string | null
+  completedAt: string | null
+  isFirstVisit: boolean
+  isLongGapVisit: boolean
+  hasNightHandover: boolean
+  assigneeChangedAt: string | null
+  note: string
+}
+
+export type CalendarDayDetail = {
+  date: string
+  canEditPast: boolean
+  tasks: CalendarDayTaskDetail[]
+}
+
 function toDateKey(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -64,6 +85,30 @@ function buildFirstVisitSet(tasks: PatientDayTask[]) {
   })
 
   return firstVisitTaskIds
+}
+
+function buildCompletedDatesByPatient(tasks: PatientDayTask[]) {
+  const completedByPatient = new Map<string, string[]>()
+
+  tasks
+    .filter((task) => task.patient_id)
+    .filter((task) => task.status === 'completed' || Boolean(task.completed_at))
+    .sort((a, b) => a.flow_date.localeCompare(b.flow_date))
+    .forEach((task) => {
+      const patientId = task.patient_id
+      if (!patientId) return
+      const dates = completedByPatient.get(patientId) ?? []
+      dates.push(task.flow_date)
+      completedByPatient.set(patientId, Array.from(new Set(dates)).sort((x, y) => x.localeCompare(y)))
+    })
+
+  return completedByPatient
+}
+
+function diffDays(from: string, to: string) {
+  const fromDate = new Date(`${from}T00:00:00`)
+  const toDate = new Date(`${to}T00:00:00`)
+  return Math.floor((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 export function buildCalendarMonthSummary(input: {
@@ -138,4 +183,51 @@ export function buildCalendarMonthSummary(input: {
         return a.staffName.localeCompare(b.staffName, 'ja')
       }),
     }))
+}
+
+export function buildCalendarDayDetail(input: {
+  tasks: PatientDayTask[]
+  date: string
+  today?: string
+  canEditPast?: boolean
+  patientsById?: Map<string, Pick<Patient, 'id' | 'full_name'>>
+}) {
+  const today = input.today ?? toDateKey(new Date())
+  const firstVisitTaskIds = buildFirstVisitSet(input.tasks)
+  const completedDatesByPatient = buildCompletedDatesByPatient(input.tasks)
+
+  const tasks = input.tasks
+    .filter((task) => task.flow_date === input.date)
+    .sort((a, b) => {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+      return a.scheduled_time.localeCompare(b.scheduled_time)
+    })
+
+  const details: CalendarDayTaskDetail[] = tasks.map((task) => {
+    const patient = task.patient_id ? input.patientsById?.get(task.patient_id) : null
+    const priorDates = task.patient_id ? (completedDatesByPatient.get(task.patient_id) ?? []).filter((date) => date < input.date) : []
+    const lastDate = priorDates.length > 0 ? priorDates[priorDates.length - 1] : null
+    const isLongGapVisit = lastDate ? diffDays(lastDate, input.date) >= 7 : false
+
+    return {
+      taskId: task.id,
+      patientId: task.patient_id,
+      patientName: patient?.full_name ?? '患者不明',
+      scheduledTime: task.scheduled_time,
+      status: task.status,
+      handledBy: task.handled_by,
+      completedAt: task.completed_at,
+      isFirstVisit: firstVisitTaskIds.has(task.id),
+      isLongGapVisit,
+      hasNightHandover: isNightHandoverTask(task),
+      assigneeChangedAt: task.updated_at !== task.created_at ? task.updated_at : null,
+      note: task.note,
+    }
+  })
+
+  return {
+    date: input.date,
+    canEditPast: Boolean(input.canEditPast && input.date < today),
+    tasks: details,
+  }
 }
