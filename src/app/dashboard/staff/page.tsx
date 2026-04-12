@@ -53,11 +53,11 @@ const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
 
 const roleLabel: Record<UserRole, string> = {
-  system_admin: 'System Admin',
-  regional_admin: 'Regional Admin',
-  pharmacy_admin: 'Pharmacy Admin',
-  night_pharmacist: 'Night Pharmacist',
-  pharmacy_staff: 'Pharmacy Staff',
+  system_admin: 'システム管理者',
+  regional_admin: 'リージョン管理者',
+  pharmacy_admin: '薬局管理者',
+  night_pharmacist: '夜間薬剤師',
+  pharmacy_staff: '薬局スタッフ',
 }
 
 const roleClass: Record<UserRole, string> = {
@@ -83,8 +83,8 @@ const regionalFilterItems: Array<{ key: RoleFilter; label: string }> = [
 
 const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
-  { key: 'pharmacy_admin', label: 'Pharmacy Admin' },
-  { key: 'pharmacy_staff', label: 'Pharmacy Staff' },
+  { key: 'pharmacy_admin', label: '薬局管理者' },
+  { key: 'pharmacy_staff', label: '薬局スタッフ' },
 ]
 
 const weekDays = [
@@ -98,7 +98,7 @@ const weekDays = [
 ]
 
 export default function StaffPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const isSystemAdmin = role === 'system_admin'
   const isRegionalAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -116,8 +116,10 @@ export default function StaffPage() {
     email: '',
     status: 'active' as StaffStatus,
     regionId: '',
+    pharmacyId: '',
   })
   const [regions, setRegions] = useState<Array<{ id: string; name: string }>>([])
+  const [pharmacies, setPharmacies] = useState<Array<{ id: string; name: string; region_id: string | null }>>([])
   const [toast, setToast] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -159,13 +161,56 @@ export default function StaffPage() {
     }
   }, [isSystemAdmin])
 
+  useEffect(() => {
+    if (!isRegionalAdmin) return
+    let cancelled = false
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        const actorRegionId = data?.user?.activeRoleContext?.regionId ?? data?.user?.region_id ?? null
+        if (cancelled || !actorRegionId) return
+        setFormData((prev) => ({ ...prev, regionId: actorRegionId }))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [isRegionalAdmin])
+
+  useEffect(() => {
+    if (!isRegionalAdmin && !isPharmacyAdmin) return
+    let cancelled = false
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        const actorRegionId = data?.user?.activeRoleContext?.regionId ?? data?.user?.region_id ?? null
+        if (!actorRegionId) return
+        const pharmacyResponse = await fetch(`/api/pharmacies/by-region/${actorRegionId}`, { cache: 'no-store' })
+        const pharmacyData = await pharmacyResponse.json()
+        if (!pharmacyResponse.ok || !pharmacyData.ok) throw new Error(pharmacyData.error ?? 'pharmacies_fetch_failed')
+        if (cancelled) return
+        setPharmacies(pharmacyData.pharmacies ?? [])
+        if (isPharmacyAdmin) {
+          const actorPharmacyId = data?.user?.activeRoleContext?.pharmacyId ?? data?.user?.pharmacy_id ?? ''
+          setFormData((prev) => ({ ...prev, regionId: actorRegionId, pharmacyId: actorPharmacyId || prev.pharmacyId }))
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPharmacies([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isRegionalAdmin, isPharmacyAdmin])
+
   const handleAddStaff = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (guard()) return
     setErrorMessage(null)
     setIsSubmitting(true)
 
-    if (isSystemAdmin) {
+    if (isSystemAdmin || isRegionalAdmin || isPharmacyAdmin) {
       try {
         const response = await fetch('/api/account-invitations', {
           method: 'POST',
@@ -175,7 +220,12 @@ export default function StaffPage() {
             email: formData.email,
             phone: formData.phone,
             regionId: formData.regionId,
-            targetRole: 'regional_admin',
+            pharmacyId: formData.pharmacyId,
+            targetRole: isSystemAdmin
+              ? 'regional_admin'
+              : isRegionalAdmin
+                ? formData.role
+                : 'pharmacy_staff',
           }),
         })
         const data = await response.json()
@@ -183,16 +233,22 @@ export default function StaffPage() {
           throw new Error(data.error ?? 'regional_admin_create_failed')
         }
 
+        const createdRoleLabel =
+          isSystemAdmin ? 'リージョン管理者' : isRegionalAdmin ? (formData.role === 'pharmacy_admin' ? '薬局管理者' : '夜間薬剤師') : '薬局スタッフ'
         setToast(
           data.invitation?.emailSent
-            ? `リージョン管理者を作成し、招待メールも送信しました: ${data.user.email}`
-            : `リージョン管理者は作成済みですが、招待メール送信は未完了です: ${data.user.email}`,
+            ? `${createdRoleLabel}を作成し、招待メールも送信しました: ${data.user.email}`
+            : `${createdRoleLabel}は作成済みですが、招待メール送信は未完了です: ${data.user.email}`,
         )
         setStaffMembers((prev) => [
           {
             id: data.user.id,
             name: data.user.full_name,
-            role: 'regional_admin',
+            role: (isSystemAdmin
+              ? 'regional_admin'
+              : isRegionalAdmin
+                ? formData.role
+                : 'pharmacy_staff') as AddStaffRole,
             phone: formData.phone,
             email: data.user.email,
             status: 'active',
@@ -200,7 +256,15 @@ export default function StaffPage() {
           ...prev,
         ])
         setDialogOpen(false)
-        setFormData({ name: '', role: 'regional_admin', phone: '', email: '', status: 'active', regionId: regions[0]?.id ?? '' })
+        setFormData({
+          name: '',
+          role: isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? 'night_pharmacist' : 'pharmacy_staff',
+          phone: '',
+          email: '',
+          status: 'active',
+          regionId: isSystemAdmin ? (regions[0]?.id ?? '') : (user?.activeRoleContext?.regionId ?? user?.region_id ?? ''),
+          pharmacyId: isPharmacyAdmin ? (user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? '') : '',
+        })
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'regional_admin_create_failed')
       } finally {
@@ -209,25 +273,6 @@ export default function StaffPage() {
       return
     }
 
-    const newStaff: StaffItem = {
-      id: `ST-${Date.now()}`,
-      name: formData.name,
-      role: isPharmacyAdmin ? (formData.role === 'pharmacy_admin' ? 'pharmacy_admin' : 'pharmacy_staff') : formData.role,
-      phone: formData.phone,
-      email: formData.email,
-      status: formData.status,
-    }
-
-    setStaffMembers((prev) => [newStaff, ...prev])
-    setDialogOpen(false)
-    setFormData({
-      name: '',
-      role: isRegionalAdmin ? 'night_pharmacist' : 'regional_admin',
-      phone: '',
-      email: '',
-      status: 'active',
-      regionId: regions[0]?.id ?? '',
-    })
     setIsSubmitting(false)
   }
 
@@ -260,8 +305,8 @@ export default function StaffPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? '夜間スタッフ管理' : '自店スタッフ管理'}</h1>
-          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待メール送信を行います' : isRegionalAdmin ? '夜間対応スタッフの情報とシフトを管理' : '自店スタッフの作成・停止・連絡先を管理'}</p>
+          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}</h1>
+          <p className="text-xs text-gray-400">{isSystemAdmin ? 'リージョン管理者の作成と招待メール送信を行います' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の作成、夜間シフト管理を行います' : '自店スタッフの作成・停止・連絡先を管理'}</p>
         </div>
 
         {pageTab === 'staff' && (
@@ -573,8 +618,8 @@ export default function StaffPage() {
                   <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
                     {isSystemAdmin && <SelectItem value="regional_admin">リージョン管理者</SelectItem>}
                     {isRegionalAdmin && <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>}
-                    {!isSystemAdmin && <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>}
-                    {!isSystemAdmin && <SelectItem value="pharmacy_staff">薬局スタッフ</SelectItem>}
+                    {isRegionalAdmin && <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>}
+                    {isPharmacyAdmin && <SelectItem value="pharmacy_staff">薬局スタッフ</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -604,7 +649,7 @@ export default function StaffPage() {
                 <Label className="text-gray-300">所属リージョン</Label>
                 <Select
                   value={formData.regionId}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, regionId: value }))}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, regionId: value, pharmacyId: '' }))}
                 >
                   <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
                     <SelectValue placeholder="リージョンを選択" />
@@ -615,6 +660,27 @@ export default function StaffPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {isRegionalAdmin && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">対象薬局</Label>
+                <Select
+                  value={formData.pharmacyId}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, pharmacyId: value }))}
+                  disabled={false}
+                >
+                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                    <SelectValue placeholder="薬局を選択" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                    {pharmacies.map((pharmacy) => (
+                      <SelectItem key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-gray-500">薬局管理者と夜間薬剤師には対象薬局が必要です。</p>
               </div>
             )}
 
