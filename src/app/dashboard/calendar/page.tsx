@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route } from 'lucide-react'
 
 import { useAuth } from '@/contexts/auth-context'
@@ -73,6 +73,16 @@ export default function CalendarPage() {
   const [loadingMonth, setLoadingMonth] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [selectedRouteCandidateIds, setSelectedRouteCandidateIds] = useState<string[]>([])
+  const [routePlanLoading, setRoutePlanLoading] = useState(false)
+  const [routePlanResult, setRoutePlanResult] = useState<null | {
+    ready: boolean
+    suggestedOrder: Array<{ id: string; name: string; address: string }>
+    missingCoordinates: Array<{ id: string; name: string; address: string }>
+    totalDuration?: string | null
+    totalDistanceMeters?: number | null
+    message: string
+  }>(null)
+  const routeResultRef = useRef<HTMLDivElement | null>(null)
   const { role } = useAuth()
 
   useEffect(() => {
@@ -122,6 +132,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     setSelectedRouteCandidateIds([])
+    setRoutePlanResult(null)
   }, [selectedDate])
 
   const summaryByDate = useMemo(() => new Map(summaries.map((summary) => [summary.date, summary])), [summaries])
@@ -145,6 +156,25 @@ export default function CalendarPage() {
   const toggleRouteCandidate = (patientId: string | null) => {
     if (!patientId) return
     setSelectedRouteCandidateIds((current) => current.includes(patientId) ? current.filter((id) => id !== patientId) : [...current, patientId])
+  }
+
+  const handleSuggestRoute = async () => {
+    if (selectedRouteCandidateIds.length === 0) return
+    setRoutePlanLoading(true)
+    try {
+      const response = await fetch('/api/day-flow/route-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientIds: selectedRouteCandidateIds }),
+      })
+      const result = await response.json().catch(() => null)
+      if (response.ok && result?.ok && result.routePlan) {
+        setRoutePlanResult(result.routePlan)
+        setTimeout(() => routeResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      }
+    } finally {
+      setRoutePlanLoading(false)
+    }
   }
 
   const nextMonth = () => {
@@ -217,8 +247,8 @@ export default function CalendarPage() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: monthGrid.firstDay }).map((_, index) => <div key={`empty-${index}`} className="h-28 rounded-lg border border-transparent" />)}
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              {Array.from({ length: monthGrid.firstDay }).map((_, index) => <div key={`empty-${index}`} className="h-20 sm:h-28 rounded-lg border border-transparent" />)}
               {Array.from({ length: monthGrid.daysInMonth }).map((_, index) => {
                 const day = index + 1
                 const dateKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -239,25 +269,29 @@ export default function CalendarPage() {
                     type="button"
                     onClick={() => setSelectedDate(dateKey)}
                     className={cn(
-                      'h-28 rounded-lg border p-2 text-left transition hover:border-indigo-400/60 hover:bg-[#24304d]',
+                      'h-20 sm:h-28 rounded-lg border p-1.5 sm:p-2 text-left transition hover:border-indigo-400/60 hover:bg-[#24304d] overflow-hidden',
                       toneClass,
                       isSelected && 'ring-2 ring-indigo-400/60',
                     )}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-1">
                       <span className={cn(
                         'text-sm font-semibold',
                         weekDayIndex === 0 && 'text-rose-300',
                         weekDayIndex === 6 && 'text-sky-300',
                         weekDayIndex !== 0 && weekDayIndex !== 6 && 'text-white',
                       )}>{day}</span>
-                      {summary?.isToday && <Badge className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">今日</Badge>}
+                      {summary?.isToday && <Badge className="border-indigo-500/40 bg-indigo-500/20 px-1.5 py-0 text-[10px] text-indigo-200">今日</Badge>}
                     </div>
-                    <div className="mt-2 space-y-1 text-[11px] text-gray-300">
+                    <div className="mt-1 hidden space-y-1 text-[11px] text-gray-300 sm:block">
                       <p>予定 {summary?.plannedCount ?? 0}</p>
                       <p>完了 {summary?.completedCount ?? 0}</p>
                       <p>初回 {summary?.firstVisitCount ?? 0}</p>
                       {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
+                    </div>
+                    <div className="mt-2 space-y-1 text-[10px] text-gray-300 sm:hidden">
+                      <p>{summary?.plannedCount ?? 0}/{summary?.completedCount ?? 0}</p>
+                      <p className="text-[9px] text-gray-500">予/完</p>
                     </div>
                   </button>
                 )
@@ -284,11 +318,31 @@ export default function CalendarPage() {
                 {canBuildRouteForSelectedDate && (
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
                     <span>ルート候補 {futureSelectedCount}人</span>
-                    <Button asChild size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0}>
-                      <Link href={`/dashboard?routeCandidates=${selectedRouteCandidateIds.join(',')}&routeDate=${selectedDate}`}>
-                        選んだ患者でルートを作る
-                      </Link>
+                    <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0 || routePlanLoading} onClick={() => void handleSuggestRoute()}>
+                      {routePlanLoading ? '作成中...' : '選んだ患者でルートを作る'}
                     </Button>
+                  </div>
+                )}
+                {routePlanResult && (
+                  <div ref={routeResultRef} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-200">
+                    <p className="font-medium text-white">{routePlanResult.message}</p>
+                    {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                      <>
+                        <p className="mt-2 text-gray-400">
+                          {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
+                          {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
+                        </p>
+                        <ol className="mt-3 space-y-2">
+                          {routePlanResult.suggestedOrder.map((patient, index) => (
+                            <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2">
+                              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">{index + 1}</span>
+                              <span className="font-medium text-white">{patient.name}</span>
+                              <p className="mt-1 text-[11px] text-gray-400">{patient.address}</p>
+                            </li>
+                          ))}
+                        </ol>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
