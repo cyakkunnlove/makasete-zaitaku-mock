@@ -58,6 +58,34 @@ type GeocodePreview = {
   warnings: Array<{ code: string; message: string }>
 }
 
+type MedicalInstitutionOption = {
+  id: string
+  name: string
+  phone: string
+  address: string
+  doctorCount: number
+}
+
+type DoctorOption = {
+  id: string
+  medicalInstitutionId: string | null
+  fullName: string
+  department: string
+  phone: string
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/[^0-9]/g, '').slice(0, 11)
+}
+
+function formatPhone(value: string) {
+  const digits = normalizePhone(value)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  if (digits.length === 10) return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+}
+
 function isUuidLike(value: string | null | undefined) {
   if (!value) return false
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
@@ -159,6 +187,9 @@ export default function PatientDetailPage() {
       medicalHistory: patient.medicalHistory ?? '',
       allergies: patient.allergies ?? '',
       insuranceInfo: patient.insuranceInfo ?? '',
+      doctorClinic: patient.doctor?.clinic ?? '',
+      doctorName: patient.doctor?.name ?? '',
+      doctorPhone: patient.doctor?.phone ?? '',
     })
 
   }, [patient])
@@ -207,6 +238,18 @@ export default function PatientDetailPage() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
   const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
+  const [medicalInstitutionOptions, setMedicalInstitutionOptions] = useState<MedicalInstitutionOption[]>([])
+  const [medicalInstitutionLoading, setMedicalInstitutionLoading] = useState(false)
+  const [doctorOptions, setDoctorOptions] = useState<DoctorOption[]>([])
+  const [doctorLoading, setDoctorLoading] = useState(false)
+  const [selectedMedicalInstitutionId, setSelectedMedicalInstitutionId] = useState<string | null>(null)
+  const [selectedDoctorMasterId, setSelectedDoctorMasterId] = useState<string | null>(null)
+  const [institutionDialogOpen, setInstitutionDialogOpen] = useState(false)
+  const [doctorDialogOpen, setDoctorDialogOpen] = useState(false)
+  const [institutionSubmitting, setInstitutionSubmitting] = useState(false)
+  const [doctorSubmitting, setDoctorSubmitting] = useState(false)
+  const [institutionForm, setInstitutionForm] = useState({ name: '', phone: '', address: '' })
+  const [doctorForm, setDoctorForm] = useState({ fullName: '', phone: '', department: '' })
   const [editForm, setEditForm] = useState({
     address: '',
     phone: '',
@@ -215,6 +258,9 @@ export default function PatientDetailPage() {
     medicalHistory: '',
     allergies: '',
     insuranceInfo: '',
+    doctorClinic: '',
+    doctorName: '',
+    doctorPhone: '',
   })
 
   if (detailLoadState === 'loading' && !patient) {
@@ -375,6 +421,120 @@ export default function PatientDetailPage() {
     return preview.warnings.length > 0 || (normalized && normalized !== input)
   }
 
+  const searchMedicalInstitutions = async (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      setMedicalInstitutionOptions([])
+      return
+    }
+
+    setMedicalInstitutionLoading(true)
+    try {
+      const response = await fetch(`/api/medical-institutions?q=${encodeURIComponent(trimmed)}`, { cache: 'no-store' })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !Array.isArray(result.medicalInstitutions)) {
+        setMedicalInstitutionOptions([])
+        return
+      }
+      setMedicalInstitutionOptions(result.medicalInstitutions)
+    } finally {
+      setMedicalInstitutionLoading(false)
+    }
+  }
+
+  const searchDoctors = async (medicalInstitutionId: string, query?: string) => {
+    if (!medicalInstitutionId) {
+      setDoctorOptions([])
+      return
+    }
+
+    setDoctorLoading(true)
+    try {
+      const suffix = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''
+      const response = await fetch(`/api/medical-institutions/${medicalInstitutionId}/doctors${suffix}`, { cache: 'no-store' })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !Array.isArray(result.doctors)) {
+        setDoctorOptions([])
+        return
+      }
+      setDoctorOptions(result.doctors)
+    } finally {
+      setDoctorLoading(false)
+    }
+  }
+
+  const createMedicalInstitution = async () => {
+    const name = institutionForm.name.trim() || editForm.doctorClinic.trim()
+    if (!name) {
+      setEditSavedNotice('病院名を入力してください')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    setInstitutionSubmitting(true)
+    try {
+      const response = await fetch('/api/medical-institutions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone: institutionForm.phone, address: institutionForm.address }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result.medicalInstitution) {
+        setEditSavedNotice('病院の追加に失敗しました')
+        setTimeout(() => setEditSavedNotice(null), 2500)
+        return
+      }
+      const created = result.medicalInstitution as MedicalInstitutionOption
+      setSelectedMedicalInstitutionId(created.id)
+      setSelectedDoctorMasterId(null)
+      setEditForm((prev) => ({ ...prev, doctorClinic: created.name }))
+      setMedicalInstitutionOptions((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
+      setInstitutionDialogOpen(false)
+      setInstitutionForm({ name: '', phone: '', address: '' })
+      await searchDoctors(created.id)
+    } finally {
+      setInstitutionSubmitting(false)
+    }
+  }
+
+  const createDoctor = async () => {
+    if (!selectedMedicalInstitutionId) {
+      setEditSavedNotice('先に病院を選択してください')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    const fullName = doctorForm.fullName.trim() || editForm.doctorName.trim()
+    if (!fullName) {
+      setEditSavedNotice('医師名を入力してください')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    setDoctorSubmitting(true)
+    try {
+      const response = await fetch(`/api/medical-institutions/${selectedMedicalInstitutionId}/doctors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, phone: doctorForm.phone, department: doctorForm.department }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !result.doctor) {
+        setEditSavedNotice('医師の追加に失敗しました')
+        setTimeout(() => setEditSavedNotice(null), 2500)
+        return
+      }
+      const created = result.doctor as DoctorOption
+      setSelectedDoctorMasterId(created.id)
+      setEditForm((prev) => ({ ...prev, doctorName: created.fullName, doctorPhone: normalizePhone(created.phone) }))
+      setDoctorOptions((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
+      setDoctorDialogOpen(false)
+      setDoctorForm({ fullName: '', phone: '', department: '' })
+    } finally {
+      setDoctorSubmitting(false)
+    }
+  }
+
   const handleSavePatientEdit = async (skipGeocodeConfirmation = false) => {
     if (!canEditThisPatient) return
 
@@ -424,6 +584,11 @@ export default function PatientDetailPage() {
         medicalHistory: editForm.medicalHistory,
         allergies: editForm.allergies,
         insuranceInfo: editForm.insuranceInfo,
+        medicalInstitutionId: selectedMedicalInstitutionId,
+        doctorMasterId: selectedDoctorMasterId,
+        doctorClinic: editForm.doctorClinic,
+        doctorName: editForm.doctorName,
+        doctorPhone: editForm.doctorPhone || null,
       }),
     })
 
@@ -449,6 +614,9 @@ export default function PatientDetailPage() {
         medicalHistory: editForm.medicalHistory,
         allergies: editForm.allergies,
         insuranceInfo: editForm.insuranceInfo,
+        doctorClinic: editForm.doctorClinic,
+        doctorName: editForm.doctorName,
+        doctorPhone: editForm.doctorPhone || null,
         registrationMeta: current.registrationMeta
           ? {
               ...current.registrationMeta,
@@ -936,6 +1104,60 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={institutionDialogOpen} onOpenChange={setInstitutionDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>病院を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">候補にない病院は、その場で追加できます。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500">病院名</p>
+              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">電話</p>
+              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">住所</p>
+              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button onClick={() => void createMedicalInstitution()} disabled={institutionSubmitting} className="bg-indigo-600 text-white hover:bg-indigo-500">{institutionSubmitting ? '追加中...' : '病院を追加'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={doctorDialogOpen} onOpenChange={setDoctorDialogOpen}>
+        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+          <DialogHeader>
+            <DialogTitle>医師を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">選択中の病院に医師を追加します。</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500">医師名</p>
+              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">診療科</p>
+              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">電話</p>
+              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button onClick={() => void createDoctor()} disabled={doctorSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-500">{doctorSubmitting ? '追加中...' : '医師を追加'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
         <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
           <DialogHeader>
@@ -999,7 +1221,89 @@ export default function PatientDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">電話番号</p>
-                  <Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">病院・クリニック</p>
+                  <Input
+                    value={editForm.doctorClinic}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      setSelectedMedicalInstitutionId(null)
+                      setSelectedDoctorMasterId(null)
+                      setDoctorOptions([])
+                      setEditForm((prev) => ({ ...prev, doctorClinic: nextValue }))
+                      void searchMedicalInstitutions(nextValue)
+                    }}
+                    className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100"
+                  />
+                  {medicalInstitutionLoading && <p className="mt-2 text-[11px] text-gray-500">病院候補を確認中です...</p>}
+                  {medicalInstitutionOptions.length > 0 && (
+                    <div className="mt-2 space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                      {medicalInstitutionOptions.slice(0, 5).map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMedicalInstitutionId(option.id)
+                            setSelectedDoctorMasterId(null)
+                            setEditForm((prev) => ({ ...prev, doctorClinic: option.name }))
+                            void searchDoctors(option.id)
+                          }}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                        >
+                          <p className="font-medium">{option.name}</p>
+                          <p className="mt-1 text-[11px] text-gray-400">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setInstitutionForm({ name: editForm.doctorClinic, phone: '', address: '' }); setInstitutionDialogOpen(true) }}>
+                      この病院を追加
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">主治医</p>
+                  <Input
+                    value={editForm.doctorName}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      setSelectedDoctorMasterId(null)
+                      setEditForm((prev) => ({ ...prev, doctorName: nextValue }))
+                      if (selectedMedicalInstitutionId) void searchDoctors(selectedMedicalInstitutionId, nextValue)
+                    }}
+                    className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100"
+                  />
+                  {doctorLoading && selectedMedicalInstitutionId && <p className="mt-2 text-[11px] text-gray-500">医師候補を確認中です...</p>}
+                  {selectedMedicalInstitutionId && doctorOptions.length > 0 && (
+                    <div className="mt-2 space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                      {doctorOptions.slice(0, 5).map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDoctorMasterId(option.id)
+                            setEditForm((prev) => ({ ...prev, doctorName: option.fullName, doctorPhone: normalizePhone(option.phone) }))
+                          }}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                        >
+                          <p className="font-medium">{option.fullName}</p>
+                          <p className="mt-1 text-[11px] text-gray-400">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" disabled={!selectedMedicalInstitutionId} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setDoctorForm({ fullName: editForm.doctorName, phone: editForm.doctorPhone, department: '' }); setDoctorDialogOpen(true) }}>
+                      この医師を追加
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">医師電話</p>
+                  <Input value={formatPhone(editForm.doctorPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, doctorPhone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
