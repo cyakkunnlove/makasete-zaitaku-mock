@@ -93,7 +93,7 @@ function calculateAge(dob: string): number {
 }
 
 export default function PatientDetailPage() {
-  const { role, user } = useAuth()
+  const { role, user, authMode } = useAuth()
   const params = useParams()
   const id = params.id as string
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
@@ -101,6 +101,11 @@ export default function PatientDetailPage() {
   const [detailLoadState, setDetailLoadState] = useState<'loading' | 'ready' | 'not_found'>('loading')
 
   useEffect(() => {
+    if (authMode === 'cognito') {
+      setRegisteredPatients([])
+      return
+    }
+
     const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
@@ -110,12 +115,12 @@ export default function PatientDetailPage() {
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+  }, [authMode])
 
   useEffect(() => {
     let cancelled = false
     async function fetchPatientDetail() {
-      const localPatient = isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
+      const localPatient = authMode === 'cognito' ? null : isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
       if (localPatient) {
         setDatabasePatient(null)
         setDetailLoadState('ready')
@@ -149,12 +154,12 @@ export default function PatientDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [id, registeredPatients])
+  }, [authMode, id, registeredPatients])
 
   const patient = useMemo(() => {
     if (detailLoadState === 'not_found') return null
-    return mergeSinglePatient({ databasePatient, registeredPatients, patientId: id })
-  }, [databasePatient, detailLoadState, id, registeredPatients])
+    return mergeSinglePatient({ databasePatient, registeredPatients: authMode === 'cognito' ? [] : registeredPatients, patientId: id })
+  }, [authMode, databasePatient, detailLoadState, id, registeredPatients])
 
   useEffect(() => {
     if (!patient) return

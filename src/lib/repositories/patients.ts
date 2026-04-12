@@ -39,6 +39,26 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
   return null
 }
 
+export async function getPatientRegionId(patientId: string): Promise<string | null> {
+  const mode = getRepositoryMode()
+
+  if (mode.provider === 'supabase') {
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('patients')
+      .select('pharmacy:pharmacies(region_id)')
+      .eq('id', patientId)
+      .maybeSingle()
+
+    if (error) throw error
+    const row = data as Record<string, unknown> | null
+    const pharmacy = row?.pharmacy as { region_id?: unknown } | null | undefined
+    return typeof pharmacy?.region_id === 'string' ? pharmacy.region_id : null
+  }
+
+  return null
+}
+
 export async function listPatientVisitRules(patientId: string): Promise<PatientVisitRule[]> {
   const mode = getRepositoryMode()
 

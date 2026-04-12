@@ -1,5 +1,5 @@
 import type { Patient } from '@/types/database'
-import { patientData, pharmacyData } from '@/lib/mock-data'
+import { patientData } from '@/lib/mock-data'
 import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
 
 type PatientSource = Patient | RegisteredPatientRecord
@@ -9,8 +9,6 @@ function isRegisteredPatientRecord(patient: PatientSource): patient is Registere
 }
 
 export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: PatientVisitRule[] = []): RegisteredPatientRecord {
-  const pharmacy = pharmacyData.find((item) => item.id === patient.pharmacy_id)
-
   return {
     id: patient.id,
     name: patient.full_name,
@@ -18,7 +16,7 @@ export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: 
     address: patient.address,
     phone: patient.phone,
     pharmacyId: patient.pharmacy_id ?? 'UNKNOWN',
-    pharmacyName: pharmacy?.name ?? '未設定薬局',
+    pharmacyName: '未設定薬局',
     riskScore: patient.risk_score,
     emergencyContact: {
       name: patient.emergency_contact_name || '未設定',

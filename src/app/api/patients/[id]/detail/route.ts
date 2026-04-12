@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { getCurrentActorRole } from '@/lib/active-role'
-import { getPatientById, listPatientVisitRules } from '@/lib/repositories/patients'
+import { getCurrentActorRole, getCurrentScope } from '@/lib/active-role'
+import { getPatientById, getPatientRegionId, listPatientVisitRules } from '@/lib/repositories/patients'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
@@ -20,9 +20,15 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   const actorRole = getCurrentActorRole(user)
+  const actorScope = getCurrentScope(user)
   const scopedPharmacyId = getScopedPharmacyId(user)
   const samePharmacy = Boolean(scopedPharmacyId && patient.pharmacy_id === scopedPharmacyId)
-  const canView = canManagePatientsForUser(user) ? samePharmacy : actorRole === 'night_pharmacist' || actorRole === 'regional_admin'
+  const patientRegionId = actorRole === 'regional_admin' ? await getPatientRegionId(patient.id) : null
+  const canView = canManagePatientsForUser(user)
+    ? samePharmacy
+    : actorRole === 'night_pharmacist'
+      ? true
+      : actorRole === 'regional_admin' && Boolean(actorScope.regionId && patientRegionId && actorScope.regionId === patientRegionId)
 
   if (!canView) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
