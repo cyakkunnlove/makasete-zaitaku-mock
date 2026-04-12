@@ -160,9 +160,9 @@ export function VisitSchedule({ patientId, visitRules = [], canEdit = false, onS
         )}
 
         <div className="space-y-2">
-          <p className="text-xs text-gray-400">patient master の visitRules</p>
+          <p className="text-xs text-gray-400">現在の訪問ルール</p>
           {activeRules.length === 0 ? (
-            <p className="text-sm text-gray-500">visitRules は未設定です。</p>
+            <p className="text-sm text-gray-500">訪問ルールはまだ設定されていません。</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {activeRules.map((rule) => (
@@ -278,7 +278,7 @@ export function VisitSchedule({ patientId, visitRules = [], canEdit = false, onS
         <p className="text-[10px] text-gray-500">
           {isEditing
             ? '編集中はカレンダーを直接押して、予定日を除外、空き日を追加できます。追加日を再度押すと解除されます。'
-            : 'patient master の visitRules をそのまま表示しています。追加日が除外日より優先され、月間上限は警告のみで生成自体は止めません。'}
+            : '保存されている訪問ルールを表示しています。追加日は除外日より優先され、月回数の超過は警告のみで予定作成自体は止めません。'}
         </p>
       </CardContent>
     </Card>
