@@ -16,13 +16,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
@@ -97,13 +90,10 @@ export default function PharmaciesPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
-    area: '',
     address: '',
     phone: '',
     fax: '',
     forwardingPhone: '',
-    patientCount: '0',
-    status: 'pending' as PharmacyStatus,
   })
 
   const visiblePharmacies = useMemo(() => {
@@ -185,13 +175,10 @@ export default function PharmaciesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
-          area: formData.area,
           address: formData.address,
           phone: formData.phone,
           fax: formData.fax,
           forwardingPhone: formData.forwardingPhone,
-          patientCount: Number(formData.patientCount),
-          status: formData.status,
         }),
       })
       const data = await response.json()
@@ -204,7 +191,7 @@ export default function PharmaciesPage() {
         [newPharmacy.id]: { mode: 'manual_off', autoStart: '22:00', autoEnd: '06:00', updatedBy: '未設定', updatedAt: '—' },
       }))
       setDialogOpen(false)
-      setFormData({ name: '', area: '', address: '', phone: '', fax: '', forwardingPhone: '', patientCount: '0', status: 'pending' })
+      setFormData({ name: '', address: '', phone: '', fax: '', forwardingPhone: '' })
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'pharmacy_create_failed')
     }
@@ -226,7 +213,7 @@ export default function PharmaciesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">{role === 'regional_admin' ? '加盟店管理' : '自店設定'}</h1>
-          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟店の登録状況と受け入れ準備を管理' : '自店の転送運用と基本設定を確認'}</p>
+          <p className="text-xs text-gray-400">{role === 'regional_admin' ? '加盟店の基本情報と受け入れ準備を管理' : '自店の転送運用と基本設定を確認'}</p>
         </div>
 
         {role === 'regional_admin' && (
@@ -274,7 +261,7 @@ export default function PharmaciesPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-300">
           <div className="space-y-1">
             <p className="font-medium text-white">regional_admin 向け加盟店管理の考え方</p>
-            <p>加盟店管理は店舗一覧ではなく、夜間受託・転送設定・受け入れ状態を整えるための運用設定画面として扱います。</p>
+            <p>加盟店追加ではまず薬局マスタの基本情報だけを登録します。患者数や細かな運用状態は後続の実データや設定画面で反映します。</p>
           </div>
           <Link href="/dashboard/settings/region" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">
             <Settings2 className="h-3.5 w-3.5" />地域設定へ
@@ -368,8 +355,8 @@ export default function PharmaciesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-white">加盟薬局を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">基本情報を入力して加盟店を登録します。</DialogDescription>
+            <DialogTitle className="text-white">加盟店を追加</DialogTitle>
+            <DialogDescription className="text-gray-400">まずは薬局名、住所、電話などの基本情報だけを登録します。</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddPharmacy} className="space-y-4">
@@ -383,15 +370,9 @@ export default function PharmaciesPage() {
               <Input id="address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="area" className="text-gray-300">エリア</Label>
-                <Input id="area" value={formData.area} onChange={(event) => setFormData((prev) => ({ ...prev, area: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-gray-300">電話番号</Label>
-                <Input id="phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-gray-300">電話番号</Label>
+              <Input id="phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -405,23 +386,8 @@ export default function PharmaciesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="patientCount" className="text-gray-300">患者数</Label>
-                <Input id="patientCount" type="number" min={0} value={formData.patientCount} onChange={(event) => setFormData((prev) => ({ ...prev, patientCount: event.target.value }))} className="border-[#2a3553] bg-[#1a2035]" />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-300">ステータス</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as PharmacyStatus }))}>
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]"><SelectValue /></SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    <SelectItem value="pending">初期設定中</SelectItem>
-                    <SelectItem value="active">利用中</SelectItem>
-                    <SelectItem value="suspended">停止中</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3 text-xs text-gray-400">
+              登録時点では <span className="text-white">初期設定中</span> で作成されます。患者数は患者データの有効件数から自動反映する前提です。薬局管理者の招待導線は次段で接続します。
             </div>
 
             <DialogFooter>

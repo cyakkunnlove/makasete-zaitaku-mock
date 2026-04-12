@@ -82,21 +82,15 @@ export async function POST(request: Request) {
   if (!body) return NextResponse.json({ ok: false, error: 'invalid_payload' }, { status: 400 })
 
   const name = typeof body.name === 'string' ? body.name.trim() : ''
-  const area = typeof body.area === 'string' ? body.area.trim() : ''
   const address = typeof body.address === 'string' ? body.address.trim() : ''
   const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
   const fax = typeof body.fax === 'string' ? body.fax.trim() : ''
   const forwardingPhone = typeof body.forwardingPhone === 'string' ? body.forwardingPhone.trim() : ''
-  const patientCount = typeof body.patientCount === 'number' ? body.patientCount : Number(body.patientCount ?? 0)
-  const status = (typeof body.status === 'string' ? body.status : 'pending') as PharmacyStatus
+  const status: PharmacyStatus = 'pending'
 
   if (!name || !address || !phone) {
     return NextResponse.json({ ok: false, error: 'required_fields_missing' }, { status: 400 })
   }
-  if (!['pending', 'active', 'suspended', 'terminated'].includes(status)) {
-    return NextResponse.json({ ok: false, error: 'invalid_status' }, { status: 400 })
-  }
-
   const supabase = createServerSupabaseClient()
   const now = new Date().toISOString()
   const code = `pharmacy-${Date.now()}`
@@ -107,12 +101,12 @@ export async function POST(request: Request) {
       region_id: actorScope.regionId,
       code,
       name,
-      area: area || null,
+      area: null,
       address,
       phone,
       fax: fax || null,
       forwarding_phone: forwardingPhone || null,
-      patient_count: Number.isFinite(patientCount) ? Math.max(0, patientCount) : 0,
+      patient_count: 0,
       status,
       forwarding_status: 'off',
       contract_date: null,
