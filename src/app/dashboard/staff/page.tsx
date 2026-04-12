@@ -146,6 +146,7 @@ export default function StaffPage() {
     email: '',
     status: 'invited' as StaffStatus,
     regionId: '',
+    regionIds: [] as string[],
     pharmacyId: '',
   })
   const [regions, setRegions] = useState<Array<{ id: string; name: string }>>([])
@@ -218,7 +219,11 @@ export default function StaffPage() {
         if (!response.ok || !data.ok) throw new Error(data.error ?? 'regions_fetch_failed')
         if (cancelled) return
         setRegions(data.regions ?? [])
-        setFormData((prev) => ({ ...prev, regionId: prev.regionId || data.regions?.[0]?.id || '' }))
+        setFormData((prev) => ({
+          ...prev,
+          regionId: prev.regionId || data.regions?.[0]?.id || '',
+          regionIds: prev.regionIds.length > 0 ? prev.regionIds : (data.regions?.[0]?.id ? [data.regions[0].id] : []),
+        }))
       })
       .catch(() => {
         if (cancelled) return
@@ -325,21 +330,27 @@ export default function StaffPage() {
 
     if (isSystemAdmin || isRegionalAdmin || isPharmacyAdmin) {
       try {
-        const response = await fetch('/api/account-invitations', {
+        const endpoint = isSystemAdmin ? '/api/admin/regional-admins' : '/api/account-invitations'
+        const payload = isSystemAdmin
+          ? {
+              fullName: formData.name,
+              email: formData.email,
+              phone: formData.phone,
+              regionIds: formData.regionIds,
+            }
+          : {
+              fullName: formData.name,
+              email: formData.email,
+              phone: formData.phone,
+              regionId: formData.regionId,
+              pharmacyId: formData.pharmacyId,
+              targetRole: isRegionalAdmin ? formData.role : 'pharmacy_staff',
+            }
+
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            regionId: formData.regionId,
-            pharmacyId: formData.pharmacyId,
-            targetRole: isSystemAdmin
-              ? 'regional_admin'
-              : isRegionalAdmin
-                ? formData.role
-                : 'pharmacy_staff',
-          }),
+          body: JSON.stringify(payload),
         })
         const data = await response.json()
         if (!response.ok || !data.ok) {
@@ -388,6 +399,7 @@ export default function StaffPage() {
           email: '',
           status: 'invited',
           regionId: isSystemAdmin ? (regions[0]?.id ?? '') : (user?.activeRoleContext?.regionId ?? user?.region_id ?? ''),
+          regionIds: isSystemAdmin && regions[0]?.id ? [regions[0].id] : [],
           pharmacyId: isPharmacyAdmin ? (user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? '') : '',
         })
       } catch (error) {
@@ -1090,19 +1102,40 @@ export default function StaffPage() {
             {isSystemAdmin && (
               <div className="space-y-2">
                 <Label className="text-gray-300">所属リージョン</Label>
-                <Select
-                  value={formData.regionId}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, regionId: value, pharmacyId: '' }))}
-                >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
-                    <SelectValue placeholder="リージョンを選択" />
-                  </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
-                    {regions.map((region) => (
-                      <SelectItem key={region.id} value={region.id}>{region.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {regions.map((region) => {
+                      const selected = formData.regionIds.includes(region.id)
+                      return (
+                        <button
+                          key={region.id}
+                          type="button"
+                          onClick={() => setFormData((prev) => {
+                            const exists = prev.regionIds.includes(region.id)
+                            const nextRegionIds = exists
+                              ? prev.regionIds.filter((id) => id !== region.id)
+                              : [...prev.regionIds, region.id]
+                            return {
+                              ...prev,
+                              regionIds: nextRegionIds,
+                              regionId: nextRegionIds[0] ?? '',
+                              pharmacyId: '',
+                            }
+                          })}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-sm transition-colors',
+                            selected
+                              ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-200'
+                              : 'border-[#2a3553] bg-[#11182c] text-gray-300 hover:border-indigo-500/30',
+                          )}
+                        >
+                          {region.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500">複数選択できます。最初に選ばれたリージョンを初期所属として扱います。</p>
               </div>
             )}
 
