@@ -376,7 +376,7 @@ function PharmacyDashboardHeaderCard({
     <Card className="border-[#2a3553] bg-[#1a2035]">
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-semibold text-white">日中対応フロー（モック）</p>
+          <p className="text-sm font-semibold text-white">日中対応フロー</p>
           <p className="text-xs text-gray-400">{flowDescription}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1999,7 +1999,7 @@ function PharmacistDashboard() {
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">直近の自分案件（モック）</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">直近の自分案件</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {ownAssignments.slice(0, 3).map((request) => (
             <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
