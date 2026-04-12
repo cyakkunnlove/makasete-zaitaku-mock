@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { pharmacyData } from '@/lib/mock-data'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
@@ -43,13 +42,6 @@ const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
   { value: 'weekly', label: '毎週' },
   { value: 'biweekly', label: '隔週' },
 ]
-
-const postalCodeAddressMap: Record<string, string> = {
-  '1920012': '東京都八王子市左入町',
-  '1500001': '東京都渋谷区神宮前',
-  '1580097': '東京都世田谷区用賀',
-  '2220033': '神奈川県横浜市港北区新横浜',
-}
 
 function normalizeDateInput(value: string) {
   const trimmed = value.trim()
@@ -88,7 +80,6 @@ export default function NewPatientPage() {
   const [geocodeConfirmOpen, setGeocodeConfirmOpen] = useState(false)
   const [geocodePreview, setGeocodePreview] = useState<GeocodePreview | null>(null)
   const ownPharmacyId = getScopedPharmacyId(user)
-  const ownPharmacy = pharmacyData.find((pharmacy) => pharmacy.id === ownPharmacyId)
   const [form, setForm] = useState({
     name: '',
     dob: '',
@@ -190,10 +181,6 @@ export default function NewPatientPage() {
     if (key === 'postalCode') {
       const digits = value.replace(/[^0-9]/g, '').slice(0, 7)
       nextValue = digits
-      if (digits.length === 7 && postalCodeAddressMap[digits] && !form.address.trim()) {
-        setForm((prev) => ({ ...prev, postalCode: digits, address: postalCodeAddressMap[digits] }))
-        return
-      }
     }
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -452,7 +439,7 @@ export default function NewPatientPage() {
           <p className="text-xs text-gray-400">まずは最低限の情報で登録できます。必要な情報はあとから追加できます。</p>
         </div>
         <div className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
-          登録先薬局: <span className="font-medium text-white">{ownPharmacy?.name ?? '所属薬局'}</span>
+          登録先: <span className="font-medium text-white">現在の所属先</span>
         </div>
       </div>
 
