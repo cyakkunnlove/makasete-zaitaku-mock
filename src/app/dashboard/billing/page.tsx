@@ -108,6 +108,8 @@ export default function BillingPage() {
   const [selectedVisitKey, setSelectedVisitKey] = useState<string | null>(null)
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const ownPharmacyId = 'PH-01'
+  const isSystemAdmin = role === 'system_admin'
+  const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
 
   const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
@@ -203,7 +205,7 @@ export default function BillingPage() {
   }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds, sharedDayTasks])
 
   const summary = useMemo(() => {
-    const source = role === 'pharmacy_staff' || role === 'pharmacy_admin'
+    const source = isPharmacyRole
       ? mergedCollectionRecords.filter((r) => r.billable).map((r) => ({ total: r.amount, status: r.status }))
       : records.map((r) => ({ total: r.total, status: r.status }))
     const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
@@ -211,7 +213,7 @@ export default function BillingPage() {
     const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
 
     return { totalBilled, collected, outstanding }
-  }, [records, mergedCollectionRecords, role])
+  }, [isPharmacyRole, records, mergedCollectionRecords])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -571,17 +573,26 @@ export default function BillingPage() {
     <div className="space-y-4 text-gray-100">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">請求管理</h1>
-          <p className="text-xs text-gray-400">加盟店ごとの月次請求と回収状況を確認</p>
+          <h1 className="text-lg font-semibold text-white">{isSystemAdmin ? '加盟店請求' : '請求管理'}</h1>
+          <p className="text-xs text-gray-400">{isSystemAdmin ? '加盟店向けの月次請求状況を確認します' : '加盟店ごとの月次請求と回収状況を確認'}</p>
         </div>
 
-        {role === 'system_admin' && (
+        {isSystemAdmin && (
           <Button onClick={() => setBatchDialogOpen(true)} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
             <Layers className="h-4 w-4" />
             一括請求書生成
           </Button>
         )}
       </div>
+
+      {isSystemAdmin && (
+        <Card className="border-[#2a3553] bg-[#11182c]">
+          <CardContent className="p-4 text-sm text-gray-300">
+            <p className="font-medium text-white">system_admin 向け表示</p>
+            <p className="mt-1 text-xs text-gray-400">ここでは加盟店への請求状態だけを扱い、患者ごとの回収処理や訪問単位の操作は表示しません。</p>
+          </CardContent>
+        </Card>
+      )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="text-gray-400">請求総額</CardDescription><CardTitle className="text-xl text-white">{yen.format(summary.totalBilled)}</CardTitle></CardHeader></Card>
@@ -598,34 +609,36 @@ export default function BillingPage() {
         </div>
       )}
 
-      <div className="space-y-3 lg:hidden">
-        {records.map((record) => (
-          <Card key={record.id} className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-base font-semibold text-white">{record.pharmacyName}</p>
-                  <p className="text-xs text-gray-400">{record.month} 請求</p>
+      {!isSystemAdmin && (
+        <div className="space-y-3 lg:hidden">
+          {records.map((record) => (
+            <Card key={record.id} className="border-[#2a3553] bg-[#1a2035]">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold text-white">{record.pharmacyName}</p>
+                    <p className="text-xs text-gray-400">{record.month} 請求</p>
+                  </div>
+                  <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge>
                 </div>
-                <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
-                <div><p>請求書番号</p><p className="mt-1 text-gray-200">{record.invoiceNumber}</p></div>
-                <div><p>合計</p><p className="mt-1 text-gray-200">{yen.format(record.total)}</p></div>
-                <div><p>SaaS</p><p className="mt-1 text-gray-200">{yen.format(record.saasFee)}</p></div>
-                <div><p>夜間連携</p><p className="mt-1 text-gray-200">{yen.format(record.nightFee)}</p></div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">
-                  <FileText className="h-4 w-4" />
-                  詳細
-                </Button>
-                {record.status !== 'paid' && <Button size="sm" onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+                  <div><p>請求書番号</p><p className="mt-1 text-gray-200">{record.invoiceNumber}</p></div>
+                  <div><p>合計</p><p className="mt-1 text-gray-200">{yen.format(record.total)}</p></div>
+                  <div><p>SaaS</p><p className="mt-1 text-gray-200">{yen.format(record.saasFee)}</p></div>
+                  <div><p>夜間連携</p><p className="mt-1 text-gray-200">{yen.format(record.nightFee)}</p></div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">
+                    <FileText className="h-4 w-4" />
+                    詳細
+                  </Button>
+                  {record.status !== 'paid' && <Button size="sm" onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
         <CardContent className="p-0">
@@ -655,7 +668,7 @@ export default function BillingPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">詳細</Button>
-                      {record.status !== 'paid' && <Button size="sm" onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>}
+                      {!isSystemAdmin && record.status !== 'paid' && <Button size="sm" onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>}
                     </div>
                   </TableCell>
                 </TableRow>
