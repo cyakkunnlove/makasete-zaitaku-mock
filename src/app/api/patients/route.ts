@@ -109,9 +109,50 @@ export async function POST(request: Request) {
     }
   }
 
+  const medicalInstitutionId = typeof medical?.medicalInstitutionId === 'string' ? medical.medicalInstitutionId.trim() || null : null
+  const doctorMasterId = typeof medical?.doctorMasterId === 'string' ? medical.doctorMasterId.trim() || null : null
+
+  let doctorClinic = typeof medical?.doctorClinic === 'string' ? medical.doctorClinic.trim() || null : null
+  let doctorName = typeof medical?.doctorName === 'string' ? medical.doctorName.trim() || null : null
+  let doctorPhone = typeof medical?.doctorPhone === 'string' ? medical.doctorPhone.trim() || null : null
+
+  if (medicalInstitutionId) {
+    const institutionResponse = await supabase
+      .from('medical_institutions')
+      .select('id, name, organization_id')
+      .eq('id', medicalInstitutionId)
+      .maybeSingle()
+
+    const institution = institutionResponse.data as { id?: string; name?: string; organization_id?: string } | null
+    if (institutionResponse.error || !institution || institution.organization_id !== user.organization_id) {
+      return NextResponse.json({ ok: false, error: 'medical_institution_not_found' }, { status: 400 })
+    }
+    doctorClinic = typeof institution.name === 'string' ? institution.name : doctorClinic
+  }
+
+  if (doctorMasterId) {
+    const doctorResponse = await supabase
+      .from('doctor_masters')
+      .select('id, full_name, phone, organization_id, medical_institution_id')
+      .eq('id', doctorMasterId)
+      .maybeSingle()
+
+    const doctor = doctorResponse.data as { id?: string; full_name?: string; phone?: string | null; organization_id?: string; medical_institution_id?: string } | null
+    if (doctorResponse.error || !doctor || doctor.organization_id !== user.organization_id) {
+      return NextResponse.json({ ok: false, error: 'doctor_master_not_found' }, { status: 400 })
+    }
+    if (medicalInstitutionId && doctor.medical_institution_id !== medicalInstitutionId) {
+      return NextResponse.json({ ok: false, error: 'doctor_master_scope_mismatch' }, { status: 400 })
+    }
+    doctorName = typeof doctor.full_name === 'string' ? doctor.full_name : doctorName
+    doctorPhone = typeof doctor.phone === 'string' ? doctor.phone : doctorPhone
+  }
+
   const payload = {
     organization_id: user.organization_id,
     pharmacy_id: getScopedPharmacyId(user),
+    medical_institution_id: medicalInstitutionId,
+    doctor_master_id: doctorMasterId,
     full_name: fullName,
     date_of_birth: birthDate,
     address: addressLine1,
@@ -119,9 +160,9 @@ export async function POST(request: Request) {
     emergency_contact_name: typeof basic?.emergencyContactName === 'string' ? basic.emergencyContactName.trim() : '未設定',
     emergency_contact_phone: typeof basic?.emergencyContactPhone === 'string' ? basic.emergencyContactPhone.trim() : '-',
     emergency_contact_relation: typeof basic?.emergencyContactRelation === 'string' ? basic.emergencyContactRelation.trim() || null : null,
-    doctor_name: typeof medical?.doctorName === 'string' ? medical.doctorName.trim() || null : null,
-    doctor_clinic: typeof medical?.doctorClinic === 'string' ? medical.doctorClinic.trim() || null : null,
-    doctor_night_phone: typeof medical?.doctorPhone === 'string' ? medical.doctorPhone.trim() || null : null,
+    doctor_name: doctorName,
+    doctor_clinic: doctorClinic,
+    doctor_night_phone: doctorPhone,
     medical_history: typeof medical?.medicalHistory === 'string' ? medical.medicalHistory.trim() || null : null,
     allergies: typeof medical?.allergies === 'string' ? medical.allergies.trim() || null : null,
     current_medications: typeof medical?.currentMeds === 'string' ? medical.currentMeds.trim() || null : null,

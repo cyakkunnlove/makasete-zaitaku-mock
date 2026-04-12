@@ -75,6 +75,55 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
   if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
 
+  if (typeof patch.medicalInstitutionId === 'string' || patch.medicalInstitutionId === null) {
+    const medicalInstitutionId = typeof patch.medicalInstitutionId === 'string' ? patch.medicalInstitutionId.trim() || null : null
+    payload.medical_institution_id = medicalInstitutionId
+    if (medicalInstitutionId) {
+      const institutionResponse = await supabase
+        .from('medical_institutions')
+        .select('id, name, organization_id')
+        .eq('id', medicalInstitutionId)
+        .maybeSingle()
+
+      const institution = institutionResponse.data as { id?: string; name?: string; organization_id?: string } | null
+      if (institutionResponse.error || !institution || institution.organization_id !== user.organization_id) {
+        return NextResponse.json({ ok: false, error: 'medical_institution_not_found' }, { status: 400 })
+      }
+      payload.doctor_clinic = typeof institution.name === 'string' ? institution.name : null
+    } else {
+      payload.doctor_clinic = null
+    }
+  }
+
+  if (typeof patch.doctorMasterId === 'string' || patch.doctorMasterId === null) {
+    const doctorMasterId = typeof patch.doctorMasterId === 'string' ? patch.doctorMasterId.trim() || null : null
+    payload.doctor_master_id = doctorMasterId
+    if (doctorMasterId) {
+      const doctorResponse = await supabase
+        .from('doctor_masters')
+        .select('id, full_name, phone, organization_id, medical_institution_id')
+        .eq('id', doctorMasterId)
+        .maybeSingle()
+
+      const doctor = doctorResponse.data as { id?: string; full_name?: string; phone?: string | null; organization_id?: string; medical_institution_id?: string } | null
+      if (doctorResponse.error || !doctor || doctor.organization_id !== user.organization_id) {
+        return NextResponse.json({ ok: false, error: 'doctor_master_not_found' }, { status: 400 })
+      }
+      if (typeof payload.medical_institution_id === 'string' && doctor.medical_institution_id !== payload.medical_institution_id) {
+        return NextResponse.json({ ok: false, error: 'doctor_master_scope_mismatch' }, { status: 400 })
+      }
+      payload.doctor_name = typeof doctor.full_name === 'string' ? doctor.full_name : null
+      payload.doctor_night_phone = typeof doctor.phone === 'string' ? doctor.phone : null
+    } else {
+      payload.doctor_name = null
+      payload.doctor_night_phone = null
+    }
+  }
+
+  if (typeof patch.doctorClinic === 'string' && typeof payload.medical_institution_id === 'undefined') payload.doctor_clinic = patch.doctorClinic.trim() || null
+  if (typeof patch.doctorName === 'string' && typeof payload.doctor_master_id === 'undefined') payload.doctor_name = patch.doctorName.trim() || null
+  if (typeof patch.doctorPhone === 'string' && typeof payload.doctor_master_id === 'undefined') payload.doctor_night_phone = patch.doctorPhone.trim() || null
+
   if (typeof patch.address === 'string') {
     const nextAddress = patch.address.trim()
     payload.address = nextAddress || existingPatient.address

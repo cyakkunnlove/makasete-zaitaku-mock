@@ -136,6 +136,8 @@ export interface Patient {
   id: string
   organization_id: string | null
   pharmacy_id: string | null
+  medical_institution_id?: string | null
+  doctor_master_id?: string | null
   full_name: string
   date_of_birth: string | null
   address: string
@@ -162,6 +164,41 @@ export interface Patient {
   geocode_source?: PatientGeocodeSource | null
   geocode_error?: string | null
   geocode_input_address?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MedicalInstitution {
+  id: string
+  organization_id: string
+  region_id: string | null
+  pharmacy_id: string | null
+  name: string
+  kana: string | null
+  phone: string | null
+  fax: string | null
+  postal_code: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DoctorMaster {
+  id: string
+  organization_id: string
+  medical_institution_id: string
+  full_name: string
+  kana: string | null
+  department: string | null
+  phone: string | null
+  notes: string | null
+  is_active: boolean
+  created_by: string | null
+  updated_by: string | null
   created_at: string
   updated_at: string
 }
@@ -395,6 +432,8 @@ export interface Database {
       user_role_assignments: { Row: UserRoleAssignment; Insert: Partial<UserRoleAssignment>; Update: Partial<UserRoleAssignment> }
       account_invitations: { Row: AccountInvitation; Insert: Partial<AccountInvitation>; Update: Partial<AccountInvitation> }
       patients: { Row: Patient; Insert: Partial<Patient>; Update: Partial<Patient> }
+      medical_institutions: { Row: MedicalInstitution; Insert: Partial<MedicalInstitution>; Update: Partial<MedicalInstitution> }
+      doctor_masters: { Row: DoctorMaster; Insert: Partial<DoctorMaster>; Update: Partial<DoctorMaster> }
       requests: { Row: Request; Insert: Partial<Request>; Update: Partial<Request> }
       assignments: { Row: Assignment; Insert: Partial<Assignment>; Update: Partial<Assignment> }
       checklists: { Row: Checklist; Insert: Partial<Checklist>; Update: Partial<Checklist> }
