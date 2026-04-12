@@ -710,6 +710,11 @@ export type AuditActionType =
   | 'patient_phone_open'
   | 'patient_map_open'
   | 'access_denied'
+  | 'account_invitation_created'
+  | 'account_invitation_resent'
+  | 'account_invitation_revoked'
+  | 'account_user_updated'
+  | 'account_user_status_changed'
 
 export interface AuditEntry {
   id: string
@@ -725,6 +730,11 @@ export interface AuditEntry {
 }
 
 export const auditLogData: AuditEntry[] = [
+  { id: 'AL-000', timestamp: '2026-04-12 17:58:48', user: '加藤 琢也', role: 'system_admin', scopeType: 'system', scopeLabel: 'platform', action: 'account_user_status_changed', target: 'cyakkunnlove@yahoo.co.jp', details: 'アカウント停止/再開を実行。Cognito 同期: ok。', result: 'success' },
+  { id: 'AL-000A', timestamp: '2026-04-12 17:54:03', user: '加藤 琢也', role: 'system_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'account_user_updated', target: 'regional-admin@example.com', details: '氏名・電話・所属情報を更新。', result: 'success' },
+  { id: 'AL-000B', timestamp: '2026-04-12 17:10:25', user: '加藤 琢也', role: 'system_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'account_invitation_created', target: 'regional-admin@example.com', details: 'リージョン管理者の招待を作成。メール送信: ok。', result: 'success' },
+  { id: 'AL-000C', timestamp: '2026-04-12 17:06:12', user: '加藤 琢也', role: 'system_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'account_invitation_resent', target: 'regional-admin@example.com', details: '招待メールを再送。', result: 'success' },
+  { id: 'AL-000D', timestamp: '2026-04-12 17:03:01', user: '加藤 琢也', role: 'system_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'account_invitation_revoked', target: 'old-admin@example.com', details: '未受諾の招待を取消。', result: 'warning' },
   { id: 'AL-001', timestamp: '2026-03-05 00:58:14', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'billing_generate', target: '請求管理', details: '2026-03対象の請求書を6件一括生成。', result: 'success' },
   { id: 'AL-002', timestamp: '2026-03-05 00:50:42', user: '山田 美咲', role: 'pharmacy_admin', scopeType: 'handover', scopeLabel: 'HO-260301', action: 'handover_confirm', target: 'HO-260301', details: '申し送りを確認済みに変更。確認コメント: 朝訪問前倒し。', result: 'success' },
   { id: 'AL-003', timestamp: '2026-03-05 00:47:10', user: '佐藤 健一', role: 'night_pharmacist', scopeType: 'request', scopeLabel: 'RQ-2411', action: 'request_update', target: 'RQ-2411', details: 'ステータスを in_progress に更新。患者宅到着を記録。', result: 'success' },
@@ -767,6 +777,11 @@ export const auditActionLabel: Record<AuditActionType, string> = {
   patient_phone_open: '患者電話',
   patient_map_open: '地図表示',
   access_denied: '拒否アクセス',
+  account_invitation_created: '招待作成',
+  account_invitation_resent: '招待再送',
+  account_invitation_revoked: '招待取消',
+  account_user_updated: 'アカウント更新',
+  account_user_status_changed: '利用状態変更',
 }
 
 export const auditActionClass: Record<AuditActionType, string> = {
@@ -784,6 +799,11 @@ export const auditActionClass: Record<AuditActionType, string> = {
   patient_phone_open: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
   patient_map_open: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
   access_denied: 'border-red-500/40 bg-red-500/20 text-red-300',
+  account_invitation_created: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+  account_invitation_resent: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
+  account_invitation_revoked: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  account_user_updated: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
+  account_user_status_changed: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
 }
 
 // Unique users from audit logs for user filter

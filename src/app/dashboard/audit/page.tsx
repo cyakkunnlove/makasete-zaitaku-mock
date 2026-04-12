@@ -30,11 +30,11 @@ import {
 } from '@/lib/mock-data'
 
 const roleLabel: Record<string, string> = {
-  system_admin: 'System Admin',
-  regional_admin: 'Regional Admin',
-  pharmacy_admin: 'Pharmacy Admin',
-  pharmacy_staff: 'Pharmacy Staff',
-  night_pharmacist: 'Night Pharmacist',
+  system_admin: 'システム管理者',
+  regional_admin: 'リージョン管理者',
+  pharmacy_admin: '薬局管理者',
+  pharmacy_staff: '薬局スタッフ',
+  night_pharmacist: '夜間薬剤師',
 }
 
 const resultClass: Record<'success' | 'warning' | 'denied', string> = {
@@ -92,13 +92,13 @@ export default function AuditPage() {
     <div className="space-y-4 text-gray-100">
       <div>
         <h1 className="text-lg font-semibold text-white">監査ログ</h1>
-        <p className="text-xs text-gray-400">操作履歴を時系列で確認し、患者検索・閲覧・電話・地図・拒否アクセスも監査</p>
+        <p className="text-xs text-gray-400">操作履歴を時系列で確認します。アカウント管理、患者操作、拒否アクセスもここで追えます。</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-white">{filteredLogs.length}</p><p className="text-[10px] text-gray-500">表示件数</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-indigo-300">{filteredLogs.filter((entry) => entry.action.startsWith('account_')).length}</p><p className="text-[10px] text-gray-500">アカウント管理</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-emerald-300">{filteredLogs.filter((entry) => entry.result === 'success').length}</p><p className="text-[10px] text-gray-500">成功</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-amber-300">{filteredLogs.filter((entry) => entry.result === 'warning').length}</p><p className="text-[10px] text-gray-500">要注意</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-rose-300">{filteredLogs.filter((entry) => entry.result === 'denied').length}</p><p className="text-[10px] text-gray-500">拒否アクセス</p></CardContent></Card>
       </div>
 
@@ -127,6 +127,11 @@ export default function AuditPage() {
                   <SelectItem value="patient_phone_open">患者電話</SelectItem>
                   <SelectItem value="patient_map_open">地図表示</SelectItem>
                   <SelectItem value="access_denied">拒否アクセス</SelectItem>
+                  <SelectItem value="account_invitation_created">招待作成</SelectItem>
+                  <SelectItem value="account_invitation_resent">招待再送</SelectItem>
+                  <SelectItem value="account_invitation_revoked">招待取消</SelectItem>
+                  <SelectItem value="account_user_updated">アカウント更新</SelectItem>
+                  <SelectItem value="account_user_status_changed">利用状態変更</SelectItem>
                 </SelectContent>
               </Select>
             </div>
