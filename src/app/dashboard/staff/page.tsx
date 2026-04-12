@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import type { UserRole } from '@/types/database'
@@ -131,6 +132,7 @@ const weekDays = [
 
 export default function StaffPage() {
   const { role, user } = useAuth()
+  const searchParams = useSearchParams()
   const isSystemAdmin = role === 'system_admin'
   const isRegionalAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -285,6 +287,21 @@ export default function StaffPage() {
       cancelled = true
     }
   }, [isRegionalAdmin, isPharmacyAdmin])
+
+  useEffect(() => {
+    if (!isRegionalAdmin) return
+    const shouldOpenInvite = searchParams.get('openInvite') === '1'
+    const inviteRole = searchParams.get('role')
+    const pharmacyId = searchParams.get('pharmacyId')
+    if (!shouldOpenInvite || inviteRole !== 'pharmacy_admin' || !pharmacyId) return
+
+    setDialogOpen(true)
+    setFormData((prev) => ({
+      ...prev,
+      role: 'pharmacy_admin',
+      pharmacyId,
+    }))
+  }, [isRegionalAdmin, searchParams])
 
   const loadAccountManagementLists = useCallback(() => {
     if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) return () => undefined
@@ -1358,7 +1375,7 @@ export default function StaffPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-gray-500">薬局管理者と夜間薬剤師には対象薬局が必要です。</p>
+                <p className="text-[11px] text-gray-500">薬局管理者と夜間薬剤師には対象薬局が必要です。加盟店詳細から来た場合は自動で選択されます。</p>
               </div>
             )}
 

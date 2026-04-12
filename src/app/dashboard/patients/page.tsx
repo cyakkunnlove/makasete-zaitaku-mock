@@ -36,6 +36,7 @@ export default function PatientsPage() {
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
 
   const isNightPharmacist = role === 'night_pharmacist'
+  const isRegionalAdmin = role === 'regional_admin'
   const isDayContext = canManagePatients(role)
   const ownPharmacyId = getScopedPharmacyId(user)
 
@@ -89,10 +90,20 @@ export default function PatientsPage() {
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return visiblePatients
+    if (!query) {
+      return isRegionalAdmin ? [] : visiblePatients
+    }
 
-    return visiblePatients.filter((patient) => patient.name.toLowerCase().includes(query))
-  }, [searchQuery, visiblePatients])
+    return visiblePatients.filter((patient) =>
+      [
+        patient.name,
+        patient.address,
+        patient.phone ?? '',
+        patient.pharmacyName,
+        patient.emergencyContact?.name ?? '',
+      ].some((value) => value.toLowerCase().includes(query)),
+    )
+  }, [isRegionalAdmin, searchQuery, visiblePatients])
 
   const orderedPatients = useMemo(() => {
     if (!isDayContext) return filteredPatients
@@ -140,7 +151,7 @@ export default function PatientsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : '在宅患者の基本情報・注意事項を確認'}</p>
+          <p className="text-xs text-gray-400">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : isRegionalAdmin ? '最初から全件は出さず、必要な患者だけ検索して確認します。' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">
@@ -148,7 +159,7 @@ export default function PatientsPage() {
           <Input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="患者名で検索"
+            placeholder={isRegionalAdmin ? '患者名・住所・電話・薬局名で検索' : '患者名・住所・電話で検索'}
             className="border-[#2a3553] bg-[#1a2035] pl-9"
           />
         </div>
@@ -157,7 +168,7 @@ export default function PatientsPage() {
       {filteredPatients.length === 0 && (
         <Card className="border-[#2a3553] bg-[#1a2035]">
           <CardContent className="p-6 text-center text-sm text-gray-400">
-            該当する患者が見つかりません。
+            {isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません。検索すると候補が表示されます。' : '該当する患者が見つかりません。'}
           </CardContent>
         </Card>
       )}

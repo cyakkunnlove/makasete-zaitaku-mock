@@ -176,9 +176,12 @@ export default function PharmacyDetailPage() {
               <h1 className="text-lg font-semibold text-white">{pharmacy.name}</h1>
               <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>{pharmacy.status}</Badge>
             </div>
-            <p className="text-xs text-gray-400">{pharmacy.id} / {pharmacy.area}</p>
+            <p className="text-xs text-gray-400">{pharmacy.id}{pharmacy.regionName ? ` / ${pharmacy.regionName}` : ''}</p>
           </div>
         </div>
+        <Link href={`/dashboard/staff?openInvite=1&role=pharmacy_admin&pharmacyId=${encodeURIComponent(pharmacy.id)}`}>
+          <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">薬局管理者を招待</Button>
+        </Link>
       </div>
 
       {loadError && (
@@ -197,8 +200,8 @@ export default function PharmacyDetailPage() {
         <CardHeader className="pb-2"><CardTitle className="text-base text-white">契約情報</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-2 text-gray-300"><Calendar className="h-4 w-4 text-gray-500" /><span className="text-gray-400">契約日:</span>{pharmacy.contractDate}</div>
-            <div className="flex items-center gap-2 text-gray-300"><MapPin className="h-4 w-4 text-gray-500" /><span className="text-gray-400">エリア:</span>{pharmacy.area}</div>
+            <div className="flex items-center gap-2 text-gray-300"><Calendar className="h-4 w-4 text-gray-500" /><span className="text-gray-400">契約日:</span>{pharmacy.contractDate || '未設定'}</div>
+            <div className="flex items-center gap-2 text-gray-300"><MapPin className="h-4 w-4 text-gray-500" /><span className="text-gray-400">リージョン:</span>{pharmacy.regionName || '未設定'}</div>
             <div className="flex items-start gap-2 text-gray-300 sm:col-span-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" /><span className="text-gray-400">住所:</span>{pharmacy.address}</div>
             <div className="flex items-center gap-2 text-gray-300"><Phone className="h-4 w-4 text-gray-500" /><span className="text-gray-400">電話:</span>{pharmacy.phone}</div>
             <div className="flex items-center gap-2 text-gray-300"><Printer className="h-4 w-4 text-gray-500" /><span className="text-gray-400">FAX:</span>{pharmacy.fax}</div>
