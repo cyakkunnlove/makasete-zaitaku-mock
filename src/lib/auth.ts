@@ -46,7 +46,7 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-const REVERIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000
+const REVERIFICATION_WINDOW_MS = 12 * 60 * 60 * 1000
 
 function isReverificationRequired(lastReverifiedAt: string | null | undefined) {
   if (!lastReverifiedAt) return true
