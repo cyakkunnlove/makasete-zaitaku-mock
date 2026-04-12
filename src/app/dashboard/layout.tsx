@@ -47,6 +47,17 @@ const settingsNavItems: NavItem[] = [
   { href: '/dashboard/settings/line', label: 'LINE連携', icon: <MessageCircle size={20} />, permission: 'settings' },
 ]
 
+function canViewSettingsItem(role: string | null | undefined, href: string) {
+  if (!role) return false
+
+  if (href === '/dashboard/settings/pharmacy') return role === 'pharmacy_admin' || role === 'regional_admin'
+  if (href === '/dashboard/settings/region') return role === 'regional_admin'
+  if (href === '/dashboard/settings/notifications') return role === 'regional_admin' || role === 'pharmacy_admin'
+  if (href === '/dashboard/settings/line') return role === 'regional_admin'
+
+  return false
+}
+
 const mobileNavItems: NavItem[] = [
   { href: '/dashboard', label: 'ホーム', icon: <Home size={20} />, permission: 'dashboard' },
   { href: '/dashboard/requests', label: '依頼', icon: <ClipboardList size={20} />, permission: 'requests' },
@@ -148,8 +159,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const filteredSettings = settingsNavItems
     .filter((item) => canAccess(role, item.permission))
-    .filter((item) => !(role === 'pharmacy_admin' && item.href === '/dashboard/settings/region'))
-    .filter((item) => !(role === 'system_admin' && item.href === '/dashboard/settings/pharmacy'))
+    .filter((item) => canViewSettingsItem(role, item.href))
 
   const visibleMobileNavItems = mobileNavItems.filter((item) => {
     if (!canAccess(role, item.permission)) return false

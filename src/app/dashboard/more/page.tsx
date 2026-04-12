@@ -104,6 +104,17 @@ const settingsItems: MenuItem[] = [
   },
 ]
 
+function canViewSettingsItem(role: string | null | undefined, href: string) {
+  if (!role) return false
+
+  if (href === '/dashboard/settings/notifications') return role === 'regional_admin' || role === 'pharmacy_admin'
+  if (href === '/dashboard/settings/line') return role === 'regional_admin'
+  if (href === '/dashboard/account-security') return true
+  if (href === '/dashboard/role-chooser') return true
+
+  return false
+}
+
 export default function MorePage() {
   const { user, role, signOut, authMode, activeRoleContext } = useAuth()
 
@@ -120,7 +131,9 @@ export default function MorePage() {
       }
       return item
     })
-  const visibleSettings = settingsItems.filter((item) => canAccess(role, item.permission))
+  const visibleSettings = settingsItems
+    .filter((item) => canAccess(role, item.permission))
+    .filter((item) => canViewSettingsItem(role, item.href))
 
   return (
     <div className="space-y-6 text-gray-100">

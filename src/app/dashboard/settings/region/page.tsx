@@ -29,6 +29,17 @@ export default function RegionSettingsPage() {
     setTimeout(() => setToast(null), 2500)
   }
 
+  if (!isRegionalAdmin) {
+    return (
+      <div className="space-y-6 text-gray-100">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <Shield className="h-4 w-4" />
+          この画面は Regional Admin のみ確認できます
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 text-gray-100">
       {toast && <div className="fixed right-4 top-20 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>}
