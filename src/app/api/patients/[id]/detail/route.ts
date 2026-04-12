@@ -6,6 +6,7 @@ import { getPatientById, getPatientRegionId, listPatientVisitRules } from '@/lib
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
+import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -35,6 +36,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   const visitRules = await listPatientVisitRules(params.id)
+  let pharmacyName: string | null = null
+  if (patient.pharmacy_id) {
+    const supabase = createServerSupabaseClient()
+    const pharmacyResponse = await supabase.from('pharmacies').select('name').eq('id', patient.pharmacy_id).maybeSingle()
+    if (!pharmacyResponse.error) {
+      pharmacyName = String((pharmacyResponse.data as Record<string, unknown> | null)?.name ?? '') || null
+    }
+  }
 
   await writeAuditLog({
     user,
@@ -47,5 +56,5 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     },
   })
 
-  return NextResponse.json({ ok: true, patient: mapDatabasePatientToPatientRecord(patient, visitRules) })
+  return NextResponse.json({ ok: true, patient: mapDatabasePatientToPatientRecord(patient, visitRules, { pharmacyName }) })
 }

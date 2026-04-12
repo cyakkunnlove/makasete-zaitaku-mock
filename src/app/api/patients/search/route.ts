@@ -92,11 +92,9 @@ export async function GET(request: Request) {
   const patients = await Promise.all(
     ((response.data ?? []) as Array<Record<string, unknown>>).map(async (row) => {
       const visitRules = await listPatientVisitRules(String(row.id))
-      const mapped = mapDatabasePatientToPatientRecord(row as never, visitRules)
-      return {
-        ...mapped,
-        pharmacyName: pharmacyMap.get(String(row.pharmacy_id ?? '')) || mapped.pharmacyName,
-      }
+      return mapDatabasePatientToPatientRecord(row as never, visitRules, {
+        pharmacyName: pharmacyMap.get(String(row.pharmacy_id ?? '')) || null,
+      })
     }),
   )
 

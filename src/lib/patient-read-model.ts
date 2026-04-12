@@ -8,7 +8,11 @@ function isRegisteredPatientRecord(patient: PatientSource): patient is Registere
   return 'name' in patient && 'visitRules' in patient
 }
 
-export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: PatientVisitRule[] = []): RegisteredPatientRecord {
+export function mapDatabasePatientToPatientRecord(
+  patient: Patient,
+  visitRules: PatientVisitRule[] = [],
+  options?: { pharmacyName?: string | null },
+): RegisteredPatientRecord {
   return {
     id: patient.id,
     name: patient.full_name,
@@ -16,7 +20,7 @@ export function mapDatabasePatientToPatientRecord(patient: Patient, visitRules: 
     address: patient.address,
     phone: patient.phone,
     pharmacyId: patient.pharmacy_id ?? 'UNKNOWN',
-    pharmacyName: '未設定薬局',
+    pharmacyName: options?.pharmacyName?.trim() || '未設定薬局',
     riskScore: patient.risk_score,
     emergencyContact: {
       name: patient.emergency_contact_name || '未設定',
