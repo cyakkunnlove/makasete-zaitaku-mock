@@ -48,7 +48,7 @@ function decodeJwtPayload(token: string): JwtPayload | null {
 
 const REVERIFICATION_WINDOW_MS = 12 * 60 * 60 * 1000
 
-function isReverificationRequired(lastReverifiedAt: string | null | undefined) {
+export function isReverificationRequired(lastReverifiedAt: string | null | undefined) {
   if (!lastReverifiedAt) return true
 
   const timestamp = new Date(lastReverifiedAt).getTime()
@@ -66,6 +66,10 @@ function buildMockUser(role: UserRole): CurrentUser | null {
     authMode: 'mock',
     requiresReverification: false,
   }
+}
+
+export async function requireRecentReverification(user: Pick<CurrentUser, 'authMode' | 'last_reverified_at'>) {
+  return user.authMode !== 'cognito' || !isReverificationRequired(user.last_reverified_at)
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {

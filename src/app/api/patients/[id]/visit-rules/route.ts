@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
+import { ensureRecentReverification } from '@/lib/api-reauth'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { getPatientById } from '@/lib/repositories/patients'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
@@ -27,6 +28,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!user) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
+
+  const reauthResponse = await ensureRecentReverification(user, {
+    reason: 'patient_visit_rules_update',
+    nextPath: `/dashboard/patients/${params.id}`,
+  })
+  if (reauthResponse) return reauthResponse
 
   const patient = await getPatientById(params.id)
   if (!patient) {

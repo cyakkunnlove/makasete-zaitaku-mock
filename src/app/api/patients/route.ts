@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
+import { ensureRecentReverification } from '@/lib/api-reauth'
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatients } from '@/lib/patient-permissions'
@@ -30,6 +31,12 @@ export async function POST(request: Request) {
   if (!canManagePatients(user.role)) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
+
+  const reauthResponse = await ensureRecentReverification(user, {
+    reason: 'patient_create',
+    nextPath: '/dashboard/patients/new',
+  })
+  if (reauthResponse) return reauthResponse
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') {
