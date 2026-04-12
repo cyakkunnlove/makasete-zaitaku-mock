@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   const supabase = createServerSupabaseClient()
 
   let allowedPharmacyIds: string[] | null = null
+  let matchedPharmacyIds: string[] = []
   if (actorRole === 'regional_admin') {
     if (!actorScope.regionId) return NextResponse.json({ ok: true, patients: [] })
     const pharmacyResponse = await supabase
@@ -36,6 +37,17 @@ export async function GET(request: Request) {
     }
     allowedPharmacyIds = (pharmacyResponse.data ?? []).map((row) => String((row as Record<string, unknown>).id ?? '')).filter(Boolean)
     if (allowedPharmacyIds.length === 0) return NextResponse.json({ ok: true, patients: [] })
+  }
+
+  const pharmacyNameSearch = await supabase
+    .from('pharmacies')
+    .select('id')
+    .eq('organization_id', user.organization_id)
+    .ilike('name', `%${q}%`)
+    .limit(30)
+
+  if (!pharmacyNameSearch.error) {
+    matchedPharmacyIds = (pharmacyNameSearch.data ?? []).map((row) => String((row as Record<string, unknown>).id ?? '')).filter(Boolean)
   }
 
   let query = supabase
@@ -53,7 +65,15 @@ export async function GET(request: Request) {
     query = query.eq('pharmacy_id', actorScope.pharmacyId)
   }
 
-  const response = await query.or(`full_name.ilike.%${q}%,address.ilike.%${q}%,phone.ilike.%${q}%`)
+  const orConditions = [
+    `full_name.ilike.%${q}%`,
+    `address.ilike.%${q}%`,
+    `phone.ilike.%${q}%`,
+    `emergency_contact_name.ilike.%${q}%`,
+    ...matchedPharmacyIds.map((id) => `pharmacy_id.eq.${id}`),
+  ]
+
+  const response = await query.or(orConditions.join(','))
   if (response.error) {
     return NextResponse.json({ ok: false, error: 'patient_search_failed', details: response.error.message }, { status: 500 })
   }

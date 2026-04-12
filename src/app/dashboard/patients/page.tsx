@@ -76,10 +76,9 @@ export default function PatientsPage() {
   }, [isDayContext, ownPharmacyId])
 
   useEffect(() => {
-    if (!isRegionalAdmin) return
     const query = searchQuery.trim()
-    if (!query) {
-      setDatabasePatients([])
+    if ((!isRegionalAdmin && !isDayContext) || !query) {
+      if (isRegionalAdmin) setDatabasePatients([])
       return
     }
 
@@ -103,12 +102,12 @@ export default function PatientsPage() {
     return () => {
       cancelled = true
     }
-  }, [isRegionalAdmin, searchQuery])
+  }, [isDayContext, isRegionalAdmin, searchQuery])
 
   const fallbackRegisteredPatients = useMemo(() => {
-    if (!isDayContext || databasePatients.length === 0) return registeredPatients
+    if (!isDayContext || databasePatients.length === 0 || searchQuery.trim()) return registeredPatients
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
-  }, [databasePatients.length, isDayContext, registeredPatients])
+  }, [databasePatients.length, isDayContext, registeredPatients, searchQuery])
 
   const patientMaster = useMemo(() => mergePatientSources({ databasePatients, registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients }), [databasePatients, fallbackRegisteredPatients, isRegionalAdmin])
 
@@ -116,16 +115,23 @@ export default function PatientsPage() {
     if (isRegionalAdmin) {
       return databasePatients
     }
+    if (isDayContext && searchQuery.trim()) {
+      return databasePatients
+    }
     if (isDayContext) {
       return patientMaster.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
     }
     return patientMaster
-  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster])
+  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster, searchQuery])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     if (!query) {
       return isRegionalAdmin ? [] : visiblePatients
+    }
+
+    if (isRegionalAdmin || isDayContext) {
+      return visiblePatients
     }
 
     return visiblePatients.filter((patient) =>
@@ -137,7 +143,7 @@ export default function PatientsPage() {
         patient.emergencyContact?.name ?? '',
       ].some((value) => value.toLowerCase().includes(query)),
     )
-  }, [isRegionalAdmin, searchQuery, visiblePatients])
+  }, [isDayContext, isRegionalAdmin, searchQuery, visiblePatients])
 
   const orderedPatients = useMemo(() => {
     if (!isDayContext) return filteredPatients
