@@ -714,13 +714,13 @@ export default function NewPatientPage() {
 
   if (!canEditPatients) {
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className="space-y-4 text-slate-900">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">患者登録は自局の薬局スタッフ・薬局管理者のみが行えます。</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900"><UserPlus className="h-5 w-5 text-indigo-500" />患者登録</h1>
+          <p className="text-xs text-slate-500">患者登録は自局の薬局スタッフ・薬局管理者のみが行えます。</p>
         </div>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-6 text-sm text-gray-300">
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-6 text-sm text-slate-600">
             現在のロールでは患者登録はできません。患者検索または患者詳細の閲覧をご利用ください。
           </CardContent>
         </Card>
@@ -729,75 +729,75 @@ export default function NewPatientPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">まずは必要最小限で登録できます。細かい情報はあとから落ち着いて追加できます。</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900"><UserPlus className="h-5 w-5 text-indigo-500" />患者登録</h1>
+          <p className="text-xs text-slate-500">まずは必要最小限で登録できます。細かい情報はあとから落ち着いて追加できます。</p>
         </div>
-        <div className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
-          登録先: <span className="font-medium text-white">現在の所属先</span>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+          登録先: <span className="font-medium text-slate-900">現在の所属先</span>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-          <AlertTriangle className="h-4 w-4 text-rose-300" />
+        <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <AlertTriangle className="h-4 w-4 text-rose-500" />
           {errorMessage}
         </div>
       )}
 
       {warningMessage && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-300" />
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
           {warningMessage}
         </div>
       )}
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">基本情報</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-900">基本情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           <div>
             <RequiredLabel>氏名</RequiredLabel>
-            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" />
+            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="山田 花子" />
           </div>
           <div>
             <RequiredLabel>生年月日</RequiredLabel>
-            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
-            <p className="mt-1 text-[11px] text-gray-500">8桁でも入力できます。自動で日付の形に整えます。</p>
+            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
+            <p className="mt-1 text-[11px] text-slate-500">8桁でも入力できます。自動で日付の形に整えます。</p>
           </div>
           <div>
-            <Label className="text-gray-300">郵便番号</Label>
+            <Label className="text-slate-600">郵便番号</Label>
             <div className="mt-1 flex gap-2">
-              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="192-0012" />
-              <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
+              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="192-0012" />
+              <Button type="button" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
                 再取得
               </Button>
             </div>
-            <p className="mt-1 text-[11px] text-gray-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
           </div>
           <div>
-            <Label className="text-gray-300">連絡先電話</Label>
-            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" />
-            <p className="mt-1 text-[11px] text-gray-500">数字だけでも入力できます。</p>
+            <Label className="text-slate-600">連絡先電話</Label>
+            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="090-1234-5678" inputMode="tel" />
+            <p className="mt-1 text-[11px] text-slate-500">数字だけでも入力できます。</p>
           </div>
           <div className="md:col-span-2">
             <RequiredLabel>住所</RequiredLabel>
-            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." />
+            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="東京都八王子市..." />
           </div>
           <div>
-            <Label className="text-gray-300">利用開始日</Label>
-            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-11" inputMode="numeric" />
+            <Label className="text-slate-600">利用開始日</Label>
+            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="2026-04-11" inputMode="numeric" />
           </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
-            <p className="font-medium text-white">登録ルール</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+            <p className="font-medium text-slate-900">登録ルール</p>
             <p className="mt-1">氏名、生年月日、住所に加えて、初回訪問予定日または訪問曜日が入っていれば登録できます。状態と所属先は自動で設定します。</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問条件</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-900">訪問条件</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div>
