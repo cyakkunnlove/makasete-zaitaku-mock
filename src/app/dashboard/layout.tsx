@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
 import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
   href: string
@@ -171,6 +172,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   })
 
   const allNavItems = [...filteredNav, ...filteredSettings]
+  const isAdminShell = role === 'system_admin' || role === 'regional_admin'
+  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : 'bg-[#0a0e1a] text-gray-100'
+  const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : 'bg-[#111827] border-[#2a3553]'
+  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
   const handleSidebarNavigate = (href: string) => {
     if (pathname === href) {
@@ -214,11 +219,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-gray-100">
+    <div className={cn('min-h-screen', shellBgClass)}>
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[260px] bg-[#111827] border-r border-[#2a3553] z-30">
+      <aside className={cn('hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[260px] border-r z-30', sidebarBgClass)}>
         {/* Brand */}
-        <div className="p-5 border-b border-[#2a3553]">
+        <div className={cn('p-5 border-b', isAdminShell ? 'border-slate-800' : 'border-[#2a3553]')}>
           <div className="flex items-center gap-3">
             <span className="text-3xl">🌙</span>
             <div>
@@ -429,7 +434,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Top Bar */}
-      <header className="lg:ml-[260px] h-14 bg-[#111827] border-b border-[#2a3553] flex items-center px-4 sticky top-0 z-20">
+      <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
         <button className="lg:hidden mr-3" onClick={() => setSidebarOpen(true)}>
           <Menu size={20} className="text-gray-400" />
         </button>
@@ -460,7 +465,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">
+      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6', isAdminShell ? 'bg-slate-100' : '')}>
         {canAccess(role, currentPermission) ? (
           children
         ) : (

@@ -17,7 +17,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  adminCardClass,
+  adminDialogClass,
+  adminInputClass,
+  adminMutedCardClass,
+  adminPageClass,
+  adminPanelClass,
+} from '@/components/admin-ui'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
 import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
 
@@ -43,9 +52,9 @@ type PharmacyView = PharmacyItem & {
 }
 
 const statusClass: Record<PharmacyStatus, string> = {
-  active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-  pending: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  suspended: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  pending: 'border-amber-200 bg-amber-50 text-amber-700',
+  suspended: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
 const statusLabel: Record<PharmacyStatus, string> = {
@@ -61,9 +70,9 @@ const adminStatusLabel: Record<PharmacyAdminStatus, string> = {
 }
 
 const adminStatusClass: Record<PharmacyAdminStatus, string> = {
-  uninvited: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
-  invited: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  uninvited: 'border-slate-200 bg-slate-100 text-slate-700',
+  invited: 'border-amber-200 bg-amber-50 text-amber-700',
+  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
 }
 
 function getForwardingSummary(pharmacy: PharmacyView) {
@@ -74,21 +83,21 @@ function getForwardingSummary(pharmacy: PharmacyView) {
   if (mode === 'manual_on') {
     return {
       label: '手動ON',
-      detail: `薬局管理者が手動で転送開始`,
-      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+      detail: '薬局管理者が手動で転送開始',
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     }
   }
   if (mode === 'manual_off') {
     return {
       label: '手動OFF',
-      detail: `薬局管理者が手動で停止`,
-      className: 'border-gray-500/40 bg-gray-500/20 text-gray-300',
+      detail: '薬局管理者が手動で停止',
+      className: 'border-slate-200 bg-slate-100 text-slate-700',
     }
   }
   return {
     label: '自動運用',
     detail: `${autoStart}〜${autoEnd} で自動切替`,
-    className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+    className: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   }
 }
 
@@ -180,10 +189,10 @@ export default function PharmaciesPage() {
 
   if (role !== 'regional_admin') {
     return (
-      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white">加盟店管理</CardTitle>
-          <CardDescription className="text-gray-400">このページは管理者のみ閲覧できます。</CardDescription>
+          <CardTitle className="text-base text-slate-900">加盟店管理</CardTitle>
+          <CardDescription className="text-slate-600">このページは管理者のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -203,7 +212,7 @@ export default function PharmaciesPage() {
       />
 
       {errorMessage && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           加盟店データの読み込みまたは保存で問題がありました: {errorMessage}
         </div>
       )}
@@ -215,13 +224,13 @@ export default function PharmaciesPage() {
         <AdminStatCard label="初期設定待ち" value={summary.pending} tone="warning" icon={<AlertTriangle className="h-4 w-4" />} />
       </section>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-300">
+      <Card className={adminMutedCardClass}>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-slate-600">
           <div className="space-y-1">
-            <p className="font-medium text-white">regional_admin 向け加盟店管理の考え方</p>
-            <p>加盟店追加ではまず薬局マスタの基本情報だけを登録します。患者数や細かな運用状態は後続の実データや設定画面で反映します。</p>
+            <p className="font-medium text-slate-900">加盟店管理の見方</p>
+            <p>加盟店追加では基本情報だけを先に登録します。患者数や細かな運用状態は、後続の実データや設定画面で反映します。</p>
           </div>
-          <Link href="/dashboard/settings/region" className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200">
+          <Link href="/dashboard/settings/region" className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-500">
             <Settings2 className="h-3.5 w-3.5" />地域設定へ
           </Link>
         </CardContent>
@@ -230,24 +239,24 @@ export default function PharmaciesPage() {
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {isLoading ? (
           <Card className={`${adminCardClass} lg:col-span-2`}>
-            <CardContent className="p-6 text-sm text-gray-400">加盟店データを読み込み中です...</CardContent>
+            <CardContent className="p-6 text-sm text-slate-500">加盟店データを読み込み中です...</CardContent>
           </Card>
         ) : visiblePharmacies.length === 0 ? (
           <Card className={`${adminCardClass} lg:col-span-2`}>
-            <CardContent className="p-6 text-sm text-gray-400">このリージョンにはまだ加盟店が登録されていません。</CardContent>
+            <CardContent className="p-6 text-sm text-slate-500">このリージョンにはまだ加盟店が登録されていません。</CardContent>
           </Card>
         ) : visiblePharmacies.map((pharmacy) => {
           const forwarding = getForwardingSummary(pharmacy)
 
           return (
             <Card key={pharmacy.id} className={adminCardClass}>
-              <CardContent className="space-y-3 p-4">
+              <CardContent className="space-y-4 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <Link href={`/dashboard/pharmacies/${pharmacy.id}`} className="text-base font-semibold text-white hover:text-indigo-300">
+                  <div className="space-y-1">
+                    <Link href={`/dashboard/pharmacies/${pharmacy.id}`} className="text-base font-semibold text-slate-900 hover:text-indigo-600">
                       {pharmacy.name}
                     </Link>
-                    <p className="text-xs text-gray-400">{pharmacy.area}</p>
+                    <p className="text-xs text-slate-500">{pharmacy.area}</p>
                   </div>
                   <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>
                     {statusLabel[pharmacy.status]}
@@ -255,48 +264,51 @@ export default function PharmaciesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                  <p className="flex items-center gap-1.5 text-gray-300">
-                    <Phone className="h-3.5 w-3.5 text-gray-500" />
+                  <p className="flex items-center gap-1.5 text-slate-600">
+                    <Phone className="h-3.5 w-3.5 text-slate-400" />
                     {pharmacy.phone}
                   </p>
-                  <p className="flex items-center gap-1.5 text-gray-300">
-                    <Users className="h-3.5 w-3.5 text-gray-500" />
+                  <p className="flex items-center gap-1.5 text-slate-600">
+                    <Users className="h-3.5 w-3.5 text-slate-400" />
                     患者数 {pharmacy.patientCount}名
                   </p>
                 </div>
 
-                <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div className={`${adminPanelClass} space-y-2 p-3`}>
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Building2 className="h-4 w-4 text-indigo-400" />
-                      <span className="text-gray-300">転送運用</span>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <Building2 className="h-4 w-4 text-indigo-500" />
+                      <span>転送運用</span>
                     </div>
                     <Badge variant="outline" className={cn('border text-xs', forwarding.className)}>
                       {forwarding.label}
                     </Badge>
                   </div>
-                  <p className="text-xs text-gray-400">{forwarding.detail}</p>
-                  <p className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <p className="text-xs text-slate-600">{forwarding.detail}</p>
+                  <p className="flex items-center gap-1.5 text-xs text-slate-500">
                     <Clock3 className="h-3 w-3" />
                     最終更新: {pharmacy.forwardingUpdatedAt ? new Date(pharmacy.forwardingUpdatedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '未設定'} / {pharmacy.forwardingUpdatedByName ?? '未設定'}
                   </p>
-                  <div className="pt-1 text-xs text-gray-500">
-                    詳細画面で転送設定を保存すると、ここにも反映されます。
-                  </div>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
-                    <p className="inline-flex items-center gap-1 font-medium text-white"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />薬局管理者</p>
+                  <div className={`${adminPanelClass} p-3 text-xs text-slate-600`}>
+                    <p className="inline-flex items-center gap-1 font-medium text-slate-900"><ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />薬局管理者</p>
                     <div className="mt-2">
                       <Badge variant="outline" className={cn('border text-xs', adminStatusClass[pharmacy.pharmacyAdminStatus ?? 'uninvited'])}>
                         {adminStatusLabel[pharmacy.pharmacyAdminStatus ?? 'uninvited']}
                       </Badge>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
-                    <p className="inline-flex items-center gap-1 font-medium text-white"><AlertTriangle className="h-3.5 w-3.5 text-amber-400" />運用メモ</p>
-                    <p className="mt-1">{pharmacy.status === 'pending' ? ((pharmacy.onboarding?.needs?.length ?? 0) > 0 ? `未完了: ${pharmacy.onboarding?.needs?.join(' / ')}` : '加盟後の初期設定・受託設定確認が必要') : '地域運用に接続済み。転送ルールの定期見直し対象'}</p>
+                  <div className={`${adminPanelClass} p-3 text-xs text-slate-600`}>
+                    <p className="inline-flex items-center gap-1 font-medium text-slate-900"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" />運用メモ</p>
+                    <p className="mt-1">
+                      {pharmacy.status === 'pending'
+                        ? ((pharmacy.onboarding?.needs?.length ?? 0) > 0
+                            ? `未完了: ${pharmacy.onboarding?.needs?.join(' / ')}`
+                            : '加盟後の初期設定・受託設定確認が必要')
+                        : '地域運用に接続済み。転送ルールの定期見直し対象'}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -306,46 +318,46 @@ export default function PharmaciesPage() {
       </section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-white">加盟店を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">まずは薬局名、住所、電話などの基本情報だけを登録します。</DialogDescription>
+            <DialogTitle className="text-slate-900">加盟店を追加</DialogTitle>
+            <DialogDescription className="text-slate-600">まずは薬局名、住所、電話などの基本情報だけを登録します。</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddPharmacy} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300">薬局名</Label>
-              <Input id="name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
+              <Label htmlFor="name" className="text-slate-700">薬局名</Label>
+              <Input id="name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required className={adminInputClass} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address" className="text-gray-300">住所</Label>
-              <Input id="address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
+              <Label htmlFor="address" className="text-slate-700">住所</Label>
+              <Input id="address" value={formData.address} onChange={(event) => setFormData((prev) => ({ ...prev, address: event.target.value }))} required className={adminInputClass} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-300">電話番号</Label>
-              <Input id="phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} required className="border-[#2a3553] bg-[#1a2035]" />
+              <Label htmlFor="phone" className="text-slate-700">電話番号</Label>
+              <Input id="phone" value={formData.phone} onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))} required className={adminInputClass} />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="fax" className="text-gray-300">FAX</Label>
-                <Input id="fax" value={formData.fax} onChange={(event) => setFormData((prev) => ({ ...prev, fax: event.target.value }))} className="border-[#2a3553] bg-[#1a2035]" />
+                <Label htmlFor="fax" className="text-slate-700">FAX</Label>
+                <Input id="fax" value={formData.fax} onChange={(event) => setFormData((prev) => ({ ...prev, fax: event.target.value }))} className={adminInputClass} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="forwardingPhone" className="text-gray-300">転送先電話</Label>
-                <Input id="forwardingPhone" value={formData.forwardingPhone} onChange={(event) => setFormData((prev) => ({ ...prev, forwardingPhone: event.target.value }))} className="border-[#2a3553] bg-[#1a2035]" />
+                <Label htmlFor="forwardingPhone" className="text-slate-700">転送先電話</Label>
+                <Input id="forwardingPhone" value={formData.forwardingPhone} onChange={(event) => setFormData((prev) => ({ ...prev, forwardingPhone: event.target.value }))} className={adminInputClass} />
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3 text-xs text-gray-400">
-              登録時点では <span className="text-white">初期設定中</span> で作成されます。患者数は患者データの有効件数から自動反映する前提です。薬局管理者の招待導線は次段で接続します。
+            <div className={`${adminPanelClass} p-3 text-xs text-slate-600`}>
+              登録時点では <span className="font-medium text-slate-900">初期設定中</span> で作成されます。患者数は患者データの有効件数から自動反映する前提です。薬局管理者の招待導線は次段で接続します。
             </div>
 
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>キャンセル</Button>
-              <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90">追加する</Button>
+              <Button type="submit" className="bg-indigo-600 text-white hover:bg-indigo-500">追加する</Button>
             </DialogFooter>
           </form>
         </DialogContent>

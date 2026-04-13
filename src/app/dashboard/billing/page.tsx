@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
@@ -32,9 +32,9 @@ import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 
 const statusClass: Record<BillingStatus, string> = {
-  paid: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-  unpaid: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  overdue: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  unpaid: 'border-amber-200 bg-amber-50 text-amber-700',
+  overdue: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
 const statusLabel: Record<BillingStatus, string> = {
@@ -287,17 +287,17 @@ export default function BillingPage() {
           <AdminStatCard label="未回収" value={yen.format(summary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
         </section>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-gray-300">
-            <span>在宅訪問の点数・請求額・回収状況を、未請求 → 回収管理まで一連で確認できます。</span>
-            <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">BtoC collection</Badge>
+        <Card className={adminCardClass}>
+          <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-slate-600">
+            <span>在宅訪問の点数、請求額、回収状況を未請求から回収管理まで一連で確認できます。</span>
+            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">BtoC collection</Badge>
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">請求処理が必要な訪問一覧</CardTitle>
-            <CardDescription className="text-gray-400">対応完了した訪問を確認して、請求処理へ回すための一覧です</CardDescription>
+            <CardTitle className="text-sm text-slate-900">請求処理が必要な訪問一覧</CardTitle>
+            <CardDescription className="text-slate-600">対応完了した訪問を確認して、請求処理へ回すための一覧です</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -347,10 +347,10 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><CalendarDays className="h-4 w-4 text-indigo-400" />患者別 回収到達状況</CardTitle>
-            <CardDescription className="text-gray-400">訪問日ごとの回収状況をカレンダーで確認できます</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><CalendarDays className="h-4 w-4 text-indigo-500" />患者別 回収到達状況</CardTitle>
+            <CardDescription className="text-slate-600">訪問日ごとの回収状況をカレンダーで確認できます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {patientVisitHistory.map((item) => {
@@ -607,20 +607,20 @@ export default function BillingPage() {
       {!isSystemAdmin && (
         <div className="space-y-3 lg:hidden">
           {records.map((record) => (
-            <Card key={record.id} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={record.id} className={adminCardClass}>
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-base font-semibold text-white">{record.pharmacyName}</p>
-                    <p className="text-xs text-gray-400">{record.month} 請求</p>
+                    <p className="text-base font-semibold text-slate-900">{record.pharmacyName}</p>
+                    <p className="text-xs text-slate-500">{record.month} 請求</p>
                   </div>
                   <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
-                  <div><p>請求書番号</p><p className="mt-1 text-gray-200">{record.invoiceNumber}</p></div>
-                  <div><p>合計</p><p className="mt-1 text-gray-200">{yen.format(record.total)}</p></div>
-                  <div><p>SaaS</p><p className="mt-1 text-gray-200">{yen.format(record.saasFee)}</p></div>
-                  <div><p>夜間連携</p><p className="mt-1 text-gray-200">{yen.format(record.nightFee)}</p></div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                  <div><p>請求書番号</p><p className="mt-1 text-slate-900">{record.invoiceNumber}</p></div>
+                  <div><p>合計</p><p className="mt-1 text-slate-900">{yen.format(record.total)}</p></div>
+                  <div><p>SaaS</p><p className="mt-1 text-slate-900">{yen.format(record.saasFee)}</p></div>
+                  <div><p>夜間連携</p><p className="mt-1 text-slate-900">{yen.format(record.nightFee)}</p></div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">
@@ -635,7 +635,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+      <Card className={`hidden lg:block ${adminTableClass}`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -674,14 +674,14 @@ export default function BillingPage() {
       </Card>
 
       <Dialog open={batchDialogOpen} onOpenChange={setBatchDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
+        <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
           <DialogHeader>
-            <DialogTitle className="text-white">一括請求書生成</DialogTitle>
-            <DialogDescription className="text-gray-400">対象月を選ぶとモック請求書を生成します。</DialogDescription>
+            <DialogTitle className="text-slate-900">一括請求書生成</DialogTitle>
+            <DialogDescription className="text-slate-600">対象月を選ぶとモック請求書を生成します。</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <p className="text-xs text-gray-400">対象月</p>
-            <Input value={batchMonth} onChange={(e) => setBatchMonth(e.target.value)} className="border-[#2a3553] bg-[#1a2035]" />
+            <p className="text-xs text-slate-500">対象月</p>
+            <Input value={batchMonth} onChange={(e) => setBatchMonth(e.target.value)} className={adminInputClass} />
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setBatchDialogOpen(false)}>キャンセル</Button>
@@ -691,19 +691,19 @@ export default function BillingPage() {
       </Dialog>
 
       <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-white">請求詳細</DialogTitle>
-            <DialogDescription className="text-gray-400">{selectedRecord?.pharmacyName} / {selectedRecord?.month}</DialogDescription>
+            <DialogTitle className="text-slate-900">請求詳細</DialogTitle>
+            <DialogDescription className="text-slate-600">{selectedRecord?.pharmacyName} / {selectedRecord?.month}</DialogDescription>
           </DialogHeader>
           {selectedRecord && (
-            <div className="space-y-3 text-sm text-gray-300">
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-4">
-                <p>請求書番号: <span className="text-white">{selectedRecord.invoiceNumber}</span></p>
-                <p className="mt-1">SaaS: <span className="text-white">{yen.format(selectedRecord.saasFee)}</span></p>
-                <p className="mt-1">夜間連携: <span className="text-white">{yen.format(selectedRecord.nightFee)}</span></p>
-                <p className="mt-1">消費税: <span className="text-white">{yen.format(selectedRecord.tax)}</span></p>
-                <p className="mt-1">合計: <span className="text-white">{yen.format(selectedRecord.total)}</span></p>
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-4`}>
+                <p>請求書番号: <span className="text-slate-900">{selectedRecord.invoiceNumber}</span></p>
+                <p className="mt-1">SaaS: <span className="text-slate-900">{yen.format(selectedRecord.saasFee)}</span></p>
+                <p className="mt-1">夜間連携: <span className="text-slate-900">{yen.format(selectedRecord.nightFee)}</span></p>
+                <p className="mt-1">消費税: <span className="text-slate-900">{yen.format(selectedRecord.tax)}</span></p>
+                <p className="mt-1">合計: <span className="text-slate-900">{yen.format(selectedRecord.total)}</span></p>
               </div>
             </div>
           )}
