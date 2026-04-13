@@ -23,6 +23,7 @@ import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient, PatientHomePhoto } from '@/types/database'
+import { adminCardClass } from '@/components/admin-ui'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -268,9 +269,9 @@ export default function PatientDetailPage() {
   if (detailLoadState === 'loading' && !patient) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="p-8 text-center">
-            <p className="text-sm text-gray-400">患者情報を読み込んでいます...</p>
+            <p className="text-sm text-slate-500">患者情報を読み込んでいます...</p>
           </CardContent>
         </Card>
       </div>
@@ -280,12 +281,12 @@ export default function PatientDetailPage() {
   if (!patient) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="p-8 text-center">
-            <User className="mx-auto mb-3 h-10 w-10 text-gray-500" />
-            <p className="text-sm text-gray-400">患者が見つかりませんでした。</p>
+            <User className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+            <p className="text-sm text-slate-500">患者が見つかりませんでした。</p>
             <Link href="/dashboard/patients">
-              <Button variant="outline" className="mt-4 border-[#2a3553] text-gray-300 hover:bg-[#1a2035]">
+              <Button variant="outline" className="mt-4 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 患者一覧に戻る
               </Button>

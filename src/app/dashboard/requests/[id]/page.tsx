@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
+import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { cn } from '@/lib/utils'
 import type { ChecklistType, ChecklistItem, RequestStatus } from '@/types/database'
 import {
@@ -83,12 +84,12 @@ export default function RequestDetailPage() {
   if (!request) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035] p-8 text-center">
+        <Card className={`${adminCardClass} p-8 text-center`}>
           <CardContent className="space-y-4">
-            <p className="text-lg font-semibold text-white">依頼が見つかりません</p>
-            <p className="text-sm text-gray-400">ID: {id} に該当する依頼データが存在しません。</p>
+            <p className="text-lg font-semibold text-slate-900">依頼が見つかりません</p>
+            <p className="text-sm text-slate-500">ID: {id} に該当する依頼データが存在しません。</p>
             <Link href="/dashboard/requests">
-              <Button variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+              <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 依頼一覧へ戻る
               </Button>
@@ -130,24 +131,24 @@ export default function RequestDetailPage() {
   if (isPharmacyAdmin) {
     const latestEvent = request.timelineEvents[request.timelineEvents.length - 1]
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className={`${adminPageClass} space-y-4`}>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/requests">
-            <Button variant="outline" size="icon" className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]">
+            <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
-            <p className="text-xs text-gray-400">自局依頼の進行状況サマリー</p>
+            <h1 className="text-lg font-semibold text-slate-900">{request.id}</h1>
+            <p className="text-xs text-slate-500">自局依頼の進行状況サマリー</p>
           </div>
         </div>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
-              <p className="text-sm font-medium text-white">{request.pharmacyName}</p>
-              <p className="text-xs text-gray-400">受付 {request.receivedDate} {request.receivedAt}</p>
+              <p className="text-sm font-medium text-slate-900">{request.pharmacyName}</p>
+              <p className="text-xs text-slate-500">受付 {request.receivedDate} {request.receivedAt}</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
@@ -159,12 +160,12 @@ export default function RequestDetailPage() {
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">薬局向け状況</CardTitle>
+              <CardTitle className="text-sm text-slate-900">薬局向け状況</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+              <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
                 <span className="text-gray-400">現在の状況</span>
                 <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
               </div>
@@ -180,12 +181,12 @@ export default function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">朝の確認メモ</CardTitle>
+              <CardTitle className="text-sm text-slate-900">朝の確認メモ</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-gray-300">
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+            <CardContent className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-3`}>
                 <p className="text-xs text-gray-500">確認したいこと</p>
                 <p className="mt-1 text-gray-200">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
               </div>
@@ -226,7 +227,7 @@ export default function RequestDetailPage() {
       ]
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
