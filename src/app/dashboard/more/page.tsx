@@ -7,6 +7,7 @@ import { getUnifiedRoleLabel } from '@/lib/mock-data'
 import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { adminCardClass, adminPageClass } from '@/components/admin-ui'
 import {
   Building2, Users, CreditCard, BarChart3,
   Shield, LogOut, Moon, Settings, Bell,
@@ -143,19 +144,19 @@ export default function MorePage() {
     .filter((item) => canViewSettingsItem(role, item.href))
 
   return (
-    <div className="space-y-6 text-gray-100">
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+    <div className={`${adminPageClass} space-y-6`}>
+      <Card className={adminCardClass}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-lg font-bold">
+            <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-lg font-bold text-white">
               {user?.full_name?.[0] ?? '?'}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-white">{user?.full_name ?? 'ゲスト'}</p>
-              <p className="text-xs text-gray-400">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-              {authMode && <p className="text-[10px] text-gray-500">auth: {authMode}</p>}
-              {activeRoleContext && <p className="text-[10px] text-gray-500">assignment: {activeRoleContext.assignmentId}</p>}
+              <p className="font-semibold text-slate-900">{user?.full_name ?? 'ゲスト'}</p>
+              <p className="text-xs text-slate-500">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role ? getUnifiedRoleLabel(role) : '未ログイン'}</p>
+              <p className="text-xs text-slate-500">{user?.email}</p>
+              {authMode && <p className="text-[10px] text-slate-400">auth: {authMode}</p>}
+              {activeRoleContext && <p className="text-[10px] text-slate-400">assignment: {activeRoleContext.assignmentId}</p>}
             </div>
             <div className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/20 px-2.5 py-1.5">
               <Moon size={14} className="text-indigo-400" />
@@ -166,13 +167,13 @@ export default function MorePage() {
       </Card>
 
       {activeRoleContext && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-white">現在の立場</p>
-              <p className="mt-1 text-xs text-gray-400">{getMockRoleContextLabel(activeRoleContext)}</p>
+              <p className="text-sm font-medium text-slate-900">現在の立場</p>
+              <p className="mt-1 text-xs text-slate-500">{getMockRoleContextLabel(activeRoleContext)}</p>
             </div>
-            <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+            <Button asChild variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
               <Link href="/dashboard/role-chooser">立場を切り替える</Link>
             </Button>
           </CardContent>
@@ -180,22 +181,22 @@ export default function MorePage() {
       )}
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-300 px-1">メニュー</h3>
+        <h3 className="px-1 text-sm font-semibold text-slate-500">メニュー</h3>
         {visibleItems.length === 0 && (
-          <Card className="border-[#2a3553] bg-[#1a2035]">
-            <CardContent className="p-4 text-sm text-gray-400">現在のロールで表示できる追加メニューはありません。</CardContent>
+          <Card className={adminCardClass}>
+            <CardContent className="p-4 text-sm text-slate-500">現在のロールで表示できる追加メニューはありません。</CardContent>
           </Card>
         )}
         {visibleItems.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="border-[#2a3553] bg-[#1a2035] hover:bg-[#1f2740] transition-colors cursor-pointer">
+            <Card className={`${adminCardClass} cursor-pointer transition-colors hover:bg-slate-50`}>
               <CardContent className="flex items-center gap-3 p-4">
                 {item.icon}
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-white">{item.label}</p>
-                  <p className="text-xs text-gray-400">{item.description}</p>
+                  <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                  <p className="text-xs text-slate-500">{item.description}</p>
                 </div>
-                <span className="text-gray-500 text-lg">›</span>
+                <span className="text-lg text-slate-400">›</span>
               </CardContent>
             </Card>
           </Link>
@@ -204,20 +205,20 @@ export default function MorePage() {
 
       {visibleSettings.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-300 px-1 flex items-center gap-1.5">
+          <h3 className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-500">
             <Settings size={14} />
             設定
           </h3>
           {visibleSettings.map((item) => (
             <Link key={item.href} href={item.href}>
-              <Card className="border-[#2a3553] bg-[#1a2035] hover:bg-[#1f2740] transition-colors cursor-pointer">
+              <Card className={`${adminCardClass} cursor-pointer transition-colors hover:bg-slate-50`}>
                 <CardContent className="flex items-center gap-3 p-4">
                   {item.icon}
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{item.label}</p>
-                    <p className="text-xs text-gray-400">{item.description}</p>
+                    <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                    <p className="text-xs text-slate-500">{item.description}</p>
                   </div>
-                  <span className="text-gray-500 text-lg">›</span>
+                  <span className="text-lg text-slate-400">›</span>
                 </CardContent>
               </Card>
             </Link>
@@ -226,17 +227,17 @@ export default function MorePage() {
       )}
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-300 px-1 flex items-center gap-1.5">
+        <h3 className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-500">
           <Shield size={14} />
           セキュリティ
         </h3>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="space-y-4 p-4">
             <div className="flex items-start gap-3">
-              <Shield size={18} className="mt-0.5 text-emerald-400" />
+              <Shield size={18} className="mt-0.5 text-emerald-500" />
               <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium text-white">パスキー設定</p>
-                <p className="text-xs leading-5 text-gray-400">
+                <p className="text-sm font-medium text-slate-900">パスキー設定</p>
+                <p className="text-xs leading-5 text-slate-500">
                   パスキーの追加は account-security 画面からも開始できます。登録時は app 内で完結せず、
                   Cognito managed login の画面に移動して、必要に応じて再認証後に設定を進めます。
                   登録後は、少なくとも現時点では Eメール入力後にパスキーでログインできます。
@@ -244,7 +245,7 @@ export default function MorePage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
               <p>おすすめ手順</p>
               <ol className="mt-2 list-decimal space-y-1 pl-4">
                 <li>まず「アカウント / セキュリティ」画面で流れを確認する</li>
@@ -255,7 +256,7 @@ export default function MorePage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+              <Button asChild variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <Link href="/dashboard/account-security">アカウント / セキュリティを開く</Link>
               </Button>
               <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
@@ -270,7 +271,7 @@ export default function MorePage() {
         <Button
           variant="ghost"
           onClick={signOut}
-          className="w-full justify-start gap-3 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 h-12"
+          className="h-12 w-full justify-start gap-3 rounded-xl border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-600"
         >
           <LogOut size={18} />
           <span className="text-sm">ログアウト</span>

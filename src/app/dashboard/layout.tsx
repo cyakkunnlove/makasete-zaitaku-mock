@@ -444,17 +444,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Top Bar */}
       <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
-        <button className="lg:hidden mr-3" onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} className="text-gray-400" />
+        <button className="mr-3 rounded-lg p-2 transition-colors hover:bg-slate-100 lg:hidden" onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} className={isAdminShell ? 'text-slate-500' : 'text-gray-400'} />
         </button>
-        <h2 className="font-semibold text-white">{pageTitle}</h2>
+        <h2 className={cn('font-semibold', isAdminShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
         <div className="ml-3 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-emerald-400">LIVE</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs text-emerald-500">LIVE</span>
         </div>
         <div className="ml-auto">
           {canAccess(role, 'notifications') && (
-            <Link href="/dashboard/notifications" className="relative p-2 text-gray-400 hover:text-gray-200 block">
+            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-colors', isAdminShell ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700' : 'text-gray-400 hover:text-gray-200')}>
               <Bell size={18} />
               {unreadNotifCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
@@ -467,9 +467,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </header>
 
       {authMode === 'mock' && (
-        <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-100">
+        <div className="lg:ml-[260px] border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
           🎭 デモログイン中です。画面確認用の暫定モードです。
-          {activeRoleContext && <span className="ml-2 text-amber-50">現在の立場: {getMockRoleContextLabel(activeRoleContext)}</span>}
+          {activeRoleContext && <span className="ml-2 text-amber-700">現在の立場: {getMockRoleContextLabel(activeRoleContext)}</span>}
         </div>
       )}
 
