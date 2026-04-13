@@ -374,11 +374,11 @@ function PharmacyDashboardHeaderCard({
   handleUndo: () => void
 }) {
   return (
-    <Card className={adminCardClass}>
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-semibold text-slate-900">日中対応フロー</p>
-          <p className="text-xs text-slate-500">{flowDescription}</p>
+          <p className="text-base font-semibold text-slate-900">日中対応フロー</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{flowDescription}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">請求連携候補 {billableReadyCount}件</Badge>
@@ -418,9 +418,9 @@ function PharmacyDashboardSummaryCard({
   adminWarningText?: string | null
 }) {
   return (
-    <Card className={adminCardClass}>
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm text-slate-900">{summaryTitle}</CardTitle>
+        <CardTitle className="text-base text-slate-900">{summaryTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
@@ -446,7 +446,7 @@ function PharmacyDashboardSummaryCard({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">{summarySupportText}</span>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1.5">{summarySupportText}</span>
           {adminWarningText && (
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">{adminWarningText}</span>
           )}
@@ -1522,18 +1522,26 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         )
       })()}
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-slate-200 bg-white pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
-      </div>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="space-y-3 p-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">患者検索</p>
+            <p className="text-xs text-slate-500">名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。</p>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="h-11 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-3 text-sm text-slate-700 shadow-sm">
+        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
         <div className="text-center">
           <p className="text-xs text-slate-500">表示中の日中フロー</p>
-          <p className="font-medium text-slate-900">{flowDateLabel}</p>
+          <p className="text-lg font-semibold text-slate-900">{flowDateLabel}</p>
         </div>
-        <button onClick={() => shiftFlowDate(1)} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
+        <button onClick={() => shiftFlowDate(1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
       </div>
 
       <>
@@ -1665,8 +1673,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               <CardContent className="space-y-3 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">巡回順のおすすめ</p>
-                    <p className="text-xs text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
+                    <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
+                    <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
                   </div>
                   <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
                     {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}

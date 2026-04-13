@@ -174,9 +174,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const allNavItems = [...filteredNav, ...filteredSettings]
   const isAdminShell = role === 'system_admin' || role === 'regional_admin'
   const isFieldShell = role === 'pharmacy_admin' || role === 'pharmacy_staff'
-  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : 'bg-[#0a0e1a] text-gray-100'
-  const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : 'bg-[#111827] border-[#2a3553]'
-  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-slate-900/95 border-slate-700' : 'bg-[#111827] border-[#2a3553]'
+  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : isFieldShell ? 'bg-slate-50 text-slate-900' : 'bg-[#0a0e1a] text-gray-100'
+  const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : isFieldShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
+  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-white/95 border-slate-200 backdrop-blur' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
   const handleSidebarNavigate = (href: string) => {
     if (pathname === href) {
@@ -202,8 +202,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <div className="text-gray-400">読み込み中...</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500">読み込み中...</div>
       </div>
     )
   }
@@ -311,8 +311,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 onClick={() => handleSidebarNavigate(item.href)}
                 className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                   active
-                    ? 'bg-indigo-600/20 text-indigo-400 font-medium'
-                    : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                    ? isFieldShell ? 'bg-indigo-50 text-indigo-600 font-medium' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                    : isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                 }`}
               >
                 {item.icon}
@@ -339,8 +339,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     onClick={() => handleSidebarNavigate(item.href)}
                     className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       active
-                        ? 'bg-indigo-600/20 text-indigo-400 font-medium'
-                        : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                        ? isFieldShell ? 'bg-indigo-50 text-indigo-600 font-medium' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                        : isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                     }`}
                   >
                     {item.icon}
@@ -386,14 +386,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-black/60 transition-opacity duration-200 ease-out" onClick={() => setSidebarOpen(false)} />
         <aside
           className={cn(
-            'absolute left-0 top-0 bottom-0 flex w-[280px] flex-col border-r border-[#2a3553] bg-[#111827] transition-transform duration-250 ease-out',
+            'absolute left-0 top-0 bottom-0 flex w-[280px] flex-col border-r transition-transform duration-250 ease-out',
+            isFieldShell ? 'border-slate-200 bg-white' : 'border-[#2a3553] bg-[#111827]',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
-          <div className="p-4 flex items-center justify-between border-b border-[#2a3553]">
-            <span className="font-bold text-white">🌙 マカセテ在宅</span>
+          <div className={cn('p-4 flex items-center justify-between border-b', isFieldShell ? 'border-slate-200' : 'border-[#2a3553]')}>
+            <span className={cn('font-bold', isFieldShell ? 'text-slate-900' : 'text-white')}>🌙 マカセテ在宅</span>
             <button onClick={() => setSidebarOpen(false)}>
-              <X size={20} className="text-gray-400" />
+              <X size={20} className={isFieldShell ? 'text-slate-500' : 'text-gray-400'} />
             </button>
           </div>
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -405,7 +406,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={() => handleSidebarNavigate(item.href)}
                   className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                    active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
+                    active ? (isFieldShell ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-600 hover:bg-slate-100' : 'text-gray-400 hover:bg-[#1a2035]')
                   }`}
                 >
                   {item.icon}
@@ -429,7 +430,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                       type="button"
                       onClick={() => handleSidebarNavigate(item.href)}
                       className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                        active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
+                        active ? (isFieldShell ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-600 hover:bg-slate-100' : 'text-gray-400 hover:bg-[#1a2035]')
                       }`}
                     >
                       {item.icon}
@@ -445,17 +446,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Top Bar */}
       <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
-        <button className={cn('mr-3 rounded-lg p-2 transition-colors lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-800' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-300' : 'text-gray-400'} />
+        <button className={cn('mr-3 rounded-lg p-2 transition-colors lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-100' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-500' : 'text-gray-400'} />
         </button>
-        <h2 className={cn('font-semibold', isAdminShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
+        <h2 className={cn('font-semibold', isAdminShell || isFieldShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
         <div className="ml-3 flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs text-emerald-500">LIVE</span>
         </div>
         <div className="ml-auto">
           {canAccess(role, 'notifications') && (
-            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-colors', isAdminShell ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700' : 'text-gray-400 hover:text-gray-200')}>
+            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-colors', isAdminShell || isFieldShell ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700' : 'text-gray-400 hover:text-gray-200')}>
               <Bell size={18} />
               {unreadNotifCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
@@ -475,7 +476,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6', isAdminShell ? 'bg-slate-100' : '')}>
+      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6', isAdminShell || isFieldShell ? 'bg-slate-50' : '')}>
         {canAccess(role, currentPermission) ? (
           children
         ) : (
