@@ -854,34 +854,34 @@ export default function NewPatientPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm text-white">訪問予定カレンダー</CardTitle>
-            <Button type="button" variant="outline" onClick={resetCalendarEdits} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+            <CardTitle className="text-sm text-slate-900">訪問予定カレンダー</CardTitle>
+            <Button type="button" variant="outline" onClick={resetCalendarEdits} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
               <RotateCcw className="mr-2 h-4 w-4" />自動生成に戻す
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-xs text-gray-400">入力内容をもとに訪問予定を自動で入れます。日付を押すと、追加や除外を調整できます。</p>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+          <p className="text-xs text-slate-500">入力内容をもとに訪問予定を自動で入れます。日付を押すと、追加や除外を調整できます。</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="mb-3 flex items-center justify-between">
-              <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+              <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="text-center">
-                <p className="text-sm font-medium text-white">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
-                <p className="text-[11px] text-gray-500">青: 通常, 緑: 手動追加, 赤: 除外</p>
+                <p className="text-sm font-medium text-slate-900">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
+                <p className="text-[11px] text-slate-500">青: 通常, 緑: 手動追加, 赤: 除外</p>
               </div>
-              <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+              <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
             <div className="mb-1 grid grid-cols-7 gap-1">
               {VISIT_CALENDAR_DAY_LABELS.map((label, index) => (
-                <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-400' : index === 6 ? 'text-sky-400' : 'text-gray-500'}`}>
+                <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-500' : index === 6 ? 'text-sky-500' : 'text-slate-500'}`}>
                   {label}
                 </div>
               ))}
@@ -906,7 +906,7 @@ export default function NewPatientPage() {
                     type="button"
                     key={dateKey}
                     onClick={() => toggleCalendarDate(dateKey)}
-                    className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30' : isExcluded ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through' : 'bg-[#0a0e1a] text-gray-400'} ${isToday ? 'ring-1 ring-indigo-500/50' : ''}`}
+                    className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/20' : isExcluded ? 'border border-rose-200 bg-white text-rose-500 line-through' : 'bg-white text-slate-500 border border-slate-200'} ${isToday ? 'ring-1 ring-indigo-400/50' : ''}`}
                   >
                     {day}
                   </button>
@@ -914,24 +914,24 @@ export default function NewPatientPage() {
               })}
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
+          <div className="flex flex-wrap gap-3 text-[10px] text-slate-500">
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />手動追加</span>
-            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-200 bg-white" />除外</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <button type="button" onClick={() => setShowOptional((prev) => !prev)} className="flex w-full items-center justify-between text-left">
-            <CardTitle className="text-sm text-white">任意項目を追加</CardTitle>
-            <ChevronDown className={`h-4 w-4 text-gray-400 transition ${showOptional ? 'rotate-180' : ''}`} />
+            <CardTitle className="text-sm text-slate-900">任意項目を追加</CardTitle>
+            <ChevronDown className={`h-4 w-4 text-slate-400 transition ${showOptional ? 'rotate-180' : ''}`} />
           </button>
         </CardHeader>
         {showOptional && (
           <CardContent className="space-y-4">
-            <p className="text-xs text-gray-400">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
+            <p className="text-xs text-slate-500">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
             <div className="grid gap-3 md:grid-cols-2">
               <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
               <div className="space-y-3">
@@ -1122,21 +1122,21 @@ export default function NewPatientPage() {
         )}
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-slate-500">
           <div>
             <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
-            <p><span className="text-rose-300">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
+            <p><span className="text-rose-500">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
           </div>
-          <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
+          <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
       </Card>
 
       <Dialog open={institutionDialogOpen} onOpenChange={setInstitutionDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>病院を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">候補にない病院は、その場で追加できます。</DialogDescription>
+            <DialogDescription className="text-slate-500">候補にない病院は、その場で追加できます。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1160,10 +1160,10 @@ export default function NewPatientPage() {
       </Dialog>
 
       <Dialog open={doctorDialogOpen} onOpenChange={setDoctorDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>医師を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">選択中の病院に医師を追加します。</DialogDescription>
+            <DialogDescription className="text-slate-500">選択中の病院に医師を追加します。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1187,22 +1187,22 @@ export default function NewPatientPage() {
       </Dialog>
 
       <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>住所の解釈を確認してください</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-slate-500">
               保存前に、地図で使う住所解釈を確認できます。問題なければこのまま登録します。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">入力した住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.inputAddress ?? '—'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">入力した住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.inputAddress ?? '—'}</p>
             </div>
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">解釈された住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
-              <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">解釈された住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
+              <p className="mt-1 text-xs text-slate-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
             </div>
             {typeof geocodePreview?.latitude === 'number' && typeof geocodePreview?.longitude === 'number' && (
               <div className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
