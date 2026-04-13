@@ -1497,22 +1497,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
         if (unconfirmed.length === 0) return null
         return (
-          <Card className="border-amber-500/40 bg-amber-500/10">
+          <Card className="border-amber-200 bg-amber-50 text-slate-900 shadow-sm">
             <CardContent className="space-y-2 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                 <AlertTriangle className="h-4 w-4" />
                 引き継ぎ確認待ち（{unconfirmed.length}件）
               </div>
               {unconfirmed.map((ho) => (
-                <div key={ho.id} className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs">
+                <div key={ho.id} className="rounded-lg border border-amber-200 bg-white p-3 text-xs shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-amber-100">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
-                      <p className="mt-1 text-amber-200/80">{ho.situation}</p>
-                      <p className="mt-1 text-amber-200/60">{ho.recommendation}</p>
+                      <p className="font-medium text-slate-900">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
+                      <p className="mt-1 text-slate-600">{ho.situation}</p>
+                      <p className="mt-1 text-amber-700">{ho.recommendation}</p>
                     </div>
                     <Link href={`/dashboard/patients/${ho.patientId}`}>
-                      <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-200 hover:bg-amber-500/20">患者情報で確認</Button>
+                      <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
                     </Link>
                   </div>
                 </div>
@@ -1523,62 +1523,62 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       })()}
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-slate-200 bg-white pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-sm text-gray-200">
-        <button onClick={() => shiftFlowDate(-1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">前日</button>
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
         <div className="text-center">
-          <p className="text-xs text-gray-500">表示中のday flow</p>
-          <p className="font-medium text-white">{flowDateLabel}</p>
+          <p className="text-xs text-slate-500">表示中の日中フロー</p>
+          <p className="font-medium text-slate-900">{flowDateLabel}</p>
         </div>
-        <button onClick={() => shiftFlowDate(1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">翌日</button>
+        <button onClick={() => shiftFlowDate(1)} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
       </div>
 
       <>
         {isPharmacyAdmin && (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-amber-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <FileClock className="h-4 w-4 text-amber-300" />
-                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">最優先</Badge>
+                  <FileClock className="h-4 w-4 text-amber-600" />
+                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">最優先</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownUnconfirmedHandovers.length}</p>
-                <p className="text-[11px] text-gray-500">引き継ぎ確認待ち</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownUnconfirmedHandovers.length}</p>
+                <p className="text-[11px] text-slate-500">引き継ぎ確認待ち</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-indigo-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <Moon className="h-4 w-4 text-indigo-300" />
-                  <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-indigo-200">昨夜</Badge>
+                  <Moon className="h-4 w-4 text-indigo-600" />
+                  <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">昨夜</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownOvernightPatients}</p>
-                <p className="text-[11px] text-gray-500">昨夜対応あり患者</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownOvernightPatients}</p>
+                <p className="text-[11px] text-slate-500">昨夜対応あり患者</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-sky-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <ClipboardList className="h-4 w-4 text-sky-300" />
-                  <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-200">自局</Badge>
+                  <ClipboardList className="h-4 w-4 text-sky-600" />
+                  <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">自局</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownActiveRequests}</p>
-                <p className="text-[11px] text-gray-500">進行中の関連依頼</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownActiveRequests}</p>
+                <p className="text-[11px] text-slate-500">進行中の関連依頼</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-emerald-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-center justify-between">
-                  <Settings2 className="h-4 w-4 text-emerald-300" />
-                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">{ownConfigStatus.nightDelegation}</Badge>
+                  <Settings2 className="h-4 w-4 text-emerald-600" />
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
                 </div>
-                <p className="text-xs text-gray-400">連携設定</p>
-                <p className="text-sm font-medium text-white">{ownConfigStatus.regionLabel}</p>
-                <p className="text-[11px] text-gray-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
-                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-300 hover:text-indigo-200">薬局設定を開く</Link>
+                <p className="text-xs text-slate-500">連携設定</p>
+                <p className="text-sm font-medium text-slate-900">{ownConfigStatus.regionLabel}</p>
+                <p className="text-[11px] text-slate-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
+                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-600 hover:text-indigo-700">薬局設定を開く</Link>
               </CardContent>
             </Card>
           </div>
@@ -1599,23 +1599,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         />
 
         {isPharmacyAdmin && ownUnconfirmedHandovers.length > 0 && (
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm text-white">
-                <UserCog className="h-4 w-4 text-indigo-400" />
+              <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+                <UserCog className="h-4 w-4 text-indigo-600" />
                 管理者向けの引き継ぎ確認
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {ownUnconfirmedHandovers.slice(0, 3).map((handover) => (
-                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <div>
-                    <p className="text-sm font-medium text-white">{handover.patientName}</p>
-                    <p className="text-xs text-gray-400">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
-                    <p className="mt-1 text-[11px] text-amber-200">引き継ぎ内容の確認と優先度の見直しが必要です</p>
+                    <p className="text-sm font-medium text-slate-900">{handover.patientName}</p>
+                    <p className="text-xs text-slate-500">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
+                    <p className="mt-1 text-[11px] text-amber-700">引き継ぎ内容の確認と優先度の見直しが必要です</p>
                   </div>
                   <Link href={`/dashboard/patients/${handover.patientId}`}>
-                    <Button size="sm" variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">患者情報で確認</Button>
+                    <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
                   </Link>
                 </div>
               ))}
