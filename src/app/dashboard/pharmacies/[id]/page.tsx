@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { ArrowLeft, Building2, CheckCircle2, Clock3, CreditCard, Settings2, Users } from 'lucide-react'
 import { billingData, requestData, type PharmacyItem } from '@/lib/mock-data'
 
@@ -140,10 +141,10 @@ export default function PharmacyDetailPage() {
 
   if (role !== 'regional_admin') {
     return (
-      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white">加盟店詳細</CardTitle>
-          <CardDescription className="text-gray-400">このページは Regional Admin のみ閲覧できます。</CardDescription>
+          <CardTitle className="text-base text-slate-900">加盟店詳細</CardTitle>
+          <CardDescription className="text-slate-500">このページは Regional Admin のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -152,9 +153,9 @@ export default function PharmacyDetailPage() {
   if (isLoading && !pharmacy) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <Card className={adminCardClass}>
           <CardHeader>
-            <CardTitle className="text-base text-white">加盟店情報を読み込み中です</CardTitle>
+            <CardTitle className="text-base text-slate-900">加盟店情報を読み込み中です</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -164,10 +165,10 @@ export default function PharmacyDetailPage() {
   if (!pharmacy) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <Card className={adminCardClass}>
           <CardHeader>
-            <CardTitle className="text-base text-white">薬局が見つかりません</CardTitle>
-            <CardDescription className="text-gray-400">指定されたIDの薬局は存在しません。</CardDescription>
+            <CardTitle className="text-base text-slate-900">薬局が見つかりません</CardTitle>
+            <CardDescription className="text-slate-500">指定されたIDの薬局は存在しません。</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/dashboard/pharmacies">
@@ -247,20 +248,20 @@ export default function PharmacyDetailPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Link href="/dashboard/pharmacies">
-            <Button variant="ghost" size="icon" className="mt-0.5 text-gray-400 hover:text-white">
+            <Button variant="ghost" size="icon" className="mt-0.5 text-slate-400 hover:text-slate-700">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-semibold text-white">{pharmacy.name}</h1>
+              <h1 className="text-lg font-semibold text-slate-900">{pharmacy.name}</h1>
               <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>{pharmacy.status}</Badge>
             </div>
-            <p className="text-xs text-gray-400">{pharmacy.id}{pharmacy.regionName ? ` / ${pharmacy.regionName}` : ''}</p>
+            <p className="text-xs text-slate-500">{pharmacy.id}{pharmacy.regionName ? ` / ${pharmacy.regionName}` : ''}</p>
           </div>
         </div>
         <Link href={`/dashboard/staff?openInvite=1&role=pharmacy_admin&pharmacyId=${encodeURIComponent(pharmacy.id)}`}>
@@ -269,35 +270,35 @@ export default function PharmacyDetailPage() {
       </div>
 
       {loadError && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           加盟店データの読み込みで問題がありました: {loadError}
         </div>
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Users className="h-3.5 w-3.5" />アクティブ患者数</CardDescription><CardTitle className="text-2xl text-white">{pharmacy.patientCount}名</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Building2 className="h-3.5 w-3.5" />依頼数</CardDescription><CardTitle className="text-2xl text-white">{monthlyRequestCount}件</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><CreditCard className="h-3.5 w-3.5" />月額売上</CardDescription><CardTitle className="text-2xl text-indigo-300">{yen.format(pharmacy.saasFee + pharmacy.nightFee)}円</CardTitle></CardHeader></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-gray-400"><Clock3 className="h-3.5 w-3.5" />薬局管理者</CardDescription><div className="pt-2"><Badge variant="outline" className={cn('border text-xs', adminStatusClass[pharmacy.pharmacyAdminStatus ?? 'uninvited'])}>{adminStatusLabel[pharmacy.pharmacyAdminStatus ?? 'uninvited']}</Badge></div></CardHeader></Card>
+        <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><Users className="h-3.5 w-3.5" />アクティブ患者数</CardDescription><CardTitle className="text-2xl text-slate-900">{pharmacy.patientCount}名</CardTitle></CardHeader></Card>
+        <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><Building2 className="h-3.5 w-3.5" />依頼数</CardDescription><CardTitle className="text-2xl text-slate-900">{monthlyRequestCount}件</CardTitle></CardHeader></Card>
+        <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><CreditCard className="h-3.5 w-3.5" />月額売上</CardDescription><CardTitle className="text-2xl text-indigo-600">{yen.format(pharmacy.saasFee + pharmacy.nightFee)}円</CardTitle></CardHeader></Card>
+        <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><Clock3 className="h-3.5 w-3.5" />薬局管理者</CardDescription><div className="pt-2"><Badge variant="outline" className={cn('border text-xs', adminStatusClass[pharmacy.pharmacyAdminStatus ?? 'uninvited'])}>{adminStatusLabel[pharmacy.pharmacyAdminStatus ?? 'uninvited']}</Badge></div></CardHeader></Card>
       </section>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base text-white"><CheckCircle2 className="h-4 w-4 text-emerald-400" />利用開始の目安</CardTitle>
-          <CardDescription className="text-gray-400">危ない自動切替はまだ入れず、まずは加盟店ごとの準備状況が見えるようにしています。</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900"><CheckCircle2 className="h-4 w-4 text-emerald-600" />利用開始の目安</CardTitle>
+          <CardDescription className="text-slate-500">危ない自動切替はまだ入れず、まずは加盟店ごとの準備状況が見えるようにしています。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] px-4 py-3">
+          <div className={`${adminPanelClass} flex items-center justify-between gap-3 px-4 py-3`}>
             <div>
-              <p className="text-sm font-medium text-white">準備状況</p>
-              <p className="text-xs text-gray-400">{onboardingChecks.completed} / {onboardingChecks.total} 項目完了</p>
+              <p className="text-sm font-medium text-slate-900">準備状況</p>
+              <p className="text-xs text-slate-500">{onboardingChecks.completed} / {onboardingChecks.total} 項目完了</p>
             </div>
             <Badge variant="outline" className={cn('border text-xs', onboardingChecks.ready ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
               {onboardingChecks.ready ? '利用開始の目安を満たしています' : 'まだ初期設定があります'}
             </Badge>
           </div>
           {onboardingChecks.needs.length > 0 && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               未完了: {onboardingChecks.needs.join(' / ')}
             </div>
           )}
@@ -313,9 +314,9 @@ export default function PharmacyDetailPage() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {onboardingChecks.checks.map((item) => (
-              <div key={item.label} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm">
-                <span className="text-gray-300">{item.label}</span>
-                <span className={item.done ? 'text-emerald-300' : 'text-amber-300'}>{item.done ? '完了' : '未完了'}</span>
+              <div key={item.label} className={`${adminPanelClass} flex items-center justify-between px-3 py-2 text-sm`}>
+                <span className="text-slate-700">{item.label}</span>
+                <span className={item.done ? 'text-emerald-600' : 'text-amber-600'}>{item.done ? '完了' : '未完了'}</span>
               </div>
             ))}
           </div>
