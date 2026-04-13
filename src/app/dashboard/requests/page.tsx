@@ -228,10 +228,10 @@ export default function RequestsPage() {
       </div>
 
       {isPharmacyAdmin && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-slate-900">{visibleRequests.length}</p><p className="text-[10px] text-slate-500">今夜の自局依頼</p></CardContent></Card>
-          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応準備中</p></CardContent></Card>
-          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応中</p></CardContent></Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card className="border-slate-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{visibleRequests.length}</p><p className="mt-1 text-[11px] text-slate-500">今夜の自局依頼</p></CardContent></Card>
+          <Card className="border-amber-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応準備中</p></CardContent></Card>
+          <Card className="border-sky-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応中</p></CardContent></Card>
         </div>
       )}
 
