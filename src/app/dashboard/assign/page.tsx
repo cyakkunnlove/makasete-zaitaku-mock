@@ -145,12 +145,12 @@ export default function AssignPage() {
   }
 
   return (
-    <div className="space-y-5 text-gray-100">
+    <div className="space-y-5 text-slate-900">
       <section>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base text-white">週間当番スケジュール</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-base text-slate-900">週間当番スケジュール</CardTitle>
+            <CardDescription className="text-slate-500">
               7日分の当番を切替（🌙 主担当 / 🔄 バックアップ / — 休み）
             </CardDescription>
           </CardHeader>
@@ -158,8 +158,8 @@ export default function AssignPage() {
             <div className="overflow-x-auto">
               <table className="min-w-[860px] w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#2a3553]">
-                    <th className="px-2 py-2 text-left text-gray-400">夜間薬剤師</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-2 py-2 text-left text-slate-500">夜間薬剤師</th>
                     {weekDays.map((day) => (
                       <th key={day.id} className="px-2 py-2 text-center text-gray-400">
                         {day.label}
@@ -169,10 +169,10 @@ export default function AssignPage() {
                 </thead>
                 <tbody>
                   {pharmacists.map((pharmacist) => (
-                    <tr key={pharmacist.id} className="border-b border-[#2a3553]">
+                    <tr key={pharmacist.id} className="border-b border-slate-200">
                       <td className="px-2 py-3 align-middle">
-                        <p className="font-medium text-white">{pharmacist.name}</p>
-                        <p className="text-xs text-gray-400">{pharmacist.area}</p>
+                        <p className="font-medium text-slate-900">{pharmacist.name}</p>
+                        <p className="text-xs text-slate-500">{pharmacist.area}</p>
                       </td>
                       {weekDays.map((day) => {
                         const key = cellKey(pharmacist.id, day.id)
@@ -206,16 +206,16 @@ export default function AssignPage() {
       </section>
 
       <section>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base text-white">保留中アサイン</CardTitle>
-            <CardDescription className="text-gray-400">未アサイン依頼に担当夜間薬剤師を割り当て</CardDescription>
+            <CardTitle className="text-base text-slate-900">保留中アサイン</CardTitle>
+            <CardDescription className="text-slate-500">未アサイン依頼に担当夜間薬剤師を割り当て</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingAssignments.map((assignment) => (
               <div
                 key={assignment.id}
-                className="rounded-xl border border-[#2a3553] bg-[#11182c] p-4"
+                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
