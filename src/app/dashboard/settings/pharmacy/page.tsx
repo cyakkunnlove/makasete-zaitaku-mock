@@ -35,8 +35,8 @@ export default function PharmacySettingsPage() {
 
   if (!canViewPage) {
     return (
-      <div className="space-y-6 text-gray-100">
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+      <div className="space-y-6 text-slate-900">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
           この画面は Pharmacy Admin または Regional Admin のみ確認できます
         </div>
@@ -45,7 +45,7 @@ export default function PharmacySettingsPage() {
   }
 
   return (
-    <div className="space-y-6 text-gray-100">
+    <div className="space-y-6 text-slate-900">
       {toast && (
         <div className="fixed right-4 top-20 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg">
           {toast}
@@ -54,8 +54,8 @@ export default function PharmacySettingsPage() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">薬局設定</h1>
-          <p className="mt-1 text-sm text-gray-400">自局の責任項目・夜間受託設定・所属情報を管理</p>
+          <h1 className="text-xl font-bold text-slate-900">薬局設定</h1>
+          <p className="mt-1 text-sm text-slate-500">自局の責任項目・夜間受託設定・所属情報を管理</p>
         </div>
         {isPharmacyAdmin && (
           <Button onClick={save} className="bg-indigo-600 text-white hover:bg-indigo-700">
@@ -66,24 +66,24 @@ export default function PharmacySettingsPage() {
       </div>
 
       {requiresReverification && isPharmacyAdmin && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
           この画面の保存には再認証が必要です。続行時はセキュリティ確認画面へ移動します。
         </div>
       )}
 
       {!isPharmacyAdmin && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
           この画面は確認できますが、編集と保存は Pharmacy Admin のみ可能です
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-white"><Building2 className="h-4 w-4 text-indigo-400" />所属・責任者情報</CardTitle>
-            <CardDescription className="text-gray-400">Supabase 移行時は pharmacy / owner カラムを中心に対応</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Building2 className="h-4 w-4 text-indigo-500" />所属・責任者情報</CardTitle>
+            <CardDescription className="text-slate-500">Supabase 移行時は pharmacy / owner カラムを中心に対応</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -101,16 +101,16 @@ export default function PharmacySettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-white"><Workflow className="h-4 w-4 text-emerald-400" />夜間受託設定</CardTitle>
-            <CardDescription className="text-gray-400">regional_admin との接続先や受け渡しルールを管理</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Workflow className="h-4 w-4 text-emerald-500" />夜間受託設定</CardTitle>
+            <CardDescription className="text-slate-500">regional_admin との接続先や受け渡しルールを管理</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div>
-                <p className="text-sm font-medium text-white">夜間受託</p>
-                <p className="text-xs text-gray-500">夜間依頼を地域運用側へ委譲</p>
+                <p className="text-sm font-medium text-slate-900">夜間受託</p>
+                <p className="text-xs text-slate-500">夜間依頼を地域運用側へ委譲</p>
               </div>
               <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">
                 {settings.nightDelegationEnabled === 'on' ? '有効' : '無効'}
@@ -133,33 +133,33 @@ export default function PharmacySettingsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><PhoneCall className="h-4 w-4 text-sky-400" />運用メモ</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><PhoneCall className="h-4 w-4 text-sky-500" />運用メモ</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-gray-300">
+          <CardContent className="space-y-2 text-xs text-slate-600">
             <p>・FAX原本や夜間内部進行は pharmacy_admin には見せない前提。</p>
             <p>・自局依頼は進行サマリーのみ閲覧。</p>
             <p>・患者医療本文は自局患者に限定。</p>
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><BellRing className="h-4 w-4 text-amber-400" />関連設定</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><BellRing className="h-4 w-4 text-amber-500" />関連設定</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-gray-300">
-            <Link href="/dashboard/settings/notifications" className="block text-indigo-300 hover:text-indigo-200">通知設定を開く</Link>
-            <span className="block text-gray-500">申し送りは薬局トップと患者詳細から確認</span>
-            <Link href="/dashboard/requests" className="block text-indigo-300 hover:text-indigo-200">自局依頼一覧を開く</Link>
+          <CardContent className="space-y-2 text-xs text-slate-600">
+            <Link href="/dashboard/settings/notifications" className="block text-indigo-600 hover:text-indigo-700">通知設定を開く</Link>
+            <span className="block text-slate-500">申し送りは薬局トップと患者詳細から確認</span>
+            <Link href="/dashboard/requests" className="block text-indigo-600 hover:text-indigo-700">自局依頼一覧を開く</Link>
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white"><FileText className="h-4 w-4 text-violet-400" />Supabase移行メモ</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><FileText className="h-4 w-4 text-violet-500" />Supabase移行メモ</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-gray-300">
+          <CardContent className="space-y-2 text-xs text-slate-600">
             <p>想定カラム:</p>
             <p>・pharmacies.region_id</p>
             <p>・pharmacies.night_operation_unit_id</p>
