@@ -869,15 +869,15 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <ImageIcon className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <ImageIcon className="h-4 w-4 text-indigo-500" />
             訪問メモ写真
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <p>外観や入口など、次回訪問時の目印を共有します。常時は軽い画像で表示し、押すと拡大表示します。</p>
             <label>
               <input
@@ -897,13 +897,13 @@ export default function PatientDetailPage() {
             </label>
           </div>
           {photosLoading ? (
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">写真を読み込んでいます...</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">写真を読み込んでいます...</div>
           ) : patientPhotos.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">まだ写真はありません。必要なら外観や入口の写真を3枚まで共有できます。</div>
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">まだ写真はありません。必要なら外観や入口の写真を3枚まで共有できます。</div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {patientPhotos.map((photo) => (
-                <div key={photo.id} className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
+                <div key={photo.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                   <button
                     type="button"
                     className="block w-full"
@@ -923,15 +923,15 @@ export default function PatientDetailPage() {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-40 items-center justify-center bg-[#0f1728] text-gray-500">画像なし</div>
+                      <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">画像なし</div>
                     )}
                   </button>
                   <div className="space-y-2 p-3">
                     <div>
-                      <p className="text-xs text-gray-500">追加情報</p>
-                      <p className="text-sm text-gray-200">{photo.caption || '外観写真'}</p>
-                      <p className="mt-1 text-[11px] text-gray-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
-                      <p className="text-[11px] text-gray-500">追加者: {photo.uploaded_by_name ?? photo.uploaded_by ?? '不明'}</p>
+                      <p className="text-xs text-slate-500">追加情報</p>
+                      <p className="text-sm text-slate-900">{photo.caption || '外観写真'}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                      <p className="text-[11px] text-slate-500">追加者: {photo.uploaded_by_name ?? photo.uploaded_by ?? '不明'}</p>
                     </div>
                     {canEditThisPatient && (
                       <Button size="sm" variant="outline" className="w-full border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20" onClick={() => void handleDeletePhoto(photo.id)}>
@@ -949,17 +949,17 @@ export default function PatientDetailPage() {
       {/* Emergency contact & Doctor info */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Emergency contact */}
-        <Card className="border-l-2 border-l-rose-500/60 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
+        <Card className="border border-rose-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <AlertTriangle className="h-4 w-4 text-rose-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <AlertTriangle className="h-4 w-4 text-rose-500" />
               緊急連絡先
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-xs text-gray-500">氏名</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-200">{patient.emergencyContact.name}</p>
+              <p className="text-xs text-slate-500">氏名</p>
+              <p className="mt-0.5 text-sm font-medium text-slate-900">{patient.emergencyContact.name}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">続柄</p>
@@ -976,10 +976,10 @@ export default function PatientDetailPage() {
         </Card>
 
         {/* Doctor info */}
-        <Card className="border-l-2 border-l-sky-500/60 border-t-[#2a3553] border-r-[#2a3553] border-b-[#2a3553] bg-[#1a2035]">
+        <Card className="border border-sky-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Stethoscope className="h-4 w-4 text-sky-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <Stethoscope className="h-4 w-4 text-sky-500" />
               主治医情報
             </CardTitle>
           </CardHeader>
@@ -1004,10 +1004,10 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Clinical info (without current meds and visit notes) */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Heart className="h-4 w-4 text-rose-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Heart className="h-4 w-4 text-rose-500" />
             臨床情報
           </CardTitle>
         </CardHeader>
@@ -1040,14 +1040,14 @@ export default function PatientDetailPage() {
       </Card>
 
       {(patient.manualTags?.length || (authMode !== 'cognito' && patient.registrationMeta) || patient.visitRules?.length) && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Clock3 className="h-4 w-4 text-cyan-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <Clock3 className="h-4 w-4 text-cyan-500" />
               補足情報
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-gray-200">
+          <CardContent className="space-y-3 text-sm text-slate-700">
             {patient.manualTags && patient.manualTags.length > 0 && (
               <div>
                 <p className="text-xs text-gray-500">共有メモ</p>
@@ -1089,30 +1089,30 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Current Medications - moved to bottom with (任意) label */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Pill className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Pill className="h-4 w-4 text-indigo-500" />
             現在薬
-            <span className="text-xs font-normal text-gray-500">（任意）</span>
+            <span className="text-xs font-normal text-slate-500">（任意）</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-200">{patient.currentMeds}</p>
+          <p className="text-sm text-slate-700">{patient.currentMeds}</p>
         </CardContent>
       </Card>
 
       {/* Attention flags */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
             注意フラグ
           </CardTitle>
         </CardHeader>
         <CardContent>
           {attentionFlags.length === 0 ? (
-            <p className="text-sm text-gray-400">注意フラグはありません。</p>
+            <p className="text-sm text-slate-500">注意フラグはありません。</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {attentionFlags.map((flag) => (
