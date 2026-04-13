@@ -1661,24 +1661,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
             <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="space-y-3 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium text-white">巡回順のおすすめ</p>
-                    <p className="text-xs text-gray-400">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
+                    <p className="text-sm font-medium text-slate-900">巡回順のおすすめ</p>
+                    <p className="text-xs text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
                   </div>
                   <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
                     {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
                   </Button>
                 </div>
                 {routePlanResult && (
-                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-200">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-white">{routePlanResult.message}</p>
+                      <p className="font-medium text-slate-900">{routePlanResult.message}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {routeEmailHref && (
-                          <Button asChild size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20">
+                          <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 hover:bg-sky-50">
                             <a href={routeEmailHref}>自分のメールに送る</a>
                           </Button>
                         )}
@@ -1691,19 +1691,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     </div>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
-                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-[#2a3553] bg-[#0f1728]" />
-                        <p className="mt-2 text-xs text-gray-400">
+                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-slate-200 bg-slate-100" />
+                        <p className="mt-2 text-xs text-slate-500">
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
                         </p>
                         {routePlanResult.origin && (
-                          <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0f1728] p-3 text-xs text-gray-300">
-                            <p className="font-medium text-white">起点</p>
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                            <p className="font-medium text-slate-900">起点</p>
                             <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
-                            <p className="mt-1 text-gray-400">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
-                            <p className="mt-1 text-gray-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
+                            <p className="mt-1 text-slate-500">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
+                            <p className="mt-1 text-slate-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
                             {routePlanResult.origin.geocodeWarnings && routePlanResult.origin.geocodeWarnings.length > 0 && (
-                              <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                              <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
                                 {routePlanResult.origin.geocodeWarnings.map((warning) => warning.message).join(' / ')}
                               </div>
                             )}
@@ -1711,16 +1711,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         )}
                         <ol className="mt-3 space-y-2">
                           {routePlanResult.suggestedOrder.map((patient, index) => (
-                            <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2 text-sm">
+                            <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
                               <div>
                                 <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
-                                <span className="font-medium text-white">{patient.name}</span>
-                                <span className="ml-2 text-xs text-gray-400">{patient.address}</span>
+                                <span className="font-medium text-slate-900">{patient.name}</span>
+                                <span className="ml-2 text-xs text-slate-500">{patient.address}</span>
                               </div>
-                              <p className="mt-2 text-xs text-gray-400">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
-                              <p className="mt-1 text-[11px] text-gray-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
+                              <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
+                              <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
                               {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
-                                <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                                <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
                                   {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
                                 </div>
                               )}
@@ -1730,8 +1730,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       </>
                     )}
                     {routePlanResult.missingCoordinates.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
-                        <p className="font-medium text-amber-300">座標未取得の患者</p>
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                        <p className="font-medium text-amber-700">座標未取得の患者</p>
                         <ul className="mt-2 space-y-1">
                           {routePlanResult.missingCoordinates.map((patient) => (
                             <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}{patient.geocodeWarnings && patient.geocodeWarnings.length > 0 ? ` / 注意: ${patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}` : ''}</li>
@@ -1745,7 +1745,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             </Card>
             <div className="space-y-2">
               {draggingTaskId && (
-                <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
                   青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
                 </div>
               )}
@@ -1760,12 +1760,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const canComplete = visit.status === 'in_progress'
                 return (
                   <div key={visit.id} className="space-y-2">
-                    <label className="flex items-center gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
+                    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
                       <input
                         type="checkbox"
                         checked={selectedRoutePatientIds.includes(visit.patientId)}
                         onChange={() => handleToggleRoutePatient(visit.patientId)}
-                        className="h-4 w-4 rounded border-[#2a3553] bg-[#0f1728]"
+                        className="h-4 w-4 rounded border-slate-300 bg-white"
                       />
                       <span>巡回順の提案に含める</span>
                     </label>
@@ -1804,20 +1804,20 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           </TabsContent>
 
           <TabsContent value="master" className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-              <Users className="h-4 w-4 text-indigo-400" />
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Users className="h-4 w-4 text-indigo-500" />
               患者一覧（簡易）
-              <span className="text-xs font-normal text-gray-500">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
+              <span className="text-xs font-normal text-slate-500">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
             </h2>
             <div className="space-y-2">
               {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-[#2a3553] bg-[#11182c]">
-                  <CardContent className="p-4 text-sm text-gray-400">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4 text-sm text-slate-500">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
                 </Card>
               )}
               {searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-[#2a3553] bg-[#11182c]">
-                  <CardContent className="p-4 text-sm text-gray-400">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4 text-sm text-slate-500">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
                 </Card>
               )}
               {filteredMasterPatients.map((patient) => {
@@ -1826,22 +1826,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Card key={patient.id} className="border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
+                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:border-indigo-300">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-white hover:text-indigo-300">{patient.name}</Link>
-                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">直近対応あり</Badge>}
-                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">引き継ぎ確認待ち</Badge>}
-                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-200">本日フローに追加済み</Badge>}
+                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">{patient.name}</Link>
+                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">直近対応あり</Badge>}
+                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">引き継ぎ確認待ち</Badge>}
+                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700">本日フローに追加済み</Badge>}
                           </div>
-                          <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                          <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                          <p className="mt-1 text-[11px] text-amber-300">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
+                          <p className="mt-0.5 text-xs text-slate-500">{patient.address}</p>
+                          <p className="mt-1 text-[11px] text-slate-500">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                          <p className="mt-1 text-[11px] text-amber-700">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                         </div>
                         <div className="flex shrink-0 gap-2">
-                          <Button size="sm" variant="outline" className="border-[#2a3553] text-xs text-gray-200 hover:bg-[#11182c]" asChild>
+                          <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 hover:bg-slate-50" asChild>
                             <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
                           </Button>
                           <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => handleAddPatientToTodayFlow(patient)}>
@@ -1860,19 +1860,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       </>
       {!isPharmacyStaff && (
         <div className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-            <FileImage className="h-4 w-4 text-indigo-400" />
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <FileImage className="h-4 w-4 text-indigo-500" />
             送信済みFAX
           </h2>
           {mockPharmacyRequests.map((req) => (
-            <Card key={req.id} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={req.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white">{req.patientName}</p>
-                    <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
+                    <p className="text-sm font-medium text-slate-900">{req.patientName}</p>
+                    <p className="text-xs text-slate-500">{req.id} • {req.time}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-sky-500/20 text-sky-300 border-sky-500/30')}>
+                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : req.status === '対応中' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')}>
                     {req.status}
                   </Badge>
                 </div>
@@ -1883,21 +1883,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       )}
 
       {isPharmacyStaff && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Receipt className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <Receipt className="h-4 w-4 text-indigo-500" />
               回収管理への引き渡しメモ
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-gray-300">
+          <CardContent className="space-y-2 text-xs text-slate-600">
             {dayTasks.filter((task) => task.billable).map((task) => {
               const patient = ownPatients.find((item) => item.id === task.patientId)
               return (
-                <div key={task.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                  <p className="font-medium text-white">{patient?.name ?? task.patientId}</p>
-                  <p className="mt-1 text-gray-400">handled-by: {task.handledBy} / handled-at: {formatJapanDateTime(task.completedAt ?? task.handledAt)}</p>
-                  <p className="mt-1 text-gray-400">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
+                <div key={task.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">{patient?.name ?? task.patientId}</p>
+                  <p className="mt-1 text-slate-500">handled-by: {task.handledBy} / handled-at: {formatJapanDateTime(task.completedAt ?? task.handledAt)}</p>
+                  <p className="mt-1 text-slate-500">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
                 </div>
               )
             })}
