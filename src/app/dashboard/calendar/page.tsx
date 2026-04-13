@@ -231,23 +231,23 @@ export default function CalendarPage() {
 
   if (role !== 'pharmacy_admin' && role !== 'pharmacy_staff') {
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className="space-y-4 text-slate-900">
         <div>
-          <h1 className="text-lg font-semibold text-white">在宅カレンダー</h1>
-          <p className="text-sm text-gray-400">この画面は Pharmacy Staff / Pharmacy Admin 向けです。</p>
+          <h1 className="text-lg font-semibold text-slate-900">在宅カレンダー</h1>
+          <p className="text-sm text-slate-500">この画面は Pharmacy Staff / Pharmacy Admin 向けです。</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-white">在宅カレンダー</h1>
-          <p className="text-sm text-gray-400">過去は確定実績、未来は予定として確認できます。日付を押すとその日の詳細が見られます。</p>
+          <h1 className="text-lg font-semibold text-slate-900">在宅カレンダー</h1>
+          <p className="text-sm text-slate-500">過去は確定実績、未来は予定として確認できます。日付を押すとその日の詳細が見られます。</p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /> 完了中心
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" /> 対応中あり
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-indigo-400" /> 予定あり
@@ -255,18 +255,18 @@ export default function CalendarPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.9fr)]">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="flex items-center gap-2 text-base text-white">
-                <CalendarDays className="h-4 w-4 text-indigo-400" />
+              <CardTitle className="flex items-center gap-2 text-base text-slate-900">
+                <CalendarDays className="h-4 w-4 text-indigo-500" />
                 {getMonthLabel(viewYear, viewMonth)}
               </CardTitle>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]" onClick={prevMonth}>
+                <Button variant="outline" size="sm" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={prevMonth}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]" onClick={nextMonth}>
+                <Button variant="outline" size="sm" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={nextMonth}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -302,7 +302,7 @@ export default function CalendarPage() {
                     ? 'border-amber-500/40 bg-amber-500/10'
                     : summary?.plannedCount
                       ? 'border-indigo-500/40 bg-indigo-500/10'
-                      : 'border-[#2a3553] bg-[#11182c]'
+                      : 'border-slate-200 bg-slate-50'
 
                 return (
                   <button
@@ -310,7 +310,7 @@ export default function CalendarPage() {
                     type="button"
                     onClick={() => setSelectedDate(dateKey)}
                     className={cn(
-                      'h-20 sm:h-28 rounded-lg border p-1.5 sm:p-2 text-left transition hover:border-indigo-400/60 hover:bg-[#24304d] overflow-hidden',
+                      'h-20 sm:h-28 rounded-lg border p-1.5 sm:p-2 text-left transition hover:border-indigo-300 hover:bg-slate-50 overflow-hidden',
                       toneClass,
                       isSelected && 'ring-2 ring-indigo-400/60',
                     )}
@@ -320,44 +320,44 @@ export default function CalendarPage() {
                         'text-sm font-semibold',
                         weekDayIndex === 0 && 'text-rose-300',
                         weekDayIndex === 6 && 'text-sky-300',
-                        weekDayIndex !== 0 && weekDayIndex !== 6 && 'text-white',
+                        weekDayIndex !== 0 && weekDayIndex !== 6 && 'text-slate-900',
                       )}>{day}</span>
                       {summary?.isToday && <Badge className="border-indigo-500/40 bg-indigo-500/20 px-1.5 py-0 text-[10px] text-indigo-200">今日</Badge>}
                     </div>
-                    <div className="mt-1 hidden space-y-1 text-[11px] text-gray-300 sm:block">
+                    <div className="mt-1 hidden space-y-1 text-[11px] text-slate-600 sm:block">
                       <p>予定 {summary?.plannedCount ?? 0}</p>
                       <p>完了 {summary?.completedCount ?? 0}</p>
                       <p>初回 {summary?.firstVisitCount ?? 0}</p>
                       {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
                     </div>
                     <div className="mt-2 sm:hidden">
-                      <p className="text-xs font-medium text-gray-200">{(summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)}人</p>
-                      <p className="text-[9px] text-gray-500">その日の患者数</p>
+                      <p className="text-xs font-medium text-slate-700">{(summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)}人</p>
+                      <p className="text-[9px] text-slate-500">その日の患者数</p>
                     </div>
                   </button>
                 )
               })}
             </div>
-            {loadingMonth && <p className="text-sm text-gray-400">月カレンダーを読み込み中です...</p>}
+            {loadingMonth && <p className="text-sm text-slate-500">月カレンダーを読み込み中です...</p>}
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base text-white">{selectedDate ? `${selectedDate} の詳細` : '日別詳細'}</CardTitle>
+              <CardTitle className="text-base text-slate-900">{selectedDate ? `${selectedDate} の詳細` : '日別詳細'}</CardTitle>
               {detail?.canEditPast && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">Adminのみ過去修正可</Badge>}
             </div>
             {selectedSummary && (
               <div className="space-y-2">
-                <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">予定 {selectedSummary.plannedCount}</Badge>
-                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">対応中 {selectedSummary.inProgressCount}</Badge>
-                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">完了 {selectedSummary.completedCount}</Badge>
-                  <Badge className="border-[#2a3553] bg-[#11182c] text-gray-200">初回 {selectedSummary.firstVisitCount}</Badge>
+                <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">予定 {selectedSummary.plannedCount}</Badge>
+                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">対応中 {selectedSummary.inProgressCount}</Badge>
+                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">完了 {selectedSummary.completedCount}</Badge>
+                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">初回 {selectedSummary.firstVisitCount}</Badge>
                 </div>
                 {canBuildRouteForSelectedDate && (
-                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
                     <span>ルート候補 {futureSelectedCount}人</span>
                     <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={futureSelectedCount === 0 || routePlanLoading} onClick={() => void handleSuggestRoute()}>
                       {routePlanLoading ? '作成中...' : '選んだ患者でルートを作る'}
@@ -370,17 +370,17 @@ export default function CalendarPage() {
                   </div>
                 )}
                 {routePlanResult && (
-                  <div ref={routeResultRef} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-200">
+                  <div ref={routeResultRef} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-white">{routePlanResult.message}</p>
+                      <p className="font-medium text-slate-900">{routePlanResult.message}</p>
                       {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
-                        <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-100">メール送信可</Badge>
+                        <Badge className="border-sky-200 bg-white text-sky-700">メール送信可</Badge>
                       )}
                     </div>
                     {routeActionNotice && <p className="mt-2 text-[11px] text-sky-200">{routeActionNotice}</p>}
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
-                        <p className="mt-2 text-gray-400">
+                        <p className="mt-2 text-slate-500">
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
                         </p>
@@ -391,12 +391,12 @@ export default function CalendarPage() {
                               ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(previous.address)}&destination=${encodeURIComponent(patient.address)}&travelmode=driving`
                               : null
                             return (
-                              <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2">
+                              <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
                                     <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">{index + 1}</span>
-                                    <span className="font-medium text-white">{patient.name}</span>
-                                    <p className="mt-1 text-[11px] text-gray-400">{patient.address}</p>
+                                    <span className="font-medium text-slate-900">{patient.name}</span>
+                                    <p className="mt-1 text-[11px] text-slate-500">{patient.address}</p>
                                     {mapsLink && (
                                       <a href={mapsLink} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] text-sky-300 hover:text-sky-200">
                                         {index === 0 ? '起点→1件目のGoogle Maps' : `${index}→${index + 1} のGoogle Maps`}
@@ -404,8 +404,8 @@ export default function CalendarPage() {
                                     )}
                                   </div>
                                   <div className="flex gap-1">
-                                    <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] px-2 text-gray-200" disabled={index === 0} onClick={() => moveSuggestedStop(index, -1)}>↑</Button>
-                                    <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] px-2 text-gray-200" disabled={index === routePlanResult.suggestedOrder.length - 1} onClick={() => moveSuggestedStop(index, 1)}>↓</Button>
+                                    <Button size="sm" variant="outline" className="border-slate-200 bg-white px-2 text-slate-700" disabled={index === 0} onClick={() => moveSuggestedStop(index, -1)}>↑</Button>
+                                    <Button size="sm" variant="outline" className="border-slate-200 bg-white px-2 text-slate-700" disabled={index === routePlanResult.suggestedOrder.length - 1} onClick={() => moveSuggestedStop(index, 1)}>↓</Button>
                                   </div>
                                 </div>
                               </li>
@@ -425,9 +425,9 @@ export default function CalendarPage() {
                 <p className="text-xs text-gray-500">スタッフ別の状況</p>
                 <div className="space-y-2">
                   {selectedSummary.staffSummaries.map((staff) => (
-                    <div key={staff.staffId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm">
+                    <div key={staff.staffId} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-white">{staff.staffName}</p>
+                        <p className="font-medium text-slate-900">{staff.staffName}</p>
                         <Badge className={cn(
                           'border text-xs',
                           staff.loadTone === 'heavy' && 'border-rose-500/40 bg-rose-500/20 text-rose-200',
@@ -437,7 +437,7 @@ export default function CalendarPage() {
                           {staff.loadTone === 'heavy' ? '負荷高め' : staff.loadTone === 'medium' ? '負荷中' : '負荷軽め'}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-xs text-gray-400">完了 {staff.completedCount} / 初回 {staff.firstVisitCount} / 距離 {staff.totalDistanceKm ?? '未集計'}</p>
+                      <p className="mt-1 text-xs text-slate-500">完了 {staff.completedCount} / 初回 {staff.firstVisitCount} / 距離 {staff.totalDistanceKm ?? '未集計'}</p>
                     </div>
                   ))}
                 </div>
@@ -445,34 +445,34 @@ export default function CalendarPage() {
             ) : null}
 
             {loadingDetail ? (
-              <p className="text-sm text-gray-400">日別詳細を読み込み中です...</p>
+              <p className="text-sm text-slate-500">日別詳細を読み込み中です...</p>
             ) : detail?.tasks?.length ? (
               <div className="space-y-3">
                 {detail.tasks.map((task) => (
-                  <div key={task.taskId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <div key={task.taskId} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-white">{task.patientName}</p>
-                      <Badge className="border-[#2a3553] bg-[#0f1728] text-gray-200">{task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'}</Badge>
+                      <p className="font-medium text-slate-900">{task.patientName}</p>
+                      <Badge className="border-slate-200 bg-slate-50 text-slate-700">{task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'}</Badge>
                       {task.isFirstVisit && <Badge className="border-sky-500/40 bg-sky-500/20 text-sky-200">初回</Badge>}
                       {task.isLongGapVisit && <Badge className="border-violet-500/40 bg-violet-500/20 text-violet-200">久しぶり</Badge>}
                       {task.hasNightHandover && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">夜間申し送りあり</Badge>}
                     </div>
-                    <div className="mt-2 grid gap-2 text-xs text-gray-400 sm:grid-cols-2">
+                    <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <p className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />予定 {task.scheduledTime}</p>
                       <p className="flex items-center gap-1"><UserRound className="h-3.5 w-3.5" />担当 {task.handledBy ?? '未対応'}</p>
                       <p>完了 {task.completedAt ? task.completedAt.replace('T', ' ').slice(0, 16) : '—'}</p>
                       <p>担当変更 {task.assigneeChangedAt ? task.assigneeChangedAt.replace('T', ' ').slice(0, 16) : '—'}</p>
                     </div>
-                    {task.note ? <p className="mt-2 text-xs text-gray-300">{task.note}</p> : null}
+                    {task.note ? <p className="mt-2 text-xs text-slate-600">{task.note}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {task.patientId ? (
-                        <Button asChild size="sm" variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                        <Button asChild size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                           <Link href={`/dashboard/patients/${task.patientId}`}>
                             詳細を見る
                           </Link>
                         </Button>
                       ) : (
-                        <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                        <Button size="sm" variant="outline" disabled className="border-slate-200 bg-white text-slate-400 hover:bg-slate-50">
                           詳細を見る
                         </Button>
                       )}
@@ -483,17 +483,17 @@ export default function CalendarPage() {
                             variant="outline"
                             onClick={() => toggleRouteCandidate(task.patientId)}
                             className={cn(
-                              'border-[#2a3553] text-gray-200 hover:bg-[#1a2035]',
+                              'border-slate-200 text-slate-700 hover:bg-slate-50',
                               selectedRouteCandidateIds.includes(task.patientId)
-                                ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-100'
-                                : 'bg-[#0f1728]'
+                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                                : 'bg-white'
                             )}
                           >
                             <Route className="mr-1 h-3.5 w-3.5" />
                             {selectedRouteCandidateIds.includes(task.patientId) ? '候補に追加済み' : 'ルート候補に追加'}
                           </Button>
                         ) : (
-                          <Button size="sm" variant="outline" disabled className="border-[#2a3553] bg-[#0f1728] text-gray-200 hover:bg-[#1a2035]">
+                          <Button size="sm" variant="outline" disabled className="border-slate-200 bg-white text-slate-400 hover:bg-slate-50">
                             <Route className="mr-1 h-3.5 w-3.5" />ルート候補に追加
                           </Button>
                         )
@@ -503,13 +503,13 @@ export default function CalendarPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                 選択した日の詳細はまだありません。
               </div>
             )}
 
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
-              <p className="font-medium text-gray-200">この画面の前提</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+              <p className="font-medium text-slate-900">この画面の前提</p>
               <ul className="mt-2 space-y-1">
                 <li>・過去は確定実績ベースで見ます</li>
                 <li>・未来は予定なので変更される前提です</li>
