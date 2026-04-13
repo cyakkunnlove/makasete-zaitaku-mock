@@ -557,18 +557,18 @@ function PharmacyDayTaskCardMetrics({
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3">
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">handled-by</p>
-        <p className="mt-1 text-sm text-white">{handledBy ?? '未設定'}</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">担当者</p>
+        <p className="mt-1 text-sm text-slate-900">{handledBy ?? '未設定'}</p>
       </div>
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">handled-at</p>
-        <p className="mt-1 text-sm text-white">{handledAt ? formatJapanDateTime(handledAt) : '未設定'}</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">着手時刻</p>
+        <p className="mt-1 text-sm text-slate-900">{handledAt ? formatJapanDateTime(handledAt) : '未設定'}</p>
       </div>
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">billable / 回収連携</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">請求 / 回収連携</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={cn('border text-[10px]', billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
+          <Badge variant="outline" className={cn('border text-[10px]', billable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500')}>
             {billable ? '請求対象' : '未計上'}
           </Badge>
           <Badge variant="outline" className={cn('border text-[10px]', collectionClassName)}>{collectionStatus}</Badge>
@@ -609,22 +609,22 @@ function PharmacyDayTaskCardActions({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
         {planButtonLabel}
       </Button>
-      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
-        <GripVertical className="h-3.5 w-3.5 text-gray-500" />
+      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600 active:cursor-grabbing">
+        <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
       </span>
-      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
-      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
-      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↑</Button>
+      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↓</Button>
+      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500">
         対応する
       </Button>
-      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
+      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500">
         対応完了
       </Button>
-      <span className="text-[11px] text-gray-500">{completionHelpText}</span>
+      <span className="text-[11px] text-slate-500">{completionHelpText}</span>
     </div>
   )
 }
@@ -646,8 +646,8 @@ function PharmacyDayTaskCardMetaChips({
 
   return (
     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-      {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">{plannedLabelPrefix}{plannedBy}</span>}
-      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">{updatedLabelPrefix}{formatJapanDateTime(updatedAt)}</span>}
+      {planningStatus === 'planned' && <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-sky-700">{plannedLabelPrefix}{plannedBy}</span>}
+      {updatedAt && <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-slate-500">{updatedLabelPrefix}{formatJapanDateTime(updatedAt)}</span>}
     </div>
   )
 }
@@ -730,7 +730,8 @@ function PharmacyDayTaskCard({
         setDragOverTaskId(null)
       }}
       className={cn(
-        'border-[#2a3553] bg-[#1a2035] transition',
+        adminCardClass,
+        'transition',
         draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
         dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
       )}
@@ -1631,10 +1632,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         />
 
         {(isPatientsLoading || isDayFlowLoading) && (
-          <Card className="border-sky-500/30 bg-sky-500/10">
-            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-100">
+          <Card className="border-sky-200 bg-sky-50">
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-800">
               <span>データベースから最新データを読み込み中です...</span>
-              <span className="text-xs text-sky-200/80">
+              <span className="text-xs text-sky-700">
                 {isPatientsLoading && isDayFlowLoading ? '患者情報と今日の対応予定を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : '今日の対応予定を読み込み中'}
               </span>
             </CardContent>
