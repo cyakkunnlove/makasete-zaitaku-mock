@@ -169,14 +169,14 @@ export default function RequestDetailPage() {
                 <span className="text-gray-400">現在の状況</span>
                 <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                <p className="text-xs text-gray-500">最終更新</p>
-                <p className="mt-1 text-gray-200">{latestEvent?.timestamp ?? `${request.receivedDate} ${request.receivedAt}`}</p>
-                <p className="mt-1 text-xs text-gray-400">{latestEvent?.note ?? '依頼受付済み'}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">最終更新</p>
+                <p className="mt-1 text-slate-900">{latestEvent?.timestamp ?? `${request.receivedDate} ${request.receivedAt}`}</p>
+                <p className="mt-1 text-xs text-slate-500">{latestEvent?.note ?? '依頼受付済み'}</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                <p className="text-xs text-gray-500">担当状況</p>
-                <p className="mt-1 text-gray-200">{assignee ? `${assignee.name} が対応中` : '担当調整中'}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">担当状況</p>
+                <p className="mt-1 text-slate-900">{assignee ? `${assignee.name} が対応中` : '担当調整中'}</p>
               </div>
             </CardContent>
           </Card>
@@ -187,16 +187,16 @@ export default function RequestDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-700">
               <div className={`${adminPanelClass} p-3`}>
-                <p className="text-xs text-gray-500">確認したいこと</p>
-                <p className="mt-1 text-gray-200">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
+                <p className="text-xs text-slate-500">確認したいこと</p>
+                <p className="mt-1 text-slate-900">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
               </div>
               {request.notes && (
-                <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                  <p className="text-xs text-gray-500">共有メモ</p>
-                  <p className="mt-1 text-gray-200">{request.notes}</p>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">共有メモ</p>
+                  <p className="mt-1 text-slate-900">{request.notes}</p>
                 </div>
               )}
-              <p className="text-xs text-gray-500">薬局管理者画面では、患者詳細・FAX原本・内部アサイン工程は表示しません。</p>
+              <p className="text-xs text-slate-500">薬局管理者画面では、患者詳細・FAX原本・内部アサイン工程は表示しません。</p>
             </CardContent>
           </Card>
         </div>
@@ -235,14 +235,14 @@ export default function RequestDetailPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]"
+              className="h-8 w-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
-            <p className="text-xs text-gray-400">
+            <h1 className="text-lg font-semibold text-slate-900">{request.id}</h1>
+            <p className="text-xs text-slate-500">
               {request.receivedDate} {request.receivedAt} 受付
             </p>
             {isAdmin && (
