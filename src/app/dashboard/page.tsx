@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -177,111 +178,111 @@ function RegionalAdminDashboard() {
   const patientUnresolved = requestData.filter((request) => !request.patientId && request.status !== 'cancelled' && request.status !== 'completed').length
 
   return (
-    <div className="space-y-4">
+    <div className={`${adminPageClass} space-y-4`}>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpiData.map((kpi, index) => {
           const Icon = kpiIcons[index]
           const TrendIcon = kpi.trendUp ? ArrowUpRight : ArrowDownRight
           return (
-            <Card key={kpi.label} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={kpi.label} className={adminCardClass}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <Icon className="h-4 w-4 text-indigo-400" />
-                  <span className={cn('inline-flex items-center gap-1 text-xs font-medium', kpi.trendUp ? 'text-emerald-400' : 'text-rose-400')}>
+                  <Icon className="h-4 w-4 text-indigo-500" />
+                  <span className={cn('inline-flex items-center gap-1 text-xs font-medium', kpi.trendUp ? 'text-emerald-600' : 'text-rose-600')}>
                     <TrendIcon className="h-3 w-3" />
                     {kpi.trend}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-2xl font-bold text-white">{kpi.value}</p>
-                <p className="text-[10px] text-gray-500">{kpi.label}</p>
+                <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
+                <p className="text-[10px] text-slate-500">{kpi.label}</p>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Settings2 className="h-4 w-4 text-emerald-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Settings2 className="h-4 w-4 text-emerald-600" />
             地域運用・加盟店設定サマリー
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-              <p className="text-[10px] text-emerald-200/80">転送運用設定済み</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-300">{forwardingReady}</p>
+            <div className={`${adminPanelClass} border-emerald-200 bg-emerald-50 p-3`}>
+              <p className="text-[10px] text-emerald-700">転送運用設定済み</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{forwardingReady}</p>
             </div>
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
-              <p className="text-[10px] text-indigo-200/80">地域内 active 加盟店</p>
-              <p className="mt-1 text-2xl font-bold text-indigo-300">{activePharmacies}</p>
+            <div className={`${adminPanelClass} border-indigo-200 bg-indigo-50 p-3`}>
+              <p className="text-[10px] text-indigo-700">地域内 active 加盟店</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-600">{activePharmacies}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-[10px] text-amber-200/80">患者未特定</p>
-              <p className="mt-1 text-2xl font-bold text-amber-300">{patientUnresolved}</p>
+            <div className={`${adminPanelClass} border-amber-200 bg-amber-50 p-3`}>
+              <p className="text-[10px] text-amber-700">患者未特定</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{patientUnresolved}</p>
             </div>
-            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
-              <p className="text-[10px] text-sky-200/80">設定画面</p>
-              <Link href="/dashboard/settings/region" className="mt-1 inline-flex text-sm font-medium text-sky-300 hover:text-sky-200">地域設定を開く</Link>
+            <div className={`${adminPanelClass} border-sky-200 bg-sky-50 p-3`}>
+              <p className="text-[10px] text-sky-700">設定画面</p>
+              <Link href="/dashboard/settings/region" className="mt-1 inline-flex text-sm font-medium text-sky-700 hover:text-sky-800">地域設定を開く</Link>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
             今すぐ確認したい案件
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
-              <p className="text-[10px] text-rose-200/80">高優先・対応中</p>
-              <p className="mt-1 text-2xl font-bold text-rose-300">{urgentActiveRequests}</p>
+            <div className={`${adminPanelClass} border-rose-200 bg-rose-50 p-3`}>
+              <p className="text-[10px] text-rose-700">高優先・対応中</p>
+              <p className="mt-1 text-2xl font-bold text-rose-600">{urgentActiveRequests}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-[10px] text-amber-200/80">停滞気味案件</p>
-              <p className="mt-1 text-2xl font-bold text-amber-300">{delayedRequests}</p>
+            <div className={`${adminPanelClass} border-amber-200 bg-amber-50 p-3`}>
+              <p className="text-[10px] text-amber-700">停滞気味案件</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{delayedRequests}</p>
             </div>
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
-              <p className="text-[10px] text-indigo-200/80">未割当</p>
-              <p className="mt-1 text-2xl font-bold text-indigo-300">{unassignedRequests}</p>
+            <div className={`${adminPanelClass} border-indigo-200 bg-indigo-50 p-3`}>
+              <p className="text-[10px] text-indigo-700">未割当</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-600">{unassignedRequests}</p>
             </div>
-            <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
-              <p className="text-[10px] text-cyan-200/80">未確認の連携事項</p>
-              <p className="mt-1 text-2xl font-bold text-cyan-300">{unconfirmedHandovers}</p>
+            <div className={`${adminPanelClass} border-cyan-200 bg-cyan-50 p-3`}>
+              <p className="text-[10px] text-cyan-700">未確認の連携事項</p>
+              <p className="mt-1 text-2xl font-bold text-cyan-600">{unconfirmedHandovers}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Timer className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Timer className="h-4 w-4 text-indigo-500" />
             当日対応の基準達成率
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-amber-400">{slaRate}%</span>
-            <span className="pb-1 text-sm text-gray-500">目標: 95%</span>
+            <span className="text-3xl font-bold text-amber-600">{slaRate}%</span>
+            <span className="pb-1 text-sm text-slate-500">目標: 95%</span>
           </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-[#111827]">
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-slate-100">
             <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400" style={{ width: `${slaRate}%` }} />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Stethoscope className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Stethoscope className="h-4 w-4 text-indigo-500" />
             本日の担当スタッフ
           </CardTitle>
         </CardHeader>
@@ -290,21 +291,21 @@ function RegionalAdminDashboard() {
             const today = MOCK_FLOW_DATE
             const todayShifts = shiftData.filter((shift) => shift.shiftDate === today)
             if (todayShifts.length === 0) {
-              return <p className="text-xs text-gray-500">本日の担当データがありません。</p>
+              return <p className="text-xs text-slate-500">本日の担当データがありません。</p>
             }
             return todayShifts.map((shift) => {
               const activeRequest = requestData.find((req) => req.assigneeId === shift.pharmacistId && ['dispatched', 'arrived', 'in_progress'].includes(req.status))
               const status = activeRequest ? (activeRequest.status === 'dispatched' ? '移動中' : '対応中') : '待機中'
               const assignment = activeRequest ? `${activeRequest.pharmacyName} / ${activeRequest.patientName ?? '患者照合中'}` : '次回アサイン待機'
               return (
-                <div key={shift.id} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <div key={shift.id} className={`${adminPanelClass} flex items-center justify-between p-3`}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
                       {shift.pharmacistName.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{shift.pharmacistName}</p>
-                      <p className="text-xs text-gray-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
+                      <p className="text-sm font-medium text-slate-900">{shift.pharmacistName}</p>
+                      <p className="text-xs text-slate-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className={cn('border text-xs', staffStatusClass[status])}>
