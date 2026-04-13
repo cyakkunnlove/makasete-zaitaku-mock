@@ -1126,7 +1126,7 @@ export default function PatientDetailPage() {
       </Card>
 
       <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-4xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-slate-200 bg-white text-slate-900 shadow-xl sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>訪問メモ写真</DialogTitle>
           </DialogHeader>
@@ -1141,7 +1141,7 @@ export default function PatientDetailPage() {
                   className="object-contain"
                 />
               </div>
-              <div className="grid gap-2 text-sm text-gray-300 sm:grid-cols-2">
+              <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                 <p>メモ: {selectedPhoto.caption || '外観写真'}</p>
                 <p>追加日時: {new Date(selectedPhoto.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                 <p>種別: {selectedPhoto.photo_type ?? '未設定'}</p>
@@ -1149,21 +1149,21 @@ export default function PatientDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-400">画像を表示できませんでした。</p>
+            <p className="text-sm text-slate-500">画像を表示できませんでした。</p>
           )}
         </DialogContent>
       </Dialog>
 
       <Dialog open={institutionDialogOpen} onOpenChange={setInstitutionDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>病院を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">候補にない病院は、その場で追加できます。</DialogDescription>
+            <DialogDescription className="text-slate-500">候補にない病院は、その場で追加できます。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-gray-500">病院名</p>
-              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              <p className="text-xs text-slate-500">病院名</p>
+              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
             <div>
               <p className="text-xs text-gray-500">電話</p>
@@ -1182,10 +1182,10 @@ export default function PatientDetailPage() {
       </Dialog>
 
       <Dialog open={doctorDialogOpen} onOpenChange={setDoctorDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>医師を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">選択中の病院に医師を追加します。</DialogDescription>
+            <DialogDescription className="text-slate-500">選択中の病院に医師を追加します。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1209,17 +1209,17 @@ export default function PatientDetailPage() {
       </Dialog>
 
       <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>住所の解釈を確認してください</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-slate-500">
               保存前に、地図で使う住所解釈を確認できます。問題なければこのまま保存します。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">入力した住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.inputAddress ?? '—'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">入力した住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.inputAddress ?? '—'}</p>
             </div>
             <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
               <p className="text-xs text-gray-500">解釈された住所</p>
@@ -1424,71 +1424,71 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Clock3 className="h-4 w-4 text-emerald-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Clock3 className="h-4 w-4 text-emerald-500" />
             訪問記録
-            <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+            <Badge variant="outline" className="ml-1 border-slate-200 text-xs text-slate-500">
               準備中
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-[#2a3553] bg-[#111827] p-3 text-sm text-gray-300">
-            <p className="font-medium text-white">これから連携する内容</p>
-            <p className="mt-1 text-gray-400">訪問記録、請求候補、請求済み状態はデータベース連携に合わせてここへ表示します。</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            <p className="font-medium text-slate-900">これから連携する内容</p>
+            <p className="mt-1 text-slate-500">訪問記録、請求候補、請求済み状態はデータベース連携に合わせてここへ表示します。</p>
           </div>
-          <p className="text-xs text-gray-500">今は訪問スケジュールと患者基本情報の整理を優先しています。</p>
+          <p className="text-xs text-slate-500">今は訪問スケジュールと患者基本情報の整理を優先しています。</p>
         </CardContent>
       </Card>
 
       {(authMode !== 'cognito') && (
         <>
           {/* Request History */}
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm text-white">
-                <Clock3 className="h-4 w-4 text-indigo-400" />
+              <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+                <Clock3 className="h-4 w-4 text-indigo-500" />
                 依頼履歴
-                <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+                <Badge variant="outline" className="ml-1 border-slate-200 text-xs text-slate-500">
                   準備中
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="py-4 text-center text-xs text-gray-500">依頼履歴の表示はデータベース連携に合わせて整理中です。</p>
+              <p className="py-4 text-center text-xs text-slate-500">依頼履歴の表示はデータベース連携に合わせて整理中です。</p>
             </CardContent>
           </Card>
 
           {/* Handover History */}
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm text-white">
-                <FileText className="h-4 w-4 text-purple-400" />
+              <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+                <FileText className="h-4 w-4 text-purple-500" />
                 夜間対応履歴
-                <Badge variant="outline" className="ml-1 border-[#2a3553] text-xs text-gray-400">
+                <Badge variant="outline" className="ml-1 border-slate-200 text-xs text-slate-500">
                   準備中
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="py-4 text-center text-xs text-gray-500">夜間対応履歴の表示はデータベース連携に合わせて整理中です。</p>
+              <p className="py-4 text-center text-xs text-slate-500">夜間対応履歴の表示はデータベース連携に合わせて整理中です。</p>
             </CardContent>
           </Card>
         </>
       )}
 
       {authMode === 'cognito' && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <FileText className="h-4 w-4 text-purple-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <FileText className="h-4 w-4 text-purple-500" />
               履歴表示
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="py-2 text-sm text-gray-400">依頼履歴と夜間対応履歴は、これからデータベース連携します。</p>
+            <p className="py-2 text-sm text-slate-500">依頼履歴と夜間対応履歴は、これからデータベース連携します。</p>
           </CardContent>
         </Card>
       )}

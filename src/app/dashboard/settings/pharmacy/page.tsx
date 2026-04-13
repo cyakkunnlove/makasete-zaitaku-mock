@@ -87,16 +87,16 @@ export default function PharmacySettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-gray-300">薬局名</Label>
-              <Input value={settings.pharmacyName} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, pharmacyName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">薬局名</Label>
+              <Input value={settings.pharmacyName} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, pharmacyName: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
             <div>
-              <Label className="text-gray-300">管理責任者</Label>
-              <Input value={settings.adminOwner} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, adminOwner: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">管理責任者</Label>
+              <Input value={settings.adminOwner} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, adminOwner: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
             <div>
-              <Label className="text-gray-300">契約区分</Label>
-              <Input value={settings.contractPlan} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, contractPlan: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">契約区分</Label>
+              <Input value={settings.contractPlan} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, contractPlan: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
           </CardContent>
         </Card>
@@ -117,16 +117,16 @@ export default function PharmacySettingsPage() {
               </Badge>
             </div>
             <div>
-              <Label className="text-gray-300">夜間受付経路</Label>
-              <Input value={settings.emergencyRoute} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, emergencyRoute: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">夜間受付経路</Label>
+              <Input value={settings.emergencyRoute} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, emergencyRoute: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
             <div>
-              <Label className="text-gray-300">転送先電話</Label>
-              <Input value={settings.forwardingPhone} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">転送先電話</Label>
+              <Input value={settings.forwardingPhone} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
             <div>
-              <Label className="text-gray-300">朝の確認メモ既定文</Label>
-              <Input value={settings.defaultMorningNote} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, defaultMorningNote: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#0a0e1a] text-gray-100" />
+              <Label className="text-slate-600">朝の確認メモ既定文</Label>
+              <Input value={settings.defaultMorningNote} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, defaultMorningNote: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
           </CardContent>
         </Card>
