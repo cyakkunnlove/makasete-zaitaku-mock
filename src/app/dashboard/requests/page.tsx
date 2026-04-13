@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { adminCardClass, adminPageClass } from '@/components/admin-ui'
+import { adminCardClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { Clock3, Plus } from 'lucide-react'
 import {
   requestData,
@@ -257,7 +257,7 @@ export default function RequestsPage() {
                 <TabsTrigger
                   key={tab.key}
                   value={tab.key}
-                  className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                  className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -284,7 +284,7 @@ export default function RequestsPage() {
             <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
-                  'cursor-pointer border border-[#2a3553] bg-[#1a2035] border-l-4 transition hover:border-indigo-500/60',
+                  `${adminCardClass} cursor-pointer border-l-4 transition hover:border-indigo-400`,
                   priority.mobileBorder
                 )}
               >
@@ -349,17 +349,17 @@ export default function RequestsPage() {
       </div>
 
       {/* Desktop table view */}
-      <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+      <Card className={`hidden lg:block ${adminTableClass}`}>
         <Table>
           <TableHeader>
-            <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-              <TableHead className="text-gray-400">優先度</TableHead>
-              <TableHead className="text-gray-400">受付時刻</TableHead>
-              <TableHead className="text-gray-400">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
-              <TableHead className="text-gray-400">薬局名</TableHead>
-              <TableHead className="text-gray-400">ステータス</TableHead>
-              <TableHead className="text-gray-400">受付概要</TableHead>
-              <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
+            <TableRow className="border-slate-200 hover:bg-slate-50">
+              <TableHead className="text-slate-500">優先度</TableHead>
+              <TableHead className="text-slate-500">受付時刻</TableHead>
+              <TableHead className="text-slate-500">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
+              <TableHead className="text-slate-500">薬局名</TableHead>
+              <TableHead className="text-slate-500">ステータス</TableHead>
+              <TableHead className="text-slate-500">受付概要</TableHead>
+              <TableHead className="text-slate-500">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
               {isNightPharmacist && <TableHead className="text-gray-400">次の操作</TableHead>}
             </TableRow>
           </TableHeader>
@@ -379,7 +379,7 @@ export default function RequestsPage() {
                 <TableRow
                   key={request.id}
                   onClick={() => { if (!isPharmacyAdmin) router.push(`/dashboard/requests/${request.id}`) }}
-                  className={cn('border-[#2a3553] hover:bg-[#11182c]', !isPharmacyAdmin && 'cursor-pointer')}
+                  className={cn('border-slate-200 hover:bg-slate-50', !isPharmacyAdmin && 'cursor-pointer')}
                 >
                   <TableCell>
                     <span className="inline-flex items-center gap-2">

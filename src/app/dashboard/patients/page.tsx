@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { adminCardClass, adminInputClass, adminPageClass } from '@/components/admin-ui'
+import { adminCardClass, adminInputClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
@@ -244,16 +244,16 @@ export default function PatientsPage() {
               return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
-                  className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60"
+                  className={`${adminCardClass} cursor-pointer transition hover:border-indigo-400`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
-                          <p className="text-base font-semibold text-white">{patient.name}</p>
+                          {isDayContext && <GripVertical className="h-4 w-4 text-slate-400" />}
+                          <p className="text-base font-semibold text-slate-900">{patient.name}</p>
                         </div>
-                        <p className="text-xs text-gray-400">生年月日: {patient.dob}</p>
+                        <p className="text-xs text-slate-500">生年月日: {patient.dob}</p>
                       </div>
                     </div>
                     <div className="mt-3 space-y-2 text-xs">
@@ -261,15 +261,15 @@ export default function PatientsPage() {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-gray-300 hover:text-indigo-300"
+                        className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-600"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MapPin className="h-3.5 w-3.5 text-indigo-400" />
                         {patient.address}
                       </a>
                     </div>
-                    <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                    <p className="mt-1 text-xs text-indigo-600">{patient.pharmacyName}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
                     {authMode !== 'cognito' && patient.registrationMeta && (
                       <p className="mt-1 text-[11px] text-cyan-300">登録済みメモ / {countVisitRuleTouches(patient)} ルール</p>
                     )}
@@ -288,19 +288,19 @@ export default function PatientsPage() {
             )})}
           </div>
 
-          <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+          <Card className={`hidden lg:block ${adminTableClass}`}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">患者一覧</CardTitle>
+              <CardTitle className="text-base text-slate-900">患者一覧</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableHead className="text-gray-400">氏名</TableHead>
-                    <TableHead className="text-gray-400">生年月日</TableHead>
-                    <TableHead className="text-gray-400">住所</TableHead>
-                    {!isDayContext && <TableHead className="text-gray-400">薬局</TableHead>}
-                    <TableHead className="text-gray-400">注意フラグ</TableHead>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="text-slate-500">氏名</TableHead>
+                    <TableHead className="text-slate-500">生年月日</TableHead>
+                    <TableHead className="text-slate-500">住所</TableHead>
+                    {!isDayContext && <TableHead className="text-slate-500">薬局</TableHead>}
+                    <TableHead className="text-slate-500">注意フラグ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,10 +309,10 @@ export default function PatientsPage() {
                     return (
                     <TableRow
                       key={patient.id}
-                      className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50"
                       onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
                     >
-                      <TableCell className="font-medium text-white">
+                      <TableCell className="font-medium text-slate-900">
                         <div className="flex items-center gap-2">
                           {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
                           <div>
@@ -323,8 +323,8 @@ export default function PatientsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-300">{patient.dob}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-slate-600">{patient.dob}</TableCell>
+                      <TableCell className="text-slate-600">
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
                           target="_blank"
@@ -338,7 +338,7 @@ export default function PatientsPage() {
                       </TableCell>
                       {!isDayContext && (
                         <TableCell className="space-y-1">
-                          <p className="text-indigo-300">{patient.pharmacyName}</p>
+                          <p className="text-indigo-600">{patient.pharmacyName}</p>
                         </TableCell>
                       )}
                       <TableCell>
