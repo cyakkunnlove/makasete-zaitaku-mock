@@ -173,9 +173,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const allNavItems = [...filteredNav, ...filteredSettings]
   const isAdminShell = role === 'system_admin' || role === 'regional_admin'
+  const isFieldShell = role === 'pharmacy_admin' || role === 'pharmacy_staff'
   const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : 'bg-[#0a0e1a] text-gray-100'
   const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : 'bg-[#111827] border-[#2a3553]'
-  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
+  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-slate-900/95 border-slate-700' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
   const handleSidebarNavigate = (href: string) => {
     if (pathname === href) {
@@ -444,8 +445,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Top Bar */}
       <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
-        <button className="mr-3 rounded-lg p-2 transition-colors hover:bg-slate-100 lg:hidden" onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} className={isAdminShell ? 'text-slate-500' : 'text-gray-400'} />
+        <button className={cn('mr-3 rounded-lg p-2 transition-colors lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-800' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-300' : 'text-gray-400'} />
         </button>
         <h2 className={cn('font-semibold', isAdminShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
         <div className="ml-3 flex items-center gap-1.5">
@@ -483,7 +484,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Bottom Nav - Mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-[#2a3553] z-20 pb-[env(safe-area-inset-bottom)]">
+      <nav className={cn('lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t pb-[env(safe-area-inset-bottom)]', isFieldShell ? 'border-slate-200 bg-white/95 backdrop-blur' : 'bg-[#111827] border-[#2a3553]')}>
         <div className="flex items-center justify-around h-14">
           {visibleMobileNavItems.map((item) => {
             const active = isNavActive(item.href)
@@ -492,9 +493,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 type="button"
                 onClick={() => handleSidebarNavigate(item.href)}
-                className={`relative flex flex-col items-center gap-0.5 text-xs py-1 px-3 ${
-                  active ? 'text-indigo-400' : 'text-gray-500'
-                }`}
+                className={cn('relative flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-colors', isFieldShell ? (active ? 'text-indigo-600' : 'text-slate-500') : active ? 'text-indigo-400' : 'text-gray-500')}
               >
                 <span className="relative">
                   {item.icon}
