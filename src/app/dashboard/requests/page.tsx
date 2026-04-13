@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { adminCardClass, adminPageClass } from '@/components/admin-ui'
 import { Clock3, Plus } from 'lucide-react'
 import {
   requestData,
@@ -208,11 +209,11 @@ export default function RequestsPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <h1 className="text-lg font-semibold text-slate-900">依頼管理</h1>
+          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -228,9 +229,9 @@ export default function RequestsPage() {
 
       {isPharmacyAdmin && (
         <div className="grid grid-cols-3 gap-3">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">今夜の自局依頼</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応準備中</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-slate-900">{visibleRequests.length}</p><p className="text-[10px] text-slate-500">今夜の自局依頼</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応準備中</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応中</p></CardContent></Card>
         </div>
       )}
 
@@ -238,20 +239,20 @@ export default function RequestsPage() {
 
       {isNightPharmacist && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-cyan-300">{visibleRequests.filter((request) => request.status === 'received').length}</p><p className="text-[10px] text-gray-500">受電済み</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-300">{visibleRequests.filter((request) => request.status === 'fax_pending').length}</p><p className="text-[10px] text-gray-500">FAX受信待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => request.status === 'fax_received' || (!request.patientId && ['assigning', 'assigned', 'checklist'].includes(request.status))).length}</p><p className="text-[10px] text-gray-500">患者特定待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-cyan-600">{visibleRequests.filter((request) => request.status === 'received').length}</p><p className="text-[10px] text-slate-500">受電済み</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-600">{visibleRequests.filter((request) => request.status === 'fax_pending').length}</p><p className="text-[10px] text-slate-500">FAX受信待ち</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => request.status === 'fax_received' || (!request.patientId && ['assigning', 'assigned', 'checklist'].includes(request.status))).length}</p><p className="text-[10px] text-slate-500">患者特定待ち</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応中</p></CardContent></Card>
         </div>
       )}
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
+          <CardTitle className="text-base text-slate-900">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-            <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-[#11182c] p-1">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg border border-slate-200 bg-slate-100 p-1">
               {tabItems.map((tab) => (
                 <TabsTrigger
                   key={tab.key}
