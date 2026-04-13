@@ -264,12 +264,12 @@ export default function RequestDetailPage() {
           {isNightPharmacist && (
             <>
               <Link href={`/dashboard/night-patients?requestId=${request.id}${needsFaxReview ? '&source=fax' : '&source=phone'}`}>
-                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                <Button variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                   患者検索
                 </Button>
               </Link>
               <Link href={`/dashboard/handovers/new?requestId=${request.id}`}>
-                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                <Button variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                   夜間対応内容を残す
                 </Button>
               </Link>
@@ -296,29 +296,29 @@ export default function RequestDetailPage() {
       </div>
 
       {isNightPharmacist && (
-        <Card className="border-indigo-500/30 bg-indigo-500/10">
+        <Card className="border-indigo-200 bg-indigo-50">
           <CardContent className="grid gap-3 p-4 md:grid-cols-3">
             <div>
-              <p className="text-[11px] text-indigo-200/70">受付起点</p>
-              <p className="mt-1 text-sm text-white">電話受電 → FAX受信</p>
+              <p className="text-[11px] text-indigo-600">受付起点</p>
+              <p className="mt-1 text-sm text-slate-900">電話受電 → FAX受信</p>
             </div>
             <div>
-              <p className="text-[11px] text-indigo-200/70">受付時間の定義</p>
-              <p className="mt-1 text-sm text-white">患者確認ボタン押下のタイムスタンプ</p>
+              <p className="text-[11px] text-indigo-600">受付時間の定義</p>
+              <p className="mt-1 text-sm text-slate-900">患者確認ボタン押下のタイムスタンプ</p>
             </div>
             <div>
-              <p className="text-[11px] text-indigo-200/70">検索範囲</p>
-              <p className="mt-1 text-sm text-white">リージョンアドミン管轄内の患者</p>
+              <p className="text-[11px] text-indigo-600">検索範囲</p>
+              <p className="mt-1 text-sm text-slate-900">リージョンアドミン管轄内の患者</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Uber Eats Style Vertical Timeline - Always Visible */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Clock3 className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Clock3 className="h-4 w-4 text-indigo-500" />
             対応ステータス
           </CardTitle>
         </CardHeader>
@@ -346,7 +346,7 @@ export default function RequestDetailPage() {
                         ? 'border-emerald-500 bg-emerald-500 text-white'
                         : isCurrent
                           ? 'border-indigo-400 bg-indigo-500 text-white animate-pulse shadow-lg shadow-indigo-500/40'
-                          : 'border-[#2a3553] bg-[#0a0e1a]'
+                          : 'border-slate-200 bg-white'
                     )}
                   >
                     {isCompleted ? (
@@ -382,7 +382,7 @@ export default function RequestDetailPage() {
                       )}
                     </div>
                     {event.time && event.done && (
-                      <p className="text-xs text-gray-400">{event.time}</p>
+                      <p className="text-xs text-slate-500">{event.time}</p>
                     )}
                   </div>
                 </div>
@@ -395,16 +395,16 @@ export default function RequestDetailPage() {
       {/* Info Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Patient Info */}
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <User className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <User className="h-4 w-4 text-indigo-500" />
               {isAdmin ? '患者特定状況' : '患者情報'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isAdmin ? (
-              <div className="space-y-3 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-sm">
+              <div className={`${adminPanelClass} space-y-3 p-3 text-sm`}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-gray-400">患者状態</span>
                   <Badge
@@ -523,10 +523,10 @@ export default function RequestDetailPage() {
         </Card>
 
         {/* Request Details */}
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <FileText className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <FileText className="h-4 w-4 text-indigo-500" />
               依頼詳細
             </CardTitle>
           </CardHeader>
@@ -548,7 +548,7 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs">
+            <div className={`${adminPanelClass} space-y-2 p-3 text-xs`}>
               <div>
                 <p className="text-gray-400">症状</p>
                 <p className="mt-0.5 text-gray-200">{request.symptom}</p>
@@ -613,10 +613,10 @@ export default function RequestDetailPage() {
       </div>
 
       {/* Assignee Card */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <User className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <User className="h-4 w-4 text-indigo-500" />
             担当夜間薬剤師
           </CardTitle>
         </CardHeader>
@@ -756,9 +756,9 @@ export default function RequestDetailPage() {
 
         {/* Timeline Tab */}
         <TabsContent value="timeline">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">対応タイムライン</CardTitle>
+              <CardTitle className="text-sm text-slate-900">対応タイムライン</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative space-y-0">

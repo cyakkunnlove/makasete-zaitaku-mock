@@ -689,18 +689,18 @@ export default function PatientDetailPage() {
 
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/dashboard/patients">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:bg-[#1a2035] hover:text-white">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-white">{patient.name}</h1>
+              <h1 className="text-lg font-semibold text-slate-900">{patient.name}</h1>
               <Badge
                 variant="outline"
                 className={cn(
@@ -722,7 +722,7 @@ export default function PatientDetailPage() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-400">{patient.id}</p>
+            <p className="text-xs text-slate-500">{patient.id}</p>
           </div>
         </div>
       </div>
@@ -748,10 +748,10 @@ export default function PatientDetailPage() {
       )}
 
       {canEditThisPatient && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
-            <div className="space-y-1 text-gray-300">
-              <p className="font-medium text-white">患者編集</p>
+            <div className="space-y-1 text-slate-600">
+              <p className="font-medium text-slate-900">患者編集</p>
               <p>自局の Pharmacy Staff / Pharmacy Admin のみ編集できます。</p>
               <p>Pharmacy Staff は実務項目、Pharmacy Admin は重要項目まで更新できます。</p>
             </div>
@@ -759,7 +759,7 @@ export default function PatientDetailPage() {
               <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
                 <Save className="mr-2 h-4 w-4" />基本情報を編集
               </Button>
-              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => document.getElementById('visit-schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => document.getElementById('visit-schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
                 訪問予定を調整
               </Button>
             </div>
@@ -813,22 +813,22 @@ export default function PatientDetailPage() {
       )}
 
       {/* Basic info */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <User className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <User className="h-4 w-4 text-indigo-500" />
             基本情報
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="text-xs text-gray-500">生年月日</p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.dob}</p>
+              <p className="text-xs text-slate-500">生年月日</p>
+              <p className="mt-0.5 text-sm text-slate-700">{patient.dob}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">年齢</p>
-              <p className="mt-0.5 text-sm text-gray-200">{age} 歳</p>
+              <p className="text-xs text-slate-500">年齢</p>
+              <p className="mt-0.5 text-sm text-slate-700">{age} 歳</p>
             </div>
             <div>
               <p className="flex items-center gap-1 text-xs text-gray-500">
