@@ -485,9 +485,9 @@ function PharmacyDashboardNoticeCard({
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
-      <TabsList className="grid w-full grid-cols-2 border border-slate-200 bg-slate-100 text-slate-500">
-        <TabsTrigger value="today" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">今日の対応予定</TabsTrigger>
-        <TabsTrigger value="master" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">患者一覧（簡易）</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1 text-slate-500">
+        <TabsTrigger value="today" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
@@ -499,7 +499,7 @@ function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
     <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
       <Building2 className="h-4 w-4 text-indigo-500" />
       今日の対応予定
-      <span className="text-xs font-normal text-slate-500">{countLabel ?? '自動生成 + 手動追加'}</span>
+      <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">{countLabel ?? '自動生成 + 手動追加'}</span>
     </h2>
   )
 }
@@ -525,7 +525,7 @@ function PharmacyDayTaskCardHeader({
             {patientName}
           </Link>
           <Badge variant="outline" className={cn('border text-[10px]', statusClassName)}>{statusLabel}</Badge>
-          <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
+          <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
             {visit.source}
           </Badge>
           <Badge variant="outline" className="border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
@@ -612,7 +612,7 @@ function PharmacyDayTaskCardActions({
       <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
         {planButtonLabel}
       </Button>
-      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600 active:cursor-grabbing">
+      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing">
         <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
       </span>
@@ -730,8 +730,7 @@ function PharmacyDayTaskCard({
         setDragOverTaskId(null)
       }}
       className={cn(
-        adminCardClass,
-        'transition',
+        'border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md',
         draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
         dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
       )}
@@ -1768,7 +1767,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const canComplete = visit.status === 'in_progress'
                 return (
                   <div key={visit.id} className="space-y-2">
-                    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+                    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
                       <input
                         type="checkbox"
                         checked={selectedRoutePatientIds.includes(visit.patientId)}
@@ -1812,10 +1811,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           </TabsContent>
 
           <TabsContent value="master" className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
               <Users className="h-4 w-4 text-indigo-500" />
               患者一覧（簡易）
-              <span className="text-xs font-normal text-slate-500">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
             </h2>
             <div className="space-y-2">
               {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
@@ -1834,7 +1833,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:border-indigo-300">
+                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">

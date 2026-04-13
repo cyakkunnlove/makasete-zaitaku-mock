@@ -486,7 +486,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Bottom Nav - Mobile */}
       <nav className={cn('lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t pb-[env(safe-area-inset-bottom)]', isFieldShell ? 'border-slate-200 bg-white/95 backdrop-blur' : 'bg-[#111827] border-[#2a3553]')}>
-        <div className="flex items-center justify-around h-14">
+        <div className="flex items-center justify-around h-16 px-2">
           {visibleMobileNavItems.map((item) => {
             const active = isNavActive(item.href)
             return (
@@ -494,7 +494,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 type="button"
                 onClick={() => handleSidebarNavigate(item.href)}
-                className={cn('relative flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-colors', isFieldShell ? (active ? 'text-indigo-600' : 'text-slate-500') : active ? 'text-indigo-400' : 'text-gray-500')}
+                className={cn('relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs transition-colors', isFieldShell ? (active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500') : active ? 'text-indigo-400' : 'text-gray-500')}
               >
                 <span className="relative">
                   {item.icon}
