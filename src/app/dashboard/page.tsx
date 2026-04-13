@@ -323,25 +323,25 @@ function RegionalAdminDashboard() {
 
 function SystemAdminDashboard() {
   return (
-    <div className="space-y-4">
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+    <div className={`${adminPageClass} space-y-4`}>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Shield className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Shield className="h-4 w-4 text-indigo-500" />
             システム監視
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-gray-300">
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+        <CardContent className="space-y-3 text-sm text-slate-700">
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">正常</Badge>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">正常</Badge>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>地域テナント数</span><span className="font-semibold text-white">3</span>
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>地域テナント数</span><span className="font-semibold text-slate-900">3</span>
           </div>
-          <p className="text-xs text-gray-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
+          <p className="text-xs text-slate-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
         </CardContent>
       </Card>
     </div>
@@ -374,26 +374,26 @@ function PharmacyDashboardHeaderCard({
   handleUndo: () => void
 }) {
   return (
-    <Card className="border-[#2a3553] bg-[#1a2035]">
+    <Card className={adminCardClass}>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-semibold text-white">日中対応フロー</p>
-          <p className="text-xs text-gray-400">{flowDescription}</p>
+          <p className="text-sm font-semibold text-slate-900">日中対応フロー</p>
+          <p className="text-xs text-slate-500">{flowDescription}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-          <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
+          <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">請求連携候補 {billableReadyCount}件</Badge>
+          <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">{primarySummaryBadge}</Badge>
           {hasOrderDraft ? (
             <>
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">{orderDraftBadgeText}</Badge>
+              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{orderDraftBadgeText}</Badge>
               <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{resetOrderButtonText}</Button>
+              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{resetOrderButtonText}</Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
+            <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{orderSavedButtonText}</Button>
           )}
           {undoTarget && (
-            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
+            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100">
               <RotateCcw className="h-3.5 w-3.5" />
               取り消す
             </Button>
@@ -418,40 +418,40 @@ function PharmacyDashboardSummaryCard({
   adminWarningText?: string | null
 }) {
   return (
-    <Card className="border-[#2a3553] bg-[#1a2035]">
+    <Card className={adminCardClass}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
+        <CardTitle className="text-sm text-slate-900">{summaryTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
           {pharmacyStaffHandledCounts.length === 0 ? (
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-400">まだ本日の担当実績はありません。</div>
+            <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <div key={item.name} className={`${adminPanelClass} p-3`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-white">{item.name}</span>
+                  <span className="text-sm font-medium text-slate-900">{item.name}</span>
                   <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">完了 {item.completedCount}件</Badge>
+                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">完了 {item.completedCount}件</Badge>
                     {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-400/50 bg-amber-400/20 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.25)]">● 対応中</Badge>
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">● 対応中</Badge>
                     ) : (
-                      <Badge variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-500">対応中なし</Badge>
+                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">対応中なし</Badge>
                     )}
-                    <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-200">予定 {item.plannedCount}件</Badge>
+                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">予定 {item.plannedCount}件</Badge>
                   </div>
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-          <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1">{summarySupportText}</span>
           {adminWarningText && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200">{adminWarningText}</span>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">{adminWarningText}</span>
           )}
           {saveStateBadge && (
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">{saveStateBadge}</span>
           )}
         </div>
       </CardContent>
@@ -468,9 +468,9 @@ function PharmacyDashboardNoticeCard({
   message: string
   subtext: string
 }) {
-  const cardClass = tone === 'success' ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-amber-500/30 bg-amber-500/10'
-  const textClass = tone === 'success' ? 'text-emerald-100' : 'text-amber-100'
-  const subtextClass = tone === 'success' ? 'text-emerald-200/80' : 'text-amber-200/80'
+  const cardClass = tone === 'success' ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'
+  const textClass = tone === 'success' ? 'text-emerald-700' : 'text-amber-700'
+  const subtextClass = tone === 'success' ? 'text-emerald-600' : 'text-amber-600'
 
   return (
     <Card className={cardClass}>
@@ -485,9 +485,9 @@ function PharmacyDashboardNoticeCard({
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
-      <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
-        <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の対応予定</TabsTrigger>
-        <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者一覧（簡易）</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 border border-slate-200 bg-slate-100 text-slate-500">
+        <TabsTrigger value="today" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
@@ -496,10 +496,10 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
 
 function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
   return (
-    <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-      <Building2 className="h-4 w-4 text-indigo-400" />
+    <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <Building2 className="h-4 w-4 text-indigo-500" />
       今日の対応予定
-      <span className="text-xs font-normal text-gray-500">{countLabel ?? '自動生成 + 手動追加'}</span>
+      <span className="text-xs font-normal text-slate-500">{countLabel ?? '自動生成 + 手動追加'}</span>
     </h2>
   )
 }
@@ -521,19 +521,19 @@ function PharmacyDayTaskCardHeader({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-white hover:text-indigo-300">
+          <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">
             {patientName}
           </Link>
           <Badge variant="outline" className={cn('border text-[10px]', statusClassName)}>{statusLabel}</Badge>
           <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
             {visit.source}
           </Badge>
-          <Badge variant="outline" className="border-[#2a3553] text-[10px] text-gray-300">{visit.visitType}</Badge>
+          <Badge variant="outline" className="border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
         </div>
-        <p className="mt-1 text-xs text-gray-500">{patientAddress}</p>
-        <p className="mt-1 text-[11px] text-gray-400">予定 {visit.scheduledTime} / {visit.note}</p>
+        <p className="mt-1 text-xs text-slate-500">{patientAddress}</p>
+        <p className="mt-1 text-[11px] text-slate-500">予定 {visit.scheduledTime} / {visit.note}</p>
       </div>
-      <div className="text-right text-xs text-gray-400">
+      <div className="text-right text-xs text-slate-500">
         <p>担当者: {visit.handledBy ?? '未対応'}</p>
         <p>着手: {formatJapanDateTime(visit.handledAt)}</p>
         <p>完了: {formatJapanDateTime(visit.completedAt)}</p>
