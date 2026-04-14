@@ -43,6 +43,15 @@ type CollectionStatusChangeDraft = {
   to: CollectionWorkflowStatus
 }
 
+type CalendarActionDraft = {
+  recordId: string
+  patientName: string
+  visitDate: string
+  amount: number
+  status: CollectionWorkflowStatus
+  note: string
+}
+
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   unpaid: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -133,10 +142,10 @@ export default function BillingPage() {
   const [toastMessage, setToastMessage] = useState('')
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null)
   const [collapsedPatientIds, setCollapsedPatientIds] = useState<Set<string>>(new Set())
-  const [selectedVisitKey, setSelectedVisitKey] = useState<string | null>(null)
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
+  const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
   const ownPharmacyId = 'PH-01'
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -270,9 +279,18 @@ export default function BillingPage() {
   const patientVisitHistory = useMemo(() => {
     return ownPatients.map((patient) => {
       const tasks = dayTaskData.filter((task) => task.patientId === patient.id)
-      const visits = visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []
-      const billedVisits = visits.length
-      const collectedVisits = visits.filter((visit) => visit.status === 'paid').length
+      const visits = (visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []).map((visit) => {
+        const linkedCollection = mergedCollectionRecords.find((record) => record.patientName === patient.name && record.handledAt?.slice(0, 10) === visit.visitDate)
+        const workflowStatus = linkedCollection?.status ?? (visit.status === 'paid' ? 'paid' : visit.status === 'overdue' ? 'needs_attention' : 'billed')
+        return {
+          ...visit,
+          workflowStatus,
+          collectionRecordId: linkedCollection?.id ?? null,
+          note: linkedCollection?.note ?? '',
+        }
+      })
+      const billedVisits = visits.filter((visit) => visit.workflowStatus === 'billed' || visit.workflowStatus === 'paid').length
+      const collectedVisits = visits.filter((visit) => visit.workflowStatus === 'paid').length
       const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
       const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? '2026-03-01'
       const { year, month } = parseIsoDateParts(calendarMonth)
@@ -289,7 +307,7 @@ export default function BillingPage() {
         calendarMonth: month - 1,
       }
     })
-  }, [ownPatients])
+  }, [mergedCollectionRecords, ownPatients])
 
   const unbilledVisitRecords = useMemo(() => {
     return sharedDayTasks
@@ -448,7 +466,6 @@ export default function BillingPage() {
       return next
     })
     setExpandedPatientId((prev) => (prev === patientId ? null : patientId))
-    setSelectedVisitKey((prev) => (prev?.startsWith(`${patientId}:`) ? null : prev))
   }
 
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
@@ -570,14 +587,24 @@ export default function BillingPage() {
                         const day = i + 1
                         const dateKey = `${item.calendarYear}-${String(item.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                         const visit = visitMap.get(dateKey)
-                        const visitKey = `${item.patientId}:${dateKey}`
-                        const actionable = visit && visit.status !== 'paid'
+                        const actionable = visit && visit.workflowStatus !== 'paid' && Boolean(visit.collectionRecordId)
                         return (
                           <button
                             key={dateKey}
                             type="button"
-                            onClick={() => { if (actionable) { setExpandedPatientId(item.patientId); setSelectedVisitKey(selectedVisitKey === visitKey ? null : visitKey) } }}
-                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60')}
+                            onClick={() => {
+                              if (actionable && visit?.collectionRecordId) {
+                                setCalendarActionDialog({
+                                  recordId: visit.collectionRecordId,
+                                  patientName: item.patientName,
+                                  visitDate: visit.visitDate,
+                                  amount: visit.amount,
+                                  status: visit.workflowStatus,
+                                  note: visit.note,
+                                })
+                              }
+                            }}
+                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium transition-all', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60 active:scale-[0.97]')}
                           >
                             {day}
                           </button>
@@ -592,91 +619,8 @@ export default function BillingPage() {
                   </div>
 
                   {expandedPatientId === item.patientId && (
-                    <div className="mt-3 space-y-2">
-                      {item.visits.map((visit) => {
-                        return (
-                          <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-5">
-                            <div><p className="text-slate-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
-                            <div><p className="text-slate-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
-                            <div><p className="text-slate-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
-                            <div><p className="text-slate-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
-                            <div><p className="text-slate-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
-                          </div>
-                        )
-                      })}
-
-                      {(() => {
-                        const selectedVisit = item.visits.find((visit) => `${item.patientId}:${visit.visitDate}` === selectedVisitKey)
-                        if (!selectedVisit || selectedVisit.status === 'paid') return null
-                        const isOverdue = selectedVisit.status === 'overdue'
-                        return (
-                          <div className={cn('rounded-lg p-4', isOverdue ? 'border border-rose-500/30 bg-rose-500/10' : 'border border-amber-500/30 bg-amber-500/10')}>
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div>
-                                <p className="text-sm font-medium text-slate-900">{isOverdue ? '期限超過対応フロー' : '未回収対応フロー'}</p>
-                                <p className="text-xs text-slate-500">{selectedVisit.visitDate} / {yen.format(selectedVisit.amount)}</p>
-                              </div>
-                              <Badge variant="outline" className={cn('border text-xs', statusClass[selectedVisit.status])}>{statusLabel[selectedVisit.status]}</Badge>
-                            </div>
-                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                              {isOverdue ? (
-                                <>
-                                  <div className="rounded-md border border-slate-200 bg-white p-3">
-                                    <p className="text-[11px] text-slate-500">STEP 1</p>
-                                    <p className="mt-1 text-sm text-slate-900">再督促</p>
-                                    <p className="mt-1 text-[11px] text-slate-500">最終督促日と相手の反応を残す</p>
-                                  </div>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 2</p>
-                                    <p className="mt-1 text-sm text-white">管理者確認</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">長期滞留なら管理者判断に上げる</p>
-                                  </div>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 3</p>
-                                    <p className="mt-1 text-sm text-white">状態更新</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">督促継続 or 対応完了へ更新</p>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 1</p>
-                                    <p className="mt-1 text-sm text-white">患者へ連絡</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">入金予定日・支払方法を確認</p>
-                                  </div>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 2</p>
-                                    <p className="mt-1 text-sm text-white">再請求メモ作成</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">連絡結果と次回フォロー日を残す</p>
-                                  </div>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 3</p>
-                                    <p className="mt-1 text-sm text-white">状態更新</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">未回収→期限超過 or 対応完了</p>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {isOverdue ? (
-                                <>
-                                  <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">再督促する</Button>
-                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">管理者確認へ</Button>
-                                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">対応完了にする</Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">患者へ連絡</Button>
-                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再請求メモ作成</Button>
-                                  <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-600/90">期限超過へ</Button>
-                                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>
-                                </>
-                              )}
-                            </div>
-                            <p className="mt-3 text-[11px] text-slate-500">未回収・期限超過の日付セルを押すと、その状態に応じた処理導線が下に表示されます。</p>
-                          </div>
-                        )
-                      })()}
+                    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+                      黄と赤の日付を押すと、そのまま回収処理モーダルが開きます。
                     </div>
                   )}
 
@@ -863,6 +807,40 @@ export default function BillingPage() {
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setBatchDialogOpen(false)}>キャンセル</Button>
             <Button type="button" onClick={handleBatchGenerate} className="bg-indigo-500 text-white hover:bg-indigo-500/90">生成する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!calendarActionDialog} onOpenChange={(open) => !open && setCalendarActionDialog(null)}>
+        <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">回収処理</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {calendarActionDialog ? `${calendarActionDialog.patientName} / ${calendarActionDialog.visitDate}` : '回収処理を行います。'}
+            </DialogDescription>
+          </DialogHeader>
+          {calendarActionDialog ? (
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-4`}>
+                <p>現在状態: <span className="font-medium text-slate-900">{collectionStatusLabel[calendarActionDialog.status]}</span></p>
+                <p className="mt-1">請求額: <span className="font-medium text-slate-900">{yen.format(calendarActionDialog.amount)}</span></p>
+                <p className="mt-1">メモ: <span className="text-slate-600">{calendarActionDialog.note || 'なし'}</span></p>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {(calendarActionDialog.status === 'billed' || calendarActionDialog.status === 'needs_attention') ? (
+                  <Button type="button" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'paid'); setCalendarActionDialog(null) }} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金済みにする</Button>
+                ) : null}
+                {calendarActionDialog.status !== 'needs_attention' ? (
+                  <Button type="button" variant="outline" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'needs_attention'); setCalendarActionDialog(null) }} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">要確認にする</Button>
+                ) : null}
+                {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
+                  <Button type="button" variant="outline" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'needs_attention'); setCalendarActionDialog(null) }} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">入金済みを見直す</Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setCalendarActionDialog(null)}>閉じる</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
