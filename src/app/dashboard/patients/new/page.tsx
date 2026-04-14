@@ -170,6 +170,8 @@ export default function NewPatientPage() {
     preferredTime: '10:00',
     visitNotes: '',
     insuranceInfo: '',
+    isBillable: true,
+    billingExclusionReason: '',
   })
 
   const isExceeded = Number(visitCount) > 4
@@ -241,6 +243,15 @@ export default function NewPatientPage() {
   }, [previewMonth, previewVisitRules, previewYear])
 
   const handleChange = (key: keyof typeof form, value: string) => {
+    if (key === 'isBillable') {
+      setForm((prev) => ({
+        ...prev,
+        isBillable: value === 'true',
+        billingExclusionReason: value === 'true' ? '' : prev.billingExclusionReason,
+      }))
+      return
+    }
+
     let nextValue = value
 
     if (key === 'dob' || key === 'firstVisitDate') {
@@ -614,6 +625,10 @@ export default function NewPatientPage() {
         diseaseName: form.diseaseName,
         insuranceInfo: form.insuranceInfo,
       },
+      billing: {
+        isBillable: form.isBillable,
+        billingExclusionReason: form.isBillable ? '' : form.billingExclusionReason,
+      },
     }
 
     if (!skipGeocodeConfirmation) {
@@ -794,6 +809,37 @@ export default function NewPatientPage() {
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
             <p className="font-medium text-slate-900">登録ルール</p>
             <p className="mt-1">氏名、生年月日、住所に加えて、初回訪問予定日または訪問曜日が入っていれば登録できます。状態と所属先は自動で設定します。</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
+            <p className="text-sm font-semibold text-slate-900">請求設定</p>
+            <p className="mt-1 text-xs text-slate-500">対応完了後に回収管理へ上げるかどうかを設定します。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => handleChange('isBillable', 'true')}
+                className={`rounded-xl border px-4 py-3 text-left text-sm transition ${form.isBillable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              >
+                請求対象
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChange('isBillable', 'false')}
+                className={`rounded-xl border px-4 py-3 text-left text-sm transition ${!form.isBillable ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              >
+                請求対象外
+              </button>
+            </div>
+            {!form.isBillable ? (
+              <div className="mt-3">
+                <Label className="text-slate-700">対象外理由</Label>
+                <Input
+                  value={form.billingExclusionReason}
+                  onChange={(e) => handleChange('billingExclusionReason', e.target.value)}
+                  placeholder="保険上対象外、施設契約内など"
+                  className="mt-1 border-slate-200 bg-white text-slate-900"
+                />
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

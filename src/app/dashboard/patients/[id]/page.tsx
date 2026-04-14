@@ -191,6 +191,8 @@ export default function PatientDetailPage() {
       doctorClinic: patient.doctor?.clinic ?? '',
       doctorName: patient.doctor?.name ?? '',
       doctorPhone: patient.doctor?.phone ?? '',
+      isBillable: patient.isBillable ?? true,
+      billingExclusionReason: patient.billingExclusionReason ?? '',
     })
 
   }, [patient])
@@ -264,6 +266,8 @@ export default function PatientDetailPage() {
     doctorClinic: '',
     doctorName: '',
     doctorPhone: '',
+    isBillable: true,
+    billingExclusionReason: '',
   })
 
   if (detailLoadState === 'loading' && !patient) {
@@ -634,6 +638,8 @@ export default function PatientDetailPage() {
         medicalHistory: editForm.medicalHistory,
         allergies: editForm.allergies,
         insuranceInfo: editForm.insuranceInfo,
+        isBillable: editForm.isBillable,
+        billingExclusionReason: editForm.isBillable ? null : editForm.billingExclusionReason,
         medicalInstitutionId: selectedMedicalInstitutionId,
         doctorMasterId: selectedDoctorMasterId,
         doctorClinic: editForm.doctorClinic,
@@ -664,6 +670,8 @@ export default function PatientDetailPage() {
         medicalHistory: editForm.medicalHistory,
         allergies: editForm.allergies,
         insuranceInfo: editForm.insuranceInfo,
+        isBillable: editForm.isBillable,
+        billingExclusionReason: editForm.isBillable ? '' : editForm.billingExclusionReason,
         doctorClinic: editForm.doctorClinic,
         doctorName: editForm.doctorName,
         doctorPhone: editForm.doctorPhone || null,
@@ -1406,6 +1414,31 @@ export default function PatientDetailPage() {
                     <p className="text-xs text-gray-500">保険情報</p>
                     <Input value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
                   </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">請求設定</p>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm((prev) => ({ ...prev, isBillable: true, billingExclusionReason: '' }))}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${editForm.isBillable ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#11182c] text-gray-300'}`}
+                    >
+                      請求対象
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm((prev) => ({ ...prev, isBillable: false }))}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${!editForm.isBillable ? 'border-amber-500/30 bg-amber-500/15 text-amber-100' : 'border-[#2a3553] bg-[#11182c] text-gray-300'}`}
+                    >
+                      請求対象外
+                    </button>
+                  </div>
+                  {!editForm.isBillable ? (
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-500">対象外理由</p>
+                      <Input value={editForm.billingExclusionReason} onChange={(e) => setEditForm((prev) => ({ ...prev, billingExclusionReason: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険上対象外、施設契約内など" />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
