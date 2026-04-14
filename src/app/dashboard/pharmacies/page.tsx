@@ -228,6 +228,7 @@ export default function PharmaciesPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-slate-600">
           <div className="space-y-1">
             <p className="font-medium text-slate-900">加盟店管理の見方</p>
+            <p>対象範囲: 現在のリージョン配下のみ表示します。まずは「初期設定中」の加盟店から確認すると進めやすいです。</p>
             <p>加盟店追加では基本情報だけを先に登録します。患者数や細かな運用状態は、後続の実データや設定画面で反映します。</p>
           </div>
           <Link href="/dashboard/settings/region" className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-500">
@@ -243,7 +244,7 @@ export default function PharmaciesPage() {
           </Card>
         ) : visiblePharmacies.length === 0 ? (
           <Card className={`${adminCardClass} lg:col-span-2`}>
-            <CardContent className="p-6 text-sm text-slate-500">このリージョンにはまだ加盟店が登録されていません。</CardContent>
+            <CardContent className="p-6 text-sm text-slate-500">このリージョンにはまだ加盟店が登録されていません。右上の「加盟店を追加」から基本情報を登録すると、ここに表示されます。</CardContent>
           </Card>
         ) : visiblePharmacies.map((pharmacy) => {
           const forwarding = getForwardingSummary(pharmacy)

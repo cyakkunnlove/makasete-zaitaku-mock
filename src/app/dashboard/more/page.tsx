@@ -181,7 +181,10 @@ export default function MorePage() {
       )}
 
       <div className="space-y-2">
-        <h3 className="px-1 text-sm font-semibold text-slate-500">メニュー</h3>
+        <div className="px-1">
+          <h3 className="text-sm font-semibold text-slate-500">メニュー</h3>
+          <p className="mt-1 text-xs text-slate-500">日常的に確認する管理画面と、補助メニューをまとめています。</p>
+        </div>
         {visibleItems.length === 0 && (
           <Card className={adminCardClass}>
             <CardContent className="p-4 text-sm text-slate-500">現在のロールで表示できる追加メニューはありません。</CardContent>
@@ -205,10 +208,13 @@ export default function MorePage() {
 
       {visibleSettings.length > 0 && (
         <div className="space-y-2">
-          <h3 className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-500">
-            <Settings size={14} />
-            設定
-          </h3>
+          <div className="px-1">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+              <Settings size={14} />
+              設定
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">通知や認証など、たまに見直す項目をまとめています。</p>
+          </div>
           {visibleSettings.map((item) => (
             <Link key={item.href} href={item.href}>
               <Card className={`${adminCardClass} cursor-pointer transition-colors hover:bg-slate-50`}>

@@ -179,7 +179,7 @@ export default function RequestsPage() {
     const completedCount = visibleRequests.filter((request) => request.status === 'completed').length
 
     return [
-      { key: 'received', label: `受付処理中(${receivedCount})` },
+      { key: 'received', label: `受付対応中(${receivedCount})` },
       { key: 'active', label: `対応中(${activeCount})` },
       { key: 'completed', label: `完了(${completedCount})` },
       { key: 'all', label: `全件(${visibleRequests.length})` },
@@ -249,6 +249,7 @@ export default function RequestsPage() {
       <Card className={adminCardClass}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-slate-900">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
+          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '対象範囲: 自局依頼のみ表示' : isNightPharmacist ? '対象範囲: 当日担当分のみ表示' : '対象範囲: リージョン配下の依頼を表示'}</p>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
@@ -269,7 +270,13 @@ export default function RequestsPage() {
 
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
-        {filteredRequests.map((request) => {
+        {filteredRequests.length === 0 ? (
+          <Card className={adminCardClass}>
+            <CardContent className="p-4 text-sm text-slate-500">
+              条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
+            </CardContent>
+          </Card>
+        ) : filteredRequests.map((request) => {
           const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const patientLabel = isAdmin
@@ -364,7 +371,13 @@ export default function RequestsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRequests.map((request) => {
+            {filteredRequests.length === 0 ? (
+              <TableRow className="border-slate-200 hover:bg-slate-50">
+                <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-8 text-center text-sm text-slate-500">
+                  条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
+                </TableCell>
+              </TableRow>
+            ) : filteredRequests.map((request) => {
               const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
                   const patientLabel = isAdmin
