@@ -809,7 +809,7 @@ export default function StaffPage() {
                     <TableCell className="font-medium text-slate-900">
                       <div className="flex items-center gap-2">
                         <span>{member.name}</span>
-                        {isSelf && <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-200">自分</Badge>}
+                        {isSelf && <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-[10px] text-cyan-700">自分</Badge>}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -846,7 +846,7 @@ export default function StaffPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                            className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                             disabled={userActionId === member.id}
                             onClick={() => openAssignmentDialog(member)}
                           >
@@ -918,7 +918,7 @@ export default function StaffPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                        className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                         disabled={invitationActionId === invitation.id || invitation.status !== 'pending'}
                         onClick={() => handleRevokeInvitation(invitation.id)}
                       >
@@ -936,33 +936,33 @@ export default function StaffPage() {
       {/* ===== Shift Management Tab ===== */}
       {role === 'regional_admin' && pageTab === 'shift' && (
         <>
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">週間シフト</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-base text-slate-900">週間シフト</CardTitle>
+              <CardDescription className="text-slate-500">
                 2026-03-02 Mon ~ 2026-03-08 Sun
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 セルをクリックして当番種別を切り替えられます
               </p>
             </CardContent>
           </Card>
 
           {/* Desktop: table grid */}
-          <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+          <Card className="hidden border-slate-200 bg-white shadow-sm lg:block">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableHead className="min-w-[120px] text-gray-400">夜間薬剤師</TableHead>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="min-w-[120px] text-slate-500">夜間薬剤師</TableHead>
                     {weekDays.map((day) => (
                       <TableHead
                         key={day.date}
                         className={cn(
-                          'min-w-[100px] text-center text-gray-400',
-                          (day.label === '土' || day.label === '日') && 'text-gray-500'
+                          'min-w-[100px] text-center text-slate-500',
+                          (day.label === '土' || day.label === '日') && 'text-slate-400'
                         )}
                       >
                         <div className="text-xs">{day.full}</div>
@@ -972,8 +972,8 @@ export default function StaffPage() {
                 </TableHeader>
                 <TableBody>
                   {shiftPharmacists.map((pharmacist) => (
-                    <TableRow key={pharmacist.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                      <TableCell className="font-medium text-white">{pharmacist.name}</TableCell>
+                    <TableRow key={pharmacist.id} className="border-slate-200 hover:bg-slate-50">
+                      <TableCell className="font-medium text-slate-900">{pharmacist.name}</TableCell>
                       {weekDays.map((day) => {
                         const shift = getShiftForCell(pharmacist.id, day.date)
                         return (
@@ -993,14 +993,14 @@ export default function StaffPage() {
                                     'border text-xs',
                                     shift.shiftType === 'primary'
                                       ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                      : 'border-gray-500/40 bg-gray-500/20 text-gray-400'
+                                      : 'border-slate-200 bg-slate-50 text-slate-600'
                                   )}
                                 >
                                   {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
                                 </Badge>
                               </button>
                             ) : (
-                              <span className="text-xs text-gray-600">-</span>
+                              <span className="text-xs text-slate-400">-</span>
                             )}
                           </TableCell>
                         )
@@ -1017,12 +1017,12 @@ export default function StaffPage() {
             {weekDays.map((day) => {
               const dayShifts = shifts.filter((s) => s.shiftDate === day.date)
               return (
-                <Card key={day.date} className="border-[#2a3553] bg-[#1a2035]">
+                <Card key={day.date} className="border-slate-200 bg-white shadow-sm">
                   <CardHeader className="pb-2">
                     <CardTitle
                       className={cn(
                         'text-sm',
-                        day.label === '土' || day.label === '日' ? 'text-gray-500' : 'text-white'
+                        day.label === '土' || day.label === '日' ? 'text-slate-400' : 'text-slate-900'
                       )}
                     >
                       {day.full}
@@ -1030,14 +1030,14 @@ export default function StaffPage() {
                   </CardHeader>
                   <CardContent className="space-y-2 p-4 pt-0">
                     {dayShifts.length === 0 ? (
-                      <p className="text-xs text-gray-600">シフトなし</p>
+                      <p className="text-xs text-slate-500">シフトなし</p>
                     ) : (
                       dayShifts.map((shift) => (
                         <div
                           key={shift.id}
-                          className="flex items-center justify-between rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2"
+                          className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
                         >
-                          <span className="text-sm text-gray-200">{shift.pharmacistName}</span>
+                          <span className="text-sm text-slate-700">{shift.pharmacistName}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -1052,7 +1052,7 @@ export default function StaffPage() {
                                 'border text-xs',
                                 shift.shiftType === 'primary'
                                   ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                  : 'border-gray-500/40 bg-gray-500/20 text-gray-400'
+                                  : 'border-slate-200 bg-slate-50 text-slate-600'
                               )}
                             >
                               {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
