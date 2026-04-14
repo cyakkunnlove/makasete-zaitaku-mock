@@ -34,6 +34,8 @@ import { mergePatientSources } from '@/lib/patient-read-model'
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 const BILLING_FLOW_DATE = '2026-03-28'
 
+type CollectionWorkflowStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
+
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   unpaid: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -44,6 +46,20 @@ const statusLabel: Record<BillingStatus, string> = {
   paid: '入金済',
   unpaid: '未入金',
   overdue: '期限超過',
+}
+
+const collectionStatusClass: Record<CollectionWorkflowStatus, string> = {
+  needs_billing: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  billed: 'border-amber-200 bg-amber-50 text-amber-700',
+  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  needs_attention: 'border-rose-200 bg-rose-50 text-rose-700',
+}
+
+const collectionStatusLabel: Record<CollectionWorkflowStatus, string> = {
+  needs_billing: '請求必要',
+  billed: '請求済み',
+  paid: '入金済み',
+  needs_attention: '要確認',
 }
 
 const yen = new Intl.NumberFormat('ja-JP', {
@@ -75,9 +91,9 @@ function statusCalendarClass(status: BillingStatus) {
 }
 
 const initialPatientCollectionRecords = [
-  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as BillingStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
-  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'unpaid' as BillingStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
-  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'overdue' as BillingStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
+  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
+  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'billed' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
+  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'needs_attention' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
 const visitChargeHistory = {
@@ -122,6 +138,13 @@ export default function BillingPage() {
       : patientData
     return source.filter((patient) => patient.pharmacyId === ownPharmacyId)
   }, [databasePatients, ownPharmacyId])
+
+  const patientBillingSettings = useMemo(() => new Map(
+    ownPatients.map((patient) => {
+      const isExcluded = patient.manualTags?.includes('請求対象外') || patient.insuranceInfo?.includes('請求対象外')
+      return [patient.id, { isBillable: !isExcluded, reason: isExcluded ? '患者属性で請求対象外' : null }]
+    }),
+  ), [ownPatients])
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
 
   useEffect(() => {
@@ -207,23 +230,24 @@ export default function BillingPage() {
       .map((task) => {
         const patient = patientData.find((item) => item.id === task.patientId)
         const existing = initialPatientCollectionRecords.find((record) => record.linkedTaskId === task.id)
-        const status = existing?.status ?? (task.collectionStatus === '入金済' ? 'paid' : task.collectionStatus === '回収中' ? 'unpaid' : 'unpaid')
+        const patientBilling = patientBillingSettings.get(task.patientId)
+        const status = existing?.status ?? (task.collectionStatus === '入金済' ? 'paid' : task.collectionStatus === '回収中' ? 'billed' : 'needs_billing')
         return {
           id: existing?.id ?? `COL-${task.id}`,
           patientName: patient?.name ?? task.patientId,
           month: '2026-03',
           amount: task.amount,
-          status: status as BillingStatus,
+          status: status as CollectionWorkflowStatus,
           dueDate: existing?.dueDate ?? '2026-03-25',
-          note: existing?.note ?? (task.billable ? 'day task 由来の請求候補' : 'day task 完了前'),
+          note: existing?.note ?? (patientBilling?.isBillable === false ? (patientBilling.reason ?? '請求対象外') : 'day task 由来の請求候補'),
           linkedTaskId: task.id,
           handledBy: task.handledBy,
           handledAt: task.completedAt ?? task.handledAt,
-          billable: task.billable,
+          billable: task.billable && patientBilling?.isBillable !== false,
         }
       })
       .filter((record) => ownPatientNames.has(record.patientName))
-  }, [ownPatientNames, ownPharmacyId, sharedDayTasks])
+  }, [ownPatientNames, ownPharmacyId, patientBillingSettings, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -278,15 +302,33 @@ export default function BillingPage() {
   }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds, sharedDayTasks])
 
   const summary = useMemo(() => {
-    const source = isPharmacyRole
-      ? mergedCollectionRecords.filter((r) => r.billable).map((r) => ({ total: r.amount, status: r.status }))
-      : records.map((r) => ({ total: r.total, status: r.status }))
+    if (isPharmacyRole) {
+      const source = mergedCollectionRecords.filter((r) => r.billable)
+      return {
+        needsBilling: source.filter((record) => record.status === 'needs_billing').length,
+        billed: source.filter((record) => record.status === 'billed').length,
+        paid: source.filter((record) => record.status === 'paid').length,
+        needsAttention: source.filter((record) => record.status === 'needs_attention').length,
+      }
+    }
+
+    const source = records.map((r) => ({ total: r.total, status: r.status }))
     const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
     const collected = source.filter((record) => record.status === 'paid').reduce((sum, record) => sum + record.total, 0)
     const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
-
     return { totalBilled, collected, outstanding }
   }, [isPharmacyRole, records, mergedCollectionRecords])
+
+  const systemSummary: { totalBilled: number; collected: number; outstanding: number } = useMemo(() => {
+    if ('totalBilled' in summary) {
+      return {
+        totalBilled: summary.totalBilled ?? 0,
+        collected: summary.collected ?? 0,
+        outstanding: summary.outstanding ?? 0,
+      }
+    }
+    return { totalBilled: 0, collected: 0, outstanding: 0 }
+  }, [summary])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -299,7 +341,7 @@ export default function BillingPage() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
-  const updateCollectionStatus = (recordId: string, status: BillingStatus) => {
+  const updateCollectionStatus = (recordId: string, status: CollectionWorkflowStatus) => {
     setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status } : r)))
     setToastMessage(`回収状況を更新しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
@@ -320,7 +362,7 @@ export default function BillingPage() {
         patientName: record.patientName,
         month: record.visitDate.slice(0, 7),
         amount: record.amount,
-        status: 'unpaid' as BillingStatus,
+        status: 'needs_billing' as CollectionWorkflowStatus,
         dueDate: '2026-03-25',
         note: `請求処理へ回した訪問: ${record.note}`,
         linkedTaskId: record.linkedTaskId,
@@ -352,43 +394,44 @@ export default function BillingPage() {
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className={adminPageClass}>
-        <AdminPageHeader title="回収管理" description="請求処理が終わった訪問について、入金確認や督促を行います。" />
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <AdminStatCard label="請求総額" value={yen.format(summary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
-          <AdminStatCard label="回収済み" value={yen.format(summary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
-          <AdminStatCard label="未回収" value={yen.format(summary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
+        <AdminPageHeader title="回収管理" description="対応完了後の請求必要、請求済み、入金済み、要確認を追います。" />
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <AdminStatCard label="請求必要" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
+          <AdminStatCard label="請求済み" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
+          <AdminStatCard label="入金済み" value={summary.paid} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+          <AdminStatCard label="要確認" value={summary.needsAttention} tone="danger" icon={<CalendarDays className="h-4 w-4" />} />
         </section>
 
         <Card className={adminCardClass}>
           <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-slate-600">
-            <span>在宅訪問の点数、請求額、回収状況を未請求から回収管理まで一連で確認できます。</span>
-            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">BtoC collection</Badge>
+            <span>対応完了した訪問のうち、請求対象だけを請求必要から入金済みまで追います。</span>
+            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">回収進捗管理</Badge>
           </CardContent>
         </Card>
 
         <Card className={adminCardClass}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-900">請求処理が必要な訪問一覧</CardTitle>
-            <CardDescription className="text-slate-600">対応完了した訪問を確認して、請求処理へ回すための一覧です</CardDescription>
+            <CardTitle className="text-sm text-slate-900">請求必要の訪問一覧</CardTitle>
+            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここで請求処理へ進めます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                 <p className="text-2xl font-bold text-slate-900">{unbilledVisitRecords.length}</p>
-                <p className="text-[10px] text-slate-500">請求処理が必要</p>
+                <p className="text-[10px] text-slate-500">請求必要</p>
               </div>
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-600">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
-                <p className="text-[10px] text-slate-500">請求化OK</p>
+                <p className="text-[10px] text-slate-500">そのまま請求可</p>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
                 <p className="text-2xl font-bold text-amber-600">{unbilledVisitRecords.filter((record) => record.status === 'review').length}</p>
-                <p className="text-[10px] text-slate-500">確認待ち</p>
+                <p className="text-[10px] text-slate-500">請求前に確認</p>
               </div>
             </div>
 
             {unbilledVisitRecords.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">未請求候補はありません。患者詳細または day task から訪問実績を登録するとここに載ります。</p>
+              <p className="py-4 text-center text-xs text-slate-500">請求必要の候補はありません。対応完了かつ請求対象の訪問があるとここに載ります。</p>
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
@@ -401,16 +444,15 @@ export default function BillingPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className={cn('border text-[10px]', record.status === 'ready' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700')}>
-                          {record.status === 'ready' ? '請求化OK' : '確認待ち'}
+                          {record.status === 'ready' ? 'そのまま請求可' : '請求前に確認'}
                         </Badge>
-                        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">{yen.format(record.amount)}</Badge>
                       </div>
                     </div>
                     <p className="mt-2 text-xs text-slate-500">{record.note}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
-                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">金額補正</Button>
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求処理に回す</Button>
+                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求必要に追加</Button>
                     </div>
                   </div>
                 ))}
@@ -421,8 +463,8 @@ export default function BillingPage() {
 
         <Card className={adminCardClass}>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><CalendarDays className="h-4 w-4 text-indigo-500" />患者別 回収到達状況</CardTitle>
-            <CardDescription className="text-slate-600">訪問日ごとの回収状況をカレンダーで確認できます</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><CalendarDays className="h-4 w-4 text-indigo-500" />患者別 回収進捗</CardTitle>
+            <CardDescription className="text-slate-600">患者ごとに、請求必要から入金済みまでの進み具合を確認できます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {patientVisitHistory.map((item) => {
@@ -441,7 +483,7 @@ export default function BillingPage() {
                       <p className="text-[11px] text-slate-500">最終訪問: {item.lastVisitAt}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">訪問 {item.visitCount}回 / 請求済み {item.billedVisits}回 / 入金済み {item.collectedVisits}回</Badge>
                       <span className="text-xs text-slate-500">{collapsedPatientIds.has(item.patientId) ? 'タップで開く' : 'タップで閉じる'}</span>
                     </div>
                   </div>
@@ -590,9 +632,9 @@ export default function BillingPage() {
                   <TableHead className="text-slate-500">患者名</TableHead>
                   <TableHead className="text-slate-500">訪問回 / task</TableHead>
                   <TableHead className="text-slate-500">対応者 / 時刻</TableHead>
-                  <TableHead className="text-slate-500">算定・請求対象</TableHead>
-                  <TableHead className="text-right text-slate-500">請求額</TableHead>
+                  <TableHead className="text-slate-500">請求対象</TableHead>
                   <TableHead className="text-slate-500">状態</TableHead>
+                  <TableHead className="text-slate-500">メモ</TableHead>
                   <TableHead className="text-right text-slate-500">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -614,19 +656,17 @@ export default function BillingPage() {
                     <TableCell>
                       <div className="space-y-1">
                         <Badge variant="outline" className={cn('border text-xs', record.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
-                          {record.billable ? '請求対象' : '未計上'}
+                          {record.billable ? '請求対象' : '請求対象外'}
                         </Badge>
-                        <p className="text-[11px] text-slate-500">在宅訪問 管理料/薬剤料ベースのモック算定</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-slate-700">
-                      <Input type="number" value={record.amount} onChange={(e) => setCollectionRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, amount: Number(e.target.value) || 0 } : r))} className="h-8 w-28 border-slate-200 bg-white text-right text-slate-900" disabled={!record.billable} />
-                    </TableCell>
-                    <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={cn('border text-xs', collectionStatusClass[record.status])}>{collectionStatusLabel[record.status]}</Badge></TableCell>
+                    <TableCell className="text-xs text-slate-500">{record.note || '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金確認</Button>}
-                        {record.billable && record.status === 'unpaid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'overdue')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800">期限超過へ</Button>}
+                        {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">請求済みにする</Button>}
+                        {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金済みにする</Button>}
+                        {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800">要確認にする</Button>}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -662,9 +702,9 @@ export default function BillingPage() {
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <AdminStatCard label="請求総額" value={yen.format(summary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
-        <AdminStatCard label="回収済み" value={yen.format(summary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
-        <AdminStatCard label="未回収" value={yen.format(summary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
+        <AdminStatCard label="請求総額" value={yen.format(systemSummary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
+        <AdminStatCard label="回収済み" value={yen.format(systemSummary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+        <AdminStatCard label="未回収" value={yen.format(systemSummary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
       </section>
 
       {generatedLabel && <Card className="border-[#2a3553] bg-[#11182c]"><CardContent className="p-3 text-sm text-indigo-300">{generatedLabel}</CardContent></Card>}
