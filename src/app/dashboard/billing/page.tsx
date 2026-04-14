@@ -32,6 +32,7 @@ import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib
 import { mergePatientSources } from '@/lib/patient-read-model'
 
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
+const BILLING_FLOW_DATE = '2026-03-28'
 
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -128,13 +129,56 @@ export default function BillingPage() {
   }, [ownPatients])
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed) && parsed.length > 0) setSharedDayTasks(parsed)
-      }
-    } catch {}
+    let cancelled = false
+
+    async function fetchDayTasks() {
+      try {
+        const response = await fetch(`/api/day-flow/${BILLING_FLOW_DATE}/tasks`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
+          const mapped = result.tasks.map((task: Record<string, unknown>) => ({
+            id: String(task.id),
+            patientId: String(task.patient_id ?? ''),
+            pharmacyId: String(task.pharmacy_id ?? ''),
+            flowDate: String(task.flow_date),
+            sortOrder: Number(task.sort_order ?? 1),
+            scheduledTime: String(task.scheduled_time ?? '10:00'),
+            visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
+            source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
+            status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
+            planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
+            plannedBy: (task.planned_by as string | null) ?? null,
+            plannedById: (task.planned_by_id as string | null) ?? null,
+            plannedAt: (task.planned_at as string | null) ?? null,
+            handledBy: (task.handled_by as string | null) ?? null,
+            handledById: (task.handled_by_id as string | null) ?? null,
+            handledAt: (task.handled_at as string | null) ?? null,
+            completedAt: (task.completed_at as string | null) ?? null,
+            billable: Boolean(task.billable),
+            collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+            amount: Number(task.amount ?? 0),
+            note: String(task.note ?? ''),
+            updatedAt: (task.updated_at as string | null) ?? null,
+            updatedById: (task.updated_by_id as string | null) ?? null,
+          }))
+          setSharedDayTasks(mapped)
+          return
+        }
+      } catch {}
+
+      try {
+        const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) setSharedDayTasks(parsed)
+        }
+      } catch {}
+    }
+
+    fetchDayTasks()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
