@@ -174,7 +174,7 @@ export default function PatientDetailPage() {
       databasePatient,
       registeredPatients: authMode === 'cognito' ? [] : registeredPatients,
       patientId: id,
-      includeMockPatients: authMode !== 'cognito',
+      includeMockPatients: false,
     })
   }, [authMode, databasePatient, detailLoadState, id, registeredPatients])
 

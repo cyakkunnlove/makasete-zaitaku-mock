@@ -121,9 +121,9 @@ export default function PatientsPage() {
       mergePatientSources({
         databasePatients,
         registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients,
-        includeMockPatients: authMode !== 'cognito',
+        includeMockPatients: false,
       }),
-    [authMode, databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
+    [databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
   )
 
   const visiblePatients = useMemo(() => {
