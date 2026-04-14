@@ -288,6 +288,9 @@ export default function CalendarPage() {
                 </div>
               ))}
             </div>
+            <div className="flex justify-end text-[10px] text-slate-500 sm:hidden">
+              ※ 数字はその日の患者数です
+            </div>
             <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {Array.from({ length: monthGrid.firstDay }).map((_, index) => <div key={`empty-${index}`} className="h-20 sm:h-28 rounded-lg border border-transparent" />)}
               {Array.from({ length: monthGrid.daysInMonth }).map((_, index) => {
@@ -296,6 +299,7 @@ export default function CalendarPage() {
                 const summary = summaryByDate.get(dateKey)
                 const isSelected = selectedDate === dateKey
                 const weekDayIndex = new Date(`${dateKey}T00:00:00`).getDay()
+                const mobilePatientCount = (summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)
                 const toneClass = summary?.completedCount
                   ? 'border-emerald-500/40 bg-emerald-500/10'
                   : summary?.inProgressCount
@@ -331,8 +335,7 @@ export default function CalendarPage() {
                       {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
                     </div>
                     <div className="mt-2 sm:hidden">
-                      <p className="text-xs font-medium text-slate-700">{(summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)}人</p>
-                      <p className="text-[9px] text-slate-500">その日の患者数</p>
+                      {mobilePatientCount > 0 ? <p className="text-xs font-semibold text-slate-700">{mobilePatientCount}人</p> : null}
                     </div>
                   </button>
                 )
