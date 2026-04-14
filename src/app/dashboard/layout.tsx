@@ -174,7 +174,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const allNavItems = [...filteredNav, ...filteredSettings]
   const isAdminShell = role === 'system_admin' || role === 'regional_admin'
   const isFieldShell = role === 'pharmacy_admin' || role === 'pharmacy_staff'
-  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : isFieldShell ? 'bg-slate-50 text-slate-900' : 'bg-[#0a0e1a] text-gray-100'
+  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : isFieldShell ? 'bg-slate-50 text-slate-950' : 'bg-[#0a0e1a] text-gray-100'
   const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : isFieldShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
   const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-white/95 border-slate-200 backdrop-blur' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
@@ -228,8 +228,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <span className="text-3xl">🌙</span>
             <div>
-              <h1 className="font-bold text-white text-lg">マカセテ在宅</h1>
-              <p className="text-xs text-gray-500">在宅訪問オペレーション</p>
+              <h1 className={cn('text-lg font-bold', isFieldShell ? 'text-slate-900' : 'text-white')}>マカセテ在宅</h1>
+              <p className={cn('text-xs', isFieldShell ? 'text-slate-600' : 'text-gray-500')}>在宅訪問オペレーション</p>
             </div>
           </div>
         </div>
@@ -311,8 +311,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 onClick={() => handleSidebarNavigate(item.href)}
                 className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                   active
-                    ? isFieldShell ? 'bg-indigo-50 text-indigo-600 font-medium' : 'bg-indigo-600/20 text-indigo-400 font-medium'
-                    : isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                    ? isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                    : isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                 }`}
               >
                 {item.icon}
@@ -325,7 +325,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {filteredSettings.length > 0 && (
             <>
               <div className="pt-4 pb-1 px-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <p className={cn('flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider', isFieldShell ? 'text-slate-500' : 'text-gray-500')}>
                   <Settings size={12} />
                   設定
                 </p>
@@ -339,8 +339,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     onClick={() => handleSidebarNavigate(item.href)}
                     className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       active
-                        ? isFieldShell ? 'bg-indigo-50 text-indigo-600 font-medium' : 'bg-indigo-600/20 text-indigo-400 font-medium'
-                        : isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                        ? isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                        : isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                     }`}
                   >
                     {item.icon}
@@ -359,15 +359,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               {user?.full_name?.[0] ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">{user?.full_name}</p>
-              <p className="text-xs text-gray-500">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role}</p>
+              <p className={cn('truncate text-sm font-medium', isFieldShell ? 'text-slate-900' : 'text-gray-200')}>{user?.full_name}</p>
+              <p className={cn('text-xs', isFieldShell ? 'text-slate-600' : 'text-gray-500')}>{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={signOut}
-            className="w-full text-gray-400 hover:text-gray-200 hover:bg-[#1a2035]"
+            className={cn('w-full', isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200')}
           >
             <LogOut size={16} className="mr-2" />
             ログアウト
@@ -406,7 +406,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={() => handleSidebarNavigate(item.href)}
                   className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                    active ? (isFieldShell ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-600 hover:bg-slate-100' : 'text-gray-400 hover:bg-[#1a2035]')
+                    active ? (isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035]')
                   }`}
                 >
                   {item.icon}
@@ -417,7 +417,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             {filteredSettings.length > 0 && (
               <>
                 <div className="pt-4 pb-1 px-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <p className={cn('flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider', isFieldShell ? 'text-slate-500' : 'text-gray-500')}>
                     <Settings size={12} />
                     設定
                   </p>
@@ -430,7 +430,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                       type="button"
                       onClick={() => handleSidebarNavigate(item.href)}
                       className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                        active ? (isFieldShell ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-600 hover:bg-slate-100' : 'text-gray-400 hover:bg-[#1a2035]')
+                        active ? (isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035]')
                       }`}
                     >
                       {item.icon}
@@ -446,8 +446,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* Top Bar */}
       <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
-        <button className={cn('mr-3 rounded-lg p-2 transition-colors lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-100' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-500' : 'text-gray-400'} />
+        <button className={cn('mr-3 rounded-lg p-2 transition-all duration-150 lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-100 active:scale-95' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-600' : 'text-gray-400'} />
         </button>
         <h2 className={cn('font-semibold', isAdminShell || isFieldShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
         <div className="ml-3 flex items-center gap-1.5">
@@ -456,7 +456,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         </div>
         <div className="ml-auto">
           {canAccess(role, 'notifications') && (
-            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-colors', isAdminShell || isFieldShell ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700' : 'text-gray-400 hover:text-gray-200')}>
+            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-all duration-150', isAdminShell || isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 active:scale-95' : 'text-gray-400 hover:text-gray-200')}>
               <Bell size={18} />
               {unreadNotifCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
@@ -494,12 +494,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 type="button"
                 onClick={() => handleSidebarNavigate(item.href)}
-                className={cn('relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs transition-colors', isFieldShell ? (active ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500') : active ? 'text-indigo-400' : 'text-gray-500')}
+                className={cn(
+                  'relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs transition-all duration-150 active:scale-[0.97]',
+                  isFieldShell
+                    ? active
+                      ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
+                      : 'text-slate-600 active:bg-slate-100'
+                    : active
+                      ? 'text-indigo-400'
+                      : 'text-gray-500'
+                )}
               >
                 <span className="relative">
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span className={cn('font-medium', active ? 'text-current' : isFieldShell ? 'text-slate-700' : 'text-current')}>{item.label}</span>
               </button>
             )
           })}
