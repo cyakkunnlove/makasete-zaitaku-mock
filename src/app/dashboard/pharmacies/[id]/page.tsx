@@ -275,6 +275,19 @@ export default function PharmacyDetailPage() {
         </div>
       )}
 
+      <Card className={adminCardClass}>
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-900">現在の状況</p>
+            <p className="mt-1 text-xs text-slate-500">加盟店の基本情報、薬局管理者の状態、利用開始の準備状況をこの画面で確認します。</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-900">次にやること</p>
+            <p className="mt-1 text-xs text-slate-500">{onboardingChecks.ready ? '利用開始に進めるか最終確認してください。' : `未完了: ${onboardingChecks.needs.join(' / ') || '初期設定を確認してください。'}`}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><Users className="h-3.5 w-3.5" />アクティブ患者数</CardDescription><CardTitle className="text-2xl text-slate-900">{pharmacy.patientCount}名</CardTitle></CardHeader></Card>
         <Card className={adminCardClass}><CardHeader className="pb-2"><CardDescription className="flex items-center gap-1.5 text-slate-500"><Building2 className="h-3.5 w-3.5" />依頼数</CardDescription><CardTitle className="text-2xl text-slate-900">{monthlyRequestCount}件</CardTitle></CardHeader></Card>
@@ -291,7 +304,7 @@ export default function PharmacyDetailPage() {
           <div className={`${adminPanelClass} flex items-center justify-between gap-3 px-4 py-3`}>
             <div>
               <p className="text-sm font-medium text-slate-900">準備状況</p>
-              <p className="text-xs text-slate-500">{onboardingChecks.completed} / {onboardingChecks.total} 項目完了</p>
+              <p className="text-xs text-slate-500">{onboardingChecks.completed} / {onboardingChecks.total} 項目完了, 利用開始前にここを確認します。</p>
             </div>
             <Badge variant="outline" className={cn('border text-xs', onboardingChecks.ready ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
               {onboardingChecks.ready ? '利用開始の目安を満たしています' : 'まだ初期設定があります'}
@@ -299,7 +312,7 @@ export default function PharmacyDetailPage() {
           </div>
           {onboardingChecks.needs.length > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              未完了: {onboardingChecks.needs.join(' / ')}
+              まだ必要な設定: {onboardingChecks.needs.join(' / ')}
             </div>
           )}
           <div className="flex justify-end">

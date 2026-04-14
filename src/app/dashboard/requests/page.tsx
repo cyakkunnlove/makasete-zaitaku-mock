@@ -299,9 +299,9 @@ export default function RequestsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-white">{patientLabel}</p>
+                        <p className="text-sm font-semibold text-slate-900">{patientLabel}</p>
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{request.pharmacyName}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Badge variant="outline" className={cn('border text-xs', status.className)}>
@@ -310,9 +310,9 @@ export default function RequestsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-300">
+                  <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                     <span className="flex items-center gap-1">
-                      <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                      <Clock3 className="h-3.5 w-3.5 text-slate-400" />
                       {request.receivedAt}
                     </span>
                     <span className="flex items-center gap-1">
@@ -321,7 +321,7 @@ export default function RequestsPage() {
                     </span>
                   </div>
                   {isNightPharmacist && (
-                    <div className="mt-2 space-y-2 text-[11px] text-gray-400">
+                    <div className="mt-2 space-y-2 text-[11px] text-slate-500">
                       <div>
                         <p className="truncate">{request.symptom}</p>
                         <p className="mt-1">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX内容は患者特定画面で確認'}</p>
@@ -337,8 +337,8 @@ export default function RequestsPage() {
                                 nextAction.tone === 'primary'
                                   ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                   : nextAction.tone === 'secondary'
-                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
-                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                                    ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                               )}
                             >
                               {nextAction.label}
@@ -367,7 +367,7 @@ export default function RequestsPage() {
               <TableHead className="text-slate-500">ステータス</TableHead>
               <TableHead className="text-slate-500">受付概要</TableHead>
               <TableHead className="text-slate-500">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
-              {isNightPharmacist && <TableHead className="text-gray-400">次の操作</TableHead>}
+              {isNightPharmacist && <TableHead className="text-slate-500">次の操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -397,37 +397,37 @@ export default function RequestsPage() {
                   <TableCell>
                     <span className="inline-flex items-center gap-2">
                       <span className={cn('h-2.5 w-2.5 rounded-full', priority.dot)} />
-                      <span className="text-xs text-gray-300">{priority.label}</span>
+                      <span className="text-xs text-slate-600">{priority.label}</span>
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-200">{request.receivedAt}</TableCell>
+                  <TableCell className="text-slate-700">{request.receivedAt}</TableCell>
                   <TableCell>
                     {isPharmacyAdmin ? (
-                      <span className="inline-flex items-center gap-2 text-gray-200">{patientLabel}</span>
+                      <span className="inline-flex items-center gap-2 text-slate-700">{patientLabel}</span>
                     ) : (
-                      <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
+                      <Link href={`/dashboard/requests/${request.id}`} className="text-slate-700 hover:text-indigo-600">
                         <span className="inline-flex items-center gap-2">
                           {patientLabel}
                         </span>
                       </Link>
                     )}
                   </TableCell>
-                  <TableCell className="text-gray-300">{request.pharmacyName}</TableCell>
+                  <TableCell className="text-slate-600">{request.pharmacyName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('border text-xs', status.className)}>
                       {status.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[260px] text-xs text-gray-300">
+                  <TableCell className="max-w-[260px] text-xs text-slate-600">
                     <div className="space-y-1">
                       <p className="truncate">{request.symptom}</p>
                       <div className="flex gap-2 text-[10px]">
-                        <span className={request.status === 'fax_pending' ? 'text-purple-300' : 'text-gray-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
+                        <span className={request.status === 'fax_pending' ? 'text-purple-600' : 'text-slate-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
                         <span className={request.patientId ? 'text-indigo-300' : 'text-amber-300'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
+                  <TableCell className="text-xs text-slate-600">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
                   {isNightPharmacist && (
                     <TableCell>
                       {(() => {
