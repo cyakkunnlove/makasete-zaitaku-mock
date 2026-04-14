@@ -148,6 +148,8 @@ export default function BillingPage() {
   const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
   const [calendarActionNote, setCalendarActionNote] = useState('')
   const [inlineActionPatientId, setInlineActionPatientId] = useState<string | null>(null)
+  const [patientSearch, setPatientSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | CollectionWorkflowStatus>('all')
   const ownPharmacyId = 'PH-01'
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -341,6 +343,14 @@ export default function BillingPage() {
     unbilledVisitRecords.map((record) => [`${record.patientName}:${record.visitDate}`, record]),
   ), [unbilledVisitRecords])
 
+  const filteredPatientVisitHistory = useMemo(() => {
+    return patientVisitHistory.filter((item) => {
+      const matchesSearch = patientSearch.trim().length === 0 || item.patientName.toLowerCase().includes(patientSearch.trim().toLowerCase())
+      const matchesStatus = statusFilter === 'all' || item.visits.some((visit) => visit.workflowStatus === statusFilter)
+      return matchesSearch && matchesStatus
+    })
+  }, [patientSearch, patientVisitHistory, statusFilter])
+
   const summary = useMemo(() => {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
@@ -517,9 +527,43 @@ export default function BillingPage() {
         </section>
 
         <Card className={adminCardClass}>
-          <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-xs text-slate-600">
-            <span>対応完了した訪問のうち、請求対象だけを請求必要から入金済みまで追います。</span>
-            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">回収進捗管理</Badge>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+              <span>対応完了した訪問のうち、請求対象だけを請求必要から入金済みまで追います。</span>
+              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">回収進捗管理</Badge>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <Input
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                className={adminInputClass}
+                placeholder="患者名で検索"
+              />
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: '全て' },
+                  { key: 'needs_billing', label: '請求必要' },
+                  { key: 'billed', label: '未入金' },
+                  { key: 'needs_attention', label: '要注意' },
+                  { key: 'paid', label: '入金済み' },
+                ].map((option) => (
+                  <Button
+                    key={option.key}
+                    type="button"
+                    size="sm"
+                    variant={statusFilter === option.key ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter(option.key as 'all' | CollectionWorkflowStatus)}
+                    className={cn(
+                      statusFilter === option.key
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-600/90'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+                    )}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -585,7 +629,12 @@ export default function BillingPage() {
             <CardDescription className="text-slate-600">患者ごとに、請求必要から入金済みまでの進み具合を確認できます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {patientVisitHistory.map((item) => {
+            {filteredPatientVisitHistory.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                条件に合う患者はいません。検索語かステータスを見直してください。
+              </div>
+            ) : null}
+            {filteredPatientVisitHistory.map((item) => {
               const { firstDay, daysInMonth } = getMonthDays(item.calendarYear, item.calendarMonth)
               const visitMap = new Map(item.visits.map((visit) => [visit.visitDate, visit]))
               return (
@@ -713,6 +762,10 @@ export default function BillingPage() {
         </Card>
 
         <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-900">一覧で確認する</CardTitle>
+            <CardDescription className="text-slate-600">下の一覧は補助用です。日付から確認しづらいときだけ使えます。</CardDescription>
+          </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
