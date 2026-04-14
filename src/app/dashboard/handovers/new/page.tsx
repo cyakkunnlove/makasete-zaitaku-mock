@@ -107,7 +107,7 @@ export default function NewHandoverPage() {
     setPharmacyName(patient?.pharmacyName ?? request.pharmacyName ?? '')
     setAssignedPharmacist(request.assignee && request.assignee !== '未割当' ? request.assignee : '夜間担当薬剤師')
     setIsLocked(Boolean(patient?.name || request.patientName || request.pharmacyName || request.assignee))
-  }, [requestedRequestId, selectedRequestId])
+  }, [patientSource, requestedRequestId, selectedRequestId])
 
   const handleRequestChange = (value: string) => {
     setSelectedRequestId(value)
