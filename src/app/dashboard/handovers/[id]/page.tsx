@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope, FileText as FileTextIcon, Printer, Download, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { handoverData, patientData, sbarStyles } from '@/lib/mock-data'
+import { handoverData, sbarStyles } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,6 @@ export default function HandoverDetailPage() {
   const id = params.id as string
 
   const handover = handoverData.find((h) => h.id === id)
-  const _patient = handover ? patientData.find((p) => p.id === handover.patientId) : null
-  void _patient
 
   const [confirmed, setConfirmed] = useState(handover?.confirmed ?? false)
   const [confirmedAt, setConfirmedAt] = useState(handover?.confirmedAt ?? null)
