@@ -717,6 +717,7 @@ export type AuditActionType =
   | 'account_invitation_revoked'
   | 'account_user_updated'
   | 'account_user_status_changed'
+  | 'billing_collection_status_changed'
 
 export interface AuditEntry {
   id: string
@@ -784,6 +785,7 @@ export const auditActionLabel: Record<AuditActionType, string> = {
   account_invitation_revoked: '招待取消',
   account_user_updated: 'アカウント更新',
   account_user_status_changed: '利用状態変更',
+  billing_collection_status_changed: '回収状況変更',
 }
 
 export const auditActionClass: Record<AuditActionType, string> = {
@@ -806,6 +808,7 @@ export const auditActionClass: Record<AuditActionType, string> = {
   account_invitation_revoked: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
   account_user_updated: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
   account_user_status_changed: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
+  billing_collection_status_changed: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
 }
 
 // Unique users from audit logs for user filter

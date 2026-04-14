@@ -45,6 +45,11 @@ const accountAuditActions = [
   'account_user_status_changed',
 ] as const
 
+const billingAuditActions = [
+  'billing_generate',
+  'billing_collection_status_changed',
+] as const
+
 type AuditPageEntry = {
   id: string
   timestamp: string
@@ -164,9 +169,10 @@ export default function AuditPage() {
     <div className={adminPageClass}>
       <AdminPageHeader title="監査ログ" description="操作履歴を時系列で確認します。アカウント管理、患者操作、拒否アクセスもここで追えます。" />
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <AdminStatCard label="表示件数" value={filteredLogs.length} />
         <AdminStatCard label="アカウント管理" value={filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length} tone="primary" />
+        <AdminStatCard label="回収管理" value={filteredLogs.filter((entry) => billingAuditActions.includes(entry.action as (typeof billingAuditActions)[number])).length} tone="warning" />
         <AdminStatCard label="成功" value={filteredLogs.filter((entry) => entry.result === 'success').length} tone="success" />
         <AdminStatCard label="拒否アクセス" value={filteredLogs.filter((entry) => entry.result === 'denied').length} tone="danger" />
       </div>
@@ -193,6 +199,7 @@ export default function AuditPage() {
                   <SelectItem value="handover_confirm">申し送り確認</SelectItem>
                   <SelectItem value="staff_update">スタッフ更新</SelectItem>
                   <SelectItem value="billing_generate">請求生成</SelectItem>
+                  <SelectItem value="billing_collection_status_changed">回収状況変更</SelectItem>
                   <SelectItem value="export_csv">CSV出力</SelectItem>
                   <SelectItem value="pharmacy_update">加盟店更新</SelectItem>
                   <SelectItem value="fax_opened">FAX閲覧</SelectItem>

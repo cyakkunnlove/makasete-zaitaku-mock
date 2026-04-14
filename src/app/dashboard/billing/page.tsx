@@ -490,6 +490,10 @@ export default function BillingPage() {
               </div>
             </div>
 
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+              請求対象外の患者はここに出ません。患者詳細の「請求設定」で対象外にしたものは、対応完了しても回収管理へ上がりません。
+            </div>
+
             {unbilledVisitRecords.length === 0 ? (
               <p className="py-4 text-center text-xs text-slate-500">請求必要の候補はありません。対応完了かつ請求対象の訪問があるとここに載ります。</p>
             ) : (
