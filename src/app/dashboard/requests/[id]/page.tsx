@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -15,6 +15,8 @@ import {
   getAttentionFlags,
   getAttentionFlagClass,
 } from '@/lib/mock-data'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mergePatientSources } from '@/lib/patient-read-model'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,8 +69,36 @@ export default function RequestDetailPage() {
   const isNightPharmacist = role === 'night_pharmacist'
   const id = params.id as string
 
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const request = requestData.find((r) => r.id === id)
-  const patient = request && request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+
+  useEffect(() => {
+    const pharmacyId = request?.pharmacyId
+    if (!pharmacyId) return
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${pharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [request?.pharmacyId])
+
+  const patientSource = useMemo(
+    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    [databasePatients],
+  )
+
+  const patient = request && request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
   const needsFaxReview = request ? ['fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status) : false
   const assignee = request?.assigneeId
     ? staffData.find((s) => s.id === request.assigneeId)
