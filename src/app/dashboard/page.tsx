@@ -881,9 +881,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
   const scopedBaseDayTasks = useMemo(() => {
+    if (databasePatients.length > 0) return []
     const ownPatientIds = new Set(dayFlowPatients.map((patient) => patient.id))
     return dayTaskData.filter((task) => ownPatientIds.has(task.patientId))
-  }, [dayFlowPatients])
+  }, [databasePatients.length, dayFlowPatients])
 
   useEffect(() => {
     const patients = dayFlowPatients
@@ -1123,9 +1124,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const helperCandidatePatientIds = useMemo(() => {
     const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]
     const idSet = new Set<string>()
+    const generationHistory = databasePatients.length > 0 ? draftDayTasks : [...dayTaskData, ...draftDayTasks]
 
     nearDates.forEach((dateKey) => {
-      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, [...dayTaskData, ...draftDayTasks]).forEach((task) => {
+      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, generationHistory).forEach((task) => {
         if (task.patientId) idSet.add(task.patientId)
       })
     })
@@ -1135,7 +1137,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
 
     return idSet
-  }, [dayFlowPatients, draftDayTasks, flowDate])
+  }, [databasePatients.length, dayFlowPatients, draftDayTasks, flowDate])
 
   const filteredMasterPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
