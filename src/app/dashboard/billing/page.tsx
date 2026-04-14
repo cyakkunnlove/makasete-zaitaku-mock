@@ -533,7 +533,7 @@ export default function BillingPage() {
         <AdminPageHeader title="回収管理" description="対応完了後の請求必要、請求済み、入金済み、要確認を追います。" />
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <AdminStatCard label="請求必要" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
-          <AdminStatCard label="請求済み" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
+          <AdminStatCard label="未入金" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
           <AdminStatCard label="入金済み" value={summary.paid} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
           <AdminStatCard label="要確認" value={summary.needsAttention} tone="danger" icon={<CalendarDays className="h-4 w-4" />} />
         </section>
@@ -582,7 +582,7 @@ export default function BillingPage() {
         <Card className={adminCardClass}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-slate-900">請求必要の訪問一覧</CardTitle>
-            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここで請求処理へ進めます</CardDescription>
+            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここで回収管理に進めます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -700,7 +700,7 @@ export default function BillingPage() {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
-                          <p className="mt-1 text-xs text-slate-500">{item.visitDate} / {yen.format(item.amount)}</p>
+                          <p className="mt-1 text-xs text-slate-500">{item.visitDate} の回収状況を確認します</p>
                         </div>
                         <Badge variant="outline" className={cn('border text-xs', collectionStatusClass[item.status])}>{collectionStatusLabel[item.status]}</Badge>
                       </div>
@@ -730,7 +730,7 @@ export default function BillingPage() {
                           </div>
                           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                             <p>現在状態: <span className="font-medium text-slate-900">{collectionStatusLabel[calendarActionDialog.status]}</span></p>
-                            <p className="mt-1">請求額: <span className="font-medium text-slate-900">{yen.format(calendarActionDialog.amount)}</span></p>
+                            <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
                           </div>
                           <div className="mt-3 space-y-2">
                             <p className="text-xs text-slate-500">処理メモ</p>
