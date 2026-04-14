@@ -280,8 +280,11 @@ export default function BillingPage() {
   const patientVisitHistory = useMemo(() => {
     return ownPatients.map((patient) => {
       const tasks = dayTaskData.filter((task) => task.patientId === patient.id)
+      const patientRecords = mergedCollectionRecords.filter((record) => record.patientName === patient.name)
       const visits = (visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []).map((visit) => {
-        const linkedCollection = mergedCollectionRecords.find((record) => record.patientName === patient.name && record.handledAt?.slice(0, 10) === visit.visitDate)
+        const linkedCollection = patientRecords.find((record) => record.handledAt?.slice(0, 10) === visit.visitDate)
+          ?? patientRecords.find((record) => record.status === (visit.status === 'paid' ? 'paid' : visit.status === 'overdue' ? 'needs_attention' : 'billed'))
+          ?? patientRecords[0]
         const workflowStatus = linkedCollection?.status ?? (visit.status === 'paid' ? 'paid' : visit.status === 'overdue' ? 'needs_attention' : 'billed')
         return {
           ...visit,
