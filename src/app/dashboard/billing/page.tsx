@@ -275,17 +275,12 @@ export default function BillingPage() {
           note: linkedCollection?.note ?? '',
         }
       })
-      const billedVisits = visits.filter((visit) => visit.workflowStatus === 'billed' || visit.workflowStatus === 'paid').length
-      const collectedVisits = visits.filter((visit) => visit.workflowStatus === 'paid').length
       const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
       const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? '2026-03-01'
       const { year, month } = parseIsoDateParts(calendarMonth)
       return {
         patientId: patient.id,
         patientName: patient.name,
-        visitCount: tasks.length,
-        billedVisits,
-        collectedVisits,
         lastVisitAt: lastVisit?.completedAt ?? '—',
         tasks,
         visits,
@@ -670,12 +665,18 @@ export default function BillingPage() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{summaryItem.date}</p>
-                          <p className="mt-1 text-xs text-slate-600">対象患者 {summaryItem.patientCount}人</p>
+                          <p className="mt-1 text-xs text-slate-600">
+                            {summaryItem.attentionCount > 0
+                              ? '要注意の患者があります'
+                              : allPaid
+                                ? 'この日はすべて入金済みです'
+                                : '未入金の患者があります'}
+                          </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-[11px]">
-                          {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">未入金 {summaryItem.billedCount}</Badge> : null}
-                          {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要注意 {summaryItem.attentionCount}</Badge> : null}
-                          {summaryItem.paidCount > 0 ? <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">入金済み {summaryItem.paidCount}</Badge> : null}
+                          {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要注意あり</Badge> : null}
+                          {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">未入金あり</Badge> : null}
+                          {allPaid ? <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">すべて入金済み</Badge> : null}
                         </div>
                       </div>
                     </button>
@@ -797,7 +798,7 @@ export default function BillingPage() {
                           <Link2 className="h-3.5 w-3.5 text-indigo-500" />
                           {record.linkedTaskId}
                         </div>
-                        <p className="mt-1 text-[11px] text-slate-500">訪問回: {record.linkedTaskId?.slice(-2)}</p>
+                        <p className="mt-1 text-[11px] text-slate-500">訪問記録との連携ID</p>
                       </TableCell>
                       <TableCell className="text-xs text-slate-700">
                         <p>{record.handledBy ?? '未対応'}</p>
