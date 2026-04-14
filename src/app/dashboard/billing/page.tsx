@@ -139,6 +139,7 @@ export default function BillingPage() {
   const [statusChangeNote, setStatusChangeNote] = useState('')
   const ownPharmacyId = 'PH-01'
   const isSystemAdmin = role === 'system_admin'
+  const isPharmacyAdmin = role === 'pharmacy_admin'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
 
   const ownPatients = useMemo(() => {
@@ -726,6 +727,7 @@ export default function BillingPage() {
                         {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">請求済みにする</Button>}
                         {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金済みにする</Button>}
                         {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800">要確認にする</Button>}
+                        {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800">入金済みを見直す</Button>}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -873,6 +875,7 @@ export default function BillingPage() {
             <div className={`${adminPanelClass} p-4`}>
               <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.from] : '—'}</span></p>
               <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.to] : '—'}</span></p>
+              {statusDialog?.from === 'paid' ? <p className="mt-2 text-xs text-amber-700">入金済みからの見直しは管理者向けの慎重操作です。</p> : null}
             </div>
             <div className="space-y-2">
               <p className="text-xs text-slate-500">メモ（任意）</p>
