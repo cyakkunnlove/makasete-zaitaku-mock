@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { patientData, requestData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mergePatientSources } from '@/lib/patient-read-model'
 import { ArrowLeft, FileImage, CheckCircle2, AlertTriangle, User, CalendarDays, Building2, MapPin, ArrowRight, ExternalLink } from 'lucide-react'
 
 const requestCandidateMap: Record<string, string[]> = {
@@ -21,15 +23,43 @@ const requestCandidateMap: Record<string, string[]> = {
 export default function RequestFaxReviewPage() {
   const params = useParams()
   const id = params.id as string
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const request = requestData.find((r) => r.id === id)
-  const linkedPatient = request && request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+
+  useEffect(() => {
+    const pharmacyId = request?.pharmacyId
+    if (!pharmacyId) return
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${pharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [request?.pharmacyId])
+
+  const patientSource = useMemo(
+    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    [databasePatients],
+  )
+
+  const linkedPatient = request && request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
 
   const candidates = useMemo(() => {
     const candidateIds = requestCandidateMap[id] ?? []
     return candidateIds
-      .map((patientId) => patientData.find((patient) => patient.id === patientId))
+      .map((patientId) => patientSource.find((patient) => patient.id === patientId))
       .filter((patient): patient is NonNullable<typeof patient> => Boolean(patient))
-  }, [id])
+  }, [id, patientSource])
 
   const [selectedPatientId, setSelectedPatientId] = useState(linkedPatient?.id ?? candidates[0]?.id ?? '')
   const selectedPatient = candidates.find((patient) => patient.id === selectedPatientId) ?? linkedPatient ?? null
