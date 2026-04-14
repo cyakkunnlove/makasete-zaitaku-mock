@@ -848,21 +848,14 @@ export default function BillingPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!calendarActionDialog} onOpenChange={(open) => {
-        if (!open) {
-          setCalendarActionDialog(null)
-          setCalendarActionNote('')
-        }
-      }}>
-        <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
-          <DialogHeader>
-            <DialogTitle className="text-slate-900">回収処理</DialogTitle>
-            <DialogDescription className="text-slate-600">
-              {calendarActionDialog ? `${calendarActionDialog.patientName} / ${calendarActionDialog.visitDate}` : '回収処理を行います。'}
-            </DialogDescription>
-          </DialogHeader>
-          {calendarActionDialog ? (
-            <div className="space-y-3 text-sm text-slate-700">
+      {calendarActionDialog ? (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/55 p-3 sm:items-center" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote('') }}>
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-slate-900">回収処理</h3>
+              <p className="text-sm text-slate-600">{calendarActionDialog.patientName} / {calendarActionDialog.visitDate}</p>
+            </div>
+            <div className="mt-4 space-y-3 text-sm text-slate-700">
               <div className={`${adminPanelClass} p-4`}>
                 <p>現在状態: <span className="font-medium text-slate-900">{collectionStatusLabel[calendarActionDialog.status]}</span></p>
                 <p className="mt-1">請求額: <span className="font-medium text-slate-900">{yen.format(calendarActionDialog.amount)}</span></p>
@@ -892,13 +885,13 @@ export default function BillingPage() {
                   <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">入金済みを見直す</Button>
                 ) : null}
               </div>
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote('') }}>閉じる</Button>
+              </div>
             </div>
-          ) : null}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote('') }}>閉じる</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      ) : null}
 
       <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
         <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
