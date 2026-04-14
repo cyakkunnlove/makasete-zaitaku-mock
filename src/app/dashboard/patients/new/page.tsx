@@ -679,6 +679,8 @@ export default function NewPatientPage() {
             visitCount: Math.max(1, Number(visitCount) || 4),
             visitRules,
             manualSyncAt: null,
+            isBillable: true,
+            billingExclusionReason: '',
           },
           {
             id: user?.id ?? null,

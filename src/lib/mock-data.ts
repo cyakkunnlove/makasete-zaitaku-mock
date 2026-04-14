@@ -198,6 +198,8 @@ export interface PatientRecord {
   visitNotes: string
   insuranceInfo: string
   diseaseName: string
+  isBillable?: boolean
+  billingExclusionReason?: string | null
   status: 'active' | 'inactive'
   startedAt?: string | null
   manualTags?: string[]

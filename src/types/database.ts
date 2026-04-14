@@ -162,6 +162,8 @@ export interface Patient {
   visit_notes: string | null
   insurance_info: string | null
   disease_name: string | null
+  is_billable?: boolean | null
+  billing_exclusion_reason?: string | null
   risk_score: number
   requires_multi_visit: boolean
   status: PatientStatus

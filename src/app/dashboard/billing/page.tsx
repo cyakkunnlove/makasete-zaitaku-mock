@@ -140,10 +140,13 @@ export default function BillingPage() {
   }, [databasePatients, ownPharmacyId])
 
   const patientBillingSettings = useMemo(() => new Map(
-    ownPatients.map((patient) => {
-      const isExcluded = patient.manualTags?.includes('請求対象外') || patient.insuranceInfo?.includes('請求対象外')
-      return [patient.id, { isBillable: !isExcluded, reason: isExcluded ? '患者属性で請求対象外' : null }]
-    }),
+    ownPatients.map((patient) => [
+      patient.id,
+      {
+        isBillable: patient.isBillable ?? true,
+        reason: patient.billingExclusionReason ?? null,
+      },
+    ]),
   ), [ownPatients])
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
 

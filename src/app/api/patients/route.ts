@@ -148,6 +148,12 @@ export async function POST(request: Request) {
     doctorPhone = typeof doctor.phone === 'string' ? doctor.phone : doctorPhone
   }
 
+  const billing = (body as Record<string, unknown>).billing as Record<string, unknown> | undefined
+  const isBillable = typeof billing?.isBillable === 'boolean' ? billing.isBillable : true
+  const billingExclusionReason = !isBillable && typeof billing?.billingExclusionReason === 'string'
+    ? billing.billingExclusionReason.trim() || null
+    : null
+
   const payload = {
     organization_id: user.organization_id,
     pharmacy_id: getScopedPharmacyId(user),
@@ -169,6 +175,8 @@ export async function POST(request: Request) {
     visit_notes: typeof basic?.visitNotes === 'string' ? basic.visitNotes.trim() || null : null,
     insurance_info: typeof medical?.insuranceInfo === 'string' ? medical.insuranceInfo.trim() || null : null,
     disease_name: typeof medical?.diseaseName === 'string' ? medical.diseaseName.trim() || null : null,
+    is_billable: isBillable,
+    billing_exclusion_reason: billingExclusionReason,
     risk_score: 1,
     requires_multi_visit: Number(visitPlan?.monthlyVisitCount ?? 4) > 1,
     status: 'active' as const,
@@ -197,6 +205,8 @@ export async function POST(request: Request) {
         has_visit_weekdays: visitWeekdays.length > 0,
         has_first_visit_date: Boolean(firstVisitDate),
         geocode_status: geocodePayload.geocode_status,
+        is_billable: isBillable,
+        billing_exclusion_reason: billingExclusionReason,
       },
     })
   }
