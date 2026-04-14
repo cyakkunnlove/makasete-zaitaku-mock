@@ -301,43 +301,43 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
-                <p className="text-2xl font-bold text-white">{unbilledVisitRecords.length}</p>
-                <p className="text-[10px] text-gray-500">請求処理が必要</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-900">{unbilledVisitRecords.length}</p>
+                <p className="text-[10px] text-slate-500">請求処理が必要</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-300">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
-                <p className="text-[10px] text-gray-500">請求化OK</p>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-600">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
+                <p className="text-[10px] text-slate-500">請求化OK</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-center">
-                <p className="text-2xl font-bold text-amber-300">{unbilledVisitRecords.filter((record) => record.status === 'review').length}</p>
-                <p className="text-[10px] text-gray-500">確認待ち</p>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                <p className="text-2xl font-bold text-amber-600">{unbilledVisitRecords.filter((record) => record.status === 'review').length}</p>
+                <p className="text-[10px] text-slate-500">確認待ち</p>
               </div>
             </div>
 
             {unbilledVisitRecords.length === 0 ? (
-              <p className="py-4 text-center text-xs text-gray-500">未請求候補はありません。患者詳細または day task から訪問実績を登録するとここに載ります。</p>
+              <p className="py-4 text-center text-xs text-slate-500">未請求候補はありません。患者詳細または day task から訪問実績を登録するとここに載ります。</p>
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                  <div key={record.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-white">{record.patientName}</p>
-                        <p className="mt-1 text-xs text-gray-400">訪問日 {record.visitDate} / 処方日 {record.prescriptionDate} / {record.visitType}</p>
-                        <p className="mt-1 text-xs text-gray-500">担当: {record.staffName} / task: {record.linkedTaskId}</p>
+                        <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
+                        <p className="mt-1 text-xs text-slate-500">訪問日 {record.visitDate} / 処方日 {record.prescriptionDate} / {record.visitType}</p>
+                        <p className="mt-1 text-xs text-slate-500">担当: {record.staffName} / task: {record.linkedTaskId}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className={cn('border text-[10px]', record.status === 'ready' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-amber-500/40 bg-amber-500/20 text-amber-300')}>
+                        <Badge variant="outline" className={cn('border text-[10px]', record.status === 'ready' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700')}>
                           {record.status === 'ready' ? '請求化OK' : '確認待ち'}
                         </Badge>
-                        <Badge variant="outline" className="border-[#2a3553] text-gray-300">{yen.format(record.amount)}</Badge>
+                        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">{yen.format(record.amount)}</Badge>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-gray-400">{record.note}</p>
+                    <p className="mt-2 text-xs text-slate-500">{record.note}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">内容確認</Button>
-                      <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">金額補正</Button>
+                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
+                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">金額補正</Button>
                       <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求処理に回す</Button>
                     </div>
                   </div>
@@ -357,7 +357,7 @@ export default function BillingPage() {
               const { firstDay, daysInMonth } = getMonthDays(item.calendarYear, item.calendarMonth)
               const visitMap = new Map(item.visits.map((visit) => [visit.visitDate, visit]))
               return (
-                <div key={item.patientId} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div key={item.patientId} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                   <button
                     type="button"
                     onClick={() => togglePatientCard(item.patientId)}
@@ -365,23 +365,23 @@ export default function BillingPage() {
                   >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-medium text-white">{item.patientName}</p>
-                      <p className="text-[11px] text-gray-500">最終訪問: {item.lastVisitAt}</p>
+                      <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
+                      <p className="text-[11px] text-slate-500">最終訪問: {item.lastVisitAt}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-[#2a3553] text-gray-300">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
-                      <span className="text-xs text-gray-400">{collapsedPatientIds.has(item.patientId) ? 'タップで開く' : 'タップで閉じる'}</span>
+                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">訪問 {item.visitCount}回 / 請求 {item.billedVisits}回 / 回収 {item.collectedVisits}回</Badge>
+                      <span className="text-xs text-slate-500">{collapsedPatientIds.has(item.patientId) ? 'タップで開く' : 'タップで閉じる'}</span>
                     </div>
                   </div>
                   </button>
 
                   {!collapsedPatientIds.has(item.patientId) && (
                     <>
-                  <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                    <p className="mb-2 text-xs text-gray-400">{item.calendarYear}年{item.calendarMonth + 1}月</p>
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="mb-2 text-xs text-slate-500">{item.calendarYear}年{item.calendarMonth + 1}月</p>
                     <div className="mb-1 grid grid-cols-7 gap-1">
                       {['日', '月', '火', '水', '木', '金', '土'].map((label, i) => (
-                        <div key={label} className={cn('text-center text-[10px] py-1', i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-gray-500')}>
+                        <div key={label} className={cn('py-1 text-center text-[10px]', i === 0 ? 'text-rose-500' : i === 6 ? 'text-sky-500' : 'text-slate-500')}>
                           {label}
                         </div>
                       ))}
@@ -399,14 +399,14 @@ export default function BillingPage() {
                             key={dateKey}
                             type="button"
                             onClick={() => { if (actionable) { setExpandedPatientId(item.patientId); setSelectedVisitKey(selectedVisitKey === visitKey ? null : visitKey) } }}
-                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'bg-[#11182c] text-gray-600', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60')}
+                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60')}
                           >
                             {day}
                           </button>
                         )
                       })}
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-gray-500">
+                    <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-slate-500">
                       <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />回収済み</span>
                       <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-amber-500" />未回収</span>
                       <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-rose-500" />期限超過</span>
@@ -417,12 +417,12 @@ export default function BillingPage() {
                     <div className="mt-3 space-y-2">
                       {item.visits.map((visit) => {
                         return (
-                          <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs text-gray-300 sm:grid-cols-5">
-                            <div><p className="text-gray-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
-                            <div><p className="text-gray-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
-                            <div><p className="text-gray-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
-                            <div><p className="text-gray-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
-                            <div><p className="text-gray-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
+                          <div key={visit.visitId} className="grid grid-cols-1 gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-5">
+                            <div><p className="text-slate-500">処方日</p><p className="mt-1">{visit.prescriptionDate}</p></div>
+                            <div><p className="text-slate-500">訪問日</p><p className="mt-1">{visit.visitDate}</p></div>
+                            <div><p className="text-slate-500">請求額</p><p className="mt-1">{yen.format(visit.amount)}</p></div>
+                            <div><p className="text-slate-500">状態</p><Badge variant="outline" className={cn('mt-1 border text-[10px]', statusClass[visit.status])}>{statusLabel[visit.status]}</Badge></div>
+                            <div><p className="text-slate-500">回収到達</p><p className="mt-1">{visit.status === 'paid' ? '回収済み' : visit.status === 'unpaid' ? '請求済み/未回収' : '期限超過'}</p></div>
                           </div>
                         )
                       })}
@@ -435,18 +435,18 @@ export default function BillingPage() {
                           <div className={cn('rounded-lg p-4', isOverdue ? 'border border-rose-500/30 bg-rose-500/10' : 'border border-amber-500/30 bg-amber-500/10')}>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div>
-                                <p className="text-sm font-medium text-white">{isOverdue ? '期限超過対応フロー' : '未回収対応フロー'}</p>
-                                <p className="text-xs text-gray-400">{selectedVisit.visitDate} / {yen.format(selectedVisit.amount)}</p>
+                                <p className="text-sm font-medium text-slate-900">{isOverdue ? '期限超過対応フロー' : '未回収対応フロー'}</p>
+                                <p className="text-xs text-slate-500">{selectedVisit.visitDate} / {yen.format(selectedVisit.amount)}</p>
                               </div>
                               <Badge variant="outline" className={cn('border text-xs', statusClass[selectedVisit.status])}>{statusLabel[selectedVisit.status]}</Badge>
                             </div>
                             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                               {isOverdue ? (
                                 <>
-                                  <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
-                                    <p className="text-[11px] text-gray-500">STEP 1</p>
-                                    <p className="mt-1 text-sm text-white">再督促</p>
-                                    <p className="mt-1 text-[11px] text-gray-400">最終督促日と相手の反応を残す</p>
+                                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                                    <p className="text-[11px] text-slate-500">STEP 1</p>
+                                    <p className="mt-1 text-sm text-slate-900">再督促</p>
+                                    <p className="mt-1 text-[11px] text-slate-500">最終督促日と相手の反応を残す</p>
                                   </div>
                                   <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
                                     <p className="text-[11px] text-gray-500">STEP 2</p>
@@ -482,7 +482,7 @@ export default function BillingPage() {
                             <div className="mt-3 flex flex-wrap gap-2">
                               {isOverdue ? (
                                 <>
-                                  <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">再督促する</Button>
+                                  <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">再督促する</Button>
                                   <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">管理者確認へ</Button>
                                   <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-600/90">対応完了にする</Button>
                                 </>
@@ -495,7 +495,7 @@ export default function BillingPage() {
                                 </>
                               )}
                             </div>
-                            <p className="mt-3 text-[11px] text-gray-400">未回収・期限超過の日付セルを押すと、その状態に応じた処理導線が下に表示されます。</p>
+                            <p className="mt-3 text-[11px] text-slate-500">未回収・期限超過の日付セルを押すと、その状態に応じた処理導線が下に表示されます。</p>
                           </div>
                         )
                       })()}
@@ -510,51 +510,51 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                  <TableHead className="text-gray-400">患者名</TableHead>
-                  <TableHead className="text-gray-400">訪問回 / task</TableHead>
-                  <TableHead className="text-gray-400">対応者 / 時刻</TableHead>
-                  <TableHead className="text-gray-400">算定・請求対象</TableHead>
-                  <TableHead className="text-right text-gray-400">請求額</TableHead>
-                  <TableHead className="text-gray-400">状態</TableHead>
-                  <TableHead className="text-right text-gray-400">操作</TableHead>
+                <TableRow className="border-slate-200 hover:bg-slate-50">
+                  <TableHead className="text-slate-500">患者名</TableHead>
+                  <TableHead className="text-slate-500">訪問回 / task</TableHead>
+                  <TableHead className="text-slate-500">対応者 / 時刻</TableHead>
+                  <TableHead className="text-slate-500">算定・請求対象</TableHead>
+                  <TableHead className="text-right text-slate-500">請求額</TableHead>
+                  <TableHead className="text-slate-500">状態</TableHead>
+                  <TableHead className="text-right text-slate-500">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {mergedCollectionRecords.map((record) => (
-                  <TableRow key={record.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                    <TableCell className="font-medium text-white">{record.patientName}</TableCell>
-                    <TableCell className="text-xs text-gray-300">
+                  <TableRow key={record.id} className="border-slate-200 hover:bg-slate-50">
+                    <TableCell className="font-medium text-slate-900">{record.patientName}</TableCell>
+                    <TableCell className="text-xs text-slate-700">
                       <div className="flex items-center gap-1">
-                        <Link2 className="h-3.5 w-3.5 text-indigo-300" />
+                        <Link2 className="h-3.5 w-3.5 text-indigo-500" />
                         {record.linkedTaskId}
                       </div>
-                      <p className="mt-1 text-[11px] text-gray-500">訪問回: {record.linkedTaskId?.slice(-2)}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">訪問回: {record.linkedTaskId?.slice(-2)}</p>
                     </TableCell>
-                    <TableCell className="text-xs text-gray-300">
+                    <TableCell className="text-xs text-slate-700">
                       <p>{record.handledBy ?? '未対応'}</p>
-                      <p className="text-gray-500">{record.handledAt ?? '—'}</p>
+                      <p className="text-slate-500">{record.handledAt ?? '—'}</p>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <Badge variant="outline" className={cn('border text-xs', record.billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
                           {record.billable ? '請求対象' : '未計上'}
                         </Badge>
-                        <p className="text-[11px] text-gray-500">在宅訪問 管理料/薬剤料ベースのモック算定</p>
+                        <p className="text-[11px] text-slate-500">在宅訪問 管理料/薬剤料ベースのモック算定</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-gray-300">
-                      <Input type="number" value={record.amount} onChange={(e) => setCollectionRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, amount: Number(e.target.value) || 0 } : r))} className="h-8 w-28 border-[#2a3553] bg-[#11182c] text-right" disabled={!record.billable} />
+                    <TableCell className="text-right text-slate-700">
+                      <Input type="number" value={record.amount} onChange={(e) => setCollectionRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, amount: Number(e.target.value) || 0 } : r))} className="h-8 w-28 border-slate-200 bg-white text-right text-slate-900" disabled={!record.billable} />
                     </TableCell>
                     <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200">入金確認</Button>}
-                        {record.billable && record.status === 'unpaid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'overdue')} className="text-amber-300 hover:bg-amber-500/10 hover:text-amber-200">期限超過へ</Button>}
+                        {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金確認</Button>}
+                        {record.billable && record.status === 'unpaid' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'overdue')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800">期限超過へ</Button>}
                       </div>
                     </TableCell>
                   </TableRow>
