@@ -113,7 +113,7 @@ export default function PatientDetailPage() {
   const [detailLoadState, setDetailLoadState] = useState<'loading' | 'ready' | 'not_found'>('loading')
 
   useEffect(() => {
-    if (authMode === 'cognito') {
+    if (isUuidLike(id)) {
       setRegisteredPatients([])
       return
     }
@@ -127,12 +127,12 @@ export default function PatientDetailPage() {
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [authMode])
+  }, [id])
 
   useEffect(() => {
     let cancelled = false
     async function fetchPatientDetail() {
-      const localPatient = authMode === 'cognito' ? null : isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
+      const localPatient = isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
       if (localPatient) {
         setDatabasePatient(null)
         setDetailLoadState('ready')
@@ -166,17 +166,17 @@ export default function PatientDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [authMode, id, registeredPatients])
+  }, [id, registeredPatients])
 
   const patient = useMemo(() => {
     if (detailLoadState === 'not_found') return null
     return mergeSinglePatient({
       databasePatient,
-      registeredPatients: authMode === 'cognito' ? [] : registeredPatients,
+      registeredPatients: isUuidLike(id) ? [] : registeredPatients,
       patientId: id,
       includeMockPatients: false,
     })
-  }, [authMode, databasePatient, detailLoadState, id, registeredPatients])
+  }, [databasePatient, detailLoadState, id, registeredPatients])
 
   useEffect(() => {
     if (!patient) return

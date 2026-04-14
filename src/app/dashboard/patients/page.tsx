@@ -43,12 +43,7 @@ export default function PatientsPage() {
   const ownPharmacyId = getScopedPharmacyId(user)
 
   useEffect(() => {
-    if (authMode === 'cognito') {
-      setRegisteredPatients([])
-      return
-    }
-
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients().filter((patient) => !isUuidLike(patient.id)))
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') {
@@ -57,7 +52,7 @@ export default function PatientsPage() {
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [authMode])
+  }, [])
 
   useEffect(() => {
     if (!isDayContext || !ownPharmacyId) return
@@ -111,10 +106,9 @@ export default function PatientsPage() {
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
   const fallbackRegisteredPatients = useMemo(() => {
-    if (authMode === 'cognito') return []
     if (!isDayContext || databasePatients.length === 0 || searchQuery.trim()) return registeredPatients
-    return registeredPatients.filter((patient) => !isUuidLike(patient.id))
-  }, [authMode, databasePatients.length, isDayContext, registeredPatients, searchQuery])
+    return registeredPatients
+  }, [databasePatients.length, isDayContext, registeredPatients, searchQuery])
 
   const patientMaster = useMemo(
     () =>
