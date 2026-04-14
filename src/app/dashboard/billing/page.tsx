@@ -36,6 +36,13 @@ const BILLING_FLOW_DATE = '2026-03-28'
 
 type CollectionWorkflowStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
 
+type CollectionStatusChangeDraft = {
+  recordId: string
+  patientName: string
+  from: CollectionWorkflowStatus
+  to: CollectionWorkflowStatus
+}
+
 const statusClass: Record<BillingStatus, string> = {
   paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   unpaid: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -128,6 +135,8 @@ export default function BillingPage() {
   const [collapsedPatientIds, setCollapsedPatientIds] = useState<Set<string>>(new Set())
   const [selectedVisitKey, setSelectedVisitKey] = useState<string | null>(null)
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
+  const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
+  const [statusChangeNote, setStatusChangeNote] = useState('')
   const ownPharmacyId = 'PH-01'
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
@@ -344,10 +353,29 @@ export default function BillingPage() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
-  const updateCollectionStatus = (recordId: string, status: CollectionWorkflowStatus) => {
-    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status } : r)))
+  const updateCollectionStatus = (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
+    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: note?.trim() ? note.trim() : r.note } : r)))
     setToastMessage(`回収状況を更新しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  const openStatusDialog = (recordId: string, to: CollectionWorkflowStatus) => {
+    const record = mergedCollectionRecords.find((item) => item.id === recordId)
+    if (!record) return
+    setStatusDialog({
+      recordId,
+      patientName: record.patientName,
+      from: record.status,
+      to,
+    })
+    setStatusChangeNote('')
+  }
+
+  const confirmStatusChange = () => {
+    if (!statusDialog) return
+    updateCollectionStatus(statusDialog.recordId, statusDialog.to, statusChangeNote)
+    setStatusDialog(null)
+    setStatusChangeNote('')
   }
 
   const sendUnbilledToCollections = (record: {
@@ -667,9 +695,9 @@ export default function BillingPage() {
                     <TableCell className="text-xs text-slate-500">{record.note || '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">請求済みにする</Button>}
-                        {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金済みにする</Button>}
-                        {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" onClick={() => updateCollectionStatus(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800">要確認にする</Button>}
+                        {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">請求済みにする</Button>}
+                        {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金済みにする</Button>}
+                        {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800">要確認にする</Button>}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -801,6 +829,31 @@ export default function BillingPage() {
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setBatchDialogOpen(false)}>キャンセル</Button>
             <Button type="button" onClick={handleBatchGenerate} className="bg-indigo-500 text-white hover:bg-indigo-500/90">生成する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
+        <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">回収状況を更新</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {statusDialog ? `${statusDialog.patientName} の回収状況を「${collectionStatusLabel[statusDialog.to]}」に変更します。` : '回収状況を変更します。'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-slate-700">
+            <div className={`${adminPanelClass} p-4`}>
+              <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.from] : '—'}</span></p>
+              <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.to] : '—'}</span></p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500">メモ（任意）</p>
+              <Input value={statusChangeNote} onChange={(e) => setStatusChangeNote(e.target.value)} className={adminInputClass} placeholder="通帳確認、電話確認など" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setStatusDialog(null)}>キャンセル</Button>
+            <Button type="button" onClick={confirmStatusChange} className="bg-indigo-500 text-white hover:bg-indigo-500/90">変更する</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
