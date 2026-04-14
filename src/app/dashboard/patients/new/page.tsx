@@ -118,7 +118,7 @@ type DoctorOption = {
 
 export default function NewPatientPage() {
   const router = useRouter()
-  const { user, role, authMode } = useAuth()
+  const { user, role } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -649,7 +649,7 @@ export default function NewPatientPage() {
 
       const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null
       let fallbackPatientId: string | null = null
-      const shouldPersistLocal = authMode !== 'cognito' && (createResult?.mode !== 'supabase' || !createdPatientId)
+      const shouldPersistLocal = createResult?.mode === 'mock'
 
       if (shouldPersistLocal) {
         const existing = loadRegisteredPatients()
