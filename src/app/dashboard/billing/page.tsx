@@ -336,6 +336,10 @@ export default function BillingPage() {
       .filter((record) => !processedUnbilledIds.has(record.id))
   }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds, sharedDayTasks])
 
+  const unbilledVisitRecordMap = useMemo(() => new Map(
+    unbilledVisitRecords.map((record) => [`${record.patientName}:${record.visitDate}`, record]),
+  ), [unbilledVisitRecords])
+
   const summary = useMemo(() => {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
@@ -441,7 +445,7 @@ export default function BillingPage() {
     setCalendarActionNote('')
   }
 
-  const sendUnbilledToCollections = (record: {
+  const createCollectionRecordFromUnbilled = (record: {
     id: string
     linkedTaskId: string
     patientName: string
@@ -450,9 +454,10 @@ export default function BillingPage() {
     staffName: string
     visitDate: string
   }) => {
+    const collectionId = `COL-${record.linkedTaskId}`
     setCollectionRecords((prev) => [
       {
-        id: `COL-${record.linkedTaskId}`,
+        id: collectionId,
         patientName: record.patientName,
         month: record.visitDate.slice(0, 7),
         amount: record.amount,
@@ -467,6 +472,19 @@ export default function BillingPage() {
       ...prev,
     ])
     setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
+    return collectionId
+  }
+
+  const sendUnbilledToCollections = (record: {
+    id: string
+    linkedTaskId: string
+    patientName: string
+    amount: number
+    note: string
+    staffName: string
+    visitDate: string
+  }) => {
+    createCollectionRecordFromUnbilled(record)
     setToastMessage(`${record.patientName} を請求必要へ追加しました`)
     setTimeout(() => setToastMessage(''), 3000)
   }
@@ -603,15 +621,18 @@ export default function BillingPage() {
                         const day = i + 1
                         const dateKey = `${item.calendarYear}-${String(item.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                         const visit = visitMap.get(dateKey)
-                        const actionable = visit && visit.workflowStatus !== 'paid' && Boolean(visit.collectionRecordId)
+                        const fallbackUnbilledRecord = visit ? unbilledVisitRecordMap.get(`${item.patientName}:${visit.visitDate}`) : undefined
+                        const actionable = Boolean(visit && visit.workflowStatus !== 'paid' && (visit.collectionRecordId || fallbackUnbilledRecord))
                         return (
                           <button
                             key={dateKey}
                             type="button"
                             onClick={() => {
-                              if (actionable && visit?.collectionRecordId) {
+                              if (actionable && visit) {
+                                const recordId = visit.collectionRecordId ?? (fallbackUnbilledRecord ? createCollectionRecordFromUnbilled(fallbackUnbilledRecord) : null)
+                                if (!recordId) return
                                 openCalendarActionDialog({
-                                  recordId: visit.collectionRecordId,
+                                  recordId,
                                   patientName: item.patientName,
                                   visitDate: visit.visitDate,
                                   amount: visit.amount,
