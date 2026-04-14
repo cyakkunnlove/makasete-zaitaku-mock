@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import type { BillingStatus } from '@/types/database'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,7 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
+import { mergePatientSources } from '@/lib/patient-read-model'
 
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 
@@ -99,6 +101,7 @@ export default function BillingPage() {
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const [collectionRecords, setCollectionRecords] = useState(initialPatientCollectionRecords)
   const [sharedDayTasks, setSharedDayTasks] = useState(dayTaskData)
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
@@ -112,7 +115,12 @@ export default function BillingPage() {
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
 
-  const ownPatients = useMemo(() => patientData.filter((patient) => patient.pharmacyId === ownPharmacyId), [ownPharmacyId])
+  const ownPatients = useMemo(() => {
+    const source = databasePatients.length > 0
+      ? mergePatientSources({ databasePatients, includeMockPatients: false })
+      : patientData
+    return source.filter((patient) => patient.pharmacyId === ownPharmacyId)
+  }, [databasePatients, ownPharmacyId])
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
 
   useEffect(() => {
@@ -128,6 +136,26 @@ export default function BillingPage() {
       }
     } catch {}
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [ownPharmacyId])
 
   const dayTaskCollectionRecords = useMemo(() => {
     return sharedDayTasks
