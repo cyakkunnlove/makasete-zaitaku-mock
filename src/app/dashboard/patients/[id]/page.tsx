@@ -864,6 +864,17 @@ export default function PatientDetailPage() {
               </p>
               <p className="mt-0.5 text-sm text-gray-200">{patient.phone ?? '-'}</p>
             </div>
+            <div>
+              <p className="text-xs text-gray-500">請求設定</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className={patient.isBillable === false ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
+                  {patient.isBillable === false ? '請求対象外' : '請求対象'}
+                </Badge>
+                {patient.isBillable === false && patient.billingExclusionReason ? (
+                  <span className="text-xs text-slate-500">{patient.billingExclusionReason}</span>
+                ) : null}
+              </div>
+            </div>
             <div className="sm:col-span-2 lg:col-span-2">
               <p className="text-xs text-gray-500">担当薬局</p>
               <Link
