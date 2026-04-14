@@ -625,26 +625,27 @@ export default function BillingPage() {
                         const dateKey = `${item.calendarYear}-${String(item.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                         const visit = visitMap.get(dateKey)
                         const fallbackUnbilledRecord = visit ? unbilledVisitRecordMap.get(`${item.patientName}:${visit.visitDate}`) : undefined
-                        const actionable = Boolean(visit && visit.workflowStatus !== 'paid' && (visit.collectionRecordId || fallbackUnbilledRecord))
+                        const actionable = Boolean(visit)
                         return (
                           <button
                             key={dateKey}
                             type="button"
                             onClick={() => {
-                              if (actionable && visit) {
-                                const recordId = visit.collectionRecordId ?? (fallbackUnbilledRecord ? createCollectionRecordFromUnbilled(fallbackUnbilledRecord) : null)
-                                if (!recordId) return
-                                openCalendarActionDialog({
-                                  recordId,
-                                  patientName: item.patientName,
-                                  visitDate: visit.visitDate,
-                                  amount: visit.amount,
-                                  status: visit.workflowStatus,
-                                  note: visit.note,
-                                }, item.patientId)
-                              }
+                              if (!visit) return
+                              setExpandedPatientId(item.patientId)
+                              setInlineActionPatientId(item.patientId)
+
+                              const recordId = visit.collectionRecordId ?? (fallbackUnbilledRecord ? createCollectionRecordFromUnbilled(fallbackUnbilledRecord) : `TEMP-${item.patientId}-${visit.visitDate}`)
+                              openCalendarActionDialog({
+                                recordId,
+                                patientName: item.patientName,
+                                visitDate: visit.visitDate,
+                                amount: visit.amount,
+                                status: visit.workflowStatus,
+                                note: visit.note,
+                              }, item.patientId)
                             }}
-                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium transition-all', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent shadow-sm hover:-translate-y-0.5 hover:ring-amber-300/60 active:scale-[0.97]', visit?.workflowStatus === 'paid' && 'opacity-80')}
+                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium transition-all', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent shadow-sm hover:-translate-y-0.5 hover:ring-amber-300/60 active:scale-[0.97]')}
                           >
                             {day}
                           </button>
