@@ -146,6 +146,7 @@ export default function BillingPage() {
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
   const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
+  const [calendarActionNote, setCalendarActionNote] = useState('')
   const ownPharmacyId = 'PH-01'
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -425,6 +426,18 @@ export default function BillingPage() {
     setStatusChangeNote('')
   }
 
+  const openCalendarActionDialog = (draft: CalendarActionDraft) => {
+    setCalendarActionDialog(draft)
+    setCalendarActionNote(draft.note ?? '')
+  }
+
+  const submitCalendarAction = async (status: CollectionWorkflowStatus) => {
+    if (!calendarActionDialog) return
+    await updateCollectionStatus(calendarActionDialog.recordId, status, calendarActionNote)
+    setCalendarActionDialog(null)
+    setCalendarActionNote('')
+  }
+
   const sendUnbilledToCollections = (record: {
     id: string
     linkedTaskId: string
@@ -594,7 +607,7 @@ export default function BillingPage() {
                             type="button"
                             onClick={() => {
                               if (actionable && visit?.collectionRecordId) {
-                                setCalendarActionDialog({
+                                openCalendarActionDialog({
                                   recordId: visit.collectionRecordId,
                                   patientName: item.patientName,
                                   visitDate: visit.visitDate,
@@ -604,7 +617,7 @@ export default function BillingPage() {
                                 })
                               }
                             }}
-                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium transition-all', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent hover:ring-amber-300/60 active:scale-[0.97]')}
+                            className={cn('flex h-10 items-center justify-center rounded-md text-xs font-medium transition-all', visit ? statusCalendarClass(visit.status) : 'border border-slate-200 bg-white text-slate-400', actionable && 'cursor-pointer ring-1 ring-transparent shadow-sm hover:-translate-y-0.5 hover:ring-amber-300/60 active:scale-[0.97]', visit?.workflowStatus === 'paid' && 'opacity-80')}
                           >
                             {day}
                           </button>
@@ -811,7 +824,12 @@ export default function BillingPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!calendarActionDialog} onOpenChange={(open) => !open && setCalendarActionDialog(null)}>
+      <Dialog open={!!calendarActionDialog} onOpenChange={(open) => {
+        if (!open) {
+          setCalendarActionDialog(null)
+          setCalendarActionNote('')
+        }
+      }}>
         <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
           <DialogHeader>
             <DialogTitle className="text-slate-900">回収処理</DialogTitle>
@@ -824,23 +842,36 @@ export default function BillingPage() {
               <div className={`${adminPanelClass} p-4`}>
                 <p>現在状態: <span className="font-medium text-slate-900">{collectionStatusLabel[calendarActionDialog.status]}</span></p>
                 <p className="mt-1">請求額: <span className="font-medium text-slate-900">{yen.format(calendarActionDialog.amount)}</span></p>
-                <p className="mt-1">メモ: <span className="text-slate-600">{calendarActionDialog.note || 'なし'}</span></p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {calendarActionDialog.status === 'paid'
+                    ? (isPharmacyAdmin ? '入金済みは管理者だけ見直せます。' : '入金済みは確定済みです。スタッフは変更できません。')
+                    : 'この画面から回収処理を進められます。'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">処理メモ</p>
+                <Input
+                  value={calendarActionNote}
+                  onChange={(e) => setCalendarActionNote(e.target.value)}
+                  className={adminInputClass}
+                  placeholder="入金確認、連絡内容、差し戻し理由など"
+                />
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {(calendarActionDialog.status === 'billed' || calendarActionDialog.status === 'needs_attention') ? (
-                  <Button type="button" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'paid'); setCalendarActionDialog(null) }} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金済みにする</Button>
+                  <Button type="button" onClick={() => void submitCalendarAction('paid')} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金済みにする</Button>
                 ) : null}
-                {calendarActionDialog.status !== 'needs_attention' ? (
-                  <Button type="button" variant="outline" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'needs_attention'); setCalendarActionDialog(null) }} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">要確認にする</Button>
+                {calendarActionDialog.status !== 'needs_attention' && calendarActionDialog.status !== 'paid' ? (
+                  <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">要確認にする</Button>
                 ) : null}
                 {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
-                  <Button type="button" variant="outline" onClick={() => { void updateCollectionStatus(calendarActionDialog.recordId, 'needs_attention'); setCalendarActionDialog(null) }} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">入金済みを見直す</Button>
+                  <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">入金済みを見直す</Button>
                 ) : null}
               </div>
             </div>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setCalendarActionDialog(null)}>閉じる</Button>
+            <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote('') }}>閉じる</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
