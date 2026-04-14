@@ -423,7 +423,7 @@ export default function RequestsPage() {
                       <p className="truncate">{request.symptom}</p>
                       <div className="flex gap-2 text-[10px]">
                         <span className={request.status === 'fax_pending' ? 'text-purple-600' : 'text-slate-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
-                        <span className={request.patientId ? 'text-indigo-300' : 'text-amber-300'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
+                        <span className={request.patientId ? 'text-indigo-600' : 'text-amber-600'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
                       </div>
                     </div>
                   </TableCell>
@@ -441,8 +441,8 @@ export default function RequestsPage() {
                                 nextAction.tone === 'primary'
                                   ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                   : nextAction.tone === 'secondary'
-                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
-                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                                    ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                               )}
                             >
                               {nextAction.label}
@@ -460,22 +460,22 @@ export default function RequestsPage() {
       </Card>
 
       <Dialog open={newRequestOpen} onOpenChange={setNewRequestOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white text-slate-900 sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-white">新規依頼登録</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-slate-900">新規依頼登録</DialogTitle>
+            <DialogDescription className="text-slate-500">
               夜間受電内容を入力して依頼を起票します。
             </DialogDescription>
           </DialogHeader>
 
           <form className="space-y-4" onSubmit={handleSubmitNewRequest}>
             <div className="space-y-2">
-              <Label className="text-gray-200">薬局選択</Label>
+              <Label className="text-slate-600">薬局選択</Label>
               <Select value={formData.pharmacy} onValueChange={(value) => setFormData((prev) => ({ ...prev, pharmacy: value }))}>
-                <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                   <SelectValue placeholder="薬局を選択" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                <SelectContent className="border-slate-200 bg-white text-slate-900">
                   <SelectItem value="城南みらい薬局">城南みらい薬局</SelectItem>
                   <SelectItem value="神田中央薬局">神田中央薬局</SelectItem>
                   <SelectItem value="西新宿いろは薬局">西新宿いろは薬局</SelectItem>
@@ -485,46 +485,46 @@ export default function RequestsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">患者名</Label>
+              <Label className="text-slate-600">患者名</Label>
               <Input
                 value={formData.patientName}
                 onChange={(event) => setFormData((prev) => ({ ...prev, patientName: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="例: 田中 優子"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">症状</Label>
+              <Label className="text-slate-600">症状</Label>
               <Textarea
                 value={formData.symptom}
                 onChange={(event) => setFormData((prev) => ({ ...prev, symptom: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="主訴を入力"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">バイタル変化</Label>
+              <Label className="text-slate-600">バイタル変化</Label>
               <Textarea
                 value={formData.vitalsChange}
                 onChange={(event) => setFormData((prev) => ({ ...prev, vitalsChange: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="血圧、体温、SpO2など"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-gray-200">意識レベル</Label>
+                <Label className="text-slate-600">意識レベル</Label>
                 <Select
                   value={formData.consciousness}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, consciousness: value }))}
                 >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                  <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                     <SelectValue placeholder="選択" />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     <SelectItem value="清明">清明</SelectItem>
                     <SelectItem value="やや傾眠">やや傾眠</SelectItem>
                     <SelectItem value="混濁">混濁</SelectItem>
@@ -533,12 +533,12 @@ export default function RequestsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-200">緊急度</Label>
+                <Label className="text-slate-600">緊急度</Label>
                 <Select value={formData.urgency} onValueChange={(value) => setFormData((prev) => ({ ...prev, urgency: value }))}>
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                  <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                     <SelectValue placeholder="選択" />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     <SelectItem value="高">高</SelectItem>
                     <SelectItem value="中">中</SelectItem>
                     <SelectItem value="低">低</SelectItem>
@@ -551,7 +551,7 @@ export default function RequestsPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]"
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 onClick={() => setNewRequestOpen(false)}
               >
                 キャンセル

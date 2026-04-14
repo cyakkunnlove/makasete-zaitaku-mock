@@ -336,61 +336,61 @@ export default function PharmacyDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-base text-white">基本情報</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-base text-slate-900">基本情報</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {saveError && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">保存で問題がありました: {saveError}</div>}
+          {saveError && <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">保存で問題がありました: {saveError}</div>}
           <form onSubmit={handleSaveBasicInfo} className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2"><Label className="text-gray-300">薬局名</Label><Input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
-              <div className="space-y-2"><Label className="text-gray-300">リージョン</Label><div className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300">{pharmacy.regionName || '未設定'}</div></div>
+              <div className="space-y-2"><Label className="text-slate-600">薬局名</Label><Input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="border-slate-200 bg-white text-slate-900" /></div>
+              <div className="space-y-2"><Label className="text-slate-600">リージョン</Label><div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{pharmacy.regionName || '未設定'}</div></div>
             </div>
-            <div className="space-y-2"><Label className="text-gray-300">住所</Label><Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+            <div className="space-y-2"><Label className="text-slate-600">住所</Label><Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="border-slate-200 bg-white text-slate-900" /></div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2"><Label className="text-gray-300">電話</Label><Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
-              <div className="space-y-2"><Label className="text-gray-300">FAX</Label><Input value={editForm.fax} onChange={(e) => setEditForm((prev) => ({ ...prev, fax: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
+              <div className="space-y-2"><Label className="text-slate-600">電話</Label><Input value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} className="border-slate-200 bg-white text-slate-900" /></div>
+              <div className="space-y-2"><Label className="text-slate-600">FAX</Label><Input value={editForm.fax} onChange={(e) => setEditForm((prev) => ({ ...prev, fax: e.target.value }))} className="border-slate-200 bg-white text-slate-900" /></div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-2"><Label className="text-gray-300">転送先電話</Label><Input value={editForm.forwardingPhone} onChange={(e) => setEditForm((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="border-[#2a3553] bg-[#1a2035]" /></div>
-              <div className="space-y-2"><Label className="text-gray-300">契約日</Label><div className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300">{pharmacy.contractDate || '未設定'}</div></div>
+              <div className="space-y-2"><Label className="text-slate-600">転送先電話</Label><Input value={editForm.forwardingPhone} onChange={(e) => setEditForm((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="border-slate-200 bg-white text-slate-900" /></div>
+              <div className="space-y-2"><Label className="text-slate-600">契約日</Label><div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{pharmacy.contractDate || '未設定'}</div></div>
             </div>
             <div className="flex justify-end"><Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={isSaving}>{isSaving ? '保存中...' : '基本情報を保存'}</Button></div>
           </form>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base text-white"><Settings2 className="h-4 w-4 text-indigo-400" />電話転送の運用設定</CardTitle>
-          <CardDescription className="text-gray-400">加盟店管理者が手動反映する運用と、店舗ごとの規定時間による自動切替の両方に対応します。</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Settings2 className="h-4 w-4 text-indigo-500" />電話転送の運用設定</CardTitle>
+          <CardDescription className="text-slate-500">加盟店管理者が手動反映する運用と、店舗ごとの規定時間による自動切替の両方に対応します。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={cn('border text-xs', forwardingStateClass)}>{forwardingStateLabel}</Badge>
-            <span className="text-xs text-gray-500">最終更新: {formatJst(lastUpdatedAt)} / {lastUpdatedBy}</span>
+            <span className="text-xs text-slate-500">最終更新: {formatJst(lastUpdatedAt)} / {lastUpdatedBy}</span>
           </div>
           {requiresReverification && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               転送設定の変更は再認証が必要です。操作するとセキュリティ確認画面へ移動します。
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 space-y-3">
-              <p className="text-sm font-medium text-white">手動反映</p>
-              <p className="text-xs text-gray-400">加盟店の管理者アカウントが、実際に転送をかけた/止めたタイミングで反映します。</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-slate-900">手動反映</p>
+              <p className="text-xs text-slate-500">加盟店の管理者アカウントが、実際に転送をかけた/止めたタイミングで反映します。</p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => void reflectManual('manual_on')} disabled={isSaving} className="bg-emerald-600 text-white hover:bg-emerald-600/90">転送をかけた</Button>
-                <Button onClick={() => void reflectManual('manual_off')} disabled={isSaving} className="bg-[#2a3553] text-white hover:bg-[#334166]">転送を止めた</Button>
+                <Button onClick={() => void reflectManual('manual_off')} disabled={isSaving} className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">転送を止めた</Button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 space-y-3">
-              <p className="text-sm font-medium text-white">自動切替時間</p>
-              <p className="text-xs text-gray-400">各加盟店ごとに夜間の規定時間を設定し、その時間帯は自動でON/OFFが切り替わる前提です。</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-slate-900">自動切替時間</p>
+              <p className="text-xs text-slate-500">各加盟店ごとに夜間の規定時間を設定し、その時間帯は自動でON/OFFが切り替わる前提です。</p>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="text-gray-300">自動ON</Label><Input type="time" value={autoStart} onChange={(e) => setAutoStart(e.target.value)} className="border-[#2a3553] bg-[#1a2035]" /></div>
-                <div className="space-y-2"><Label className="text-gray-300">自動OFF</Label><Input type="time" value={autoEnd} onChange={(e) => setAutoEnd(e.target.value)} className="border-[#2a3553] bg-[#1a2035]" /></div>
+                <div className="space-y-2"><Label className="text-slate-600">自動ON</Label><Input type="time" value={autoStart} onChange={(e) => setAutoStart(e.target.value)} className="border-slate-200 bg-white text-slate-900" /></div>
+                <div className="space-y-2"><Label className="text-slate-600">自動OFF</Label><Input type="time" value={autoEnd} onChange={(e) => setAutoEnd(e.target.value)} className="border-slate-200 bg-white text-slate-900" /></div>
               </div>
               <Button onClick={() => void saveAutoSchedule()} disabled={isSaving} className="bg-indigo-600 text-white hover:bg-indigo-600/90">自動運用として保存</Button>
             </div>
@@ -398,20 +398,20 @@ export default function PharmacyDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-base text-white">請求履歴</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-base text-slate-900">請求履歴</CardTitle></CardHeader>
         <CardContent>
-          {billings.length === 0 ? <p className="py-4 text-center text-sm text-gray-400">請求データはありません</p> : (
-            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-[#2a3553] text-left text-xs text-gray-400"><th className="pb-2 pr-4">対象月</th><th className="pb-2 pr-4">SaaS</th><th className="pb-2 pr-4">夜間連携</th><th className="pb-2 pr-4">合計</th><th className="pb-2">状態</th></tr></thead><tbody>{billings.map((bill) => (<tr key={bill.id} className="border-b border-[#2a3553]/50"><td className="py-2.5 pr-4 text-gray-300">{bill.month}</td><td className="py-2.5 pr-4 text-gray-300">{yen.format(bill.saasFee)}円</td><td className="py-2.5 pr-4 text-gray-300">{yen.format(bill.nightFee)}円</td><td className="py-2.5 pr-4 font-medium text-white">{yen.format(bill.total)}円</td><td className="py-2.5"><Badge variant="outline" className={cn('border text-xs', billingStatusClass[bill.status])}>{bill.status}</Badge></td></tr>))}</tbody></table></div>
+          {billings.length === 0 ? <p className="py-4 text-center text-sm text-slate-500">請求データはありません</p> : (
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500"><th className="pb-2 pr-4">対象月</th><th className="pb-2 pr-4">SaaS</th><th className="pb-2 pr-4">夜間連携</th><th className="pb-2 pr-4">合計</th><th className="pb-2">状態</th></tr></thead><tbody>{billings.map((bill) => (<tr key={bill.id} className="border-b border-slate-200"><td className="py-2.5 pr-4 text-slate-600">{bill.month}</td><td className="py-2.5 pr-4 text-slate-600">{yen.format(bill.saasFee)}円</td><td className="py-2.5 pr-4 text-slate-600">{yen.format(bill.nightFee)}円</td><td className="py-2.5 pr-4 font-medium text-slate-900">{yen.format(bill.total)}円</td><td className="py-2.5"><Badge variant="outline" className={cn('border text-xs', billingStatusClass[bill.status])}>{bill.status}</Badge></td></tr>))}</tbody></table></div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-base text-white">最近の依頼</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-base text-slate-900">最近の依頼</CardTitle></CardHeader>
         <CardContent>
-          {recentRequests.length === 0 ? <p className="py-4 text-center text-sm text-gray-400">依頼データはありません</p> : (
-            <div className="space-y-2">{recentRequests.map((request) => (<div key={request.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-sm text-gray-300"><div className="flex items-center justify-between gap-3"><span>{request.patientName ?? '患者未特定'}</span><span className="text-xs text-gray-500">{request.receivedDate} {request.receivedAt}</span></div></div>))}</div>
+          {recentRequests.length === 0 ? <p className="py-4 text-center text-sm text-slate-500">依頼データはありません</p> : (
+            <div className="space-y-2">{recentRequests.map((request) => (<div key={request.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"><div className="flex items-center justify-between gap-3"><span>{request.patientName ?? '患者未特定'}</span><span className="text-xs text-slate-500">{request.receivedDate} {request.receivedAt}</span></div></div>))}</div>
           )}
         </CardContent>
       </Card>
