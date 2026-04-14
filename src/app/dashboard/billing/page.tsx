@@ -191,7 +191,7 @@ export default function BillingPage() {
             handledAt: (task.handled_at as string | null) ?? null,
             completedAt: (task.completed_at as string | null) ?? null,
             billable: Boolean(task.billable),
-            collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+            collectionStatus: (task.collection_status as CollectionWorkflowStatus) ?? 'needs_billing',
             amount: Number(task.amount ?? 0),
             note: String(task.note ?? ''),
             updatedAt: (task.updated_at as string | null) ?? null,
@@ -244,7 +244,7 @@ export default function BillingPage() {
         const patient = patientData.find((item) => item.id === task.patientId)
         const existing = initialPatientCollectionRecords.find((record) => record.linkedTaskId === task.id)
         const patientBilling = patientBillingSettings.get(task.patientId)
-        const status = existing?.status ?? (task.collectionStatus === '入金済' ? 'paid' : task.collectionStatus === '回収中' ? 'billed' : 'needs_billing')
+        const status = existing?.status ?? task.collectionStatus ?? 'needs_billing'
         return {
           id: existing?.id ?? `COL-${task.id}`,
           patientName: patient?.name ?? task.patientId,
@@ -306,7 +306,7 @@ export default function BillingPage() {
           visitType: task.visitType,
           staffName: task.handledBy ?? '未設定',
           amount: task.amount,
-          status: task.collectionStatus === '請求準備OK' ? 'ready' : 'review',
+          status: String(task.collectionStatus) === 'needs_billing' ? 'ready' : 'review',
           note: task.note,
         }
       })
@@ -433,7 +433,7 @@ export default function BillingPage() {
       ...prev,
     ])
     setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
-    setToastMessage(`${record.patientName} を請求処理に回しました（モック）`)
+    setToastMessage(`${record.patientName} を請求必要へ追加しました`)
     setTimeout(() => setToastMessage(''), 3000)
   }
 
