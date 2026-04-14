@@ -353,9 +353,37 @@ export default function BillingPage() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
-  const updateCollectionStatus = (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
+  const updateCollectionStatus = async (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
+    const target = mergedCollectionRecords.find((record) => record.id === recordId)
     setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: note?.trim() ? note.trim() : r.note } : r)))
-    setToastMessage(`回収状況を更新しました（モック）`)
+
+    if (target?.linkedTaskId) {
+      const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
+      if (dayTask) {
+        try {
+          const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              task: {
+                ...dayTask,
+                collectionStatus: status,
+                note: note?.trim() ? note.trim() : dayTask.note,
+              },
+            }),
+          })
+          if (!response.ok) {
+            throw new Error('collection_status_save_failed')
+          }
+        } catch {
+          setToastMessage('回収状況の保存に失敗しました')
+          setTimeout(() => setToastMessage(''), 3000)
+          return
+        }
+      }
+    }
+
+    setToastMessage(`回収状況を更新しました`)
     setTimeout(() => setToastMessage(''), 3000)
   }
 
@@ -371,9 +399,9 @@ export default function BillingPage() {
     setStatusChangeNote('')
   }
 
-  const confirmStatusChange = () => {
+  const confirmStatusChange = async () => {
     if (!statusDialog) return
-    updateCollectionStatus(statusDialog.recordId, statusDialog.to, statusChangeNote)
+    await updateCollectionStatus(statusDialog.recordId, statusDialog.to, statusChangeNote)
     setStatusDialog(null)
     setStatusChangeNote('')
   }

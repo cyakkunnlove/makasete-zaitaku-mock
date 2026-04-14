@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     handled_at: typeof task.handledAt === 'string' ? task.handledAt : null,
     completed_at: typeof task.completedAt === 'string' ? task.completedAt : null,
     billable: Boolean(task.billable),
-    collection_status: typeof task.collectionStatus === 'string' ? task.collectionStatus : '未着手',
+    collection_status: typeof task.collectionStatus === 'string' ? task.collectionStatus : 'needs_billing',
     amount: typeof task.amount === 'number' ? task.amount : 0,
     note: typeof task.note === 'string' ? task.note : '',
     updated_by_id: user.id,
@@ -69,6 +69,9 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       flow_date: payload.flow_date,
       status: payload.status,
       planning_status: payload.planning_status,
+      collection_status: payload.collection_status,
+      amount: payload.amount,
+      note: payload.note,
     },
   })
 
