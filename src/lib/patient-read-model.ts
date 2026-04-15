@@ -39,6 +39,8 @@ export function mapDatabasePatientToPatientRecord(
     insuranceInfo: patient.insurance_info || '未設定',
     diseaseName: patient.disease_name || '未設定',
     status: patient.status === 'inactive' ? 'inactive' : 'active',
+    isBillable: patient.is_billable ?? true,
+    billingExclusionReason: patient.billing_exclusion_reason ?? null,
     startedAt: null,
     manualTags: [],
     derivedFlags: [],

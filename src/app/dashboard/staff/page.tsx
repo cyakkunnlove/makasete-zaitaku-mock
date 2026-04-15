@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { AdminPageHeader, AdminStatCard, adminCardClass, adminInputClass, adminPageClass } from '@/components/admin-ui'
+import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
 import { Plus, Calendar, Users } from 'lucide-react'
 
 import {
@@ -620,10 +620,10 @@ export default function StaffPage() {
 
   if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) {
     return (
-      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white">スタッフ管理</CardTitle>
-          <CardDescription className="text-gray-400">このページは管理者のみ閲覧できます。</CardDescription>
+          <CardTitle className="text-base text-slate-900">スタッフ管理</CardTitle>
+          <CardDescription className="text-slate-600">このページは管理者のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -670,20 +670,20 @@ export default function StaffPage() {
 
       {/* Page-level tabs */}
       
-      {isRegionalAdmin && (<Card className="border-[#2a3553] bg-[#1a2035]">
+      {isRegionalAdmin && (<Card className={adminCardClass}>
         <CardContent className="p-4">
           <Tabs value={pageTab} onValueChange={(value) => setPageTab(value as PageTab)}>
-            <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#11182c] p-1">
+            <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-slate-100 p-1">
               <TabsTrigger
                 value="staff"
-                className="flex items-center gap-1.5 rounded-md border border-[#2a3553] bg-[#11182c] px-4 py-2 text-sm text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
               >
                 <Users className="h-4 w-4" />
                 スタッフ一覧
               </TabsTrigger>
               <TabsTrigger
                 value="shift"
-                className="flex items-center gap-1.5 rounded-md border border-[#2a3553] bg-[#11182c] px-4 py-2 text-sm text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
               >
                 <Calendar className="h-4 w-4" />
                 シフト管理
@@ -728,23 +728,23 @@ export default function StaffPage() {
 
           <div className="grid grid-cols-1 gap-3 lg:hidden">
             {isUserListLoading ? (
-              <Card className="border-[#2a3553] bg-[#1a2035]">
-                <CardContent className="p-4 text-sm text-gray-400">アカウント一覧を読み込み中です。</CardContent>
+              <Card className={adminCardClass}>
+                <CardContent className="p-4 text-sm text-slate-500">アカウント一覧を読み込み中です。</CardContent>
               </Card>
             ) : filteredStaff.length === 0 ? (
-              <Card className="border-[#2a3553] bg-[#1a2035]">
-                <CardContent className="p-4 text-sm text-gray-400">表示できるアカウントはまだありません。</CardContent>
+              <Card className={adminCardClass}>
+                <CardContent className="p-4 text-sm text-slate-500">表示できるアカウントはまだありません。</CardContent>
               </Card>
             ) : filteredStaff.map((member) => (
-              <Card key={member.id} className="border-[#2a3553] bg-[#1a2035]">
+              <Card key={member.id} className={adminCardClass}>
                 <CardContent className="space-y-3 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-base font-semibold text-white">{member.name}</p>
+                    <p className="text-base font-semibold text-slate-900">{member.name}</p>
                     <Badge variant="outline" className={cn('border text-xs', roleClass[member.role])}>
                       {roleLabel[member.role]}
                     </Badge>
                   </div>
-                  <div className="space-y-1 text-xs text-gray-300">
+                  <div className="space-y-1 text-xs text-slate-600">
                     <p>電話: {member.phone}</p>
                     <p>メール: {member.email}</p>
                     {member.regionName && <p>リージョン: {member.regionName}</p>}
@@ -758,7 +758,7 @@ export default function StaffPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
+                        className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                         disabled={userActionId === member.id}
                         onClick={() => openEditDialog(member)}
                       >
@@ -767,7 +767,7 @@ export default function StaffPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-200 hover:bg-[#24304d]"
+                        className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                         onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
                         disabled={userActionId === member.id || member.status === 'invited'}
                       >
@@ -780,36 +780,36 @@ export default function StaffPage() {
             ))}
           </div>
 
-          <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+          <Card className={`hidden lg:block ${adminTableClass}`}>
             <Table>
               <TableHeader>
-                <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                  <TableHead className="text-gray-400">氏名</TableHead>
-                  <TableHead className="text-gray-400">役割</TableHead>
-                  <TableHead className="text-gray-400">電話</TableHead>
-                  <TableHead className="text-gray-400">メール</TableHead>
-                  <TableHead className="text-gray-400">所属</TableHead>
-                  <TableHead className="text-gray-400">状態</TableHead>
-                  <TableHead className="text-right text-gray-400">操作</TableHead>
+                <TableRow className="border-slate-200 hover:bg-slate-50">
+                  <TableHead className="text-slate-500">氏名</TableHead>
+                  <TableHead className="text-slate-500">役割</TableHead>
+                  <TableHead className="text-slate-500">電話</TableHead>
+                  <TableHead className="text-slate-500">メール</TableHead>
+                  <TableHead className="text-slate-500">所属</TableHead>
+                  <TableHead className="text-slate-500">状態</TableHead>
+                  <TableHead className="text-right text-slate-500">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isUserListLoading ? (
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableCell colSpan={7} className="text-center text-sm text-gray-400">アカウント一覧を読み込み中です。</TableCell>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableCell colSpan={7} className="text-center text-sm text-slate-500">アカウント一覧を読み込み中です。</TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableCell colSpan={7} className="text-center text-sm text-gray-400">表示できるアカウントはまだありません。</TableCell>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableCell colSpan={7} className="text-center text-sm text-slate-500">表示できるアカウントはまだありません。</TableCell>
                   </TableRow>
                 ) : filteredStaff.map((member) => {
                   const isSelf = member.id === user?.id
                   return (
-                  <TableRow key={member.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                    <TableCell className="font-medium text-white">
+                  <TableRow key={member.id} className="border-slate-200 hover:bg-slate-50">
+                    <TableCell className="font-medium text-slate-900">
                       <div className="flex items-center gap-2">
                         <span>{member.name}</span>
-                        {isSelf && <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-200">自分</Badge>}
+                        {isSelf && <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-[10px] text-cyan-700">自分</Badge>}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -817,9 +817,9 @@ export default function StaffPage() {
                         {roleLabel[member.role]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300">{member.phone}</TableCell>
-                    <TableCell className="text-gray-300">{member.email}</TableCell>
-                    <TableCell className="text-xs text-gray-300">
+                    <TableCell className="text-slate-600">{member.phone}</TableCell>
+                    <TableCell className="text-slate-600">{member.email}</TableCell>
+                    <TableCell className="text-xs text-slate-600">
                       <div className="space-y-1">
                         {member.regionName && <p>リージョン: {member.regionName}</p>}
                         {member.pharmacyName && <p>薬局: {member.pharmacyName}</p>}
@@ -836,7 +836,7 @@ export default function StaffPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
+                          className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                           disabled={userActionId === member.id}
                           onClick={() => openEditDialog(member)}
                         >
@@ -846,7 +846,7 @@ export default function StaffPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                            className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                             disabled={userActionId === member.id}
                             onClick={() => openAssignmentDialog(member)}
                           >
@@ -856,7 +856,7 @@ export default function StaffPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]"
+                          className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                           disabled={isSelf || userActionId === member.id || member.status === 'invited'}
                           onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
                         >
@@ -870,27 +870,27 @@ export default function StaffPage() {
             </Table>
           </Card>
 
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">招待中アカウント</CardTitle>
-              <CardDescription className="text-gray-400">未受諾の招待は再送または取消できます。</CardDescription>
+              <CardTitle className="text-base text-slate-900">招待中アカウント</CardTitle>
+              <CardDescription className="text-slate-600">未受諾の招待は再送または取消できます。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Input
                 value={invitationSearch}
                 onChange={(event) => setInvitationSearch(event.target.value)}
                 placeholder="メール、役割、所属で検索"
-                className="border-[#2a3553] bg-[#11182c]"
+                className={adminInputClass}
               />
               {isInvitationListLoading ? (
-                <p className="text-sm text-gray-400">招待一覧を読み込み中です。</p>
+                <p className="text-sm text-slate-500">招待一覧を読み込み中です。</p>
               ) : filteredInvitations.length === 0 ? (
-                <p className="text-sm text-gray-400">条件に合う招待はまだありません。</p>
+                <p className="text-sm text-slate-500">条件に合う招待はまだありません。</p>
               ) : (
                 filteredInvitations.map((invitation) => (
-                  <div key={invitation.id} className="flex flex-col gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1 text-sm text-gray-300">
-                      <p className="font-medium text-white">{invitation.email}</p>
+                  <div key={invitation.id} className={`${adminPanelClass} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+                    <div className="space-y-1 text-sm text-slate-600">
+                      <p className="font-medium text-slate-900">{invitation.email}</p>
                       <p>役割: {roleLabel[invitation.role]}</p>
                       <div className="flex items-center gap-2">
                         <span>状態:</span>
@@ -909,7 +909,7 @@ export default function StaffPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#24304d]"
+                        className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                         disabled={invitationActionId === invitation.id || !['pending', 'expired'].includes(invitation.status)}
                         onClick={() => handleResendInvitation(invitation.id)}
                       >
@@ -918,7 +918,7 @@ export default function StaffPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                        className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                         disabled={invitationActionId === invitation.id || invitation.status !== 'pending'}
                         onClick={() => handleRevokeInvitation(invitation.id)}
                       >
@@ -936,33 +936,33 @@ export default function StaffPage() {
       {/* ===== Shift Management Tab ===== */}
       {role === 'regional_admin' && pageTab === 'shift' && (
         <>
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">週間シフト</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-base text-slate-900">週間シフト</CardTitle>
+              <CardDescription className="text-slate-500">
                 2026-03-02 Mon ~ 2026-03-08 Sun
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 セルをクリックして当番種別を切り替えられます
               </p>
             </CardContent>
           </Card>
 
           {/* Desktop: table grid */}
-          <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+          <Card className="hidden border-slate-200 bg-white shadow-sm lg:block">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableHead className="min-w-[120px] text-gray-400">夜間薬剤師</TableHead>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="min-w-[120px] text-slate-500">夜間薬剤師</TableHead>
                     {weekDays.map((day) => (
                       <TableHead
                         key={day.date}
                         className={cn(
-                          'min-w-[100px] text-center text-gray-400',
-                          (day.label === '土' || day.label === '日') && 'text-gray-500'
+                          'min-w-[100px] text-center text-slate-500',
+                          (day.label === '土' || day.label === '日') && 'text-slate-400'
                         )}
                       >
                         <div className="text-xs">{day.full}</div>
@@ -972,8 +972,8 @@ export default function StaffPage() {
                 </TableHeader>
                 <TableBody>
                   {shiftPharmacists.map((pharmacist) => (
-                    <TableRow key={pharmacist.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                      <TableCell className="font-medium text-white">{pharmacist.name}</TableCell>
+                    <TableRow key={pharmacist.id} className="border-slate-200 hover:bg-slate-50">
+                      <TableCell className="font-medium text-slate-900">{pharmacist.name}</TableCell>
                       {weekDays.map((day) => {
                         const shift = getShiftForCell(pharmacist.id, day.date)
                         return (
@@ -993,14 +993,14 @@ export default function StaffPage() {
                                     'border text-xs',
                                     shift.shiftType === 'primary'
                                       ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                      : 'border-gray-500/40 bg-gray-500/20 text-gray-400'
+                                      : 'border-slate-200 bg-slate-50 text-slate-600'
                                   )}
                                 >
                                   {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
                                 </Badge>
                               </button>
                             ) : (
-                              <span className="text-xs text-gray-600">-</span>
+                              <span className="text-xs text-slate-400">-</span>
                             )}
                           </TableCell>
                         )
@@ -1017,12 +1017,12 @@ export default function StaffPage() {
             {weekDays.map((day) => {
               const dayShifts = shifts.filter((s) => s.shiftDate === day.date)
               return (
-                <Card key={day.date} className="border-[#2a3553] bg-[#1a2035]">
+                <Card key={day.date} className="border-slate-200 bg-white shadow-sm">
                   <CardHeader className="pb-2">
                     <CardTitle
                       className={cn(
                         'text-sm',
-                        day.label === '土' || day.label === '日' ? 'text-gray-500' : 'text-white'
+                        day.label === '土' || day.label === '日' ? 'text-slate-400' : 'text-slate-900'
                       )}
                     >
                       {day.full}
@@ -1030,14 +1030,14 @@ export default function StaffPage() {
                   </CardHeader>
                   <CardContent className="space-y-2 p-4 pt-0">
                     {dayShifts.length === 0 ? (
-                      <p className="text-xs text-gray-600">シフトなし</p>
+                      <p className="text-xs text-slate-500">シフトなし</p>
                     ) : (
                       dayShifts.map((shift) => (
                         <div
                           key={shift.id}
-                          className="flex items-center justify-between rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-2"
+                          className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
                         >
-                          <span className="text-sm text-gray-200">{shift.pharmacistName}</span>
+                          <span className="text-sm text-slate-700">{shift.pharmacistName}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -1052,7 +1052,7 @@ export default function StaffPage() {
                                 'border text-xs',
                                 shift.shiftType === 'primary'
                                   ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                  : 'border-gray-500/40 bg-gray-500/20 text-gray-400'
+                                  : 'border-slate-200 bg-slate-50 text-slate-600'
                               )}
                             >
                               {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
@@ -1076,10 +1076,10 @@ export default function StaffPage() {
           setEditingMemberRole(null)
         }
       }}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-white">アカウント情報を編集</DialogTitle>
-            <DialogDescription className="text-gray-400">氏名、電話、必要に応じて所属を更新します。</DialogDescription>
+            <DialogTitle className="text-slate-900">アカウント情報を編集</DialogTitle>
+            <DialogDescription className="text-slate-600">氏名、電話、必要に応じて所属を更新します。</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditStaff} className="space-y-4">
@@ -1168,10 +1168,10 @@ export default function StaffPage() {
           setAssignmentRegionIds([])
         }
       }}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-white">既存アカウントに権限を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">system_admin の既存アカウントに regional_admin 権限を追加します。</DialogDescription>
+            <DialogTitle className="text-slate-900">既存アカウントに権限を追加</DialogTitle>
+            <DialogDescription className="text-slate-600">system_admin の既存アカウントに regional_admin 権限を追加します。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddAssignment} className="space-y-4">
             <div className="space-y-1 text-sm text-gray-300">
@@ -1217,10 +1217,10 @@ export default function StaffPage() {
       </Dialog>
 
       <Dialog open={regionDialogOpen} onOpenChange={setRegionDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-md">
+        <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
           <DialogHeader>
-            <DialogTitle className="text-white">リージョンを追加</DialogTitle>
-            <DialogDescription className="text-gray-400">system_admin が招待前に新しいリージョンを登録します。</DialogDescription>
+            <DialogTitle className="text-slate-900">リージョンを追加</DialogTitle>
+            <DialogDescription className="text-slate-600">system_admin が招待前に新しいリージョンを登録します。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateRegion} className="space-y-4">
             <div className="space-y-2">
@@ -1248,10 +1248,10 @@ export default function StaffPage() {
 
       {/* Add Staff Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-lg">
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-white">アカウントを招待</DialogTitle>
-            <DialogDescription className="text-gray-400">氏名、役割、連絡先を登録して招待メールを送ります。</DialogDescription>
+            <DialogTitle className="text-slate-900">アカウントを招待</DialogTitle>
+            <DialogDescription className="text-slate-600">氏名、役割、連絡先を登録して招待メールを送ります。</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddStaff} className="space-y-4">

@@ -71,9 +71,15 @@ export async function GET() {
         user: actor?.full_name ?? '不明',
         role: actor?.role ?? 'system_admin',
         action: item.action,
-        target: item.target_id ?? item.target_type ?? '対象なし',
+        target: item.action === 'billing_collection_status_changed'
+          ? `${String((item.details as Record<string, unknown> | null)?.patient_id ?? item.target_id ?? '対象なし')} / 回収状況変更`
+          : item.target_id ?? item.target_type ?? '対象なし',
         targetType: item.target_type ?? null,
-        result: item.action === 'account_invitation_revoked' ? 'warning' : 'success',
+        result: item.action === 'account_invitation_revoked'
+          ? 'warning'
+          : item.action === 'billing_collection_status_changed' && String((item.details as Record<string, unknown> | null)?.collection_status ?? '') === 'needs_attention'
+            ? 'warning'
+            : 'success',
         scopeType: item.pharmacy_id ? 'pharmacy' : item.region_id ? 'region' : 'system',
         scopeLabel: item.pharmacy_id
           ? `薬局 / ${pharmacyMap.get(item.pharmacy_id) ?? item.pharmacy_id}`

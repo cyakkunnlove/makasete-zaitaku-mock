@@ -35,6 +35,8 @@ export type RegisteredPatientRecord = PatientRecord & {
   derivedFlags?: string[]
   visitRules?: PatientVisitRule[]
   registrationMeta?: PatientRegistrationMeta
+  isBillable?: boolean
+  billingExclusionReason?: string | null
 }
 
 export interface PatientRegistrationDraft {
@@ -62,6 +64,8 @@ export interface PatientRegistrationDraft {
   visitCount: number
   visitRules: PatientVisitRule[]
   manualSyncAt: string | null
+  isBillable: boolean
+  billingExclusionReason: string
 }
 
 function safeWindow(): Window | null {
@@ -190,6 +194,8 @@ export function buildRegisteredPatientRecord(
       version: 1,
       manualSyncAt: draft.manualSyncAt,
     },
+    isBillable: draft.isBillable,
+    billingExclusionReason: draft.billingExclusionReason.trim() || null,
   }
 }
 

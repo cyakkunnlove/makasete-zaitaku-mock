@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Clock3, User, Building2, Stethoscope, FileText as FileTextIcon, Printer, Download, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { handoverData, patientData, sbarStyles } from '@/lib/mock-data'
+import { handoverData, sbarStyles } from '@/lib/mock-data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,6 @@ export default function HandoverDetailPage() {
   const id = params.id as string
 
   const handover = handoverData.find((h) => h.id === id)
-  const _patient = handover ? patientData.find((p) => p.id === handover.patientId) : null
-  void _patient
 
   const [confirmed, setConfirmed] = useState(handover?.confirmed ?? false)
   const [confirmedAt, setConfirmedAt] = useState(handover?.confirmedAt ?? null)
@@ -29,11 +27,11 @@ export default function HandoverDetailPage() {
 
   if (!handover) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] p-4 text-gray-100">
+      <div className="min-h-screen bg-slate-50 p-4 text-slate-900">
         <div className="mx-auto max-w-3xl">
-          <Card className="border-[#2a3553] bg-[#111827]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardContent className="py-12 text-center">
-              <p className="text-gray-400">申し送りが見つかりませんでした</p>
+              <p className="text-slate-500">申し送りが見つかりませんでした</p>
               <Link href="/dashboard/handovers">
                 <Button variant="ghost" className="mt-4 text-indigo-400 hover:text-indigo-300">
                   <ArrowLeft className="mr-1.5 h-4 w-4" />
@@ -75,7 +73,7 @@ export default function HandoverDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-gray-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -84,25 +82,25 @@ export default function HandoverDetailPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-300 hover:bg-[#1a2035] hover:text-white"
+                className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-lg font-semibold text-white">{handover.id}</h1>
-              <p className="text-xs text-gray-400">申し送り詳細</p>
+              <h1 className="text-lg font-semibold text-slate-900">{handover.id}</h1>
+              <p className="text-xs text-slate-500">申し送り詳細</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {(role === 'pharmacy_admin' || role === 'pharmacy_staff') && (
-              <Button variant="outline" size="sm" onClick={handlePrint} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+              <Button variant="outline" size="sm" onClick={handlePrint} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <Printer className="mr-1 h-4 w-4" />
                 印刷
               </Button>
             )}
             {handover.reportFileUrl && (
-              <a href={handover.reportFileUrl} download className="inline-flex items-center rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-1.5 text-sm text-gray-200 hover:bg-[#1a2035]">
+              <a href={handover.reportFileUrl} download className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
                 <Download className="mr-1 h-4 w-4" />
                 保存
               </a>
@@ -122,22 +120,22 @@ export default function HandoverDetailPage() {
         </div>
 
         {/* Meta card */}
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardContent className="grid grid-cols-1 gap-4 pt-5 sm:grid-cols-2">
             <div className="flex items-start gap-2">
               <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
               <div>
-                <p className="text-xs text-gray-400">担当夜間薬剤師</p>
-                <p className="text-sm text-white">{handover.pharmacistName}</p>
+                <p className="text-xs text-slate-500">担当夜間薬剤師</p>
+                <p className="text-sm text-slate-900">{handover.pharmacistName}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <User className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
               <div>
-                <p className="text-xs text-gray-400">患者</p>
+                <p className="text-xs text-slate-500">患者</p>
                 <Link
                   href={`/dashboard/patients/${handover.patientId}`}
-                  className="text-sm text-indigo-400 hover:underline"
+                  className="text-sm text-indigo-600 hover:underline"
                 >
                   {handover.patientName}
                 </Link>
@@ -189,15 +187,15 @@ export default function HandoverDetailPage() {
         </div>
 
         {/* Vitals card */}
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-white">バイタルサイン</CardTitle>
+            <CardTitle className="text-sm text-slate-900">バイタルサイン</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] p-3 text-center">
-                <p className="text-xs text-gray-400">体温</p>
-                <p className="mt-1 text-lg font-semibold text-white">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
+                <p className="text-xs text-slate-500">体温</p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
                   {handover.vitals.temperature}
                   <span className="text-sm font-normal text-gray-400">℃</span>
                 </p>

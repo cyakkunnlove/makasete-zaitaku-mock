@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { patientData, requestData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mergePatientSources } from '@/lib/patient-read-model'
 import { ArrowLeft, FileImage, CheckCircle2, AlertTriangle, User, CalendarDays, Building2, MapPin, ArrowRight, ExternalLink } from 'lucide-react'
 
 const requestCandidateMap: Record<string, string[]> = {
@@ -21,15 +23,43 @@ const requestCandidateMap: Record<string, string[]> = {
 export default function RequestFaxReviewPage() {
   const params = useParams()
   const id = params.id as string
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const request = requestData.find((r) => r.id === id)
-  const linkedPatient = request && request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+
+  useEffect(() => {
+    const pharmacyId = request?.pharmacyId
+    if (!pharmacyId) return
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${pharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [request?.pharmacyId])
+
+  const patientSource = useMemo(
+    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    [databasePatients],
+  )
+
+  const linkedPatient = request && request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
 
   const candidates = useMemo(() => {
     const candidateIds = requestCandidateMap[id] ?? []
     return candidateIds
-      .map((patientId) => patientData.find((patient) => patient.id === patientId))
+      .map((patientId) => patientSource.find((patient) => patient.id === patientId))
       .filter((patient): patient is NonNullable<typeof patient> => Boolean(patient))
-  }, [id])
+  }, [id, patientSource])
 
   const [selectedPatientId, setSelectedPatientId] = useState(linkedPatient?.id ?? candidates[0]?.id ?? '')
   const selectedPatient = candidates.find((patient) => patient.id === selectedPatientId) ?? linkedPatient ?? null
@@ -37,13 +67,13 @@ export default function RequestFaxReviewPage() {
   if (!request) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
           <CardHeader>
             <CardTitle>依頼が見つかりません</CardTitle>
           </CardHeader>
           <CardContent>
             <Link href="/dashboard/requests">
-              <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#212b45]">
+              <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />依頼一覧へ戻る
               </Button>
             </Link>
@@ -54,17 +84,17 @@ export default function RequestFaxReviewPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/dashboard/requests/${request.id}`}>
-            <Button variant="outline" size="icon" className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]">
+            <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-white">FAX確認・患者確認</h1>
-            <p className="text-xs text-gray-400">{request.id} ・ {request.receivedDate} {request.receivedAt} 受信</p>
+            <h1 className="text-lg font-semibold text-slate-900">FAX確認・患者確認</h1>
+            <p className="text-xs text-slate-500">{request.id} ・ {request.receivedDate} {request.receivedAt} 受信</p>
           </div>
         </div>
         <Badge variant="outline" className="w-fit border-amber-500/40 bg-amber-500/20 text-amber-300">
@@ -80,13 +110,13 @@ export default function RequestFaxReviewPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <FileImage className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <FileImage className="h-4 w-4 text-indigo-500" />
               FAX原本確認（依頼と共通）
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-slate-500">
               このFAX原本は関連画面と同じ request.faxImageUrl を参照します。まずは原本を見て、患者候補との一致を確認します。
             </CardDescription>
           </CardHeader>
@@ -146,7 +176,7 @@ export default function RequestFaxReviewPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {candidates.length === 0 ? (
-                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-4 text-sm text-gray-400">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                   まだ候補患者がありません。FAX内容の確認後に候補が表示されます。
                 </div>
               ) : (
@@ -161,14 +191,14 @@ export default function RequestFaxReviewPage() {
                       className={cn(
                         'w-full rounded-lg border p-4 text-left transition',
                         selected
-                          ? 'border-indigo-500 bg-indigo-500/10'
-                          : 'border-[#2a3553] bg-[#11182c] hover:border-indigo-500/40'
+                          ? 'border-indigo-300 bg-indigo-50'
+                          : 'border-slate-200 bg-white hover:border-indigo-200'
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-white">{patient.name}</p>
-                          <div className="mt-1 space-y-1 text-xs text-gray-400">
+                          <p className="text-sm font-semibold text-slate-900">{patient.name}</p>
+                          <div className="mt-1 space-y-1 text-xs text-slate-500">
                             <p className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{patient.dob}</p>
                             <p className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{patient.pharmacyName}</p>
                             <p className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{patient.address}</p>

@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -177,111 +178,111 @@ function RegionalAdminDashboard() {
   const patientUnresolved = requestData.filter((request) => !request.patientId && request.status !== 'cancelled' && request.status !== 'completed').length
 
   return (
-    <div className="space-y-4">
+    <div className={`${adminPageClass} space-y-4`}>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpiData.map((kpi, index) => {
           const Icon = kpiIcons[index]
           const TrendIcon = kpi.trendUp ? ArrowUpRight : ArrowDownRight
           return (
-            <Card key={kpi.label} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={kpi.label} className={adminCardClass}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <Icon className="h-4 w-4 text-indigo-400" />
-                  <span className={cn('inline-flex items-center gap-1 text-xs font-medium', kpi.trendUp ? 'text-emerald-400' : 'text-rose-400')}>
+                  <Icon className="h-4 w-4 text-indigo-500" />
+                  <span className={cn('inline-flex items-center gap-1 text-xs font-medium', kpi.trendUp ? 'text-emerald-600' : 'text-rose-600')}>
                     <TrendIcon className="h-3 w-3" />
                     {kpi.trend}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-2xl font-bold text-white">{kpi.value}</p>
-                <p className="text-[10px] text-gray-500">{kpi.label}</p>
+                <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
+                <p className="text-[10px] text-slate-500">{kpi.label}</p>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Settings2 className="h-4 w-4 text-emerald-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Settings2 className="h-4 w-4 text-emerald-600" />
             地域運用・加盟店設定サマリー
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-              <p className="text-[10px] text-emerald-200/80">転送運用設定済み</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-300">{forwardingReady}</p>
+            <div className={`${adminPanelClass} border-emerald-200 bg-emerald-50 p-3`}>
+              <p className="text-[10px] text-emerald-700">転送運用設定済み</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{forwardingReady}</p>
             </div>
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
-              <p className="text-[10px] text-indigo-200/80">地域内 active 加盟店</p>
-              <p className="mt-1 text-2xl font-bold text-indigo-300">{activePharmacies}</p>
+            <div className={`${adminPanelClass} border-indigo-200 bg-indigo-50 p-3`}>
+              <p className="text-[10px] text-indigo-700">地域内 active 加盟店</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-600">{activePharmacies}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-[10px] text-amber-200/80">患者未特定</p>
-              <p className="mt-1 text-2xl font-bold text-amber-300">{patientUnresolved}</p>
+            <div className={`${adminPanelClass} border-amber-200 bg-amber-50 p-3`}>
+              <p className="text-[10px] text-amber-700">患者未特定</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{patientUnresolved}</p>
             </div>
-            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
-              <p className="text-[10px] text-sky-200/80">設定画面</p>
-              <Link href="/dashboard/settings/region" className="mt-1 inline-flex text-sm font-medium text-sky-300 hover:text-sky-200">地域設定を開く</Link>
+            <div className={`${adminPanelClass} border-sky-200 bg-sky-50 p-3`}>
+              <p className="text-[10px] text-sky-700">設定画面</p>
+              <Link href="/dashboard/settings/region" className="mt-1 inline-flex text-sm font-medium text-sky-700 hover:text-sky-800">地域設定を開く</Link>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
             今すぐ確認したい案件
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
-              <p className="text-[10px] text-rose-200/80">高優先・対応中</p>
-              <p className="mt-1 text-2xl font-bold text-rose-300">{urgentActiveRequests}</p>
+            <div className={`${adminPanelClass} border-rose-200 bg-rose-50 p-3`}>
+              <p className="text-[10px] text-rose-700">高優先・対応中</p>
+              <p className="mt-1 text-2xl font-bold text-rose-600">{urgentActiveRequests}</p>
             </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-[10px] text-amber-200/80">停滞気味案件</p>
-              <p className="mt-1 text-2xl font-bold text-amber-300">{delayedRequests}</p>
+            <div className={`${adminPanelClass} border-amber-200 bg-amber-50 p-3`}>
+              <p className="text-[10px] text-amber-700">停滞気味案件</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{delayedRequests}</p>
             </div>
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
-              <p className="text-[10px] text-indigo-200/80">未割当</p>
-              <p className="mt-1 text-2xl font-bold text-indigo-300">{unassignedRequests}</p>
+            <div className={`${adminPanelClass} border-indigo-200 bg-indigo-50 p-3`}>
+              <p className="text-[10px] text-indigo-700">未割当</p>
+              <p className="mt-1 text-2xl font-bold text-indigo-600">{unassignedRequests}</p>
             </div>
-            <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
-              <p className="text-[10px] text-cyan-200/80">未確認の連携事項</p>
-              <p className="mt-1 text-2xl font-bold text-cyan-300">{unconfirmedHandovers}</p>
+            <div className={`${adminPanelClass} border-cyan-200 bg-cyan-50 p-3`}>
+              <p className="text-[10px] text-cyan-700">未確認の連携事項</p>
+              <p className="mt-1 text-2xl font-bold text-cyan-600">{unconfirmedHandovers}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Timer className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Timer className="h-4 w-4 text-indigo-500" />
             当日対応の基準達成率
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-amber-400">{slaRate}%</span>
-            <span className="pb-1 text-sm text-gray-500">目標: 95%</span>
+            <span className="text-3xl font-bold text-amber-600">{slaRate}%</span>
+            <span className="pb-1 text-sm text-slate-500">目標: 95%</span>
           </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-[#111827]">
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-slate-100">
             <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400" style={{ width: `${slaRate}%` }} />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Stethoscope className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Stethoscope className="h-4 w-4 text-indigo-500" />
             本日の担当スタッフ
           </CardTitle>
         </CardHeader>
@@ -290,21 +291,21 @@ function RegionalAdminDashboard() {
             const today = MOCK_FLOW_DATE
             const todayShifts = shiftData.filter((shift) => shift.shiftDate === today)
             if (todayShifts.length === 0) {
-              return <p className="text-xs text-gray-500">本日の担当データがありません。</p>
+              return <p className="text-xs text-slate-500">本日の担当データがありません。</p>
             }
             return todayShifts.map((shift) => {
               const activeRequest = requestData.find((req) => req.assigneeId === shift.pharmacistId && ['dispatched', 'arrived', 'in_progress'].includes(req.status))
               const status = activeRequest ? (activeRequest.status === 'dispatched' ? '移動中' : '対応中') : '待機中'
               const assignment = activeRequest ? `${activeRequest.pharmacyName} / ${activeRequest.patientName ?? '患者照合中'}` : '次回アサイン待機'
               return (
-                <div key={shift.id} className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+                <div key={shift.id} className={`${adminPanelClass} flex items-center justify-between p-3`}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
                       {shift.pharmacistName.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">{shift.pharmacistName}</p>
-                      <p className="text-xs text-gray-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
+                      <p className="text-sm font-medium text-slate-900">{shift.pharmacistName}</p>
+                      <p className="text-xs text-slate-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className={cn('border text-xs', staffStatusClass[status])}>
@@ -322,25 +323,25 @@ function RegionalAdminDashboard() {
 
 function SystemAdminDashboard() {
   return (
-    <div className="space-y-4">
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+    <div className={`${adminPageClass} space-y-4`}>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Shield className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Shield className="h-4 w-4 text-indigo-500" />
             システム監視
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-gray-300">
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+        <CardContent className="space-y-3 text-sm text-slate-700">
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>通知ジョブ</span><Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">正常</Badge>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">正常</Badge>
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>夜間監視Cron</span><Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">正常</Badge>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <span>地域テナント数</span><span className="font-semibold text-white">3</span>
+          <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
+            <span>地域テナント数</span><span className="font-semibold text-slate-900">3</span>
           </div>
-          <p className="text-xs text-gray-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
+          <p className="text-xs text-slate-500">system_admin は患者情報や依頼本文を見ず、システム稼働と権限設定だけを確認します。</p>
         </CardContent>
       </Card>
     </div>
@@ -373,26 +374,26 @@ function PharmacyDashboardHeaderCard({
   handleUndo: () => void
 }) {
   return (
-    <Card className="border-[#2a3553] bg-[#1a2035]">
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div>
-          <p className="text-sm font-semibold text-white">日中対応フロー</p>
-          <p className="text-xs text-gray-400">{flowDescription}</p>
+          <p className="text-base font-semibold text-slate-900">日中対応フロー</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{flowDescription}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-300">請求連携候補 {billableReadyCount}件</Badge>
-          <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/20 text-cyan-300">{primarySummaryBadge}</Badge>
+          <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">請求連携候補 {billableReadyCount}件</Badge>
+          <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">{primarySummaryBadge}</Badge>
           {hasOrderDraft ? (
             <>
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">{orderDraftBadgeText}</Badge>
+              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{orderDraftBadgeText}</Badge>
               <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{resetOrderButtonText}</Button>
+              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{resetOrderButtonText}</Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">{orderSavedButtonText}</Button>
+            <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{orderSavedButtonText}</Button>
           )}
           {undoTarget && (
-            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">
+            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100">
               <RotateCcw className="h-3.5 w-3.5" />
               取り消す
             </Button>
@@ -417,40 +418,40 @@ function PharmacyDashboardSummaryCard({
   adminWarningText?: string | null
 }) {
   return (
-    <Card className="border-[#2a3553] bg-[#1a2035]">
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm text-white">{summaryTitle}</CardTitle>
+        <CardTitle className="text-base text-slate-900">{summaryTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
           {pharmacyStaffHandledCounts.length === 0 ? (
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-400">まだ本日の担当実績はありません。</div>
+            <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+              <div key={item.name} className={`${adminPanelClass} p-3`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-white">{item.name}</span>
+                  <span className="text-sm font-medium text-slate-900">{item.name}</span>
                   <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">完了 {item.completedCount}件</Badge>
+                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">完了 {item.completedCount}件</Badge>
                     {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-400/50 bg-amber-400/20 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.25)]">● 対応中</Badge>
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">● 対応中</Badge>
                     ) : (
-                      <Badge variant="outline" className="border-[#2a3553] bg-[#0f1728] text-gray-500">対応中なし</Badge>
+                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">対応中なし</Badge>
                     )}
-                    <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-200">予定 {item.plannedCount}件</Badge>
+                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">予定 {item.plannedCount}件</Badge>
                   </div>
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-          <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1">{summarySupportText}</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1.5">{summarySupportText}</span>
           {adminWarningText && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-200">{adminWarningText}</span>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">{adminWarningText}</span>
           )}
           {saveStateBadge && (
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-200">{saveStateBadge}</span>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">{saveStateBadge}</span>
           )}
         </div>
       </CardContent>
@@ -467,9 +468,9 @@ function PharmacyDashboardNoticeCard({
   message: string
   subtext: string
 }) {
-  const cardClass = tone === 'success' ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-amber-500/30 bg-amber-500/10'
-  const textClass = tone === 'success' ? 'text-emerald-100' : 'text-amber-100'
-  const subtextClass = tone === 'success' ? 'text-emerald-200/80' : 'text-amber-200/80'
+  const cardClass = tone === 'success' ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'
+  const textClass = tone === 'success' ? 'text-emerald-700' : 'text-amber-700'
+  const subtextClass = tone === 'success' ? 'text-emerald-600' : 'text-amber-600'
 
   return (
     <Card className={cardClass}>
@@ -484,9 +485,9 @@ function PharmacyDashboardNoticeCard({
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
-      <TabsList className="grid w-full grid-cols-2 bg-[#11182c] text-gray-400">
-        <TabsTrigger value="today" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">今日の対応予定</TabsTrigger>
-        <TabsTrigger value="master" className="data-[state=active]:bg-[#1a2035] data-[state=active]:text-white">患者一覧（簡易）</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1 text-slate-500">
+        <TabsTrigger value="today" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
@@ -495,10 +496,10 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
 
 function PharmacyTodaySectionHeading({ countLabel }: { countLabel?: string }) {
   return (
-    <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-      <Building2 className="h-4 w-4 text-indigo-400" />
+    <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <Building2 className="h-4 w-4 text-indigo-500" />
       今日の対応予定
-      <span className="text-xs font-normal text-gray-500">{countLabel ?? '自動生成 + 手動追加'}</span>
+      <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">{countLabel ?? '自動生成 + 手動追加'}</span>
     </h2>
   )
 }
@@ -520,19 +521,19 @@ function PharmacyDayTaskCardHeader({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-white hover:text-indigo-300">
+          <Link href={`/dashboard/patients/${visit.patientId}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">
             {patientName}
           </Link>
           <Badge variant="outline" className={cn('border text-[10px]', statusClassName)}>{statusLabel}</Badge>
-          <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-500/40 bg-amber-500/20 text-amber-300' : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300')}>
+          <Badge variant="outline" className={cn('border text-[10px]', visit.source === '手動追加' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
             {visit.source}
           </Badge>
-          <Badge variant="outline" className="border-[#2a3553] text-[10px] text-gray-300">{visit.visitType}</Badge>
+          <Badge variant="outline" className="border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
         </div>
-        <p className="mt-1 text-xs text-gray-500">{patientAddress}</p>
-        <p className="mt-1 text-[11px] text-gray-400">予定 {visit.scheduledTime} / {visit.note}</p>
+        <p className="mt-1 text-xs text-slate-500">{patientAddress}</p>
+        <p className="mt-1 text-[11px] text-slate-500">予定 {visit.scheduledTime} / {visit.note}</p>
       </div>
-      <div className="text-right text-xs text-gray-400">
+      <div className="text-right text-xs text-slate-500">
         <p>担当者: {visit.handledBy ?? '未対応'}</p>
         <p>着手: {formatJapanDateTime(visit.handledAt)}</p>
         <p>完了: {formatJapanDateTime(visit.completedAt)}</p>
@@ -556,18 +557,18 @@ function PharmacyDayTaskCardMetrics({
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3">
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">handled-by</p>
-        <p className="mt-1 text-sm text-white">{handledBy ?? '未設定'}</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">担当者</p>
+        <p className="mt-1 text-sm text-slate-900">{handledBy ?? '未設定'}</p>
       </div>
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">handled-at</p>
-        <p className="mt-1 text-sm text-white">{handledAt ? formatJapanDateTime(handledAt) : '未設定'}</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">着手時刻</p>
+        <p className="mt-1 text-sm text-slate-900">{handledAt ? formatJapanDateTime(handledAt) : '未設定'}</p>
       </div>
-      <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-2.5">
-        <p className="text-[10px] text-gray-500">billable / 回収連携</p>
+      <div className={`${adminPanelClass} p-2.5`}>
+        <p className="text-[10px] text-slate-500">請求 / 回収連携</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={cn('border text-[10px]', billable ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300')}>
+          <Badge variant="outline" className={cn('border text-[10px]', billable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500')}>
             {billable ? '請求対象' : '未計上'}
           </Badge>
           <Badge variant="outline" className={cn('border text-[10px]', collectionClassName)}>{collectionStatus}</Badge>
@@ -608,22 +609,22 @@ function PharmacyDayTaskCardActions({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
         {planButtonLabel}
       </Button>
-      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-[#2a3553] bg-[#11182c] px-2 py-1 text-xs text-gray-300 active:cursor-grabbing">
-        <GripVertical className="h-3.5 w-3.5 text-gray-500" />
+      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing">
+        <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
       </span>
-      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↑</Button>
-      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">↓</Button>
-      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↑</Button>
+      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↓</Button>
+      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500">
         対応する
       </Button>
-      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-600/90">
+      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500">
         対応完了
       </Button>
-      <span className="text-[11px] text-gray-500">{completionHelpText}</span>
+      <span className="text-[11px] text-slate-500">{completionHelpText}</span>
     </div>
   )
 }
@@ -645,8 +646,8 @@ function PharmacyDayTaskCardMetaChips({
 
   return (
     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-      {planningStatus === 'planned' && <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-200">{plannedLabelPrefix}{plannedBy}</span>}
-      {updatedAt && <span className="rounded-full border border-[#2a3553] bg-[#11182c] px-2 py-1 text-gray-400">{updatedLabelPrefix}{formatJapanDateTime(updatedAt)}</span>}
+      {planningStatus === 'planned' && <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-sky-700">{plannedLabelPrefix}{plannedBy}</span>}
+      {updatedAt && <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-slate-500">{updatedLabelPrefix}{formatJapanDateTime(updatedAt)}</span>}
     </div>
   )
 }
@@ -729,7 +730,7 @@ function PharmacyDayTaskCard({
         setDragOverTaskId(null)
       }}
       className={cn(
-        'border-[#2a3553] bg-[#1a2035] transition',
+        'border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md',
         draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
         dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
       )}
@@ -880,9 +881,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
   const scopedBaseDayTasks = useMemo(() => {
+    if (databasePatients.length > 0) return []
     const ownPatientIds = new Set(dayFlowPatients.map((patient) => patient.id))
     return dayTaskData.filter((task) => ownPatientIds.has(task.patientId))
-  }, [dayFlowPatients])
+  }, [databasePatients.length, dayFlowPatients])
 
   useEffect(() => {
     const patients = dayFlowPatients
@@ -1122,9 +1124,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const helperCandidatePatientIds = useMemo(() => {
     const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]
     const idSet = new Set<string>()
+    const generationHistory = databasePatients.length > 0 ? draftDayTasks : [...dayTaskData, ...draftDayTasks]
 
     nearDates.forEach((dateKey) => {
-      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, [...dayTaskData, ...draftDayTasks]).forEach((task) => {
+      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, generationHistory).forEach((task) => {
         if (task.patientId) idSet.add(task.patientId)
       })
     })
@@ -1134,7 +1137,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
 
     return idSet
-  }, [dayFlowPatients, draftDayTasks, flowDate])
+  }, [databasePatients.length, dayFlowPatients, draftDayTasks, flowDate])
 
   const filteredMasterPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -1495,22 +1498,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
         if (unconfirmed.length === 0) return null
         return (
-          <Card className="border-amber-500/40 bg-amber-500/10">
+          <Card className="border-amber-200 bg-amber-50 text-slate-900 shadow-sm">
             <CardContent className="space-y-2 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                 <AlertTriangle className="h-4 w-4" />
                 引き継ぎ確認待ち（{unconfirmed.length}件）
               </div>
               {unconfirmed.map((ho) => (
-                <div key={ho.id} className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs">
+                <div key={ho.id} className="rounded-lg border border-amber-200 bg-white p-3 text-xs shadow-sm">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-amber-100">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
-                      <p className="mt-1 text-amber-200/80">{ho.situation}</p>
-                      <p className="mt-1 text-amber-200/60">{ho.recommendation}</p>
+                      <p className="font-medium text-slate-900">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
+                      <p className="mt-1 text-slate-600">{ho.situation}</p>
+                      <p className="mt-1 text-amber-700">{ho.recommendation}</p>
                     </div>
                     <Link href={`/dashboard/patients/${ho.patientId}`}>
-                      <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-200 hover:bg-amber-500/20">患者情報で確認</Button>
+                      <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
                     </Link>
                   </div>
                 </div>
@@ -1520,63 +1523,71 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         )
       })()}
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="border-[#2a3553] bg-[#1a2035] pl-9 text-sm" />
-      </div>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="space-y-3 p-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">患者検索</p>
+            <p className="text-xs text-slate-500">名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。</p>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="h-11 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-sm text-gray-200">
-        <button onClick={() => shiftFlowDate(-1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">前日</button>
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-3 text-sm text-slate-700 shadow-sm">
+        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
         <div className="text-center">
-          <p className="text-xs text-gray-500">表示中のday flow</p>
-          <p className="font-medium text-white">{flowDateLabel}</p>
+          <p className="text-xs text-slate-500">表示中の日中フロー</p>
+          <p className="text-lg font-semibold text-slate-900">{flowDateLabel}</p>
         </div>
-        <button onClick={() => shiftFlowDate(1)} className="rounded px-2 py-1 text-gray-400 hover:bg-[#11182c] hover:text-white">翌日</button>
+        <button onClick={() => shiftFlowDate(1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
       </div>
 
       <>
         {isPharmacyAdmin && (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-amber-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <FileClock className="h-4 w-4 text-amber-300" />
-                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200">最優先</Badge>
+                  <FileClock className="h-4 w-4 text-amber-600" />
+                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">最優先</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownUnconfirmedHandovers.length}</p>
-                <p className="text-[11px] text-gray-500">引き継ぎ確認待ち</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownUnconfirmedHandovers.length}</p>
+                <p className="text-[11px] text-slate-500">引き継ぎ確認待ち</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-indigo-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <Moon className="h-4 w-4 text-indigo-300" />
-                  <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-indigo-200">昨夜</Badge>
+                  <Moon className="h-4 w-4 text-indigo-600" />
+                  <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">昨夜</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownOvernightPatients}</p>
-                <p className="text-[11px] text-gray-500">昨夜対応あり患者</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownOvernightPatients}</p>
+                <p className="text-[11px] text-slate-500">昨夜対応あり患者</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-sky-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <ClipboardList className="h-4 w-4 text-sky-300" />
-                  <Badge variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-200">自局</Badge>
+                  <ClipboardList className="h-4 w-4 text-sky-600" />
+                  <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">自局</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white">{ownActiveRequests}</p>
-                <p className="text-[11px] text-gray-500">進行中の関連依頼</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{ownActiveRequests}</p>
+                <p className="text-[11px] text-slate-500">進行中の関連依頼</p>
               </CardContent>
             </Card>
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-emerald-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-center justify-between">
-                  <Settings2 className="h-4 w-4 text-emerald-300" />
-                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">{ownConfigStatus.nightDelegation}</Badge>
+                  <Settings2 className="h-4 w-4 text-emerald-600" />
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
                 </div>
-                <p className="text-xs text-gray-400">連携設定</p>
-                <p className="text-sm font-medium text-white">{ownConfigStatus.regionLabel}</p>
-                <p className="text-[11px] text-gray-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
-                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-300 hover:text-indigo-200">薬局設定を開く</Link>
+                <p className="text-xs text-slate-500">連携設定</p>
+                <p className="text-sm font-medium text-slate-900">{ownConfigStatus.regionLabel}</p>
+                <p className="text-[11px] text-slate-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
+                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-600 hover:text-indigo-700">薬局設定を開く</Link>
               </CardContent>
             </Card>
           </div>
@@ -1597,23 +1608,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         />
 
         {isPharmacyAdmin && ownUnconfirmedHandovers.length > 0 && (
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm text-white">
-                <UserCog className="h-4 w-4 text-indigo-400" />
+              <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+                <UserCog className="h-4 w-4 text-indigo-600" />
                 管理者向けの引き継ぎ確認
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {ownUnconfirmedHandovers.slice(0, 3).map((handover) => (
-                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <div>
-                    <p className="text-sm font-medium text-white">{handover.patientName}</p>
-                    <p className="text-xs text-gray-400">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
-                    <p className="mt-1 text-[11px] text-amber-200">引き継ぎ内容の確認と優先度の見直しが必要です</p>
+                    <p className="text-sm font-medium text-slate-900">{handover.patientName}</p>
+                    <p className="text-xs text-slate-500">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
+                    <p className="mt-1 text-[11px] text-amber-700">引き継ぎ内容の確認と優先度の見直しが必要です</p>
                   </div>
                   <Link href={`/dashboard/patients/${handover.patientId}`}>
-                    <Button size="sm" variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20">患者情報で確認</Button>
+                    <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
                   </Link>
                 </div>
               ))}
@@ -1630,10 +1641,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         />
 
         {(isPatientsLoading || isDayFlowLoading) && (
-          <Card className="border-sky-500/30 bg-sky-500/10">
-            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-100">
+          <Card className="border-sky-200 bg-sky-50">
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-800">
               <span>データベースから最新データを読み込み中です...</span>
-              <span className="text-xs text-sky-200/80">
+              <span className="text-xs text-sky-700">
                 {isPatientsLoading && isDayFlowLoading ? '患者情報と今日の対応予定を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : '今日の対応予定を読み込み中'}
               </span>
             </CardContent>
@@ -1659,24 +1670,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
             <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
-            <Card className="border-[#2a3553] bg-[#1a2035]">
+            <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="space-y-3 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium text-white">巡回順のおすすめ</p>
-                    <p className="text-xs text-gray-400">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
+                    <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
+                    <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
                   </div>
                   <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
                     {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
                   </Button>
                 </div>
                 {routePlanResult && (
-                  <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-sm text-gray-200">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-white">{routePlanResult.message}</p>
+                      <p className="font-medium text-slate-900">{routePlanResult.message}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {routeEmailHref && (
-                          <Button asChild size="sm" variant="outline" className="border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20">
+                          <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 hover:bg-sky-50">
                             <a href={routeEmailHref}>自分のメールに送る</a>
                           </Button>
                         )}
@@ -1689,19 +1700,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     </div>
                     {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                       <>
-                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-[#2a3553] bg-[#0f1728]" />
-                        <p className="mt-2 text-xs text-gray-400">
+                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-slate-200 bg-slate-100" />
+                        <p className="mt-2 text-xs text-slate-500">
                           {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
                           {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
                         </p>
                         {routePlanResult.origin && (
-                          <div className="mt-3 rounded-lg border border-[#2a3553] bg-[#0f1728] p-3 text-xs text-gray-300">
-                            <p className="font-medium text-white">起点</p>
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                            <p className="font-medium text-slate-900">起点</p>
                             <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
-                            <p className="mt-1 text-gray-400">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
-                            <p className="mt-1 text-gray-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
+                            <p className="mt-1 text-slate-500">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
+                            <p className="mt-1 text-slate-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
                             {routePlanResult.origin.geocodeWarnings && routePlanResult.origin.geocodeWarnings.length > 0 && (
-                              <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                              <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
                                 {routePlanResult.origin.geocodeWarnings.map((warning) => warning.message).join(' / ')}
                               </div>
                             )}
@@ -1709,16 +1720,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                         )}
                         <ol className="mt-3 space-y-2">
                           {routePlanResult.suggestedOrder.map((patient, index) => (
-                            <li key={patient.id} className="rounded-lg border border-[#2a3553] bg-[#0f1728] px-3 py-2 text-sm">
+                            <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
                               <div>
                                 <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
-                                <span className="font-medium text-white">{patient.name}</span>
-                                <span className="ml-2 text-xs text-gray-400">{patient.address}</span>
+                                <span className="font-medium text-slate-900">{patient.name}</span>
+                                <span className="ml-2 text-xs text-slate-500">{patient.address}</span>
                               </div>
-                              <p className="mt-2 text-xs text-gray-400">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
-                              <p className="mt-1 text-[11px] text-gray-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
+                              <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
+                              <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
                               {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
-                                <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                                <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
                                   {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
                                 </div>
                               )}
@@ -1728,8 +1739,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       </>
                     )}
                     {routePlanResult.missingCoordinates.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
-                        <p className="font-medium text-amber-300">座標未取得の患者</p>
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                        <p className="font-medium text-amber-700">座標未取得の患者</p>
                         <ul className="mt-2 space-y-1">
                           {routePlanResult.missingCoordinates.map((patient) => (
                             <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}{patient.geocodeWarnings && patient.geocodeWarnings.length > 0 ? ` / 注意: ${patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}` : ''}</li>
@@ -1743,7 +1754,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             </Card>
             <div className="space-y-2">
               {draggingTaskId && (
-                <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
                   青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
                 </div>
               )}
@@ -1758,12 +1769,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const canComplete = visit.status === 'in_progress'
                 return (
                   <div key={visit.id} className="space-y-2">
-                    <label className="flex items-center gap-2 rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
+                    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
                       <input
                         type="checkbox"
                         checked={selectedRoutePatientIds.includes(visit.patientId)}
                         onChange={() => handleToggleRoutePatient(visit.patientId)}
-                        className="h-4 w-4 rounded border-[#2a3553] bg-[#0f1728]"
+                        className="h-4 w-4 rounded border-slate-300 bg-white"
                       />
                       <span>巡回順の提案に含める</span>
                     </label>
@@ -1802,20 +1813,20 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           </TabsContent>
 
           <TabsContent value="master" className="space-y-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-              <Users className="h-4 w-4 text-indigo-400" />
+            <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+              <Users className="h-4 w-4 text-indigo-500" />
               患者一覧（簡易）
-              <span className="text-xs font-normal text-gray-500">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
             </h2>
             <div className="space-y-2">
               {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-[#2a3553] bg-[#11182c]">
-                  <CardContent className="p-4 text-sm text-gray-400">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4 text-sm text-slate-500">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
                 </Card>
               )}
               {searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-[#2a3553] bg-[#11182c]">
-                  <CardContent className="p-4 text-sm text-gray-400">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
+                <Card className="border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4 text-sm text-slate-500">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
                 </Card>
               )}
               {filteredMasterPatients.map((patient) => {
@@ -1824,22 +1835,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Card key={patient.id} className="border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60">
+                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-white hover:text-indigo-300">{patient.name}</Link>
-                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-500/40 bg-indigo-500/10 text-[10px] text-indigo-200">直近対応あり</Badge>}
-                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-200">引き継ぎ確認待ち</Badge>}
-                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-200">本日フローに追加済み</Badge>}
+                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">{patient.name}</Link>
+                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">直近対応あり</Badge>}
+                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">引き継ぎ確認待ち</Badge>}
+                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700">本日フローに追加済み</Badge>}
                           </div>
-                          <p className="mt-0.5 text-xs text-gray-500">{patient.address}</p>
-                          <p className="mt-1 text-[11px] text-gray-400">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                          <p className="mt-1 text-[11px] text-amber-300">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
+                          <p className="mt-0.5 text-xs text-slate-500">{patient.address}</p>
+                          <p className="mt-1 text-[11px] text-slate-500">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                          <p className="mt-1 text-[11px] text-amber-700">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                         </div>
                         <div className="flex shrink-0 gap-2">
-                          <Button size="sm" variant="outline" className="border-[#2a3553] text-xs text-gray-200 hover:bg-[#11182c]" asChild>
+                          <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 hover:bg-slate-50" asChild>
                             <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
                           </Button>
                           <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => handleAddPatientToTodayFlow(patient)}>
@@ -1858,19 +1869,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       </>
       {!isPharmacyStaff && (
         <div className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-200">
-            <FileImage className="h-4 w-4 text-indigo-400" />
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <FileImage className="h-4 w-4 text-indigo-500" />
             送信済みFAX
           </h2>
           {mockPharmacyRequests.map((req) => (
-            <Card key={req.id} className="border-[#2a3553] bg-[#1a2035]">
+            <Card key={req.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white">{req.patientName}</p>
-                    <p className="text-xs text-gray-500">{req.id} • {req.time}</p>
+                    <p className="text-sm font-medium text-slate-900">{req.patientName}</p>
+                    <p className="text-xs text-slate-500">{req.id} • {req.time}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : req.status === '対応中' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-sky-500/20 text-sky-300 border-sky-500/30')}>
+                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : req.status === '対応中' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')}>
                     {req.status}
                   </Badge>
                 </div>
@@ -1881,21 +1892,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       )}
 
       {isPharmacyStaff && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Receipt className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <Receipt className="h-4 w-4 text-indigo-500" />
               回収管理への引き渡しメモ
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-gray-300">
+          <CardContent className="space-y-2 text-xs text-slate-600">
             {dayTasks.filter((task) => task.billable).map((task) => {
               const patient = ownPatients.find((item) => item.id === task.patientId)
               return (
-                <div key={task.id} className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                  <p className="font-medium text-white">{patient?.name ?? task.patientId}</p>
-                  <p className="mt-1 text-gray-400">handled-by: {task.handledBy} / handled-at: {formatJapanDateTime(task.completedAt ?? task.handledAt)}</p>
-                  <p className="mt-1 text-gray-400">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
+                <div key={task.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-900">{patient?.name ?? task.patientId}</p>
+                  <p className="mt-1 text-slate-500">handled-by: {task.handledBy} / handled-at: {formatJapanDateTime(task.completedAt ?? task.handledAt)}</p>
+                  <p className="mt-1 text-slate-500">billable: {task.amount > 0 ? `${task.amount.toLocaleString('ja-JP')}円` : '対象外'} / status: {task.collectionStatus}</p>
                 </div>
               )
             })}

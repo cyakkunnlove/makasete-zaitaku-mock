@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
 import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
   href: string
@@ -32,7 +33,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, permission: 'staff' },
   { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, permission: 'patients' },
   { href: '/dashboard/calendar', label: 'カレンダー', icon: <Calendar size={20} />, permission: 'patients' },
-  { href: '/dashboard/night-patients', label: '夜間患者検索', icon: <Search size={20} />, permission: 'patients' },
+  { href: '/dashboard/night-patients', label: '夜間患者検索', icon: <Search size={20} />, permission: 'nightPatients' },
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, permission: 'audit' },
@@ -71,7 +72,7 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/requests/')) return 'requestDetail'
   if (pathname.startsWith('/dashboard/requests')) return 'requests'
   if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
-  if (pathname.startsWith('/dashboard/night-patients')) return 'patients'
+  if (pathname.startsWith('/dashboard/night-patients')) return 'nightPatients'
   if (pathname.startsWith('/dashboard/calendar')) return 'patients'
   if (pathname.startsWith('/dashboard/patients')) return 'patients'
   if (pathname.startsWith('/dashboard/pharmacies')) return 'pharmacies'
@@ -171,6 +172,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   })
 
   const allNavItems = [...filteredNav, ...filteredSettings]
+  const isAdminShell = role === 'system_admin' || role === 'regional_admin'
+  const isFieldShell = role === 'pharmacy_admin' || role === 'pharmacy_staff'
+  const shellBgClass = isAdminShell ? 'bg-slate-100 text-slate-900' : isFieldShell ? 'bg-slate-50 text-slate-950' : 'bg-[#0a0e1a] text-gray-100'
+  const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : isFieldShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
+  const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-white/95 border-slate-200 backdrop-blur' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
   const handleSidebarNavigate = (href: string) => {
     if (pathname === href) {
@@ -196,8 +202,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
-        <div className="text-gray-400">読み込み中...</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500">読み込み中...</div>
       </div>
     )
   }
@@ -214,16 +220,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-gray-100">
+    <div className={cn('min-h-screen', shellBgClass)}>
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[260px] bg-[#111827] border-r border-[#2a3553] z-30">
+      <aside className={cn('hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-[260px] border-r z-30', sidebarBgClass)}>
         {/* Brand */}
-        <div className="p-5 border-b border-[#2a3553]">
+        <div className={cn('p-5 border-b', isAdminShell ? 'border-slate-800' : 'border-[#2a3553]')}>
           <div className="flex items-center gap-3">
             <span className="text-3xl">🌙</span>
             <div>
-              <h1 className="font-bold text-white text-lg">マカセテ在宅</h1>
-              <p className="text-xs text-gray-500">在宅訪問オペレーション</p>
+              <h1 className={cn('text-lg font-bold', isFieldShell ? 'text-slate-900' : 'text-white')}>マカセテ在宅</h1>
+              <p className={cn('text-xs', isFieldShell ? 'text-slate-600' : 'text-gray-500')}>在宅訪問オペレーション</p>
             </div>
           </div>
         </div>
@@ -305,8 +311,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 onClick={() => handleSidebarNavigate(item.href)}
                 className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                   active
-                    ? 'bg-indigo-600/20 text-indigo-400 font-medium'
-                    : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                    ? isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                    : isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                 }`}
               >
                 {item.icon}
@@ -319,7 +325,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {filteredSettings.length > 0 && (
             <>
               <div className="pt-4 pb-1 px-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <p className={cn('flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider', isFieldShell ? 'text-slate-500' : 'text-gray-500')}>
                   <Settings size={12} />
                   設定
                 </p>
@@ -333,8 +339,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                     onClick={() => handleSidebarNavigate(item.href)}
                     className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       active
-                        ? 'bg-indigo-600/20 text-indigo-400 font-medium'
-                        : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
+                        ? isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400 font-medium'
+                        : isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200'
                     }`}
                   >
                     {item.icon}
@@ -353,15 +359,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               {user?.full_name?.[0] ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">{user?.full_name}</p>
-              <p className="text-xs text-gray-500">{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role}</p>
+              <p className={cn('truncate text-sm font-medium', isFieldShell ? 'text-slate-900' : 'text-gray-200')}>{user?.full_name}</p>
+              <p className={cn('text-xs', isFieldShell ? 'text-slate-600' : 'text-gray-500')}>{activeRoleContext ? getMockRoleContextLabel(activeRoleContext) : role}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={signOut}
-            className="w-full text-gray-400 hover:text-gray-200 hover:bg-[#1a2035]"
+            className={cn('w-full', isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-gray-400 hover:bg-[#1a2035] hover:text-gray-200')}
           >
             <LogOut size={16} className="mr-2" />
             ログアウト
@@ -370,77 +376,87 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-[280px] bg-[#111827] border-r border-[#2a3553] flex flex-col">
-            <div className="p-4 flex items-center justify-between border-b border-[#2a3553]">
-              <span className="font-bold text-white">🌙 マカセテ在宅</span>
-              <button onClick={() => setSidebarOpen(false)}>
-                <X size={20} className="text-gray-400" />
-              </button>
-            </div>
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-              {filteredNav.map((item) => {
-                const active = isNavActive(item.href)
-                return (
-                  <button
-                    key={item.href}
-                    type="button"
-                    onClick={() => handleSidebarNavigate(item.href)}
-                    className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${
-                      active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                )
-              })}
-              {filteredSettings.length > 0 && (
-                <>
-                  <div className="pt-4 pb-1 px-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <Settings size={12} />
-                      設定
-                    </p>
-                  </div>
-                  {filteredSettings.map((item) => {
-                    const active = isNavActive(item.href)
-                    return (
-                      <button
-                        key={item.href}
-                        type="button"
-                        onClick={() => handleSidebarNavigate(item.href)}
-                        className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${
-                          active ? 'bg-indigo-600/20 text-indigo-400' : 'text-gray-400 hover:bg-[#1a2035]'
-                        }`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </button>
-                    )
-                  })}
-                </>
-              )}
-            </nav>
-          </aside>
-        </div>
-      )}
+      <div
+        className={cn(
+          'lg:hidden fixed inset-0 z-40 transition-opacity duration-200 ease-out',
+          sidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        )}
+        aria-hidden={!sidebarOpen}
+      >
+        <div className="absolute inset-0 bg-black/60 transition-opacity duration-200 ease-out" onClick={() => setSidebarOpen(false)} />
+        <aside
+          className={cn(
+            'absolute left-0 top-0 bottom-0 flex w-[280px] flex-col border-r transition-transform duration-250 ease-out',
+            isFieldShell ? 'border-slate-200 bg-white' : 'border-[#2a3553] bg-[#111827]',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          <div className={cn('p-4 flex items-center justify-between border-b', isFieldShell ? 'border-slate-200' : 'border-[#2a3553]')}>
+            <span className={cn('font-bold', isFieldShell ? 'text-slate-900' : 'text-white')}>🌙 マカセテ在宅</span>
+            <button onClick={() => setSidebarOpen(false)}>
+              <X size={20} className={isFieldShell ? 'text-slate-500' : 'text-gray-400'} />
+            </button>
+          </div>
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            {filteredNav.map((item) => {
+              const active = isNavActive(item.href)
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => handleSidebarNavigate(item.href)}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                    active ? (isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035]')
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              )
+            })}
+            {filteredSettings.length > 0 && (
+              <>
+                <div className="pt-4 pb-1 px-3">
+                  <p className={cn('flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider', isFieldShell ? 'text-slate-500' : 'text-gray-500')}>
+                    <Settings size={12} />
+                    設定
+                  </p>
+                </div>
+                {filteredSettings.map((item) => {
+                  const active = isNavActive(item.href)
+                  return (
+                    <button
+                      key={item.href}
+                      type="button"
+                      onClick={() => handleSidebarNavigate(item.href)}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                        active ? (isFieldShell ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'bg-indigo-600/20 text-indigo-400') : (isFieldShell ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-gray-400 hover:bg-[#1a2035]')
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </>
+            )}
+          </nav>
+        </aside>
+      </div>
 
       {/* Top Bar */}
-      <header className="lg:ml-[260px] h-14 bg-[#111827] border-b border-[#2a3553] flex items-center px-4 sticky top-0 z-20">
-        <button className="lg:hidden mr-3" onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} className="text-gray-400" />
+      <header className={cn('lg:ml-[260px] h-14 border-b flex items-center px-4 sticky top-0 z-20', topBarBgClass)}>
+        <button className={cn('mr-3 rounded-lg p-2 transition-all duration-150 lg:hidden', isAdminShell ? 'hover:bg-slate-100' : isFieldShell ? 'hover:bg-slate-100 active:scale-95' : 'hover:bg-[#1a2035]')} onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} className={isAdminShell ? 'text-slate-500' : isFieldShell ? 'text-slate-600' : 'text-gray-400'} />
         </button>
-        <h2 className="font-semibold text-white">{pageTitle}</h2>
+        <h2 className={cn('font-semibold', isAdminShell || isFieldShell ? 'text-slate-900' : 'text-white')}>{pageTitle}</h2>
         <div className="ml-3 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-emerald-400">LIVE</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs text-emerald-500">LIVE</span>
         </div>
         <div className="ml-auto">
           {canAccess(role, 'notifications') && (
-            <Link href="/dashboard/notifications" className="relative p-2 text-gray-400 hover:text-gray-200 block">
+            <Link href="/dashboard/notifications" className={cn('relative block rounded-lg p-2 transition-all duration-150', isAdminShell || isFieldShell ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-800 active:scale-95' : 'text-gray-400 hover:text-gray-200')}>
               <Bell size={18} />
               {unreadNotifCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
@@ -453,14 +469,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </header>
 
       {authMode === 'mock' && (
-        <div className="lg:ml-[260px] bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-100">
+        <div className="lg:ml-[260px] border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
           🎭 デモログイン中です。画面確認用の暫定モードです。
-          {activeRoleContext && <span className="ml-2 text-amber-50">現在の立場: {getMockRoleContextLabel(activeRoleContext)}</span>}
+          {activeRoleContext && <span className="ml-2 text-amber-700">現在の立場: {getMockRoleContextLabel(activeRoleContext)}</span>}
         </div>
       )}
 
       {/* Main content */}
-      <main className="lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6">
+      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6', isAdminShell || isFieldShell ? 'bg-slate-50' : '')}>
         {canAccess(role, currentPermission) ? (
           children
         ) : (
@@ -469,8 +485,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Bottom Nav - Mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-[#2a3553] z-20 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center justify-around h-14">
+      <nav className={cn('lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t pb-[env(safe-area-inset-bottom)]', isFieldShell ? 'border-slate-200 bg-white/95 backdrop-blur' : 'bg-[#111827] border-[#2a3553]')}>
+        <div className="flex items-center justify-around h-16 px-2">
           {visibleMobileNavItems.map((item) => {
             const active = isNavActive(item.href)
             return (
@@ -478,14 +494,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 type="button"
                 onClick={() => handleSidebarNavigate(item.href)}
-                className={`relative flex flex-col items-center gap-0.5 text-xs py-1 px-3 ${
-                  active ? 'text-indigo-400' : 'text-gray-500'
-                }`}
+                className={cn(
+                  'relative flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs transition-all duration-150 active:scale-[0.97]',
+                  isFieldShell
+                    ? active
+                      ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
+                      : 'text-slate-600 active:bg-slate-100'
+                    : active
+                      ? 'text-indigo-400'
+                      : 'text-gray-500'
+                )}
               >
                 <span className="relative">
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span className={cn('font-medium', active ? 'text-current' : isFieldShell ? 'text-slate-700' : 'text-current')}>{item.label}</span>
               </button>
             )
           })}

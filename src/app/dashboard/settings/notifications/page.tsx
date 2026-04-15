@@ -44,8 +44,8 @@ export default function NotificationSettingsPage() {
 
   if (!isAdmin) {
     return (
-      <div className="space-y-6 text-gray-100">
-        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-300">
+      <div className="space-y-6 text-slate-900">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield size={16} />
           この画面は Regional Admin または Pharmacy Admin のみ確認できます
         </div>
@@ -54,10 +54,10 @@ export default function NotificationSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 text-gray-100">
+    <div className="space-y-6 text-slate-900">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-20 right-4 z-50 bg-emerald-600/90 text-white px-4 py-2 rounded-lg text-sm shadow-lg animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-20 right-4 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg animate-in fade-in slide-in-from-top-2">
           {toast}
         </div>
       )}
@@ -65,8 +65,8 @@ export default function NotificationSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">通知設定</h1>
-          <p className="text-sm text-gray-400 mt-1">イベント毎の通知チャネルを設定</p>
+          <h1 className="text-xl font-bold text-slate-900">通知設定</h1>
+          <p className="mt-1 text-sm text-slate-600">イベントごとの通知手段を設定します</p>
         </div>
         {isAdmin && (
           <Button
@@ -80,7 +80,7 @@ export default function NotificationSettingsPage() {
       </div>
 
       {!isAdmin && (
-        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield size={16} />
           通知設定の編集にはAdmin権限が必要です
         </div>
@@ -90,14 +90,14 @@ export default function NotificationSettingsPage() {
       {categories.map(category => {
         const categorySettings = settings.filter(s => s.category === category)
         return (
-          <Card key={category} className="border-[#2a3553] bg-[#111827]">
+          <Card key={category} className="border-slate-200 bg-white shadow-sm">
             <CardContent className="p-0">
-              <div className="px-4 py-3 border-b border-[#2a3553]">
-                <h3 className="text-sm font-semibold text-indigo-400">{category}</h3>
+              <div className="border-b border-slate-200 px-4 py-3">
+                <h3 className="text-sm font-semibold text-slate-900">{category}</h3>
               </div>
 
               {/* Mobile layout */}
-              <div className="lg:hidden divide-y divide-[#2a3553]/50">
+              <div className="divide-y divide-slate-200 lg:hidden">
                 {categorySettings.map(setting => (
                   <div key={setting.event} className="p-4 space-y-2">
                     <p className="text-sm font-medium text-white">{setting.eventLabel}</p>
@@ -107,11 +107,11 @@ export default function NotificationSettingsPage() {
                           key={ch.key}
                           onClick={() => toggleChannel(setting.event, ch.key)}
                           disabled={!isAdmin}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
                             setting[ch.key]
-                              ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                              : 'border-[#2a3553] bg-[#0a0e1a] text-gray-500'
-                          } ${isAdmin ? 'cursor-pointer hover:border-indigo-500/60' : 'cursor-default'}`}
+                              ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                              : 'border-slate-200 bg-slate-50 text-slate-500'
+                          } ${isAdmin ? 'cursor-pointer hover:border-indigo-300 hover:bg-indigo-100' : 'cursor-default'}`}
                         >
                           {ch.icon}
                           {ch.label}
@@ -126,7 +126,7 @@ export default function NotificationSettingsPage() {
               <div className="hidden lg:block">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#2a3553] text-gray-400">
+                    <tr className="border-b border-slate-200 text-slate-500">
                       <th className="text-left px-4 py-2.5 font-medium">イベント</th>
                       {channelHeaders.map(ch => (
                         <th key={ch.key} className="text-center px-4 py-2.5 font-medium w-24">
@@ -140,15 +140,15 @@ export default function NotificationSettingsPage() {
                   </thead>
                   <tbody>
                     {categorySettings.map(setting => (
-                      <tr key={setting.event} className="border-b border-[#2a3553]/50 hover:bg-[#1a2035]/50">
-                        <td className="px-4 py-2.5 text-gray-200">{setting.eventLabel}</td>
+                      <tr key={setting.event} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-2.5 text-slate-700">{setting.eventLabel}</td>
                         {channelHeaders.map(ch => (
                           <td key={ch.key} className="text-center px-4 py-2.5">
                             <button
                               onClick={() => toggleChannel(setting.event, ch.key)}
                               disabled={!isAdmin}
-                              className={`w-10 h-6 rounded-full relative transition-colors ${
-                                setting[ch.key] ? 'bg-indigo-600' : 'bg-gray-700'
+                              className={`relative h-6 w-10 rounded-full transition-colors ${
+                                setting[ch.key] ? 'bg-indigo-500' : 'bg-slate-300'
                               } ${isAdmin ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                             >
                               <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
@@ -169,10 +169,10 @@ export default function NotificationSettingsPage() {
 
       {/* Escalation Rules */}
       <div>
-        <h2 className="text-lg font-bold text-white mb-3">エスカレーション設定</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">エスカレーション設定</h2>
         <div className="space-y-3">
           {escalationRules.map(rule => (
-            <Card key={rule.event} className="border-[#2a3553] bg-[#111827]">
+            <Card key={rule.event} className="border-slate-200 bg-white shadow-sm">
               <CardContent className="p-0">
                 <button
                   className="w-full flex items-center justify-between px-4 py-3 text-left"
@@ -181,25 +181,25 @@ export default function NotificationSettingsPage() {
                   )}
                 >
                   <div>
-                    <p className="text-sm font-medium text-white">{rule.label}</p>
-                    <p className="text-xs text-gray-500">{rule.steps.length}ステップ</p>
+                    <p className="text-sm font-medium text-slate-900">{rule.label}</p>
+                    <p className="text-xs text-slate-500">{rule.steps.length}ステップ</p>
                   </div>
                   {expandedEscalation === rule.event
-                    ? <ChevronUp size={16} className="text-gray-400" />
-                    : <ChevronDown size={16} className="text-gray-400" />
+                    ? <ChevronUp size={16} className="text-slate-400" />
+                    : <ChevronDown size={16} className="text-slate-400" />
                   }
                 </button>
                 {expandedEscalation === rule.event && (
                   <div className="px-4 pb-4 space-y-2">
                     {rule.steps.map((step, i) => (
-                      <div key={i} className="flex items-center gap-3 bg-[#0a0e1a] rounded-lg px-3 py-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/30 text-indigo-400 text-xs flex items-center justify-center font-bold">
+                      <div key={i} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
                           {i + 1}
                         </span>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-200">{step.label}</p>
+                          <p className="text-sm text-slate-700">{step.label}</p>
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-slate-500">
                           {step.delayMinutes === 0 ? '即時' : `+${step.delayMinutes}分`}
                         </span>
                       </div>

@@ -111,19 +111,19 @@ export default function ReportsPage() {
   const maxChartValue = Math.max(...report.chart.map((item) => item.value), 1)
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-white">実績レポート</h1>
-          <p className="text-xs text-gray-400">月次の運用指標・技術料実績を確認</p>
+          <h1 className="text-lg font-semibold text-slate-900">実績レポート</h1>
+          <p className="text-xs text-slate-500">月次の運用指標・技術料実績を確認</p>
         </div>
 
         <div className="flex w-full gap-2 sm:w-auto">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full border-[#2a3553] bg-[#1a2035] sm:w-[170px]">
+            <SelectTrigger className="w-full border-slate-200 bg-white text-slate-900 sm:w-[170px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+            <SelectContent className="border-slate-200 bg-white text-slate-900">
               {monthOptions.map((month) => (
                 <SelectItem key={month.value} value={month.value}>
                   {month.label}
@@ -143,64 +143,64 @@ export default function ReportsPage() {
       </div>
 
       {message && (
-        <Card className="border-[#2a3553] bg-[#11182c]">
-          <CardContent className="p-3 text-sm text-indigo-300">{message}</CardContent>
+        <Card className="border-indigo-200 bg-indigo-50 shadow-sm">
+          <CardContent className="p-3 text-sm text-indigo-700">{message}</CardContent>
         </Card>
       )}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">総依頼件数</CardDescription>
-            <CardTitle className="text-2xl text-white">{report.totalRequests}</CardTitle>
+            <CardDescription className="text-slate-500">総依頼件数</CardDescription>
+            <CardTitle className="text-2xl text-slate-900">{report.totalRequests}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">平均応答時間</CardDescription>
-            <CardTitle className="text-2xl text-indigo-300">{report.avgResponseMinutes}分</CardTitle>
+            <CardDescription className="text-slate-500">平均応答時間</CardDescription>
+            <CardTitle className="text-2xl text-indigo-600">{report.avgResponseMinutes}分</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">SLA達成率</CardDescription>
-            <CardTitle className="text-2xl text-emerald-300">{report.slaRate}%</CardTitle>
+            <CardDescription className="text-slate-500">SLA達成率</CardDescription>
+            <CardTitle className="text-2xl text-emerald-600">{report.slaRate}%</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">完了率</CardDescription>
-            <CardTitle className="text-2xl text-sky-300">{report.completionRate}%</CardTitle>
+            <CardDescription className="text-slate-500">完了率</CardDescription>
+            <CardTitle className="text-2xl text-sky-600">{report.completionRate}%</CardTitle>
           </CardHeader>
         </Card>
       </section>
 
       {/* Store-level performance */}
       <section>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base text-white">薬局別パフォーマンス</CardTitle>
-            <CardDescription className="text-gray-400">加盟薬局ごとの主要指標</CardDescription>
+            <CardTitle className="text-base text-slate-900">薬局別パフォーマンス</CardTitle>
+            <CardDescription className="text-slate-500">加盟薬局ごとの主要指標</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Desktop table */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-[#2a3553]">
-                    <TableHead className="text-gray-400">薬局名</TableHead>
-                    <TableHead className="text-right text-gray-400">依頼数</TableHead>
-                    <TableHead className="text-right text-gray-400">平均応答(分)</TableHead>
-                    <TableHead className="text-right text-gray-400">SLA達成率(%)</TableHead>
-                    <TableHead className="text-right text-gray-400">完了率(%)</TableHead>
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-500">薬局名</TableHead>
+                    <TableHead className="text-right text-slate-500">依頼数</TableHead>
+                    <TableHead className="text-right text-slate-500">平均応答(分)</TableHead>
+                    <TableHead className="text-right text-slate-500">SLA達成率(%)</TableHead>
+                    <TableHead className="text-right text-slate-500">完了率(%)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pharmacyPerformanceData.map((p) => (
-                    <TableRow key={p.pharmacyId} className="border-[#2a3553]">
-                      <TableCell className="text-sm font-medium text-white">{p.pharmacyName}</TableCell>
-                      <TableCell className="text-right text-sm text-gray-300">{p.requestCount}</TableCell>
-                      <TableCell className="text-right text-sm text-gray-300">{p.avgResponseMin}</TableCell>
+                    <TableRow key={p.pharmacyId} className="border-slate-200">
+                      <TableCell className="text-sm font-medium text-slate-900">{p.pharmacyName}</TableCell>
+                      <TableCell className="text-right text-sm text-slate-700">{p.requestCount}</TableCell>
+                      <TableCell className="text-right text-sm text-slate-700">{p.avgResponseMin}</TableCell>
                       <TableCell
                         className={`text-right text-sm font-medium ${
                           p.slaRate < 90
@@ -212,7 +212,7 @@ export default function ReportsPage() {
                       >
                         {p.slaRate}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-gray-300">{p.completionRate}</TableCell>
+                      <TableCell className="text-right text-sm text-slate-700">{p.completionRate}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -224,14 +224,14 @@ export default function ReportsPage() {
               {pharmacyPerformanceData.map((p) => (
                 <div
                   key={p.pharmacyId}
-                  className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3"
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-3"
                 >
-                  <p className="mb-2 text-sm font-medium text-white">{p.pharmacyName}</p>
+                  <p className="mb-2 text-sm font-medium text-slate-900">{p.pharmacyName}</p>
                   <div className="grid grid-cols-2 gap-y-1 text-xs">
-                    <span className="text-gray-400">依頼数</span>
-                    <span className="text-right text-gray-300">{p.requestCount}</span>
-                    <span className="text-gray-400">平均応答</span>
-                    <span className="text-right text-gray-300">{p.avgResponseMin}分</span>
+                    <span className="text-slate-500">依頼数</span>
+                    <span className="text-right text-slate-700">{p.requestCount}</span>
+                    <span className="text-slate-500">平均応答</span>
+                    <span className="text-right text-slate-700">{p.avgResponseMin}分</span>
                     <span className="text-gray-400">SLA達成率</span>
                     <span
                       className={`text-right font-medium ${
@@ -244,8 +244,8 @@ export default function ReportsPage() {
                     >
                       {p.slaRate}%
                     </span>
-                    <span className="text-gray-400">完了率</span>
-                    <span className="text-right text-gray-300">{p.completionRate}%</span>
+                    <span className="text-slate-500">完了率</span>
+                    <span className="text-right text-slate-700">{p.completionRate}%</span>
                   </div>
                 </div>
               ))}

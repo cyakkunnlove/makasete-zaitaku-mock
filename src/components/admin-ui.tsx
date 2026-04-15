@@ -6,6 +6,9 @@ export const adminPageClass = 'space-y-5 text-slate-900'
 export const adminCardClass = 'border-slate-200 bg-white text-slate-900 shadow-sm'
 export const adminMutedCardClass = 'border-slate-200 bg-slate-50 text-slate-900 shadow-sm'
 export const adminInputClass = 'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400'
+export const adminPanelClass = 'rounded-xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm'
+export const adminTableClass = 'border-slate-200 bg-white text-slate-900 shadow-sm'
+export const adminDialogClass = 'border-slate-200 bg-white text-slate-900 shadow-xl'
 
 export function AdminPageHeader({
   title,

@@ -22,6 +22,16 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   if (!task) return NextResponse.json({ ok: false, error: 'task_required' }, { status: 400 })
 
   const supabase = createServerSupabaseClient()
+  const existingResult = await supabase
+    .from('patient_day_tasks')
+    .select('collection_status, note, amount, patient_id, flow_date')
+    .eq('id', params.taskId)
+    .maybeSingle()
+
+  const previousCollectionStatus = existingResult.error ? null : String((existingResult.data as Record<string, unknown> | null)?.collection_status ?? '') || null
+  const previousNote = existingResult.error ? null : String((existingResult.data as Record<string, unknown> | null)?.note ?? '') || null
+  const previousAmount = existingResult.error ? null : Number((existingResult.data as Record<string, unknown> | null)?.amount ?? 0)
+
   const payload = {
     id: params.taskId,
     organization_id: user.organization_id,
@@ -42,7 +52,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     handled_at: typeof task.handledAt === 'string' ? task.handledAt : null,
     completed_at: typeof task.completedAt === 'string' ? task.completedAt : null,
     billable: Boolean(task.billable),
-    collection_status: typeof task.collectionStatus === 'string' ? task.collectionStatus : '未着手',
+    collection_status: typeof task.collectionStatus === 'string' ? task.collectionStatus : 'needs_billing',
     amount: typeof task.amount === 'number' ? task.amount : 0,
     note: typeof task.note === 'string' ? task.note : '',
     updated_by_id: user.id,
@@ -61,7 +71,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
 
   await writeAuditLog({
     user,
-    action: 'patient_day_task_updated',
+    action: previousCollectionStatus !== payload.collection_status ? 'billing_collection_status_changed' : 'patient_day_task_updated',
     targetType: 'patient_day_task',
     targetId: params.taskId,
     details: {
@@ -69,6 +79,12 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       flow_date: payload.flow_date,
       status: payload.status,
       planning_status: payload.planning_status,
+      collection_status: payload.collection_status,
+      previous_collection_status: previousCollectionStatus,
+      amount: payload.amount,
+      previous_amount: previousAmount,
+      note: payload.note,
+      previous_note: previousNote,
     },
   })
 

@@ -118,7 +118,7 @@ type DoctorOption = {
 
 export default function NewPatientPage() {
   const router = useRouter()
-  const { user, role, authMode } = useAuth()
+  const { user, role } = useAuth()
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -170,6 +170,8 @@ export default function NewPatientPage() {
     preferredTime: '10:00',
     visitNotes: '',
     insuranceInfo: '',
+    isBillable: true,
+    billingExclusionReason: '',
   })
 
   const isExceeded = Number(visitCount) > 4
@@ -241,6 +243,15 @@ export default function NewPatientPage() {
   }, [previewMonth, previewVisitRules, previewYear])
 
   const handleChange = (key: keyof typeof form, value: string) => {
+    if (key === 'isBillable') {
+      setForm((prev) => ({
+        ...prev,
+        isBillable: value === 'true',
+        billingExclusionReason: value === 'true' ? '' : prev.billingExclusionReason,
+      }))
+      return
+    }
+
     let nextValue = value
 
     if (key === 'dob' || key === 'firstVisitDate') {
@@ -614,6 +625,10 @@ export default function NewPatientPage() {
         diseaseName: form.diseaseName,
         insuranceInfo: form.insuranceInfo,
       },
+      billing: {
+        isBillable: form.isBillable,
+        billingExclusionReason: form.isBillable ? '' : form.billingExclusionReason,
+      },
     }
 
     if (!skipGeocodeConfirmation) {
@@ -649,7 +664,7 @@ export default function NewPatientPage() {
 
       const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null
       let fallbackPatientId: string | null = null
-      const shouldPersistLocal = authMode !== 'cognito' && (createResult?.mode !== 'supabase' || !createdPatientId)
+      const shouldPersistLocal = createResult?.mode === 'mock'
 
       if (shouldPersistLocal) {
         const existing = loadRegisteredPatients()
@@ -679,6 +694,8 @@ export default function NewPatientPage() {
             visitCount: Math.max(1, Number(visitCount) || 4),
             visitRules,
             manualSyncAt: null,
+            isBillable: true,
+            billingExclusionReason: '',
           },
           {
             id: user?.id ?? null,
@@ -714,13 +731,13 @@ export default function NewPatientPage() {
 
   if (!canEditPatients) {
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className="space-y-4 text-slate-900">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">患者登録は自局の薬局スタッフ・薬局管理者のみが行えます。</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900"><UserPlus className="h-5 w-5 text-indigo-500" />患者登録</h1>
+          <p className="text-xs text-slate-500">患者登録は自局の薬局スタッフ・薬局管理者のみが行えます。</p>
         </div>
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-6 text-sm text-gray-300">
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-6 text-sm text-slate-600">
             現在のロールでは患者登録はできません。患者検索または患者詳細の閲覧をご利用ください。
           </CardContent>
         </Card>
@@ -729,75 +746,106 @@ export default function NewPatientPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className="space-y-4 text-slate-900">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold text-white"><UserPlus className="h-5 w-5 text-indigo-400" />患者登録</h1>
-          <p className="text-xs text-gray-400">まずは必要最小限で登録できます。細かい情報はあとから落ち着いて追加できます。</p>
+          <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-900"><UserPlus className="h-5 w-5 text-indigo-500" />患者登録</h1>
+          <p className="text-xs text-slate-500">まずは必要最小限で登録できます。細かい情報はあとから落ち着いて追加できます。</p>
         </div>
-        <div className="rounded-lg border border-[#2a3553] bg-[#11182c] px-3 py-2 text-xs text-gray-300">
-          登録先: <span className="font-medium text-white">現在の所属先</span>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+          登録先: <span className="font-medium text-slate-900">現在の所属先</span>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-          <AlertTriangle className="h-4 w-4 text-rose-300" />
+        <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <AlertTriangle className="h-4 w-4 text-rose-500" />
           {errorMessage}
         </div>
       )}
 
       {warningMessage && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-300" />
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
           {warningMessage}
         </div>
       )}
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">基本情報</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-900">基本情報</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           <div>
             <RequiredLabel>氏名</RequiredLabel>
-            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 花子" />
+            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="山田 花子" />
           </div>
           <div>
             <RequiredLabel>生年月日</RequiredLabel>
-            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
-            <p className="mt-1 text-[11px] text-gray-500">8桁でも入力できます。自動で日付の形に整えます。</p>
+            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
+            <p className="mt-1 text-[11px] text-slate-500">8桁でも入力できます。自動で日付の形に整えます。</p>
           </div>
           <div>
-            <Label className="text-gray-300">郵便番号</Label>
+            <Label className="text-slate-600">郵便番号</Label>
             <div className="mt-1 flex gap-2">
-              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="192-0012" />
-              <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
+              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="192-0012" />
+              <Button type="button" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
                 再取得
               </Button>
             </div>
-            <p className="mt-1 text-[11px] text-gray-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
           </div>
           <div>
-            <Label className="text-gray-300">連絡先電話</Label>
-            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" />
-            <p className="mt-1 text-[11px] text-gray-500">数字だけでも入力できます。</p>
+            <Label className="text-slate-600">連絡先電話</Label>
+            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="090-1234-5678" inputMode="tel" />
+            <p className="mt-1 text-[11px] text-slate-500">数字だけでも入力できます。</p>
           </div>
           <div className="md:col-span-2">
             <RequiredLabel>住所</RequiredLabel>
-            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都八王子市..." />
+            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="東京都八王子市..." />
           </div>
           <div>
-            <Label className="text-gray-300">利用開始日</Label>
-            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-11" inputMode="numeric" />
+            <Label className="text-slate-600">利用開始日</Label>
+            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="2026-04-11" inputMode="numeric" />
           </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-400">
-            <p className="font-medium text-white">登録ルール</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+            <p className="font-medium text-slate-900">登録ルール</p>
             <p className="mt-1">氏名、生年月日、住所に加えて、初回訪問予定日または訪問曜日が入っていれば登録できます。状態と所属先は自動で設定します。</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
+            <p className="text-sm font-semibold text-slate-900">請求設定</p>
+            <p className="mt-1 text-xs text-slate-500">対応完了後に回収管理へ上げるかどうかを設定します。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => handleChange('isBillable', 'true')}
+                className={`rounded-xl border px-4 py-3 text-left text-sm transition ${form.isBillable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              >
+                請求対象
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChange('isBillable', 'false')}
+                className={`rounded-xl border px-4 py-3 text-left text-sm transition ${!form.isBillable ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              >
+                請求対象外
+              </button>
+            </div>
+            {!form.isBillable ? (
+              <div className="mt-3">
+                <Label className="text-slate-700">対象外理由</Label>
+                <Input
+                  value={form.billingExclusionReason}
+                  onChange={(e) => handleChange('billingExclusionReason', e.target.value)}
+                  placeholder="保険上対象外、施設契約内など"
+                  className="mt-1 border-slate-200 bg-white text-slate-900"
+                />
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">訪問条件</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-900">訪問条件</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div>
@@ -854,34 +902,34 @@ export default function NewPatientPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm text-white">訪問予定カレンダー</CardTitle>
-            <Button type="button" variant="outline" onClick={resetCalendarEdits} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+            <CardTitle className="text-sm text-slate-900">訪問予定カレンダー</CardTitle>
+            <Button type="button" variant="outline" onClick={resetCalendarEdits} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
               <RotateCcw className="mr-2 h-4 w-4" />自動生成に戻す
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-xs text-gray-400">入力内容をもとに訪問予定を自動で入れます。日付を押すと、追加や除外を調整できます。</p>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
+          <p className="text-xs text-slate-500">入力内容をもとに訪問予定を自動で入れます。日付を押すと、追加や除外を調整できます。</p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="mb-3 flex items-center justify-between">
-              <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+              <button type="button" onClick={showPreviousPreviewMonth} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="text-center">
-                <p className="text-sm font-medium text-white">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
-                <p className="text-[11px] text-gray-500">青: 通常, 緑: 手動追加, 赤: 除外</p>
+                <p className="text-sm font-medium text-slate-900">{formatVisitCalendarMonth(previewYear, previewMonth)}</p>
+                <p className="text-[11px] text-slate-500">青: 通常, 緑: 手動追加, 赤: 除外</p>
               </div>
-              <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-[#212b45] hover:text-white">
+              <button type="button" onClick={showNextPreviewMonth} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
             <div className="mb-1 grid grid-cols-7 gap-1">
               {VISIT_CALENDAR_DAY_LABELS.map((label, index) => (
-                <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-400' : index === 6 ? 'text-sky-400' : 'text-gray-500'}`}>
+                <div key={label} className={`py-1 text-center text-[10px] font-medium ${index === 0 ? 'text-rose-500' : index === 6 ? 'text-sky-500' : 'text-slate-500'}`}>
                   {label}
                 </div>
               ))}
@@ -906,7 +954,7 @@ export default function NewPatientPage() {
                     type="button"
                     key={dateKey}
                     onClick={() => toggleCalendarDate(dateKey)}
-                    className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30' : isExcluded ? 'border border-rose-500/30 bg-[#0a0e1a] text-rose-300 line-through' : 'bg-[#0a0e1a] text-gray-400'} ${isToday ? 'ring-1 ring-indigo-500/50' : ''}`}
+                    className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-medium ${isCustom ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20' : isScheduled ? 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/20' : isExcluded ? 'border border-rose-200 bg-white text-rose-500 line-through' : 'bg-white text-slate-500 border border-slate-200'} ${isToday ? 'ring-1 ring-indigo-400/50' : ''}`}
                   >
                     {day}
                   </button>
@@ -914,24 +962,24 @@ export default function NewPatientPage() {
               })}
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
+          <div className="flex flex-wrap gap-3 text-[10px] text-slate-500">
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-indigo-500" />通常ルール</span>
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-emerald-500" />手動追加</span>
-            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-500/30 bg-[#0a0e1a]" />除外</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-rose-200 bg-white" />除外</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <button type="button" onClick={() => setShowOptional((prev) => !prev)} className="flex w-full items-center justify-between text-left">
-            <CardTitle className="text-sm text-white">任意項目を追加</CardTitle>
-            <ChevronDown className={`h-4 w-4 text-gray-400 transition ${showOptional ? 'rotate-180' : ''}`} />
+            <CardTitle className="text-sm text-slate-900">任意項目を追加</CardTitle>
+            <ChevronDown className={`h-4 w-4 text-slate-400 transition ${showOptional ? 'rotate-180' : ''}`} />
           </button>
         </CardHeader>
         {showOptional && (
           <CardContent className="space-y-4">
-            <p className="text-xs text-gray-400">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
+            <p className="text-xs text-slate-500">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
             <div className="grid gap-3 md:grid-cols-2">
               <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
               <div className="space-y-3">
@@ -1122,21 +1170,21 @@ export default function NewPatientPage() {
         )}
       </Card>
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-gray-400">
+      <Card className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-slate-500">
           <div>
             <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
-            <p><span className="text-rose-300">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
+            <p><span className="text-rose-500">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
           </div>
-          <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
+          <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>
         </CardContent>
       </Card>
 
       <Dialog open={institutionDialogOpen} onOpenChange={setInstitutionDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>病院を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">候補にない病院は、その場で追加できます。</DialogDescription>
+            <DialogDescription className="text-slate-500">候補にない病院は、その場で追加できます。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1160,10 +1208,10 @@ export default function NewPatientPage() {
       </Dialog>
 
       <Dialog open={doctorDialogOpen} onOpenChange={setDoctorDialogOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>医師を追加</DialogTitle>
-            <DialogDescription className="text-gray-400">選択中の病院に医師を追加します。</DialogDescription>
+            <DialogDescription className="text-slate-500">選択中の病院に医師を追加します。</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1187,22 +1235,22 @@ export default function NewPatientPage() {
       </Dialog>
 
       <Dialog open={geocodeConfirmOpen} onOpenChange={setGeocodeConfirmOpen}>
-        <DialogContent className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
           <DialogHeader>
             <DialogTitle>住所の解釈を確認してください</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-slate-500">
               保存前に、地図で使う住所解釈を確認できます。問題なければこのまま登録します。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">入力した住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.inputAddress ?? '—'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">入力した住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.inputAddress ?? '—'}</p>
             </div>
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">解釈された住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
-              <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">解釈された住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
+              <p className="mt-1 text-xs text-slate-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
             </div>
             {typeof geocodePreview?.latitude === 'number' && typeof geocodePreview?.longitude === 'number' && (
               <div className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">

@@ -74,6 +74,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (typeof patch.medicalHistory === 'string') payload.medical_history = patch.medicalHistory.trim() || null
   if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
   if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
+  if (typeof patch.isBillable === 'boolean') {
+    payload.is_billable = patch.isBillable
+    payload.billing_exclusion_reason = patch.isBillable
+      ? null
+      : (typeof patch.billingExclusionReason === 'string' ? patch.billingExclusionReason.trim() || null : null)
+  } else if (typeof patch.billingExclusionReason === 'string') {
+    payload.billing_exclusion_reason = patch.billingExclusionReason.trim() || null
+  }
 
   if (typeof patch.medicalInstitutionId === 'string' || patch.medicalInstitutionId === null) {
     const medicalInstitutionId = typeof patch.medicalInstitutionId === 'string' ? patch.medicalInstitutionId.trim() || null : null
