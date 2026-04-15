@@ -182,7 +182,7 @@ export default function AuditPage() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="ユーザー名、対象、スコープ、詳細で検索"
+            placeholder="ユーザー名、対象患者、スコープ、操作内容で検索"
             className={adminInputClass}
           />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -271,6 +271,7 @@ export default function AuditPage() {
                 </div>
 
                 <p className="text-xs text-slate-700">対象: {entry.target}</p>
+                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です</p> : null}
                 <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
 
                 {expanded && <div className={`${adminPanelClass} p-2 text-xs text-slate-700`}>{formatDetails(entry.details)}</div>}
