@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -15,12 +15,15 @@ import {
   getAttentionFlags,
   getAttentionFlagClass,
 } from '@/lib/mock-data'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mergePatientSources } from '@/lib/patient-read-model'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
+import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { cn } from '@/lib/utils'
 import type { ChecklistType, ChecklistItem, RequestStatus } from '@/types/database'
 import {
@@ -66,8 +69,36 @@ export default function RequestDetailPage() {
   const isNightPharmacist = role === 'night_pharmacist'
   const id = params.id as string
 
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const request = requestData.find((r) => r.id === id)
-  const patient = request && request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+
+  useEffect(() => {
+    const pharmacyId = request?.pharmacyId
+    if (!pharmacyId) return
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${pharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [request?.pharmacyId])
+
+  const patientSource = useMemo(
+    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    [databasePatients],
+  )
+
+  const patient = request && request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
   const needsFaxReview = request ? ['fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status) : false
   const assignee = request?.assigneeId
     ? staffData.find((s) => s.id === request.assigneeId)
@@ -83,12 +114,12 @@ export default function RequestDetailPage() {
   if (!request) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className="border-[#2a3553] bg-[#1a2035] p-8 text-center">
+        <Card className={`${adminCardClass} p-8 text-center`}>
           <CardContent className="space-y-4">
-            <p className="text-lg font-semibold text-white">依頼が見つかりません</p>
-            <p className="text-sm text-gray-400">ID: {id} に該当する依頼データが存在しません。</p>
+            <p className="text-lg font-semibold text-slate-900">依頼が見つかりません</p>
+            <p className="text-sm text-slate-500">ID: {id} に該当する依頼データが存在しません。</p>
             <Link href="/dashboard/requests">
-              <Button variant="outline" className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+              <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 依頼一覧へ戻る
               </Button>
@@ -130,24 +161,24 @@ export default function RequestDetailPage() {
   if (isPharmacyAdmin) {
     const latestEvent = request.timelineEvents[request.timelineEvents.length - 1]
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className={`${adminPageClass} space-y-4`}>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/requests">
-            <Button variant="outline" size="icon" className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]">
+            <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
-            <p className="text-xs text-gray-400">自局依頼の進行状況サマリー</p>
+            <h1 className="text-lg font-semibold text-slate-900">{request.id}</h1>
+            <p className="text-xs text-slate-500">自局依頼の進行状況サマリー</p>
           </div>
         </div>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
-              <p className="text-sm font-medium text-white">{request.pharmacyName}</p>
-              <p className="text-xs text-gray-400">受付 {request.receivedDate} {request.receivedAt}</p>
+              <p className="text-sm font-medium text-slate-900">{request.pharmacyName}</p>
+              <p className="text-xs text-slate-500">受付 {request.receivedDate} {request.receivedAt}</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
@@ -159,43 +190,43 @@ export default function RequestDetailPage() {
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">薬局向け状況</CardTitle>
+              <CardTitle className="text-sm text-slate-900">薬局向け状況</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
+              <div className={`${adminPanelClass} flex items-center justify-between p-3`}>
                 <span className="text-gray-400">現在の状況</span>
                 <Badge variant="outline" className={cn('border text-xs', status.className)}>{status.label}</Badge>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                <p className="text-xs text-gray-500">最終更新</p>
-                <p className="mt-1 text-gray-200">{latestEvent?.timestamp ?? `${request.receivedDate} ${request.receivedAt}`}</p>
-                <p className="mt-1 text-xs text-gray-400">{latestEvent?.note ?? '依頼受付済み'}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">最終更新</p>
+                <p className="mt-1 text-slate-900">{latestEvent?.timestamp ?? `${request.receivedDate} ${request.receivedAt}`}</p>
+                <p className="mt-1 text-xs text-slate-500">{latestEvent?.note ?? '依頼受付済み'}</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                <p className="text-xs text-gray-500">担当状況</p>
-                <p className="mt-1 text-gray-200">{assignee ? `${assignee.name} が対応中` : '担当調整中'}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">担当状況</p>
+                <p className="mt-1 text-slate-900">{assignee ? `${assignee.name} が対応中` : '担当調整中'}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">朝の確認メモ</CardTitle>
+              <CardTitle className="text-sm text-slate-900">朝の確認メモ</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-gray-300">
-              <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                <p className="text-xs text-gray-500">確認したいこと</p>
-                <p className="mt-1 text-gray-200">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
+            <CardContent className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-3`}>
+                <p className="text-xs text-slate-500">確認したいこと</p>
+                <p className="mt-1 text-slate-900">{request.status === 'completed' ? '夜間対応は完了しています。朝の通常訪問・申し送り確認をお願いします。' : '夜間対応は継続中です。朝の引き継ぎまで状況確認だけできる表示にしています。'}</p>
               </div>
               {request.notes && (
-                <div className="rounded-lg border border-[#2a3553] bg-[#0a0e1a] p-3">
-                  <p className="text-xs text-gray-500">共有メモ</p>
-                  <p className="mt-1 text-gray-200">{request.notes}</p>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">共有メモ</p>
+                  <p className="mt-1 text-slate-900">{request.notes}</p>
                 </div>
               )}
-              <p className="text-xs text-gray-500">薬局管理者画面では、患者詳細・FAX原本・内部アサイン工程は表示しません。</p>
+              <p className="text-xs text-slate-500">薬局管理者画面では、患者詳細・FAX原本・内部アサイン工程は表示しません。</p>
             </CardContent>
           </Card>
         </div>
@@ -226,7 +257,7 @@ export default function RequestDetailPage() {
       ]
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -234,14 +265,14 @@ export default function RequestDetailPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-[#2a3553] bg-[#1a2035] text-gray-300 hover:bg-[#212b45]"
+              className="h-8 w-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-white">{request.id}</h1>
-            <p className="text-xs text-gray-400">
+            <h1 className="text-lg font-semibold text-slate-900">{request.id}</h1>
+            <p className="text-xs text-slate-500">
               {request.receivedDate} {request.receivedAt} 受付
             </p>
             {isAdmin && (
@@ -263,12 +294,12 @@ export default function RequestDetailPage() {
           {isNightPharmacist && (
             <>
               <Link href={`/dashboard/night-patients?requestId=${request.id}${needsFaxReview ? '&source=fax' : '&source=phone'}`}>
-                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                <Button variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                   患者検索
                 </Button>
               </Link>
               <Link href={`/dashboard/handovers/new?requestId=${request.id}`}>
-                <Button variant="outline" className="h-8 border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]">
+                <Button variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                   夜間対応内容を残す
                 </Button>
               </Link>
@@ -295,29 +326,29 @@ export default function RequestDetailPage() {
       </div>
 
       {isNightPharmacist && (
-        <Card className="border-indigo-500/30 bg-indigo-500/10">
+        <Card className="border-indigo-200 bg-indigo-50">
           <CardContent className="grid gap-3 p-4 md:grid-cols-3">
             <div>
-              <p className="text-[11px] text-indigo-200/70">受付起点</p>
-              <p className="mt-1 text-sm text-white">電話受電 → FAX受信</p>
+              <p className="text-[11px] text-indigo-600">受付起点</p>
+              <p className="mt-1 text-sm text-slate-900">電話受電 → FAX受信</p>
             </div>
             <div>
-              <p className="text-[11px] text-indigo-200/70">受付時間の定義</p>
-              <p className="mt-1 text-sm text-white">患者確認ボタン押下のタイムスタンプ</p>
+              <p className="text-[11px] text-indigo-600">受付時間の定義</p>
+              <p className="mt-1 text-sm text-slate-900">患者確認ボタン押下のタイムスタンプ</p>
             </div>
             <div>
-              <p className="text-[11px] text-indigo-200/70">検索範囲</p>
-              <p className="mt-1 text-sm text-white">リージョンアドミン管轄内の患者</p>
+              <p className="text-[11px] text-indigo-600">検索範囲</p>
+              <p className="mt-1 text-sm text-slate-900">リージョンアドミン管轄内の患者</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Uber Eats Style Vertical Timeline - Always Visible */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Clock3 className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <Clock3 className="h-4 w-4 text-indigo-500" />
             対応ステータス
           </CardTitle>
         </CardHeader>
@@ -345,7 +376,7 @@ export default function RequestDetailPage() {
                         ? 'border-emerald-500 bg-emerald-500 text-white'
                         : isCurrent
                           ? 'border-indigo-400 bg-indigo-500 text-white animate-pulse shadow-lg shadow-indigo-500/40'
-                          : 'border-[#2a3553] bg-[#0a0e1a]'
+                          : 'border-slate-200 bg-white'
                     )}
                   >
                     {isCompleted ? (
@@ -381,7 +412,7 @@ export default function RequestDetailPage() {
                       )}
                     </div>
                     {event.time && event.done && (
-                      <p className="text-xs text-gray-400">{event.time}</p>
+                      <p className="text-xs text-slate-500">{event.time}</p>
                     )}
                   </div>
                 </div>
@@ -394,16 +425,16 @@ export default function RequestDetailPage() {
       {/* Info Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Patient Info */}
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <User className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <User className="h-4 w-4 text-indigo-500" />
               {isAdmin ? '患者特定状況' : '患者情報'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isAdmin ? (
-              <div className="space-y-3 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-sm">
+              <div className={`${adminPanelClass} space-y-3 p-3 text-sm`}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-gray-400">患者状態</span>
                   <Badge
@@ -522,10 +553,10 @@ export default function RequestDetailPage() {
         </Card>
 
         {/* Request Details */}
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <FileText className="h-4 w-4 text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+              <FileText className="h-4 w-4 text-indigo-500" />
               依頼詳細
             </CardTitle>
           </CardHeader>
@@ -547,7 +578,7 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 text-xs">
+            <div className={`${adminPanelClass} space-y-2 p-3 text-xs`}>
               <div>
                 <p className="text-gray-400">症状</p>
                 <p className="mt-0.5 text-gray-200">{request.symptom}</p>
@@ -612,10 +643,10 @@ export default function RequestDetailPage() {
       </div>
 
       {/* Assignee Card */}
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <User className="h-4 w-4 text-indigo-400" />
+          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+            <User className="h-4 w-4 text-indigo-500" />
             担当夜間薬剤師
           </CardTitle>
         </CardHeader>
@@ -755,9 +786,9 @@ export default function RequestDetailPage() {
 
         {/* Timeline Tab */}
         <TabsContent value="timeline">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className={adminCardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">対応タイムライン</CardTitle>
+              <CardTitle className="text-sm text-slate-900">対応タイムライン</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative space-y-0">

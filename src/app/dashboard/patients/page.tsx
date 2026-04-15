@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { adminCardClass, adminInputClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
@@ -42,12 +43,7 @@ export default function PatientsPage() {
   const ownPharmacyId = getScopedPharmacyId(user)
 
   useEffect(() => {
-    if (authMode === 'cognito') {
-      setRegisteredPatients([])
-      return
-    }
-
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients().filter((patient) => !isUuidLike(patient.id)))
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') {
@@ -56,7 +52,7 @@ export default function PatientsPage() {
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [authMode])
+  }, [])
 
   useEffect(() => {
     if (!isDayContext || !ownPharmacyId) return
@@ -110,19 +106,18 @@ export default function PatientsPage() {
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
   const fallbackRegisteredPatients = useMemo(() => {
-    if (authMode === 'cognito') return []
     if (!isDayContext || databasePatients.length === 0 || searchQuery.trim()) return registeredPatients
-    return registeredPatients.filter((patient) => !isUuidLike(patient.id))
-  }, [authMode, databasePatients.length, isDayContext, registeredPatients, searchQuery])
+    return registeredPatients
+  }, [databasePatients.length, isDayContext, registeredPatients, searchQuery])
 
   const patientMaster = useMemo(
     () =>
       mergePatientSources({
         databasePatients,
         registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients,
-        includeMockPatients: authMode !== 'cognito',
+        includeMockPatients: false,
       }),
-    [authMode, databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
+    [databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
   )
 
   const visiblePatients = useMemo(() => {
@@ -172,17 +167,17 @@ export default function PatientsPage() {
 
   if (isNightPharmacist) {
     return (
-      <div className="space-y-4 text-gray-100">
+      <div className={`${adminPageClass} space-y-4`}>
         <div>
-          <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">夜間薬剤師は患者一覧ではなく検索起点で患者にアクセスします。</p>
+          <h1 className="text-lg font-semibold text-slate-900">患者情報</h1>
+          <p className="text-xs text-slate-500">夜間薬剤師は患者一覧ではなく検索起点で患者にアクセスします。</p>
         </div>
 
-        <Card className="border-[#2a3553] bg-[#1a2035]">
+        <Card className={adminCardClass}>
           <CardHeader>
-            <CardTitle className="text-base text-white">夜間患者検索へ移動</CardTitle>
+            <CardTitle className="text-base text-slate-900">夜間患者検索へ移動</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-gray-300">
+          <CardContent className="space-y-3 text-sm text-slate-700">
             <p>夜間では全患者一覧を表示せず、必要時に検索して患者詳細へ入る設計にしています。</p>
             <Link href="/dashboard/night-patients">
               <span className="inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">夜間患者検索を開く</span>
@@ -194,7 +189,7 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       {isDayContext && (
         <Link href="/dashboard/patients/new" className="fixed bottom-24 right-4 z-20 lg:bottom-6 lg:right-6">
           <span className="flex h-14 w-14 items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-500">
@@ -204,8 +199,8 @@ export default function PatientsPage() {
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-white">患者情報</h1>
-          <p className="text-xs text-gray-400">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : isRegionalAdmin ? '最初から全件は出さず、必要な患者だけ検索して確認します。' : '在宅患者の基本情報・注意事項を確認'}</p>
+          <h1 className="text-lg font-semibold text-slate-900">患者情報</h1>
+          <p className="text-xs text-slate-500">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : isRegionalAdmin ? '最初から全件は出さず、必要な患者だけ検索して確認します。' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">
@@ -214,22 +209,22 @@ export default function PatientsPage() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={isRegionalAdmin ? '患者名・住所・電話・薬局名で検索' : '患者名・住所・電話で検索'}
-            className="border-[#2a3553] bg-[#1a2035] pl-9"
+            className={`${adminInputClass} pl-9`}
           />
         </div>
       </div>
 
       {isRegionalAdmin && isSearchLoading && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-6 text-center text-sm text-gray-400">
+        <Card className={adminCardClass}>
+          <CardContent className="p-6 text-center text-sm text-slate-500">
             患者候補を検索中です...
           </CardContent>
         </Card>
       )}
 
       {filteredPatients.length === 0 && !isSearchLoading && (
-        <Card className="border-[#2a3553] bg-[#1a2035]">
-          <CardContent className="p-6 text-center text-sm text-gray-400">
+        <Card className={adminCardClass}>
+          <CardContent className="p-6 text-center text-sm text-slate-500">
             {isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません。検索すると候補が表示されます。' : '該当する患者が見つかりません。'}
           </CardContent>
         </Card>
@@ -243,16 +238,16 @@ export default function PatientsPage() {
               return (
               <Link key={patient.id} href={`/dashboard/patients/${patient.id}`}>
                 <Card
-                  className="cursor-pointer border-[#2a3553] bg-[#1a2035] transition hover:border-indigo-500/60"
+                  className={`${adminCardClass} cursor-pointer transition hover:border-indigo-400`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
-                          <p className="text-base font-semibold text-white">{patient.name}</p>
+                          {isDayContext && <GripVertical className="h-4 w-4 text-slate-400" />}
+                          <p className="text-base font-semibold text-slate-900">{patient.name}</p>
                         </div>
-                        <p className="text-xs text-gray-400">生年月日: {patient.dob}</p>
+                        <p className="text-xs text-slate-500">生年月日: {patient.dob}</p>
                       </div>
                     </div>
                     <div className="mt-3 space-y-2 text-xs">
@@ -260,15 +255,15 @@ export default function PatientsPage() {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-gray-300 hover:text-indigo-300"
+                        className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-600"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MapPin className="h-3.5 w-3.5 text-indigo-400" />
                         {patient.address}
                       </a>
                     </div>
-                    <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                    <p className="mt-1 text-xs text-indigo-600">{patient.pharmacyName}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">訪問ルール: {formatVisitRuleSummary(patient)}</p>
                     {authMode !== 'cognito' && patient.registrationMeta && (
                       <p className="mt-1 text-[11px] text-cyan-300">登録済みメモ / {countVisitRuleTouches(patient)} ルール</p>
                     )}
@@ -287,19 +282,19 @@ export default function PatientsPage() {
             )})}
           </div>
 
-          <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+          <Card className={`hidden lg:block ${adminTableClass}`}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">患者一覧</CardTitle>
+              <CardTitle className="text-base text-slate-900">患者一覧</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                    <TableHead className="text-gray-400">氏名</TableHead>
-                    <TableHead className="text-gray-400">生年月日</TableHead>
-                    <TableHead className="text-gray-400">住所</TableHead>
-                    {!isDayContext && <TableHead className="text-gray-400">薬局</TableHead>}
-                    <TableHead className="text-gray-400">注意フラグ</TableHead>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="text-slate-500">氏名</TableHead>
+                    <TableHead className="text-slate-500">生年月日</TableHead>
+                    <TableHead className="text-slate-500">住所</TableHead>
+                    {!isDayContext && <TableHead className="text-slate-500">薬局</TableHead>}
+                    <TableHead className="text-slate-500">注意フラグ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -308,10 +303,10 @@ export default function PatientsPage() {
                     return (
                     <TableRow
                       key={patient.id}
-                      className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
+                      className="cursor-pointer border-slate-200 hover:bg-slate-50"
                       onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
                     >
-                      <TableCell className="font-medium text-white">
+                      <TableCell className="font-medium text-slate-900">
                         <div className="flex items-center gap-2">
                           {isDayContext && <GripVertical className="h-4 w-4 text-gray-500" />}
                           <div>
@@ -322,8 +317,8 @@ export default function PatientsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-300">{patient.dob}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-slate-600">{patient.dob}</TableCell>
+                      <TableCell className="text-slate-600">
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`}
                           target="_blank"
@@ -337,7 +332,7 @@ export default function PatientsPage() {
                       </TableCell>
                       {!isDayContext && (
                         <TableCell className="space-y-1">
-                          <p className="text-indigo-300">{patient.pharmacyName}</p>
+                          <p className="text-indigo-600">{patient.pharmacyName}</p>
                         </TableCell>
                       )}
                       <TableCell>

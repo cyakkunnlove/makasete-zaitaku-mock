@@ -1,4 +1,4 @@
-import { dayTaskData, type DayTaskItem, type PatientRecord } from '@/lib/mock-data'
+import { type DayTaskItem, type PatientRecord } from '@/lib/mock-data'
 import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
 
 export const MOCK_FLOW_DATE = '2026-03-28'
@@ -167,7 +167,7 @@ function buildAutoTaskFromPatient(
 export function generateAutoDayTasksFromVisitRules(
   patients: RegisteredPatientRecord[],
   flowDate: string = MOCK_FLOW_DATE,
-  taskHistory: DayTaskItem[] = dayTaskData,
+  taskHistory: DayTaskItem[] = [],
 ): DayTaskItem[] {
   const visitHistory = buildVisitHistory(taskHistory, flowDate)
   const monthKey = flowDate.slice(0, 7)
@@ -189,7 +189,7 @@ export function generateAutoDayTasksFromVisitRules(
   return matchedPatients.map(({ patient, matchedRules }, index) => {
     const monthVisitCount = getMonthlyVisitCount(patient.id, monthKey, taskHistory, flowDate)
     const lastVisitDate = getLastVisitDate(patient.id, visitHistory)
-    return buildAutoTaskFromPatient(patient, flowDate, dayTaskData.length + index + 1, matchedRules, monthVisitCount, lastVisitDate)
+    return buildAutoTaskFromPatient(patient, flowDate, taskHistory.length + index + 1, matchedRules, monthVisitCount, lastVisitDate)
   })
 }
 
@@ -201,7 +201,7 @@ export function mergeDayFlowTasks(options: {
   historicalTasks?: DayTaskItem[]
 }) {
   const flowDate = options.flowDate ?? MOCK_FLOW_DATE
-  const baseTasks = options.baseTasks ?? dayTaskData
+  const baseTasks = options.baseTasks ?? []
   const registeredPatients = options.registeredPatients ?? []
   const persistedTasks = options.persistedTasks ?? []
   const historicalTasks = options.historicalTasks ?? []

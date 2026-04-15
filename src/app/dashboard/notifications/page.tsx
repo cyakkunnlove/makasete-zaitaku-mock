@@ -39,10 +39,10 @@ export default function NotificationsPage() {
 
   if (role !== 'regional_admin') {
     return (
-      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+      <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
         <CardContent className="p-6">
-          <h1 className="text-base font-semibold text-white">通知ログ</h1>
-          <p className="mt-2 text-sm text-gray-400">このページは Regional Admin のみ確認できます。</p>
+          <h1 className="text-base font-semibold text-slate-900">通知ログ</h1>
+          <p className="mt-2 text-sm text-slate-500">このページは Regional Admin のみ確認できます。</p>
         </CardContent>
       </Card>
     )
@@ -71,7 +71,7 @@ export default function NotificationsPage() {
   const pendingCount = logs.filter(l => l.status === 'pending').length
 
   return (
-    <div className="space-y-6 text-gray-100">
+    <div className="space-y-6 text-slate-900">
       {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-4 z-50 bg-emerald-600/90 text-white px-4 py-2 rounded-lg text-sm shadow-lg animate-in fade-in slide-in-from-top-2">
@@ -82,8 +82,8 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">通知ログ</h1>
-          <p className="text-sm text-gray-400 mt-1">送信済み通知の履歴と状態を確認</p>
+          <h1 className="text-xl font-bold text-slate-900">通知ログ</h1>
+          <p className="text-sm text-slate-500 mt-1">送信済み通知の履歴と状態を確認</p>
           {role === 'regional_admin' && <p className="mt-1 text-[11px] text-amber-200">regional_admin では地域夜間運用に関係する通知の再送・確認を担当します。</p>}
         </div>
         <div className="flex items-center gap-2">
@@ -101,19 +101,19 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="border-[#2a3553] bg-[#111827]">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Filter size={16} className="text-gray-400" />
-            <span className="text-sm font-medium text-gray-300">フィルタ</span>
+            <Filter size={16} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-700">フィルタ</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">チャネル</label>
+              <label className="text-xs text-slate-500 mb-1 block">チャネル</label>
               <select
                 value={channelFilter}
                 onChange={(e) => setChannelFilter(e.target.value)}
-                className="w-full bg-[#0a0e1a] border border-[#2a3553] rounded-lg px-3 py-2 text-sm text-gray-200"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
               >
                 <option value="all">すべて</option>
                 <option value="line">LINE</option>
@@ -123,11 +123,11 @@ export default function NotificationsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">ステータス</label>
+              <label className="text-xs text-slate-500 mb-1 block">ステータス</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-[#0a0e1a] border border-[#2a3553] rounded-lg px-3 py-2 text-sm text-gray-200"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
               >
                 <option value="all">すべて</option>
                 <option value="delivered">配信済</option>
@@ -143,12 +143,12 @@ export default function NotificationsPage() {
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
         {filtered.map((log) => (
-          <Card key={log.id} className="border-[#2a3553] bg-[#1a2035]">
+          <Card key={log.id} className="border-slate-200 bg-white shadow-sm">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">{log.eventLabel}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{log.timestamp}</p>
+                  <p className="text-sm font-medium text-slate-900">{log.eventLabel}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{log.timestamp}</p>
                 </div>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${notifStatusClass[log.status]}`}>
                   {statusIcons[log.status]}
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
                   {channelIcons[log.channel]}
                   {notifChannelLabel[log.channel]}
                 </span>
-                <span className="text-xs text-gray-400">{log.recipientName}</span>
+                <span className="text-xs text-slate-500">{log.recipientName}</span>
               </div>
               {log.errorMessage && (
                 <p className="text-xs text-rose-400 bg-rose-500/10 rounded px-2 py-1">{log.errorMessage}</p>
@@ -183,11 +183,11 @@ export default function NotificationsPage() {
 
       {/* Desktop Table */}
       <div className="hidden lg:block">
-        <Card className="border-[#2a3553] bg-[#111827]">
+        <Card className="border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2a3553] text-gray-400">
+                <tr className="border-b border-slate-200 text-slate-500">
                   <th className="text-left px-4 py-3 font-medium">日時</th>
                   <th className="text-left px-4 py-3 font-medium">イベント</th>
                   <th className="text-left px-4 py-3 font-medium">チャネル</th>
@@ -199,9 +199,9 @@ export default function NotificationsPage() {
               </thead>
               <tbody>
                 {filtered.map((log) => (
-                  <tr key={log.id} className="border-b border-[#2a3553]/50 hover:bg-[#1a2035]/50">
-                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{log.timestamp}</td>
-                    <td className="px-4 py-3 text-white">{log.eventLabel}</td>
+                  <tr key={log.id} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{log.timestamp}</td>
+                    <td className="px-4 py-3 text-slate-900">{log.eventLabel}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${notifChannelClass[log.channel]}`}>
                         {channelIcons[log.channel]}
@@ -210,8 +210,8 @@ export default function NotificationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-gray-200">{log.recipientName}</p>
-                        <p className="text-xs text-gray-500">{log.recipientContact}</p>
+                        <p className="text-slate-900">{log.recipientName}</p>
+                        <p className="text-xs text-slate-500">{log.recipientContact}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -247,7 +247,7 @@ export default function NotificationsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-slate-500">
           <Bell size={40} className="mx-auto mb-3 opacity-30" />
           <p>該当する通知ログがありません</p>
         </div>

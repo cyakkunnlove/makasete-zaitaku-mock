@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { adminCardClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { Clock3, Plus } from 'lucide-react'
 import {
   requestData,
@@ -178,7 +179,7 @@ export default function RequestsPage() {
     const completedCount = visibleRequests.filter((request) => request.status === 'completed').length
 
     return [
-      { key: 'received', label: `受付処理中(${receivedCount})` },
+      { key: 'received', label: `受付対応中(${receivedCount})` },
       { key: 'active', label: `対応中(${activeCount})` },
       { key: 'completed', label: `完了(${completedCount})` },
       { key: 'all', label: `全件(${visibleRequests.length})` },
@@ -208,11 +209,11 @@ export default function RequestsPage() {
   }
 
   return (
-    <div className="space-y-4 text-gray-100">
+    <div className={`${adminPageClass} space-y-4`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">依頼管理</h1>
-          <p className="text-xs text-gray-400">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <h1 className="text-lg font-semibold text-slate-900">依頼管理</h1>
+          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -227,10 +228,10 @@ export default function RequestsPage() {
       </div>
 
       {isPharmacyAdmin && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{visibleRequests.length}</p><p className="text-[10px] text-gray-500">今夜の自局依頼</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応準備中</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card className="border-slate-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{visibleRequests.length}</p><p className="mt-1 text-[11px] text-slate-500">今夜の自局依頼</p></CardContent></Card>
+          <Card className="border-amber-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応準備中</p></CardContent></Card>
+          <Card className="border-sky-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応中</p></CardContent></Card>
         </div>
       )}
 
@@ -238,25 +239,26 @@ export default function RequestsPage() {
 
       {isNightPharmacist && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-cyan-300">{visibleRequests.filter((request) => request.status === 'received').length}</p><p className="text-[10px] text-gray-500">受電済み</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-300">{visibleRequests.filter((request) => request.status === 'fax_pending').length}</p><p className="text-[10px] text-gray-500">FAX受信待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{visibleRequests.filter((request) => request.status === 'fax_received' || (!request.patientId && ['assigning', 'assigned', 'checklist'].includes(request.status))).length}</p><p className="text-[10px] text-gray-500">患者特定待ち</p></CardContent></Card>
-          <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-cyan-600">{visibleRequests.filter((request) => request.status === 'received').length}</p><p className="text-[10px] text-slate-500">受電済み</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-600">{visibleRequests.filter((request) => request.status === 'fax_pending').length}</p><p className="text-[10px] text-slate-500">FAX受信待ち</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => request.status === 'fax_received' || (!request.patientId && ['assigning', 'assigned', 'checklist'].includes(request.status))).length}</p><p className="text-[10px] text-slate-500">患者特定待ち</p></CardContent></Card>
+          <Card className={adminCardClass}><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="text-[10px] text-slate-500">対応中</p></CardContent></Card>
         </div>
       )}
 
-      <Card className="border-[#2a3553] bg-[#1a2035]">
+      <Card className={adminCardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
+          <CardTitle className="text-base text-slate-900">{isPharmacyAdmin ? '自局依頼ステータス' : '依頼ステータス'}</CardTitle>
+          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '対象範囲: 自局依頼のみ表示' : isNightPharmacist ? '対象範囲: 当日担当分のみ表示' : '対象範囲: リージョン配下の依頼を表示'}</p>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-            <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg bg-[#11182c] p-1">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-lg border border-slate-200 bg-slate-100 p-1">
               {tabItems.map((tab) => (
                 <TabsTrigger
                   key={tab.key}
                   value={tab.key}
-                  className="rounded-md border border-[#2a3553] bg-[#11182c] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                  className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -268,7 +270,13 @@ export default function RequestsPage() {
 
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
-        {filteredRequests.map((request) => {
+        {filteredRequests.length === 0 ? (
+          <Card className={adminCardClass}>
+            <CardContent className="p-4 text-sm text-slate-500">
+              条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
+            </CardContent>
+          </Card>
+        ) : filteredRequests.map((request) => {
           const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const patientLabel = isAdmin
@@ -283,7 +291,7 @@ export default function RequestsPage() {
             <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
-                  'cursor-pointer border border-[#2a3553] bg-[#1a2035] border-l-4 transition hover:border-indigo-500/60',
+                  `${adminCardClass} cursor-pointer border-l-4 transition hover:border-indigo-400`,
                   priority.mobileBorder
                 )}
               >
@@ -291,9 +299,9 @@ export default function RequestsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-white">{patientLabel}</p>
+                        <p className="text-sm font-semibold text-slate-900">{patientLabel}</p>
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-400">{request.pharmacyName}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{request.pharmacyName}</p>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Badge variant="outline" className={cn('border text-xs', status.className)}>
@@ -302,9 +310,9 @@ export default function RequestsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-300">
+                  <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                     <span className="flex items-center gap-1">
-                      <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                      <Clock3 className="h-3.5 w-3.5 text-slate-400" />
                       {request.receivedAt}
                     </span>
                     <span className="flex items-center gap-1">
@@ -313,7 +321,7 @@ export default function RequestsPage() {
                     </span>
                   </div>
                   {isNightPharmacist && (
-                    <div className="mt-2 space-y-2 text-[11px] text-gray-400">
+                    <div className="mt-2 space-y-2 text-[11px] text-slate-500">
                       <div>
                         <p className="truncate">{request.symptom}</p>
                         <p className="mt-1">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX内容は患者特定画面で確認'}</p>
@@ -329,8 +337,8 @@ export default function RequestsPage() {
                                 nextAction.tone === 'primary'
                                   ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                   : nextAction.tone === 'secondary'
-                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
-                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                                    ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                               )}
                             >
                               {nextAction.label}
@@ -348,22 +356,28 @@ export default function RequestsPage() {
       </div>
 
       {/* Desktop table view */}
-      <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+      <Card className={`hidden lg:block ${adminTableClass}`}>
         <Table>
           <TableHeader>
-            <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-              <TableHead className="text-gray-400">優先度</TableHead>
-              <TableHead className="text-gray-400">受付時刻</TableHead>
-              <TableHead className="text-gray-400">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
-              <TableHead className="text-gray-400">薬局名</TableHead>
-              <TableHead className="text-gray-400">ステータス</TableHead>
-              <TableHead className="text-gray-400">受付概要</TableHead>
-              <TableHead className="text-gray-400">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
-              {isNightPharmacist && <TableHead className="text-gray-400">次の操作</TableHead>}
+            <TableRow className="border-slate-200 hover:bg-slate-50">
+              <TableHead className="text-slate-500">優先度</TableHead>
+              <TableHead className="text-slate-500">受付時刻</TableHead>
+              <TableHead className="text-slate-500">{isAdmin ? '患者特定' : isPharmacyAdmin ? '依頼番号' : '患者名'}</TableHead>
+              <TableHead className="text-slate-500">薬局名</TableHead>
+              <TableHead className="text-slate-500">ステータス</TableHead>
+              <TableHead className="text-slate-500">受付概要</TableHead>
+              <TableHead className="text-slate-500">{isPharmacyAdmin ? '最終状況' : '確認事項'}</TableHead>
+              {isNightPharmacist && <TableHead className="text-slate-500">次の操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRequests.map((request) => {
+            {filteredRequests.length === 0 ? (
+              <TableRow className="border-slate-200 hover:bg-slate-50">
+                <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-8 text-center text-sm text-slate-500">
+                  条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
+                </TableCell>
+              </TableRow>
+            ) : filteredRequests.map((request) => {
               const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
                   const patientLabel = isAdmin
@@ -378,42 +392,42 @@ export default function RequestsPage() {
                 <TableRow
                   key={request.id}
                   onClick={() => { if (!isPharmacyAdmin) router.push(`/dashboard/requests/${request.id}`) }}
-                  className={cn('border-[#2a3553] hover:bg-[#11182c]', !isPharmacyAdmin && 'cursor-pointer')}
+                  className={cn('border-slate-200 hover:bg-slate-50', !isPharmacyAdmin && 'cursor-pointer')}
                 >
                   <TableCell>
                     <span className="inline-flex items-center gap-2">
                       <span className={cn('h-2.5 w-2.5 rounded-full', priority.dot)} />
-                      <span className="text-xs text-gray-300">{priority.label}</span>
+                      <span className="text-xs text-slate-600">{priority.label}</span>
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-200">{request.receivedAt}</TableCell>
+                  <TableCell className="text-slate-700">{request.receivedAt}</TableCell>
                   <TableCell>
                     {isPharmacyAdmin ? (
-                      <span className="inline-flex items-center gap-2 text-gray-200">{patientLabel}</span>
+                      <span className="inline-flex items-center gap-2 text-slate-700">{patientLabel}</span>
                     ) : (
-                      <Link href={`/dashboard/requests/${request.id}`} className="text-gray-200 hover:text-indigo-300">
+                      <Link href={`/dashboard/requests/${request.id}`} className="text-slate-700 hover:text-indigo-600">
                         <span className="inline-flex items-center gap-2">
                           {patientLabel}
                         </span>
                       </Link>
                     )}
                   </TableCell>
-                  <TableCell className="text-gray-300">{request.pharmacyName}</TableCell>
+                  <TableCell className="text-slate-600">{request.pharmacyName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('border text-xs', status.className)}>
                       {status.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[260px] text-xs text-gray-300">
+                  <TableCell className="max-w-[260px] text-xs text-slate-600">
                     <div className="space-y-1">
                       <p className="truncate">{request.symptom}</p>
                       <div className="flex gap-2 text-[10px]">
-                        <span className={request.status === 'fax_pending' ? 'text-purple-300' : 'text-gray-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
-                        <span className={request.patientId ? 'text-indigo-300' : 'text-amber-300'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
+                        <span className={request.status === 'fax_pending' ? 'text-purple-600' : 'text-slate-500'}>FAX{request.status === 'fax_pending' ? '待ち' : 'あり'}</span>
+                        <span className={request.patientId ? 'text-indigo-600' : 'text-amber-600'}>{request.patientId ? '患者特定済み' : '患者特定待ち'}</span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-gray-300">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
+                  <TableCell className="text-xs text-slate-600">{isPharmacyAdmin ? request.timelineEvents[request.timelineEvents.length - 1]?.note ?? '更新待ち' : '詳細は患者特定画面で確認'}</TableCell>
                   {isNightPharmacist && (
                     <TableCell>
                       {(() => {
@@ -427,8 +441,8 @@ export default function RequestsPage() {
                                 nextAction.tone === 'primary'
                                   ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                   : nextAction.tone === 'secondary'
-                                    ? 'bg-[#1a2035] text-gray-100 hover:bg-[#24304e]'
-                                    : 'bg-[#11182c] text-gray-400 hover:bg-[#1a2035]'
+                                    ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                               )}
                             >
                               {nextAction.label}
@@ -446,22 +460,22 @@ export default function RequestsPage() {
       </Card>
 
       <Dialog open={newRequestOpen} onOpenChange={setNewRequestOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#11182c] text-gray-100 sm:max-w-xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white text-slate-900 sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-white">新規依頼登録</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-slate-900">新規依頼登録</DialogTitle>
+            <DialogDescription className="text-slate-500">
               夜間受電内容を入力して依頼を起票します。
             </DialogDescription>
           </DialogHeader>
 
           <form className="space-y-4" onSubmit={handleSubmitNewRequest}>
             <div className="space-y-2">
-              <Label className="text-gray-200">薬局選択</Label>
+              <Label className="text-slate-600">薬局選択</Label>
               <Select value={formData.pharmacy} onValueChange={(value) => setFormData((prev) => ({ ...prev, pharmacy: value }))}>
-                <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                   <SelectValue placeholder="薬局を選択" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                <SelectContent className="border-slate-200 bg-white text-slate-900">
                   <SelectItem value="城南みらい薬局">城南みらい薬局</SelectItem>
                   <SelectItem value="神田中央薬局">神田中央薬局</SelectItem>
                   <SelectItem value="西新宿いろは薬局">西新宿いろは薬局</SelectItem>
@@ -471,46 +485,46 @@ export default function RequestsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">患者名</Label>
+              <Label className="text-slate-600">患者名</Label>
               <Input
                 value={formData.patientName}
                 onChange={(event) => setFormData((prev) => ({ ...prev, patientName: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="例: 田中 優子"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">症状</Label>
+              <Label className="text-slate-600">症状</Label>
               <Textarea
                 value={formData.symptom}
                 onChange={(event) => setFormData((prev) => ({ ...prev, symptom: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="主訴を入力"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">バイタル変化</Label>
+              <Label className="text-slate-600">バイタル変化</Label>
               <Textarea
                 value={formData.vitalsChange}
                 onChange={(event) => setFormData((prev) => ({ ...prev, vitalsChange: event.target.value }))}
-                className="border-[#2a3553] bg-[#1a2035] text-gray-100"
+                className="border-slate-200 bg-white text-slate-900"
                 placeholder="血圧、体温、SpO2など"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-gray-200">意識レベル</Label>
+                <Label className="text-slate-600">意識レベル</Label>
                 <Select
                   value={formData.consciousness}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, consciousness: value }))}
                 >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                  <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                     <SelectValue placeholder="選択" />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     <SelectItem value="清明">清明</SelectItem>
                     <SelectItem value="やや傾眠">やや傾眠</SelectItem>
                     <SelectItem value="混濁">混濁</SelectItem>
@@ -519,12 +533,12 @@ export default function RequestsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-200">緊急度</Label>
+                <Label className="text-slate-600">緊急度</Label>
                 <Select value={formData.urgency} onValueChange={(value) => setFormData((prev) => ({ ...prev, urgency: value }))}>
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+                  <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                     <SelectValue placeholder="選択" />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     <SelectItem value="高">高</SelectItem>
                     <SelectItem value="中">中</SelectItem>
                     <SelectItem value="低">低</SelectItem>
@@ -537,7 +551,7 @@ export default function RequestsPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-[#2a3553] bg-[#1a2035] text-gray-200 hover:bg-[#212b45]"
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 onClick={() => setNewRequestOpen(false)}
               >
                 キャンセル

@@ -21,7 +21,15 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { AdminPageHeader, AdminStatCard, adminCardClass, adminPageClass } from '@/components/admin-ui'
+import {
+  AdminPageHeader,
+  AdminStatCard,
+  adminCardClass,
+  adminInputClass,
+  adminPageClass,
+  adminPanelClass,
+  adminTableClass,
+} from '@/components/admin-ui'
 import {
   auditLogData,
   auditActionLabel,
@@ -35,6 +43,11 @@ const accountAuditActions = [
   'account_invitation_revoked',
   'account_user_updated',
   'account_user_status_changed',
+] as const
+
+const billingAuditActions = [
+  'billing_generate',
+  'billing_collection_status_changed',
 ] as const
 
 type AuditPageEntry = {
@@ -59,9 +72,9 @@ const roleLabel: Record<string, string> = {
 }
 
 const resultClass: Record<'success' | 'warning' | 'denied', string> = {
-  success: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-  warning: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  denied: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
+  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  warning: 'border-amber-200 bg-amber-50 text-amber-700',
+  denied: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
 function parseTimestamp(value: string) {
@@ -118,7 +131,6 @@ export default function AuditPage() {
 
     return logs.filter((entry) => {
       if (actionFilter !== 'all' && entry.action !== actionFilter) return false
-
       if (userFilter !== 'all' && entry.user !== userFilter) return false
 
       const timestamp = parseTimestamp(entry.timestamp)
@@ -144,10 +156,10 @@ export default function AuditPage() {
 
   if (role !== 'system_admin') {
     return (
-      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white">監査ログ</CardTitle>
-          <CardDescription className="text-gray-400">このページは管理者のみ閲覧できます。</CardDescription>
+          <CardTitle className="text-base text-slate-900">監査ログ</CardTitle>
+          <CardDescription className="text-slate-600">このページは管理者のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -157,9 +169,10 @@ export default function AuditPage() {
     <div className={adminPageClass}>
       <AdminPageHeader title="監査ログ" description="操作履歴を時系列で確認します。アカウント管理、患者操作、拒否アクセスもここで追えます。" />
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <AdminStatCard label="表示件数" value={filteredLogs.length} />
         <AdminStatCard label="アカウント管理" value={filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length} tone="primary" />
+        <AdminStatCard label="回収管理" value={filteredLogs.filter((entry) => billingAuditActions.includes(entry.action as (typeof billingAuditActions)[number])).length} tone="warning" />
         <AdminStatCard label="成功" value={filteredLogs.filter((entry) => entry.result === 'success').length} tone="success" />
         <AdminStatCard label="拒否アクセス" value={filteredLogs.filter((entry) => entry.result === 'denied').length} tone="danger" />
       </div>
@@ -169,23 +182,24 @@ export default function AuditPage() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="ユーザー名、対象、スコープ、詳細で検索"
-            className="border-[#2a3553] bg-[#11182c]"
+            placeholder="ユーザー名、対象患者、スコープ、操作内容で検索"
+            className={adminInputClass}
           />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">アクション種別</p>
+              <p className="text-xs text-slate-500">アクション種別</p>
               <Select value={actionFilter} onValueChange={(value) => setActionFilter(value as AuditActionType | 'all')}>
-                <SelectTrigger className="border-[#2a3553] bg-[#11182c]">
+                <SelectTrigger className={adminInputClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                <SelectContent className="border-slate-200 bg-white text-slate-900">
                   <SelectItem value="all">すべて</SelectItem>
                   <SelectItem value="login">ログイン</SelectItem>
                   <SelectItem value="request_update">依頼更新</SelectItem>
                   <SelectItem value="handover_confirm">申し送り確認</SelectItem>
                   <SelectItem value="staff_update">スタッフ更新</SelectItem>
                   <SelectItem value="billing_generate">請求生成</SelectItem>
+                  <SelectItem value="billing_collection_status_changed">回収状況変更</SelectItem>
                   <SelectItem value="export_csv">CSV出力</SelectItem>
                   <SelectItem value="pharmacy_update">加盟店更新</SelectItem>
                   <SelectItem value="fax_opened">FAX閲覧</SelectItem>
@@ -205,12 +219,12 @@ export default function AuditPage() {
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">ユーザー</p>
+              <p className="text-xs text-slate-500">ユーザー</p>
               <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger className="border-[#2a3553] bg-[#11182c]">
+                <SelectTrigger className={adminInputClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                <SelectContent className="border-slate-200 bg-white text-slate-900">
                   <SelectItem value="all">すべて</SelectItem>
                   {visibleUsers.map((user) => (
                     <SelectItem key={user} value={user}>
@@ -222,45 +236,31 @@ export default function AuditPage() {
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">開始日</p>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="border-[#2a3553] bg-[#11182c]"
-              />
+              <p className="text-xs text-slate-500">開始日</p>
+              <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={adminInputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-400">終了日</p>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="border-[#2a3553] bg-[#11182c]"
-              />
+              <p className="text-xs text-slate-500">終了日</p>
+              <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className={adminInputClass} />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <p className="text-xs text-gray-400">{isLoading ? '監査ログを読み込み中です。' : `表示件数: ${filteredLogs.length}件`}</p>
+      <p className="text-xs text-slate-500">{isLoading ? '監査ログを読み込み中です。' : `表示件数: ${filteredLogs.length}件`}</p>
 
       <div className="space-y-2 lg:hidden">
         {filteredLogs.map((entry) => {
           const expanded = expandedId === entry.id
 
           return (
-            <Card
-              key={entry.id}
-              className="cursor-pointer border-[#2a3553] bg-[#1a2035]"
-              onClick={() => setExpandedId(expanded ? null : entry.id)}
-            >
+            <Card key={entry.id} className={cn('cursor-pointer', adminCardClass)} onClick={() => setExpandedId(expanded ? null : entry.id)}>
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium text-white">{entry.user}</p>
-                    <p className="text-xs text-gray-400">{roleLabel[entry.role]} / {entry.timestamp}</p>
+                    <p className="text-sm font-medium text-slate-900">{entry.user}</p>
+                    <p className="text-xs text-slate-500">{roleLabel[entry.role]} / {entry.timestamp}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="outline" className={cn('border text-[11px]', auditActionClass[entry.action])}>
@@ -270,31 +270,28 @@ export default function AuditPage() {
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-300">対象: {entry.target}</p>
-                <p className="text-[11px] text-gray-500">スコープ: {entry.scopeLabel}</p>
+                <p className="text-xs text-slate-700">対象: {entry.target}</p>
+                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です</p> : null}
+                <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
 
-                {expanded && (
-                  <div className="rounded-md border border-[#2a3553] bg-[#11182c] p-2 text-xs text-gray-200">
-                    {formatDetails(entry.details)}
-                  </div>
-                )}
+                {expanded && <div className={`${adminPanelClass} p-2 text-xs text-slate-700`}>{formatDetails(entry.details)}</div>}
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <Card className="hidden border-[#2a3553] bg-[#1a2035] lg:block">
+      <Card className={`hidden lg:block ${adminTableClass}`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                <TableHead className="text-gray-400">日時</TableHead>
-                <TableHead className="text-gray-400">ユーザー</TableHead>
-                <TableHead className="text-gray-400">操作</TableHead>
-                <TableHead className="text-gray-400">結果</TableHead>
-                <TableHead className="text-gray-400">対象</TableHead>
-                <TableHead className="text-gray-400">詳細</TableHead>
+              <TableRow className="border-slate-200 hover:bg-slate-50">
+                <TableHead className="text-slate-500">日時</TableHead>
+                <TableHead className="text-slate-500">ユーザー</TableHead>
+                <TableHead className="text-slate-500">操作</TableHead>
+                <TableHead className="text-slate-500">結果</TableHead>
+                <TableHead className="text-slate-500">対象</TableHead>
+                <TableHead className="text-slate-500">詳細</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,15 +300,12 @@ export default function AuditPage() {
 
                 return (
                   <Fragment key={entry.id}>
-                    <TableRow
-                      className="cursor-pointer border-[#2a3553] hover:bg-[#11182c]"
-                      onClick={() => setExpandedId(expanded ? null : entry.id)}
-                    >
-                      <TableCell className="text-gray-300">{entry.timestamp}</TableCell>
-                      <TableCell className="text-white">
+                    <TableRow className="cursor-pointer border-slate-200 hover:bg-slate-50" onClick={() => setExpandedId(expanded ? null : entry.id)}>
+                      <TableCell className="text-slate-600">{entry.timestamp}</TableCell>
+                      <TableCell className="text-slate-900">
                         <div>
                           <p>{entry.user}</p>
-                          <p className="text-[11px] text-gray-500">{roleLabel[entry.role]}</p>
+                          <p className="text-[11px] text-slate-500">{roleLabel[entry.role]}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -324,20 +318,20 @@ export default function AuditPage() {
                           {entry.result}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-slate-600">
                         <div>
                           <p>{entry.target}</p>
-                          <p className="text-[11px] text-gray-500">{entry.scopeLabel}</p>
+                          <p className="text-[11px] text-slate-500">{entry.scopeLabel}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-400">クリックで詳細表示</TableCell>
+                      <TableCell className="text-slate-500">クリックで詳細表示</TableCell>
                     </TableRow>
 
                     {expanded && (
-                      <TableRow className="border-[#2a3553] bg-[#11182c] hover:bg-[#11182c]">
-                        <TableCell colSpan={5} className="space-y-1 text-sm text-gray-200">
+                      <TableRow className="border-slate-200 bg-slate-50 hover:bg-slate-50">
+                        <TableCell colSpan={5} className="space-y-1 text-sm text-slate-700">
                           <p className="whitespace-pre-wrap">{formatDetails(entry.details)}</p>
-                          <p className="text-[11px] text-gray-500">scope_type: {entry.scopeType}</p>
+                          <p className="text-[11px] text-slate-500">scope_type: {entry.scopeType}</p>
                         </TableCell>
                       </TableRow>
                     )}

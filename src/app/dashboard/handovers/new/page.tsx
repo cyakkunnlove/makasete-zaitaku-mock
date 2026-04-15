@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { patientData, requestData } from '@/lib/mock-data'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mergePatientSources } from '@/lib/patient-read-model'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +50,7 @@ export default function NewHandoverPage() {
   const searchParams = useSearchParams()
 
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [patientName, setPatientName] = useState('')
   const [pharmacyName, setPharmacyName] = useState('')
   const [assignedPharmacist, setAssignedPharmacist] = useState('')
@@ -68,17 +71,43 @@ export default function NewHandoverPage() {
   )
 
   useEffect(() => {
+    const pharmacyId = selectedRequest?.pharmacyId
+    if (!pharmacyId) return
+    let cancelled = false
+    async function fetchPatients() {
+      try {
+        const response = await fetch(`/api/patients/by-pharmacy/${pharmacyId}`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+          setDatabasePatients(result.patients)
+        }
+      } catch {
+        if (!cancelled) setDatabasePatients([])
+      }
+    }
+    fetchPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedRequest?.pharmacyId])
+
+  const patientSource = useMemo(
+    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    [databasePatients],
+  )
+
+  useEffect(() => {
     if (!requestedRequestId || selectedRequestId) return
     const request = requestData.find((r) => r.id === requestedRequestId)
     if (!request) return
 
     setSelectedRequestId(requestedRequestId)
-    const patient = request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+    const patient = request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
     setPatientName(patient?.name ?? request.patientName ?? '')
     setPharmacyName(patient?.pharmacyName ?? request.pharmacyName ?? '')
     setAssignedPharmacist(request.assignee && request.assignee !== '未割当' ? request.assignee : '夜間担当薬剤師')
     setIsLocked(Boolean(patient?.name || request.patientName || request.pharmacyName || request.assignee))
-  }, [requestedRequestId, selectedRequestId])
+  }, [patientSource, requestedRequestId, selectedRequestId])
 
   const handleRequestChange = (value: string) => {
     setSelectedRequestId(value)
@@ -86,7 +115,7 @@ export default function NewHandoverPage() {
     if (value && value !== 'none') {
       const request = requestData.find((r) => r.id === value)
       if (request) {
-        const patient = request.patientId ? patientData.find((p) => p.id === request.patientId) : null
+        const patient = request.patientId ? patientSource.find((p) => p.id === request.patientId) : null
         setPatientName(patient?.name ?? request.patientName ?? '')
         setPharmacyName(patient?.pharmacyName ?? request.pharmacyName ?? '')
         setAssignedPharmacist(request.assignee && request.assignee !== '未割当' ? request.assignee : '夜間担当薬剤師')
