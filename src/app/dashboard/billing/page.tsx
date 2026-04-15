@@ -78,12 +78,6 @@ const collectionStatusLabel: Record<CollectionWorkflowStatus, string> = {
   needs_attention: '要確認',
 }
 
-const yen = new Intl.NumberFormat('ja-JP', {
-  style: 'currency',
-  currency: 'JPY',
-  maximumFractionDigits: 0,
-})
-
 function parseIsoDateParts(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number)
   return { year, month, day }
@@ -387,23 +381,12 @@ export default function BillingPage() {
       }
     }
 
-    const source = records.map((r) => ({ total: r.total, status: r.status }))
-    const totalBilled = source.reduce((sum, record) => sum + record.total, 0)
-    const collected = source.filter((record) => record.status === 'paid').reduce((sum, record) => sum + record.total, 0)
-    const outstanding = source.filter((record) => record.status !== 'paid').reduce((sum, record) => sum + record.total, 0)
-    return { totalBilled, collected, outstanding }
-  }, [isPharmacyRole, records, mergedCollectionRecords])
-
-  const systemSummary: { totalBilled: number; collected: number; outstanding: number } = useMemo(() => {
-    if ('totalBilled' in summary) {
-      return {
-        totalBilled: summary.totalBilled ?? 0,
-        collected: summary.collected ?? 0,
-        outstanding: summary.outstanding ?? 0,
-      }
+    return {
+      issued: records.length,
+      paid: records.filter((record) => record.status === 'paid').length,
+      pending: records.filter((record) => record.status !== 'paid').length,
     }
-    return { totalBilled: 0, collected: 0, outstanding: 0 }
-  }, [summary])
+  }, [isPharmacyRole, records, mergedCollectionRecords])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
@@ -857,9 +840,9 @@ export default function BillingPage() {
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <AdminStatCard label="請求総額" value={yen.format(systemSummary.totalBilled)} icon={<FileText className="h-4 w-4" />} />
-        <AdminStatCard label="回収済み" value={yen.format(systemSummary.collected)} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
-        <AdminStatCard label="未回収" value={yen.format(systemSummary.outstanding)} tone="warning" icon={<Layers className="h-4 w-4" />} />
+        <AdminStatCard label="請求書発行済み" value={records.length} icon={<FileText className="h-4 w-4" />} />
+        <AdminStatCard label="入金確認済み" value={records.filter((record) => record.status === 'paid').length} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+        <AdminStatCard label="確認待ち" value={records.filter((record) => record.status !== 'paid').length} tone="warning" icon={<Layers className="h-4 w-4" />} />
       </section>
 
       {generatedLabel && <Card className="border-[#2a3553] bg-[#11182c]"><CardContent className="p-3 text-sm text-indigo-300">{generatedLabel}</CardContent></Card>}
@@ -885,9 +868,8 @@ export default function BillingPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
                   <div><p>請求書番号</p><p className="mt-1 text-slate-900">{record.invoiceNumber}</p></div>
-                  <div><p>合計</p><p className="mt-1 text-slate-900">{yen.format(record.total)}</p></div>
-                  <div><p>SaaS</p><p className="mt-1 text-slate-900">{yen.format(record.saasFee)}</p></div>
-                  <div><p>夜間連携</p><p className="mt-1 text-slate-900">{yen.format(record.nightFee)}</p></div>
+                  <div><p>状態</p><p className="mt-1 text-slate-900">{statusLabel[record.status]}</p></div>
+                  <div className="col-span-2"><p>確認状況</p><p className="mt-1 text-slate-900">{record.status === 'paid' ? '入金確認済みです' : '確認待ちです'}</p></div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">
@@ -910,10 +892,8 @@ export default function BillingPage() {
                 <TableHead className="text-gray-400">加盟店</TableHead>
                 <TableHead className="text-gray-400">請求書番号</TableHead>
                 <TableHead className="text-gray-400">対象月</TableHead>
-                <TableHead className="text-right text-gray-400">SaaS</TableHead>
-                <TableHead className="text-right text-gray-400">夜間連携</TableHead>
-                <TableHead className="text-right text-gray-400">合計</TableHead>
                 <TableHead className="text-gray-400">状態</TableHead>
+                <TableHead className="text-gray-400">確認メモ</TableHead>
                 <TableHead className="text-right text-gray-400">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -923,10 +903,8 @@ export default function BillingPage() {
                   <TableCell className="font-medium text-white">{record.pharmacyName}</TableCell>
                   <TableCell className="text-gray-300">{record.invoiceNumber}</TableCell>
                   <TableCell className="text-gray-300">{record.month}</TableCell>
-                  <TableCell className="text-right text-gray-300">{yen.format(record.saasFee)}</TableCell>
-                  <TableCell className="text-right text-gray-300">{yen.format(record.nightFee)}</TableCell>
-                  <TableCell className="text-right font-medium text-white">{yen.format(record.total)}</TableCell>
                   <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
+                  <TableCell className="text-gray-300">{record.status === 'paid' ? '入金確認済み' : '確認待ち'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">詳細</Button>
@@ -986,17 +964,16 @@ export default function BillingPage() {
       <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
         <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-slate-900">請求詳細</DialogTitle>
+            <DialogTitle className="text-slate-900">請求状況の詳細</DialogTitle>
             <DialogDescription className="text-slate-600">{selectedRecord?.pharmacyName} / {selectedRecord?.month}</DialogDescription>
           </DialogHeader>
           {selectedRecord && (
             <div className="space-y-3 text-sm text-slate-700">
               <div className={`${adminPanelClass} p-4`}>
                 <p>請求書番号: <span className="text-slate-900">{selectedRecord.invoiceNumber}</span></p>
-                <p className="mt-1">SaaS: <span className="text-slate-900">{yen.format(selectedRecord.saasFee)}</span></p>
-                <p className="mt-1">夜間連携: <span className="text-slate-900">{yen.format(selectedRecord.nightFee)}</span></p>
-                <p className="mt-1">消費税: <span className="text-slate-900">{yen.format(selectedRecord.tax)}</span></p>
-                <p className="mt-1">合計: <span className="text-slate-900">{yen.format(selectedRecord.total)}</span></p>
+                <p className="mt-1">現在状態: <span className="text-slate-900">{statusLabel[selectedRecord.status]}</span></p>
+                <p className="mt-1">対象月: <span className="text-slate-900">{selectedRecord.month}</span></p>
+                <p className="mt-1">確認状況: <span className="text-slate-900">{selectedRecord.status === 'paid' ? '入金確認済みです' : '確認待ちです'}</span></p>
               </div>
             </div>
           )}
