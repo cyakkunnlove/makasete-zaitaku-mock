@@ -436,7 +436,7 @@ export default function RequestDetailPage() {
             {isAdmin ? (
               <div className={`${adminPanelClass} space-y-3 p-3 text-sm`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-gray-400">患者状態</span>
+                  <span className="text-slate-600">患者状態</span>
                   <Badge
                     variant="outline"
                     className={cn(
@@ -451,15 +451,15 @@ export default function RequestDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-gray-400">加盟店</p>
-                    <p className="mt-1 text-gray-200">{request.pharmacyName}</p>
+                    <p className="text-slate-600">加盟店</p>
+                    <p className="mt-1 text-slate-900">{request.pharmacyName}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400">患者ID</p>
-                    <p className="mt-1 text-gray-200">{request.patientId ?? '未設定'}</p>
+                    <p className="text-slate-600">患者ID</p>
+                    <p className="mt-1 text-slate-900">{request.patientId ?? '未設定'}</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-500">
                   運営管理ロールでは氏名・住所・連絡先・医療情報・FAX原本は表示しません。
                 </p>
               </div>
@@ -467,8 +467,8 @@ export default function RequestDetailPage() {
               <>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-white">{patient.name}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">生年月日: {patient.dob}</p>
+                    <p className="text-sm font-semibold text-slate-900">{patient.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">生年月日: {patient.dob}</p>
                   </div>
                   {attentionFlags.length > 0 && (
                     <div className="flex flex-wrap justify-end gap-1.5">
@@ -487,32 +487,32 @@ export default function RequestDetailPage() {
 
                 <div className="space-y-2 text-xs">
                   <div className="flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500" />
-                    <span className="text-gray-300">{patient.address}</span>
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    <span className="text-slate-700">{patient.address}</span>
                   </div>
 
-                  <div className="rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 space-y-1.5">
-                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-1.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
                       緊急連絡先
                     </p>
-                    <p className="text-gray-200">
+                    <p className="text-slate-900">
                       {patient.emergencyContact.name}（{patient.emergencyContact.relation}）
                     </p>
-                    <div className="flex items-center gap-1.5 text-gray-300">
-                      <Phone className="h-3 w-3 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <Phone className="h-3 w-3 text-slate-500" />
                       {patient.emergencyContact.phone}
                     </div>
                   </div>
 
-                  <div className="rounded-md border border-[#2a3553] bg-[#0a0e1a] p-3 space-y-1.5">
-                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-1.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
                       主治医
                     </p>
-                    <p className="text-gray-200">
+                    <p className="text-slate-900">
                       {patient.doctor.name} / {patient.doctor.clinic}
                     </p>
-                    <div className="flex items-center gap-1.5 text-gray-300">
-                      <Phone className="h-3 w-3 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <Phone className="h-3 w-3 text-slate-500" />
                       {patient.doctor.phone}
                     </div>
                   </div>
@@ -563,16 +563,16 @@ export default function RequestDetailPage() {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <p className="text-gray-400">受付時刻</p>
-                <p className="mt-0.5 flex items-center gap-1 text-gray-200">
-                  <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                <p className="text-slate-600">受付時刻</p>
+                <p className="mt-0.5 flex items-center gap-1 text-slate-900">
+                  <Clock3 className="h-3.5 w-3.5 text-slate-500" />
                   {request.receivedDate} {request.receivedAt}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400">薬局</p>
-                <p className="mt-0.5 flex items-center gap-1 text-gray-200">
-                  <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                <p className="text-slate-600">薬局</p>
+                <p className="mt-0.5 flex items-center gap-1 text-slate-900">
+                  <Building2 className="h-3.5 w-3.5 text-slate-500" />
                   {request.pharmacyName}
                 </p>
               </div>
@@ -580,21 +580,21 @@ export default function RequestDetailPage() {
 
             <div className={`${adminPanelClass} space-y-2 p-3 text-xs`}>
               <div>
-                <p className="text-gray-400">症状</p>
-                <p className="mt-0.5 text-gray-200">{request.symptom}</p>
+                <p className="text-slate-600">症状</p>
+                <p className="mt-0.5 text-slate-900">{request.symptom}</p>
               </div>
               <div>
-                <p className="text-gray-400">バイタル変化</p>
-                <p className="mt-0.5 text-gray-200">{request.vitalsChange}</p>
+                <p className="text-slate-600">バイタル変化</p>
+                <p className="mt-0.5 text-slate-900">{request.vitalsChange}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-gray-400">意識レベル</p>
-                  <p className="mt-0.5 text-gray-200">{request.consciousness}</p>
+                  <p className="text-slate-600">意識レベル</p>
+                  <p className="mt-0.5 text-slate-900">{request.consciousness}</p>
                 </div>
                 <div>
-                  <p className="text-gray-400">緊急度</p>
-                  <p className="mt-0.5 flex items-center gap-1 text-gray-200">
+                  <p className="text-slate-600">緊急度</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-slate-900">
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
                     {request.urgency}
                   </p>
@@ -604,13 +604,13 @@ export default function RequestDetailPage() {
 
             {request.notes && (
               <div className="text-xs">
-                <p className="text-gray-400">備考</p>
-                <p className="mt-0.5 text-gray-200">{request.notes}</p>
+                <p className="text-slate-600">備考</p>
+                <p className="mt-0.5 text-slate-900">{request.notes}</p>
               </div>
             )}
 
             <div className="text-xs">
-              <p className="text-gray-400">SLAステータス</p>
+              <p className="text-slate-600">SLAステータス</p>
               <div className="mt-1">
                 {request.slaMet === null ? (
                   <Badge
@@ -654,25 +654,25 @@ export default function RequestDetailPage() {
           {assignee ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-500/20 text-sm font-semibold text-indigo-300">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-sm font-semibold text-indigo-700">
                   {assignee.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{assignee.name}</p>
-                  <p className="text-xs text-gray-400">{assignee.role === 'night_pharmacist' ? 'Night Pharmacist' : assignee.role}</p>
+                  <p className="text-sm font-medium text-slate-900">{assignee.name}</p>
+                  <p className="text-xs text-slate-500">{assignee.role === 'night_pharmacist' ? 'Night Pharmacist' : assignee.role}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-4 text-xs text-gray-300">
+              <div className="flex flex-wrap gap-4 text-xs text-slate-700">
                 <span className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-gray-500" />
+                  <Phone className="h-3.5 w-3.5 text-slate-500" />
                   {assignee.phone}
                 </span>
-                <span className="text-gray-400">{assignee.email}</span>
+                <span className="text-slate-500">{assignee.email}</span>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#2a3553] bg-[#0a0e1a] text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500">
                 <User className="h-5 w-5" />
               </div>
               <div>

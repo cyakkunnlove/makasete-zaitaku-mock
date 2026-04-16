@@ -849,53 +849,53 @@ export default function NewPatientPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <Label className="text-gray-300">初回訪問予定日</Label>
-              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="2026-04-14" inputMode="numeric" />
+              <Label className="text-slate-700">初回訪問予定日</Label>
+              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="2026-04-14" inputMode="numeric" />
             </div>
             <div>
-              <Label className="text-gray-300">訪問パターン</Label>
-              <select value={visitPattern} onChange={(e) => setVisitPattern(e.target.value as VisitRulePattern)} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100">
+              <Label className="text-slate-700">訪問パターン</Label>
+              <select value={visitPattern} onChange={(e) => setVisitPattern(e.target.value as VisitRulePattern)} className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900">
                 {patternOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <Label className="text-gray-300">隔週アンカー</Label>
-              <select value={String(biweeklyAnchorWeek)} onChange={(e) => setBiweeklyAnchorWeek(Number(e.target.value) as 1 | 2)} disabled={visitPattern !== 'biweekly'} className="mt-1 h-10 w-full rounded-md border border-[#2a3553] bg-[#11182c] px-3 text-sm text-gray-100 disabled:cursor-not-allowed disabled:opacity-50">
+              <Label className="text-slate-700">隔週アンカー</Label>
+              <select value={String(biweeklyAnchorWeek)} onChange={(e) => setBiweeklyAnchorWeek(Number(e.target.value) as 1 | 2)} disabled={visitPattern !== 'biweekly'} className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="1">第1・3週</option>
                 <option value="2">第2・4週</option>
               </select>
             </div>
             <div>
-              <Label className="text-gray-300">月回数</Label>
-              <Input value={visitCount} onChange={(e) => setVisitCount(normalizeVisitCount(e.target.value))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="numeric" />
+              <Label className="text-slate-700">月回数</Label>
+              <Input value={visitCount} onChange={(e) => setVisitCount(normalizeVisitCount(e.target.value))} className="mt-1 border-slate-200 bg-white text-slate-900" inputMode="numeric" />
             </div>
           </div>
 
           <div>
-            <Label className="text-gray-300">訪問曜日</Label>
+            <Label className="text-slate-700">訪問曜日</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {visitWeekdayOptions.map((day) => {
                 const active = selectedDays.includes(day)
                 return (
-                  <button key={day} type="button" onClick={() => toggleDay(day)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
+                  <button key={day} type="button" onClick={() => toggleDay(day)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                     {day}
                   </button>
                 )
               })}
             </div>
-            <p className="mt-2 text-xs text-gray-500">初回訪問予定日または訪問曜日のどちらかを入力してください。</p>
+            <p className="mt-2 text-xs text-slate-500">初回訪問予定日または訪問曜日のどちらかを入力してください。</p>
           </div>
 
           <div>
-            <Label className="text-gray-300">希望時間</Label>
-            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="10:00" inputMode="numeric" />
+            <Label className="text-slate-700">希望時間</Label>
+            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-slate-200 bg-white text-slate-900" placeholder="10:00" inputMode="numeric" />
           </div>
 
           {isExceeded && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-              <AlertTriangle className="h-4 w-4 text-amber-300" />
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
               月4回を超過しています。保存は可能ですが、運用上の確認が必要です。
             </div>
           )}
@@ -981,11 +981,11 @@ export default function NewPatientPage() {
           <CardContent className="space-y-4">
             <p className="text-xs text-slate-500">必要な場合だけ入力してください。あとから患者詳細でも編集できます。</p>
             <div className="grid gap-3 md:grid-cols-2">
-              <div><Label className="text-gray-300">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
+              <div><Label className="text-slate-700">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-slate-200 bg-white text-slate-900" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
               <div className="space-y-3">
-                <div><Label className="text-gray-300">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="山田 一郎" /></div>
-                <div><Label className="text-gray-300">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="長男" /></div>
-                <div><Label className="text-gray-300">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="090-1234-5678" inputMode="tel" /></div>
+                <div><Label className="text-slate-700">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="山田 一郎" /></div>
+                <div><Label className="text-slate-700">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="長男" /></div>
+                <div><Label className="text-slate-700">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="090-1234-5678" inputMode="tel" /></div>
               </div>
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-gray-300">病院・クリニック</Label>
@@ -1188,20 +1188,20 @@ export default function NewPatientPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-gray-300">病院名</Label>
-              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" />
+              <Label className="text-slate-700">病院名</Label>
+              <Input value={institutionForm.name} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, name: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="○○クリニック" />
             </div>
             <div>
-              <Label className="text-gray-300">電話</Label>
-              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" />
+              <Label className="text-slate-700">電話</Label>
+              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="03-1234-5678" inputMode="tel" />
             </div>
             <div>
-              <Label className="text-gray-300">住所</Label>
-              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="東京都..." />
+              <Label className="text-slate-700">住所</Label>
+              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="東京都..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">閉じる</Button>
             <Button onClick={() => void saveMedicalInstitution()} disabled={institutionSubmitting} className="bg-indigo-600 text-white hover:bg-indigo-500">{institutionSubmitting ? (editingInstitutionId ? '更新中...' : '追加中...') : (editingInstitutionId ? '病院を更新' : '病院を追加')}</Button>
           </DialogFooter>
         </DialogContent>
@@ -1215,20 +1215,20 @@ export default function NewPatientPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-gray-300">医師名</Label>
-              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" />
+              <Label className="text-slate-700">医師名</Label>
+              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="田中医師" />
             </div>
             <div>
-              <Label className="text-gray-300">診療科</Label>
-              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="内科" />
+              <Label className="text-slate-700">診療科</Label>
+              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="内科" />
             </div>
             <div>
-              <Label className="text-gray-300">電話</Label>
-              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" />
+              <Label className="text-slate-700">電話</Label>
+              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="03-1234-5678" inputMode="tel" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">閉じる</Button>
             <Button onClick={() => void saveDoctor()} disabled={doctorSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-500">{doctorSubmitting ? (editingDoctorId ? '更新中...' : '追加中...') : (editingDoctorId ? '医師を更新' : '医師を追加')}</Button>
           </DialogFooter>
         </DialogContent>
@@ -1253,7 +1253,7 @@ export default function NewPatientPage() {
               <p className="mt-1 text-xs text-slate-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
             </div>
             {typeof geocodePreview?.latitude === 'number' && typeof geocodePreview?.longitude === 'number' && (
-              <div className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                 <iframe
                   title="住所確認地図"
                   className="h-56 w-full"
@@ -1272,7 +1272,7 @@ export default function NewPatientPage() {
             ) : null}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">住所を見直す</Button>
+            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">住所を見直す</Button>
             <Button onClick={() => void handleSave(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">この住所で登録する</Button>
           </DialogFooter>
         </DialogContent>
