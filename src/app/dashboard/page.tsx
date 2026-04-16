@@ -1700,51 +1700,62 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             <Card className="border-amber-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <FileClock className="h-4 w-4 text-amber-600" />
-                    <p className="text-[11px] text-slate-500">引き継ぎ確認待ち</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <FileClock className="h-4 w-4 shrink-0 text-amber-600" />
+                    <p className="truncate text-[11px] text-slate-500">引き継ぎ確認待ち</p>
                   </div>
                   <Badge variant="outline" className="border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">最優先</Badge>
                 </div>
-                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownUnconfirmedHandovers.length}</p>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className="text-2xl font-bold leading-none text-slate-900">{ownUnconfirmedHandovers.length}</p>
+                  <p className="text-[11px] text-slate-500">件</p>
+                </div>
               </CardContent>
             </Card>
             <Card className="border-indigo-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-indigo-600" />
-                    <p className="text-[11px] text-slate-500">昨夜対応あり患者</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Moon className="h-4 w-4 shrink-0 text-indigo-600" />
+                    <p className="truncate text-[11px] text-slate-500">昨夜対応あり患者</p>
                   </div>
                   <Badge variant="outline" className="border-indigo-200 bg-indigo-50 px-1.5 py-0 text-[10px] text-indigo-700">昨夜</Badge>
                 </div>
-                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownOvernightPatients}</p>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className="text-2xl font-bold leading-none text-slate-900">{ownOvernightPatients}</p>
+                  <p className="text-[11px] text-slate-500">人</p>
+                </div>
               </CardContent>
             </Card>
             <Card className="border-sky-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-sky-600" />
-                    <p className="text-[11px] text-slate-500">進行中の関連依頼</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ClipboardList className="h-4 w-4 shrink-0 text-sky-600" />
+                    <p className="truncate text-[11px] text-slate-500">進行中の関連依頼</p>
                   </div>
                   <Badge variant="outline" className="border-sky-200 bg-sky-50 px-1.5 py-0 text-[10px] text-sky-700">自局</Badge>
                 </div>
-                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownActiveRequests}</p>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className="text-2xl font-bold leading-none text-slate-900">{ownActiveRequests}</p>
+                  <p className="text-[11px] text-slate-500">件</p>
+                </div>
               </CardContent>
             </Card>
             <Card className="border-emerald-200 bg-white text-slate-900 shadow-sm">
               <CardContent className="space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Settings2 className="h-4 w-4 text-emerald-600" />
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Settings2 className="h-4 w-4 shrink-0 text-emerald-600" />
                     <p className="text-[11px] text-slate-500">連携設定</p>
                   </div>
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[10px] text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
                 </div>
-                <p className="text-sm font-medium leading-tight text-slate-900">{ownConfigStatus.regionLabel}</p>
-                <p className="text-[11px] text-slate-500">{ownConfigStatus.emergencyRoute}</p>
-                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-600 hover:text-indigo-700">薬局設定</Link>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium leading-tight text-slate-900">{ownConfigStatus.regionLabel}</p>
+                  <Link href="/dashboard/settings/pharmacy" className="inline-flex shrink-0 text-[11px] text-indigo-600 hover:text-indigo-700">設定</Link>
+                </div>
+                <p className="truncate text-[11px] text-slate-500">{ownConfigStatus.emergencyRoute}</p>
               </CardContent>
             </Card>
           </div>
