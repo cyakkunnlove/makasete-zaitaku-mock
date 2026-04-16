@@ -464,14 +464,14 @@ function PharmacyDashboardSummaryCard({
         <CardTitle className="text-base text-slate-900">{summaryTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
           {pharmacyStaffHandledCounts.length === 0 ? (
             <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className={`${adminPanelClass} p-2`}>
+              <div key={item.name} className={`${adminPanelClass} h-full p-2`}>
                 <div className="flex items-start justify-between gap-1.5">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-slate-900">{item.name}</span>
                       {item.inProgressCount > 0 ? (
@@ -486,19 +486,19 @@ function PharmacyDashboardSummaryCard({
                     </Link>
                   ) : null}
                 </div>
-                <div className="mt-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-700">
+                <div className="mt-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-700 overflow-hidden whitespace-nowrap">
                   <span className="font-medium text-slate-900">予 {item.plannedCount}</span>
-                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="mx-1 text-slate-300">|</span>
                   <span className="font-medium text-amber-700">対 {item.inProgressCount}</span>
-                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="mx-1 text-slate-300">|</span>
                   <span className="font-medium text-emerald-700">完 {item.completedCount}</span>
-                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="mx-1 text-slate-300">|</span>
                   <span className="font-medium text-violet-700">初 {item.firstVisitCount}</span>
                 </div>
                 {item.activePatients.length > 0 ? (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {item.activePatients.slice(0, 1).map((patient) => (
-                      <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-700">
+                      <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="max-w-full truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-700">
                         {patient.patientName} / {patient.stageLabel}
                       </span>
                     ))}
