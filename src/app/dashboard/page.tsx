@@ -94,21 +94,6 @@ function getTaskStageLabel(task: Pick<DayTaskItem, 'status' | 'flowDate' | 'plan
   return '日程未確定'
 }
 
-function summarizeWorkloadReasons(input: {
-  completedCount: number
-  inProgressCount: number
-  plannedCount: number
-  firstVisitCount: number
-  estimatedDistanceKm: number | null
-}) {
-  const reasons: string[] = []
-  if (input.inProgressCount > 0) reasons.push(`対応中 ${input.inProgressCount}件`)
-  if (input.firstVisitCount > 0) reasons.push(`初回 ${input.firstVisitCount}件`)
-  if ((input.estimatedDistanceKm ?? 0) >= 5) reasons.push(`距離目安 ${(input.estimatedDistanceKm ?? 0).toFixed(1)}km`)
-  if (input.completedCount + input.plannedCount >= 8) reasons.push(`担当件数 ${input.completedCount + input.plannedCount}件`)
-  return reasons.length > 0 ? reasons.join(' / ') : '件数は落ち着いています'
-}
-
 type GoogleMapsLatLng = { lat: number; lng: number }
 type GoogleMapsNamespace = {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => { fitBounds: (bounds: { isEmpty: () => boolean }, padding?: number) => void }
@@ -484,61 +469,50 @@ function PharmacyDashboardSummaryCard({
             <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className={`${adminPanelClass} p-3`}>
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
+              <div key={item.name} className={`${adminPanelClass} p-2.5`}>
+                <div className="flex flex-wrap items-start justify-between gap-1.5">
+                  <div className="min-w-0">
                     <span className="text-sm font-medium text-slate-900">{item.name}</span>
-                    <p className="mt-1 text-[11px] text-slate-500">総合負荷 {getWorkloadToneLabel(item.workloadTone)} / 理由: {summarizeWorkloadReasons(item)}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{item.inProgressCount > 0 ? '対応中あり' : '待機中'} / {getWorkloadToneLabel(item.workloadTone)}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-1 text-[11px]">
                     {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">対応中</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">待機中</Badge>
-                    )}
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">対応中</Badge>
+                    ) : null}
                     {showDetailLink ? (
-                      <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                        詳細を見る
+                      <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                        詳細
                       </Link>
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                <div className="mt-2 grid grid-cols-4 gap-1.5 text-[11px]">
+                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
                     <p className="text-slate-500">予定</p>
-                    <p className="mt-1 font-semibold text-slate-900">{item.plannedCount}件</p>
+                    <p className="mt-0.5 font-semibold text-slate-900">{item.plannedCount}</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
                     <p className="text-slate-500">対応中</p>
-                    <p className="mt-1 font-semibold text-amber-700">{item.inProgressCount > 0 ? 'あり' : 'なし'}</p>
+                    <p className="mt-0.5 font-semibold text-amber-700">{item.inProgressCount}</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
                     <p className="text-slate-500">完了</p>
-                    <p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p>
+                    <p className="mt-0.5 font-semibold text-emerald-700">{item.completedCount}</p>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
                     <p className="text-slate-500">初回</p>
-                    <p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
-                    <p className="text-slate-500">距離目安</p>
-                    <p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm !== null ? `${item.estimatedDistanceKm.toFixed(1)}km` : '-'}</p>
+                    <p className="mt-0.5 font-semibold text-violet-700">{item.firstVisitCount}</p>
                   </div>
                 </div>
-                <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
-                  <p className="text-[11px] font-medium text-slate-600">今の担当患者</p>
-                  {item.activePatients.length === 0 ? (
-                    <p className="mt-2 text-[11px] text-slate-500">進行中の患者はありません。</p>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.activePatients.slice(0, 3).map((patient) => (
-                        <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
-                          {patient.patientName} / {patient.stageLabel}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {item.activePatients.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {item.activePatients.slice(0, 2).map((patient) => (
+                      <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-700">
+                        {patient.patientName} / {patient.stageLabel}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))
           )}
