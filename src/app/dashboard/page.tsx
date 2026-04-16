@@ -603,7 +603,7 @@ function PharmacyDayTaskCardHeader({
             {patientPhone && patientPhone !== '-' ? (
               <a
                 href={`tel:${patientPhone.replace(/[^\d+]/g, '')}`}
-                className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-indigo-700 hover:bg-indigo-100 hover:underline"
+                className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-indigo-700 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-100 hover:underline"
               >
                 <Phone className="h-3 w-3" />
                 本人 {patientPhone}
@@ -612,7 +612,7 @@ function PharmacyDayTaskCardHeader({
             {emergencyContactPhone && emergencyContactPhone !== '-' ? (
               <a
                 href={`tel:${emergencyContactPhone.replace(/[^\d+]/g, '')}`}
-                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700 hover:bg-amber-100 hover:underline"
+                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100 hover:underline"
               >
                 <Phone className="h-3 w-3" />
                 緊急連絡先 {emergencyContactPhone}
@@ -1662,7 +1662,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       <p className="mt-1 text-amber-700">{ho.recommendation}</p>
                     </div>
                     <Link href={`/dashboard/patients/${ho.patientId}`}>
-                      <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
+                      <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
                     </Link>
                   </div>
                 </div>
@@ -1773,7 +1773,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     <p className="mt-1 text-[11px] text-amber-700">引き継ぎ内容の確認と優先度の見直しが必要です</p>
                   </div>
                   <Link href={`/dashboard/patients/${handover.patientId}`}>
-                    <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 hover:bg-amber-100">患者情報で確認</Button>
+                    <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
                   </Link>
                 </div>
               ))}
@@ -1837,7 +1837,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                       <p className="font-medium text-slate-900">{routePlanResult.message}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {routeEmailHref && (
-                          <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 hover:bg-sky-50">
+                          <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50">
                             <a href={routeEmailHref}>自分のメールに送る</a>
                           </Button>
                         )}
@@ -1988,7 +1988,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
+                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -2003,7 +2003,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                           <p className="mt-1 text-[11px] text-amber-700">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
                         </div>
                         <div className="flex shrink-0 gap-2">
-                          <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 hover:bg-slate-50" asChild>
+                          <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50" asChild>
                             <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
                           </Button>
                           <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => handleAddPatientToTodayFlow(patient)}>
@@ -2112,7 +2112,7 @@ function PharmacistDashboard() {
               </div>
               <div className="flex flex-col gap-2">
                 <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
-                  <Button className="w-full bg-rose-600 text-white hover:bg-rose-500">内容を確認する</Button>
+                  <Button className="w-full bg-rose-600 text-white transition hover:-translate-y-0.5 hover:bg-rose-500">内容を確認する</Button>
                 </Link>
               </div>
             </div>
