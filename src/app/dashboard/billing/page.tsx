@@ -592,7 +592,7 @@ export default function BillingPage() {
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+                  <div key={record.id} className="soft-pop rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
@@ -607,9 +607,9 @@ export default function BillingPage() {
                     </div>
                     <p className="mt-2 text-xs text-slate-500">{record.note}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
-                      <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="bg-indigo-600 text-white hover:bg-indigo-600/90">請求必要に追加</Button>
+                      <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
+                      <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">請求必要に追加</Button>
                     </div>
                   </div>
                 ))}

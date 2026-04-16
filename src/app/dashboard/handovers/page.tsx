@@ -63,13 +63,13 @@ export default function HandoversPage() {
           >
             未確認 {unconfirmedCount}件
           </Badge>
-          <Button variant="outline" onClick={handlePrint} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+          <Button variant="outline" onClick={handlePrint} className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
             <Printer className="h-4 w-4" />
             印刷
           </Button>
           {role !== 'night_pharmacist' && (
             <Link href="/dashboard/handovers/new">
-              <Button className="bg-indigo-500 text-white hover:bg-indigo-500/90">
+              <Button className="soft-pop-sm bg-indigo-500 text-white hover:bg-indigo-500/90">
                 <Plus className="h-4 w-4" />
                 新規申し送り
               </Button>
@@ -89,7 +89,7 @@ export default function HandoversPage() {
           const isStaffConfirmed = staffConfirmedIds.has(handover.id)
 
           return (
-            <Card key={handover.id} className="border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+            <Card key={handover.id} className="soft-pop border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-md">
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link href={`/dashboard/handovers/${handover.id}`} className="hover:opacity-80">
@@ -103,7 +103,7 @@ export default function HandoversPage() {
                   <div className="flex items-center gap-2">
                     {role === 'night_pharmacist' && (
                       <Link href={`/dashboard/handovers/new?requestId=${handover.requestId ?? ''}`}>
-                        <Button variant="outline" size="sm" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                        <Button variant="outline" size="sm" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                           <Pencil className="mr-1 h-3.5 w-3.5" />
                           編集
                         </Button>

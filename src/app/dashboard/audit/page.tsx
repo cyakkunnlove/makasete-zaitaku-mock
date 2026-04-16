@@ -255,7 +255,7 @@ export default function AuditPage() {
           const expanded = expandedId === entry.id
 
           return (
-            <Card key={entry.id} className={cn('cursor-pointer transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md', adminCardClass)} onClick={() => setExpandedId(expanded ? null : entry.id)}>
+            <Card key={entry.id} className={cn('soft-pop cursor-pointer hover:border-slate-300 hover:shadow-md', adminCardClass)} onClick={() => setExpandedId(expanded ? null : entry.id)}>
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>

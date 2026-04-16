@@ -219,7 +219,7 @@ export default function RequestsPage() {
         {canCreateRequest && (
           <Button
             onClick={() => setNewRequestOpen(true)}
-            className="bg-indigo-500 text-white hover:bg-indigo-500/90"
+            className="soft-pop-sm bg-indigo-500 text-white hover:bg-indigo-500/90"
           >
             <Plus className="h-4 w-4" />
             新規依頼
@@ -291,7 +291,7 @@ export default function RequestsPage() {
             <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
-                  `${adminCardClass} cursor-pointer border-l-4 transition hover:-translate-y-0.5 hover:border-indigo-400 hover:shadow-md`,
+                  `${adminCardClass} soft-pop cursor-pointer border-l-4 hover:border-indigo-400 hover:shadow-md`,
                   priority.mobileBorder
                 )}
               >
