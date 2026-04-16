@@ -49,10 +49,10 @@ export default function HandoversPage() {
           <h1 className="text-lg font-semibold text-slate-900">申し送り</h1>
           <p className="text-xs text-slate-500">{role === 'night_pharmacist' ? '今日、自分が作成した申し送りだけを表示し、必要に応じて編集します。' : 'SBAR形式で夜間対応内容を共有・確認'}</p>
           {role === 'pharmacy_admin' && (
-            <p className="mt-1 text-[11px] text-amber-200">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
+            <p className="mt-1 text-[11px] text-amber-700">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
           )}
           {role === 'pharmacy_staff' && (
-            <p className="mt-1 text-[11px] text-sky-200">Pharmacy Staff は申し送り確認者として閲覧・確認できます。最終確認責任は Pharmacy Admin 側に残します。</p>
+            <p className="mt-1 text-[11px] text-sky-700">Pharmacy Staff は申し送り確認者として閲覧・確認できます。最終確認責任は Pharmacy Admin 側に残します。</p>
           )}
         </div>
 
@@ -114,14 +114,14 @@ export default function HandoversPage() {
                       className={cn(
                         'border',
                         isConfirmed
-                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-                          : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'
                       )}
                     >
                       {isConfirmed ? '最終確認済み' : '未確認'}
                     </Badge>
                     {isStaffConfirmed && !isConfirmed && (
-                      <Badge variant="outline" className="border-sky-500/40 bg-sky-500/20 text-sky-300">
+                      <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">
                         staff確認済み
                       </Badge>
                     )}
@@ -179,10 +179,10 @@ export default function HandoversPage() {
                         {handover.confirmedAt ? `確認日時: ${handover.confirmedAt}` : '未確認の申し送りです'}
                       </p>
                       {role === 'pharmacy_admin' && (
-                        <p className="inline-flex items-center gap-1 text-[11px] text-amber-200"><ShieldCheck className="h-3 w-3" />管理者確認の対象</p>
+                        <p className="inline-flex items-center gap-1 text-[11px] text-amber-700"><ShieldCheck className="h-3 w-3" />管理者確認の対象</p>
                       )}
                       {role === 'pharmacy_staff' && (
-                        <p className="inline-flex items-center gap-1 text-[11px] text-sky-200">staff確認ログ対象</p>
+                        <p className="inline-flex items-center gap-1 text-[11px] text-sky-700">staff確認ログ対象</p>
                       )}
                     </div>
 
@@ -192,7 +192,7 @@ export default function HandoversPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleStaffConfirm(handover.id)}
-                          className="border-sky-500/40 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20"
+                          className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           確認した

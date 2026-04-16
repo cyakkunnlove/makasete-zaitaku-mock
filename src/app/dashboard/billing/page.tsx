@@ -832,9 +832,9 @@ export default function BillingPage() {
 
       {isSystemAdmin && (
         <Card className={adminCardClass}>
-          <CardContent className="p-4 text-sm text-gray-300">
-            <p className="font-medium text-white">system_admin 向け表示</p>
-            <p className="mt-1 text-xs text-gray-400">ここでは加盟店への請求状態だけを扱い、患者ごとの回収処理や訪問単位の操作は表示しません。</p>
+          <CardContent className="p-4 text-sm text-slate-700">
+            <p className="font-medium text-slate-900">system_admin 向け表示</p>
+            <p className="mt-1 text-xs text-slate-500">ここでは加盟店への請求状態だけを扱い、患者ごとの回収処理や訪問単位の操作は表示しません。</p>
           </CardContent>
         </Card>
       )}
@@ -845,10 +845,10 @@ export default function BillingPage() {
         <AdminStatCard label="確認待ち" value={records.filter((record) => record.status !== 'paid').length} tone="warning" icon={<Layers className="h-4 w-4" />} />
       </section>
 
-      {generatedLabel && <Card className="border-[#2a3553] bg-[#11182c]"><CardContent className="p-3 text-sm text-indigo-300">{generatedLabel}</CardContent></Card>}
+      {generatedLabel && <Card className="border-indigo-200 bg-indigo-50"><CardContent className="p-3 text-sm text-indigo-700">{generatedLabel}</CardContent></Card>}
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-4 py-3 text-sm font-medium text-emerald-300 shadow-lg backdrop-blur-sm">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-lg backdrop-blur-sm">
           <CheckCircle className="h-4 w-4" />
           {toastMessage}
         </div>
@@ -872,7 +872,7 @@ export default function BillingPage() {
                   <div className="col-span-2"><p>確認状況</p><p className="mt-1 text-slate-900">{record.status === 'paid' ? '入金確認済みです' : '確認待ちです'}</p></div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">
                     <FileText className="h-4 w-4" />
                     詳細
                   </Button>
@@ -888,26 +888,26 @@ export default function BillingPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="border-[#2a3553] hover:bg-[#1a2035]">
-                <TableHead className="text-gray-400">加盟店</TableHead>
-                <TableHead className="text-gray-400">請求書番号</TableHead>
-                <TableHead className="text-gray-400">対象月</TableHead>
-                <TableHead className="text-gray-400">状態</TableHead>
-                <TableHead className="text-gray-400">確認メモ</TableHead>
-                <TableHead className="text-right text-gray-400">操作</TableHead>
+              <TableRow className="border-slate-200 hover:bg-slate-50">
+                <TableHead className="text-slate-500">加盟店</TableHead>
+                <TableHead className="text-slate-500">請求書番号</TableHead>
+                <TableHead className="text-slate-500">対象月</TableHead>
+                <TableHead className="text-slate-500">状態</TableHead>
+                <TableHead className="text-slate-500">確認メモ</TableHead>
+                <TableHead className="text-right text-slate-500">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {records.map((record) => (
-                <TableRow key={record.id} className="border-[#2a3553] hover:bg-[#11182c]">
-                  <TableCell className="font-medium text-white">{record.pharmacyName}</TableCell>
-                  <TableCell className="text-gray-300">{record.invoiceNumber}</TableCell>
-                  <TableCell className="text-gray-300">{record.month}</TableCell>
+                <TableRow key={record.id} className="border-slate-200 hover:bg-slate-50">
+                  <TableCell className="font-medium text-slate-900">{record.pharmacyName}</TableCell>
+                  <TableCell className="text-slate-600">{record.invoiceNumber}</TableCell>
+                  <TableCell className="text-slate-600">{record.month}</TableCell>
                   <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
-                  <TableCell className="text-gray-300">{record.status === 'paid' ? '入金確認済み' : '確認待ち'}</TableCell>
+                  <TableCell className="text-slate-600">{record.status === 'paid' ? '入金確認済み' : '確認待ち'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200">詳細</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedRecord(record)} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">詳細</Button>
                       {!isSystemAdmin && record.status !== 'paid' && <Button size="sm" onClick={() => handlePaymentConfirm(record.id, record.pharmacyName)} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金確認</Button>}
                     </div>
                   </TableCell>
