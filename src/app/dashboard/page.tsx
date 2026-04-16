@@ -54,6 +54,41 @@ const staffStatusClass: Record<string, string> = {
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
+const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
+
+type PharmacyWorkloadSettings = {
+  lightMax: number
+  mediumMax: number
+  firstVisitWeight: number
+  inProgressWeight: number
+  distanceWeight: number
+}
+
+const defaultWorkloadSettings: PharmacyWorkloadSettings = {
+  lightMax: 4,
+  mediumMax: 8,
+  firstVisitWeight: 1.5,
+  inProgressWeight: 1.2,
+  distanceWeight: 0.3,
+}
+
+function getWorkloadTone(score: number, settings: PharmacyWorkloadSettings) {
+  if (score > settings.mediumMax) return 'heavy' as const
+  if (score > settings.lightMax) return 'medium' as const
+  return 'light' as const
+}
+
+function getWorkloadToneClass(tone: 'light' | 'medium' | 'heavy') {
+  if (tone === 'heavy') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (tone === 'medium') return 'border-amber-200 bg-amber-50 text-amber-700'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+}
+
+function getWorkloadToneLabel(tone: 'light' | 'medium' | 'heavy') {
+  if (tone === 'heavy') return '負荷高め'
+  if (tone === 'medium') return '中程度'
+  return '軽め'
+}
 
 type GoogleMapsLatLng = { lat: number; lng: number }
 type GoogleMapsNamespace = {
@@ -412,7 +447,7 @@ function PharmacyDashboardSummaryCard({
   adminWarningText,
 }: {
   summaryTitle: string
-  pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number }[]
+  pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy' }[]
   summarySupportText: string
   saveStateBadge: string | null
   adminWarningText?: string | null
@@ -434,13 +469,17 @@ function PharmacyDashboardSummaryCard({
                   <div className="flex flex-wrap gap-2 text-xs">
                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">完了 {item.completedCount}件</Badge>
                     {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">● 対応中</Badge>
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">対応中 {item.inProgressCount}件</Badge>
                     ) : (
                       <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">対応中なし</Badge>
                     )}
                     <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">予定 {item.plannedCount}件</Badge>
+                    {item.firstVisitCount > 0 ? <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">初回 {item.firstVisitCount}件</Badge> : null}
+                    {item.estimatedDistanceKm !== null ? <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">距離目安 {item.estimatedDistanceKm.toFixed(1)}km</Badge> : null}
+                    <Badge variant="outline" className={cn('border', getWorkloadToneClass(item.workloadTone))}>{getWorkloadToneLabel(item.workloadTone)}</Badge>
                   </div>
                 </div>
+                <p className="mt-2 text-[11px] text-slate-500">総合負荷スコア {item.workloadScore.toFixed(1)}</p>
               </div>
             ))
           )}
@@ -815,6 +854,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
   const [selectedRoutePatientIds, setSelectedRoutePatientIds] = useState<string[]>([])
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
+  const [workloadSettings, setWorkloadSettings] = useState<PharmacyWorkloadSettings>(defaultWorkloadSettings)
   const routeMapRef = useRef<HTMLDivElement | null>(null)
   const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const [routePlanResult, setRoutePlanResult] = useState<null | {
@@ -1207,23 +1247,38 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
-    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number }>()
+    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy' }>()
+    const distancePerTaskKm = typeof routePlanResult?.totalDistanceMeters === 'number' && selectedRoutePatientIds.length > 0
+      ? routePlanResult.totalDistanceMeters / 1000 / selectedRoutePatientIds.length
+      : 0
+
     draftDayTasks.forEach((task) => {
       const actorId = task.handledById ?? task.plannedById
       const actorName = task.handledBy ?? task.plannedBy
       if (!actorId || !actorName) return
-      const current = counts.get(actorId) ?? { name: actorName, completedCount: 0, inProgressCount: 0, plannedCount: 0 }
+      const isFirstVisit = task.note.includes('初回') || task.visitType === '臨時'
+      const current = counts.get(actorId) ?? { name: actorName, completedCount: 0, inProgressCount: 0, plannedCount: 0, firstVisitCount: 0, estimatedDistanceKm: 0, workloadScore: 0, workloadTone: 'light' }
       if (task.status === 'completed') current.completedCount += 1
       else if (task.status === 'in_progress') current.inProgressCount += 1
       else current.plannedCount += 1
+      if (isFirstVisit) current.firstVisitCount += 1
+      if (distancePerTaskKm > 0) current.estimatedDistanceKm = (current.estimatedDistanceKm ?? 0) + distancePerTaskKm
+      const distanceScore = (current.estimatedDistanceKm ?? 0) * workloadSettings.distanceWeight
+      current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + distanceScore
+      current.workloadTone = getWorkloadTone(current.workloadScore, workloadSettings)
       counts.set(actorId, current)
     })
-    return Array.from(counts.values()).sort((a, b) => {
-      const aTotal = a.completedCount + a.inProgressCount + a.plannedCount
-      const bTotal = b.completedCount + b.inProgressCount + b.plannedCount
-      return bTotal - aTotal
-    })
-  }, [draftDayTasks])
+    return Array.from(counts.values()).sort((a, b) => b.workloadScore - a.workloadScore)
+  }, [draftDayTasks, ownPatients, routePlanResult?.totalDistanceMeters, selectedRoutePatientIds.length, workloadSettings])
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as Partial<PharmacyWorkloadSettings>
+      setWorkloadSettings({ ...defaultWorkloadSettings, ...parsed })
+    } catch {}
+  }, [])
 
   const upsertTask = async (task: DayTaskItem) => {
     const response = await fetch(`/api/day-flow/tasks/${task.id}`, {

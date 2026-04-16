@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow } from 'lucide-react'
+import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow, Gauge } from 'lucide-react'
+
+const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
 
 export default function PharmacySettingsPage() {
   const { role } = useAuth()
@@ -26,9 +28,34 @@ export default function PharmacySettingsPage() {
     contractPlan: '加盟店 / 夜間受託あり',
     adminOwner: '山田 美咲',
   })
+  const [workloadSettings, setWorkloadSettings] = useState({
+    lightMax: '4',
+    mediumMax: '8',
+    firstVisitWeight: '1.5',
+    inProgressWeight: '1.2',
+    distanceWeight: '0.3',
+  })
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as Partial<typeof workloadSettings>
+      setWorkloadSettings((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)])) }))
+    } catch {}
+  }, [])
 
   const save = () => {
     if (guard()) return
+    try {
+      window.localStorage.setItem(PHARMACY_WORKLOAD_SETTINGS_KEY, JSON.stringify({
+        lightMax: Number(workloadSettings.lightMax || 4),
+        mediumMax: Number(workloadSettings.mediumMax || 8),
+        firstVisitWeight: Number(workloadSettings.firstVisitWeight || 1.5),
+        inProgressWeight: Number(workloadSettings.inProgressWeight || 1.2),
+        distanceWeight: Number(workloadSettings.distanceWeight || 0.3),
+      }))
+    } catch {}
     setToast('薬局設定を保存しました（モック）')
     setTimeout(() => setToast(null), 2500)
   }
@@ -127,6 +154,37 @@ export default function PharmacySettingsPage() {
             <div>
               <Label className="text-slate-600">朝の確認メモ既定文</Label>
               <Input value={settings.defaultMorningNote} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, defaultMorningNote: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-slate-200 bg-white shadow-sm lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Gauge className="h-4 w-4 text-rose-500" />スタッフ負荷の判定</CardTitle>
+            <CardDescription className="text-slate-500">件数だけでなく、初回件数・対応中件数・距離目安を含めた総合負荷の基準です</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div>
+              <Label className="text-slate-600">軽めの上限スコア</Label>
+              <Input value={workloadSettings.lightMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, lightMax: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <div>
+              <Label className="text-slate-600">中程度の上限スコア</Label>
+              <Input value={workloadSettings.mediumMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, mediumMax: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <div>
+              <Label className="text-slate-600">初回訪問の重み</Label>
+              <Input value={workloadSettings.firstVisitWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, firstVisitWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <div>
+              <Label className="text-slate-600">対応中件数の重み</Label>
+              <Input value={workloadSettings.inProgressWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, inProgressWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <div>
+              <Label className="text-slate-600">距離目安の重み</Label>
+              <Input value={workloadSettings.distanceWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, distanceWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
             </div>
           </CardContent>
         </Card>
