@@ -469,44 +469,35 @@ function PharmacyDashboardSummaryCard({
             <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className={`${adminPanelClass} p-2.5`}>
-                <div className="flex flex-wrap items-start justify-between gap-1.5">
+              <div key={item.name} className={`${adminPanelClass} p-2`}>
+                <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0">
-                    <span className="text-sm font-medium text-slate-900">{item.name}</span>
-                    <p className="mt-0.5 text-[10px] text-slate-500">{item.inProgressCount > 0 ? '対応中あり' : '待機中'} / {getWorkloadToneLabel(item.workloadTone)}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-slate-900">{item.name}</span>
+                      {item.inProgressCount > 0 ? (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">対応中</Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{getWorkloadToneLabel(item.workloadTone)}</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                    {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">対応中</Badge>
-                    ) : null}
-                    {showDetailLink ? (
-                      <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                        詳細
-                      </Link>
-                    ) : null}
-                  </div>
+                  {showDetailLink ? (
+                    <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                      詳細
+                    </Link>
+                  ) : null}
                 </div>
-                <div className="mt-2 grid grid-cols-4 gap-1.5 text-[11px]">
-                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
-                    <p className="text-slate-500">予定</p>
-                    <p className="mt-0.5 font-semibold text-slate-900">{item.plannedCount}</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
-                    <p className="text-slate-500">対応中</p>
-                    <p className="mt-0.5 font-semibold text-amber-700">{item.inProgressCount}</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
-                    <p className="text-slate-500">完了</p>
-                    <p className="mt-0.5 font-semibold text-emerald-700">{item.completedCount}</p>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5">
-                    <p className="text-slate-500">初回</p>
-                    <p className="mt-0.5 font-semibold text-violet-700">{item.firstVisitCount}</p>
-                  </div>
+                <div className="mt-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-700">
+                  <span className="font-medium text-slate-900">予 {item.plannedCount}</span>
+                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="font-medium text-amber-700">対 {item.inProgressCount}</span>
+                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="font-medium text-emerald-700">完 {item.completedCount}</span>
+                  <span className="mx-1.5 text-slate-300">|</span>
+                  <span className="font-medium text-violet-700">初 {item.firstVisitCount}</span>
                 </div>
                 {item.activePatients.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {item.activePatients.slice(0, 2).map((patient) => (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {item.activePatients.slice(0, 1).map((patient) => (
                       <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-700">
                         {patient.patientName} / {patient.stageLabel}
                       </span>
