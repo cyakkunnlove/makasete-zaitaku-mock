@@ -79,12 +79,6 @@ function getWorkloadTone(score: number, settings: PharmacyWorkloadSettings) {
   return 'light' as const
 }
 
-function getWorkloadToneClass(tone: 'light' | 'medium' | 'heavy') {
-  if (tone === 'heavy') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (tone === 'medium') return 'border-amber-200 bg-amber-50 text-amber-700'
-  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-}
-
 function getWorkloadToneLabel(tone: 'light' | 'medium' | 'heavy') {
   if (tone === 'heavy') return '負荷高め'
   if (tone === 'medium') return '中程度'
@@ -461,12 +455,14 @@ function PharmacyDashboardSummaryCard({
   summarySupportText,
   saveStateBadge,
   adminWarningText,
+  showDetailLink = false,
 }: {
   summaryTitle: string
-  pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy' }[]
+  pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy'; activePatients: { patientName: string; stageLabel: string }[] }[]
   summarySupportText: string
   saveStateBadge: string | null
   adminWarningText?: string | null
+  showDetailLink?: boolean
 }) {
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
@@ -480,23 +476,58 @@ function PharmacyDashboardSummaryCard({
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
               <div key={item.name} className={`${adminPanelClass} p-3`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-900">{item.name}</span>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <span className="text-sm font-medium text-slate-900">{item.name}</span>
+                    <p className="mt-1 text-[11px] text-slate-500">総合負荷 {getWorkloadToneLabel(item.workloadTone)} / 理由: {summarizeWorkloadReasons(item)}</p>
+                  </div>
                   <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">完了 {item.completedCount}件</Badge>
                     {item.inProgressCount > 0 ? (
-                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">対応中 {item.inProgressCount}件</Badge>
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">対応中</Badge>
                     ) : (
-                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">対応中なし</Badge>
+                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-500">待機中</Badge>
                     )}
-                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">予定 {item.plannedCount}件</Badge>
-                    {item.firstVisitCount > 0 ? <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">初回 {item.firstVisitCount}件</Badge> : null}
-                    {item.estimatedDistanceKm !== null ? <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">距離目安 {item.estimatedDistanceKm.toFixed(1)}km</Badge> : null}
-                    <Badge variant="outline" className={cn('border', getWorkloadToneClass(item.workloadTone))}>{getWorkloadToneLabel(item.workloadTone)}</Badge>
+                    {showDetailLink ? (
+                      <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                        詳細を見る
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
-                <p className="mt-2 text-[11px] text-slate-500">総合負荷スコア {item.workloadScore.toFixed(1)}</p>
-                <p className="mt-1 text-[11px] text-slate-500">{summarizeWorkloadReasons(item)}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                    <p className="text-slate-500">予定</p>
+                    <p className="mt-1 font-semibold text-slate-900">{item.plannedCount}件</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                    <p className="text-slate-500">対応中</p>
+                    <p className="mt-1 font-semibold text-amber-700">{item.inProgressCount > 0 ? 'あり' : 'なし'}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                    <p className="text-slate-500">完了</p>
+                    <p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                    <p className="text-slate-500">初回</p>
+                    <p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                    <p className="text-slate-500">距離目安</p>
+                    <p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm !== null ? `${item.estimatedDistanceKm.toFixed(1)}km` : '-'}</p>
+                  </div>
+                </div>
+                {item.activePatients.length > 0 ? (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
+                    <p className="text-[11px] font-medium text-slate-600">いま見ておきたい患者</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.activePatients.slice(0, 3).map((patient) => (
+                        <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                          {patient.patientName} / {patient.stageLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ))
           )}
@@ -1292,7 +1323,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
-    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy' }>()
+    const patientNameMap = new Map(ownPatients.map((patient) => [patient.id, patient.name]))
+    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy'; activePatients: { patientName: string; stageLabel: string }[] }>()
     const distancePerTaskKm = typeof routePlanResult?.totalDistanceMeters === 'number' && selectedRoutePatientIds.length > 0
       ? routePlanResult.totalDistanceMeters / 1000 / selectedRoutePatientIds.length
       : 0
@@ -1302,18 +1334,25 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       const actorName = task.handledBy ?? task.plannedBy
       if (!actorId || !actorName) return
       const isFirstVisit = task.note.includes('初回') || task.visitType === '臨時'
-      const current = counts.get(actorId) ?? { name: actorName, completedCount: 0, inProgressCount: 0, plannedCount: 0, firstVisitCount: 0, estimatedDistanceKm: 0, workloadScore: 0, workloadTone: 'light' }
+      const current = counts.get(actorId) ?? { name: actorName, completedCount: 0, inProgressCount: 0, plannedCount: 0, firstVisitCount: 0, estimatedDistanceKm: 0, workloadScore: 0, workloadTone: 'light', activePatients: [] }
       if (task.status === 'completed') current.completedCount += 1
       else if (task.status === 'in_progress') current.inProgressCount += 1
       else current.plannedCount += 1
       if (isFirstVisit) current.firstVisitCount += 1
       if (distancePerTaskKm > 0) current.estimatedDistanceKm = (current.estimatedDistanceKm ?? 0) + distancePerTaskKm
+      const patientName = patientNameMap.get(task.patientId) ?? task.patientId
+      const stageLabel = task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'
+      if (task.status !== 'completed') {
+        current.activePatients.push({ patientName, stageLabel })
+      }
       const distanceScore = (current.estimatedDistanceKm ?? 0) * workloadSettings.distanceWeight
       current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + distanceScore
       current.workloadTone = getWorkloadTone(current.workloadScore, workloadSettings)
       counts.set(actorId, current)
     })
-    return Array.from(counts.values()).sort((a, b) => b.workloadScore - a.workloadScore)
+    return Array.from(counts.values())
+      .map((item) => ({ ...item, activePatients: item.activePatients.slice(0, 5) }))
+      .sort((a, b) => b.workloadScore - a.workloadScore)
   }, [draftDayTasks, ownPatients, routePlanResult?.totalDistanceMeters, selectedRoutePatientIds.length, workloadSettings])
 
   useEffect(() => {
@@ -1760,6 +1799,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           summarySupportText={summarySupportText}
           saveStateBadge={saveStateBadge}
           adminWarningText={adminWarningText}
+          showDetailLink={isPharmacyAdmin}
         />
 
         {(isPatientsLoading || isDayFlowLoading) && (
