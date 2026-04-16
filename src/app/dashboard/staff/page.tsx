@@ -43,7 +43,12 @@ import {
   shiftData,
   shiftPharmacists,
   type ShiftEntry,
+  type DayTaskItem,
 } from '@/lib/mock-data'
+import { loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { getScopedPharmacyId } from '@/lib/patient-permissions'
+import { mergePatientSources } from '@/lib/patient-read-model'
+import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 
 type StaffStatus = 'invited' | 'active' | 'suspended'
 type ManagedStaffItem = {
@@ -129,6 +134,39 @@ const workloadToneClass = {
   heavy: 'border-rose-200 bg-rose-50 text-rose-700',
 } as const
 
+const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
+
+const defaultWorkloadSettings = {
+  lightMax: 4,
+  mediumMax: 8,
+  firstVisitWeight: 1.5,
+  inProgressWeight: 1.2,
+  distanceWeight: 0.3,
+}
+
+function getWorkloadTone(score: number, settings: typeof defaultWorkloadSettings) {
+  if (score > settings.mediumMax) return 'heavy' as const
+  if (score > settings.lightMax) return 'medium' as const
+  return 'light' as const
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function shiftDateKey(baseDateKey: string, diffDays: number) {
+  const date = new Date(`${baseDateKey}T00:00:00`)
+  date.setDate(date.getDate() + diffDays)
+  return toDateKey(date)
+}
+
+function getTodayDateKey() {
+  return toDateKey(new Date())
+}
+
 const weekDays = [
   { date: '2026-03-02', label: '月', full: '3/2(月)' },
   { date: '2026-03-03', label: '火', full: '3/3(火)' },
@@ -148,6 +186,11 @@ export default function StaffPage() {
   const { guard, requiresReverification } = useReauthGuard()
   const [pageTab, setPageTab] = useState<PageTab>('staff')
   const [activityRange, setActivityRange] = useState<ActivityRange>('7d')
+  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
+  const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
+  const [recentDayTasks, setRecentDayTasks] = useState<DayTaskItem[]>([])
+  const [isActivityLoading, setIsActivityLoading] = useState(false)
+  const [workloadSettings, setWorkloadSettings] = useState(defaultWorkloadSettings)
 
   // Staff list state
   const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([])
@@ -194,6 +237,8 @@ export default function StaffPage() {
   // Shift state
   const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
 
+  const ownPharmacyId = getScopedPharmacyId(user)
+
   const visibleStaffMembers = useMemo(() => {
     if (isPharmacyAdmin) {
       return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith(PHARMACY_ADMIN_EMAIL_DOMAIN))
@@ -231,38 +276,71 @@ export default function StaffPage() {
   const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'suspended').length
   const pendingInvitationCount = invitations.filter((invitation) => invitation.status === 'pending').length
 
+  const ownPatients = useMemo(() => {
+    const merged = mergePatientSources({ databasePatients, registeredPatients })
+    return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
+  }, [databasePatients, registeredPatients, ownPharmacyId])
+
   const staffActivitySummaries = useMemo(() => {
-    const multiplier = activityRange === '30d' ? 4 : 1
-    return filteredStaff
-      .filter((member) => member.status !== 'invited')
-      .map((member, index) => {
-        const plannedCount = (index % 4 + 3) * multiplier
-        const completedCount = Math.max(plannedCount - ((index + 1) % 3), 0)
-        const inProgressCount = index % 3 === 0 ? 1 : 0
-        const firstVisitCount = (index % 2) + (activityRange === '30d' ? 2 : 1)
-        const estimatedDistanceKm = Number((((index % 5) + 1) * 3.4 * multiplier).toFixed(1))
-        const workloadScore = completedCount + plannedCount + inProgressCount * 2.5 + firstVisitCount * 1.5 + estimatedDistanceKm * 0.35
-        const tone: keyof typeof workloadToneClass = workloadScore >= 24 ? 'heavy' : workloadScore >= 14 ? 'medium' : 'light'
-        const patientStages = [
-          { patientName: `患者${String.fromCharCode(65 + (index % 5))}さん`, stageLabel: inProgressCount > 0 ? '対応中' : '予定確認中' },
-          { patientName: `患者${String.fromCharCode(70 + (index % 5))}さん`, stageLabel: completedCount > plannedCount / 2 ? '完了多め' : 'これから訪問' },
-        ]
-        return {
-          id: member.id,
-          name: member.name,
-          role: member.role,
-          plannedCount,
-          completedCount,
-          inProgressCount,
-          firstVisitCount,
-          estimatedDistanceKm,
-          workloadScore,
-          tone,
-          patientStages,
+    const days = activityRange === '30d' ? 30 : 7
+    const today = getTodayDateKey()
+    const startDate = shiftDateKey(today, -(days - 1))
+    const patientNameMap = new Map(ownPatients.map((patient) => [patient.id, patient.name]))
+    const counts = new Map<string, {
+      id: string
+      name: string
+      role: UserRole
+      plannedCount: number
+      completedCount: number
+      inProgressCount: number
+      firstVisitCount: number
+      estimatedDistanceKm: number
+      workloadScore: number
+      tone: keyof typeof workloadToneClass
+      patientStages: { patientName: string; stageLabel: string }[]
+    }>()
+
+    recentDayTasks
+      .filter((task) => task.flowDate >= startDate && task.flowDate <= today)
+      .forEach((task) => {
+        const actorId = task.handledById ?? task.plannedById
+        const actorName = task.handledBy ?? task.plannedBy
+        if (!actorId || !actorName) return
+        const member = visibleStaffMembers.find((item) => item.id === actorId)
+        const role = member?.role ?? 'pharmacy_staff'
+        const current = counts.get(actorId) ?? {
+          id: actorId,
+          name: actorName,
+          role,
+          plannedCount: 0,
+          completedCount: 0,
+          inProgressCount: 0,
+          firstVisitCount: 0,
+          estimatedDistanceKm: 0,
+          workloadScore: 0,
+          tone: 'light' as keyof typeof workloadToneClass,
+          patientStages: [],
         }
+        if (task.status === 'completed') current.completedCount += 1
+        else if (task.status === 'in_progress') current.inProgressCount += 1
+        else current.plannedCount += 1
+        if (task.note.includes('初回') || task.visitType === '臨時') current.firstVisitCount += 1
+        current.estimatedDistanceKm += 3
+        if (task.status !== 'completed') {
+          current.patientStages.push({
+            patientName: patientNameMap.get(task.patientId) ?? task.patientId,
+            stageLabel: task.status === 'in_progress' ? '対応中' : '予定',
+          })
+        }
+        current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + current.estimatedDistanceKm * workloadSettings.distanceWeight
+        current.tone = getWorkloadTone(current.workloadScore, workloadSettings)
+        counts.set(actorId, current)
       })
+
+    return Array.from(counts.values())
+      .map((item) => ({ ...item, estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)), patientStages: item.patientStages.slice(0, 4) }))
       .sort((a, b) => b.workloadScore - a.workloadScore)
-  }, [activityRange, filteredStaff])
+  }, [activityRange, ownPatients, recentDayTasks, visibleStaffMembers, workloadSettings])
 
   useEffect(() => {
     if (!isSystemAdmin) return
@@ -287,6 +365,101 @@ export default function StaffPage() {
       cancelled = true
     }
   }, [isSystemAdmin])
+
+  useEffect(() => {
+    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    syncPatients()
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
+      if (!raw) return
+      setWorkloadSettings({ ...defaultWorkloadSettings, ...JSON.parse(raw) })
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (!ownPharmacyId) return
+    let cancelled = false
+    fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok || !data.ok) throw new Error('patients_fetch_failed')
+        if (cancelled) return
+        setDatabasePatients(data.patients ?? [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDatabasePatients([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [ownPharmacyId])
+
+  useEffect(() => {
+    if (!ownPharmacyId) return
+    let cancelled = false
+    const today = getTodayDateKey()
+    const dateKeys = Array.from({ length: 30 }, (_, index) => shiftDateKey(today, -index)).reverse()
+    const mapPersistedTask = (task: Record<string, unknown>): DayTaskItem => ({
+      id: String(task.id),
+      patientId: String(task.patient_id ?? ''),
+      pharmacyId: String(task.pharmacy_id ?? ''),
+      flowDate: String(task.flow_date),
+      sortOrder: Number(task.sort_order ?? 1),
+      scheduledTime: String(task.scheduled_time ?? '10:00'),
+      visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
+      source: (task.source as DayTaskItem['source']) ?? '自動生成',
+      status: (task.status as DayTaskItem['status']) ?? 'scheduled',
+      planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
+      plannedBy: (task.planned_by as string | null) ?? null,
+      plannedById: (task.planned_by_id as string | null) ?? null,
+      plannedAt: (task.planned_at as string | null) ?? null,
+      handledBy: (task.handled_by as string | null) ?? null,
+      handledById: (task.handled_by_id as string | null) ?? null,
+      handledAt: (task.handled_at as string | null) ?? null,
+      completedAt: (task.completed_at as string | null) ?? null,
+      billable: Boolean(task.billable),
+      collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
+      amount: Number(task.amount ?? 0),
+      note: String(task.note ?? ''),
+      updatedAt: (task.updated_at as string | null) ?? null,
+      updatedById: (task.updated_by_id as string | null) ?? null,
+    })
+
+    async function loadRecentActivity() {
+      if (!cancelled) setIsActivityLoading(true)
+      try {
+        const results = await Promise.all(
+          dateKeys.map(async (dateKey) => {
+            const response = await fetch(`/api/day-flow/${dateKey}/tasks`, { cache: 'no-store' })
+            const data = await response.json().catch(() => null)
+            if (!response.ok || !data?.ok || !Array.isArray(data.tasks)) return [] as DayTaskItem[]
+            return data.tasks.map((task: Record<string, unknown>) => mapPersistedTask(task))
+          }),
+        )
+        if (cancelled) return
+        setRecentDayTasks(results.flat())
+      } catch {
+        if (cancelled) return
+        setRecentDayTasks([])
+      } finally {
+        if (!cancelled) setIsActivityLoading(false)
+      }
+    }
+
+    loadRecentActivity()
+    return () => {
+      cancelled = true
+    }
+  }, [ownPharmacyId])
 
   useEffect(() => {
     if (!isRegionalAdmin) return
@@ -784,7 +957,9 @@ export default function StaffPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {staffActivitySummaries.length === 0 ? (
+              {isActivityLoading ? (
+                <p className="text-sm text-slate-500">活動量データを読み込み中です。</p>
+              ) : staffActivitySummaries.length === 0 ? (
                 <p className="text-sm text-slate-500">表示できる活動量データはまだありません。</p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
