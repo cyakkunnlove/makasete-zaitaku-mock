@@ -85,6 +85,15 @@ function getWorkloadToneLabel(tone: 'light' | 'medium' | 'heavy') {
   return '軽め'
 }
 
+function getTaskStageLabel(task: Pick<DayTaskItem, 'status' | 'flowDate' | 'plannedById' | 'handledById' | 'completedAt'>, today: string) {
+  if (task.status === 'completed') return '完了'
+  if (task.status === 'in_progress') return '対応中'
+  if (task.flowDate === today) return '今日対応予定'
+  if (task.flowDate < today) return '再確認待ち'
+  if (task.plannedById || task.handledById) return '予定あり'
+  return '日程未確定'
+}
+
 function summarizeWorkloadReasons(input: {
   completedCount: number
   inProgressCount: number
@@ -516,9 +525,11 @@ function PharmacyDashboardSummaryCard({
                     <p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm !== null ? `${item.estimatedDistanceKm.toFixed(1)}km` : '-'}</p>
                   </div>
                 </div>
-                {item.activePatients.length > 0 ? (
-                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
-                    <p className="text-[11px] font-medium text-slate-600">いま見ておきたい患者</p>
+                <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
+                  <p className="text-[11px] font-medium text-slate-600">今の担当患者</p>
+                  {item.activePatients.length === 0 ? (
+                    <p className="mt-2 text-[11px] text-slate-500">進行中の患者はありません。</p>
+                  ) : (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.activePatients.slice(0, 3).map((patient) => (
                         <span key={`${item.name}-${patient.patientName}-${patient.stageLabel}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
@@ -526,8 +537,8 @@ function PharmacyDashboardSummaryCard({
                         </span>
                       ))}
                     </div>
-                  </div>
-                ) : null}
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -1324,7 +1335,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
     const patientNameMap = new Map(ownPatients.map((patient) => [patient.id, patient.name]))
-    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy'; activePatients: { patientName: string; stageLabel: string }[] }>()
+    const counts = new Map<string, { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy'; activePatients: { patientName: string; stageLabel: string; stagePriority: number }[] }>()
     const distancePerTaskKm = typeof routePlanResult?.totalDistanceMeters === 'number' && selectedRoutePatientIds.length > 0
       ? routePlanResult.totalDistanceMeters / 1000 / selectedRoutePatientIds.length
       : 0
@@ -1341,9 +1352,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       if (isFirstVisit) current.firstVisitCount += 1
       if (distancePerTaskKm > 0) current.estimatedDistanceKm = (current.estimatedDistanceKm ?? 0) + distancePerTaskKm
       const patientName = patientNameMap.get(task.patientId) ?? task.patientId
-      const stageLabel = task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'
-      if (task.status !== 'completed') {
-        current.activePatients.push({ patientName, stageLabel })
+      const stageLabel = getTaskStageLabel(task, flowDate)
+      const stagePriority = stageLabel === '対応中' ? 4 : stageLabel === '今日対応予定' ? 3 : stageLabel === '再確認待ち' ? 2 : stageLabel === '予定あり' ? 1 : 0
+      const existingIndex = current.activePatients.findIndex((item) => item.patientName === patientName)
+      if (existingIndex >= 0) {
+        if (current.activePatients[existingIndex].stagePriority < stagePriority) {
+          current.activePatients[existingIndex] = { patientName, stageLabel, stagePriority }
+        }
+      } else if (stageLabel !== '完了') {
+        current.activePatients.push({ patientName, stageLabel, stagePriority })
       }
       const distanceScore = (current.estimatedDistanceKm ?? 0) * workloadSettings.distanceWeight
       current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + distanceScore
@@ -1351,9 +1368,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       counts.set(actorId, current)
     })
     return Array.from(counts.values())
-      .map((item) => ({ ...item, activePatients: item.activePatients.slice(0, 5) }))
+      .map((item) => ({
+        ...item,
+        activePatients: item.activePatients
+          .sort((a, b) => b.stagePriority - a.stagePriority || a.patientName.localeCompare(b.patientName, 'ja'))
+          .slice(0, 5)
+          .map(({ patientName, stageLabel }) => ({ patientName, stageLabel })),
+      }))
       .sort((a, b) => b.workloadScore - a.workloadScore)
-  }, [draftDayTasks, ownPatients, routePlanResult?.totalDistanceMeters, selectedRoutePatientIds.length, workloadSettings])
+  }, [draftDayTasks, flowDate, ownPatients, routePlanResult?.totalDistanceMeters, selectedRoutePatientIds.length, workloadSettings])
 
   useEffect(() => {
     try {
