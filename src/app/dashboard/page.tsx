@@ -1685,58 +1685,66 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-3 text-sm text-slate-700 shadow-sm">
-        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
-        <div className="text-center">
-          <p className="text-xs text-slate-500">表示中の日中フロー</p>
-          <p className="text-lg font-semibold text-slate-900">{flowDateLabel}</p>
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm">
+        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
+        <div className="text-center leading-tight">
+          <p className="text-[11px] text-slate-500">表示中の日中フロー</p>
+          <p className="text-base font-semibold text-slate-900">{flowDateLabel}</p>
         </div>
-        <button onClick={() => shiftFlowDate(1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
+        <button onClick={() => shiftFlowDate(1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
       </div>
 
       <>
         {isPharmacyAdmin && (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="border-amber-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <FileClock className="h-4 w-4 text-amber-600" />
-                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">最優先</Badge>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileClock className="h-4 w-4 text-amber-600" />
+                    <p className="text-[11px] text-slate-500">引き継ぎ確認待ち</p>
+                  </div>
+                  <Badge variant="outline" className="border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">最優先</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-slate-900">{ownUnconfirmedHandovers.length}</p>
-                <p className="text-[11px] text-slate-500">引き継ぎ確認待ち</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownUnconfirmedHandovers.length}</p>
               </CardContent>
             </Card>
             <Card className="border-indigo-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Moon className="h-4 w-4 text-indigo-600" />
-                  <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">昨夜</Badge>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-indigo-600" />
+                    <p className="text-[11px] text-slate-500">昨夜対応あり患者</p>
+                  </div>
+                  <Badge variant="outline" className="border-indigo-200 bg-indigo-50 px-1.5 py-0 text-[10px] text-indigo-700">昨夜</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-slate-900">{ownOvernightPatients}</p>
-                <p className="text-[11px] text-slate-500">昨夜対応あり患者</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownOvernightPatients}</p>
               </CardContent>
             </Card>
             <Card className="border-sky-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <ClipboardList className="h-4 w-4 text-sky-600" />
-                  <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">自局</Badge>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-sky-600" />
+                    <p className="text-[11px] text-slate-500">進行中の関連依頼</p>
+                  </div>
+                  <Badge variant="outline" className="border-sky-200 bg-sky-50 px-1.5 py-0 text-[10px] text-sky-700">自局</Badge>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-slate-900">{ownActiveRequests}</p>
-                <p className="text-[11px] text-slate-500">進行中の関連依頼</p>
+                <p className="mt-2 text-2xl font-bold leading-none text-slate-900">{ownActiveRequests}</p>
               </CardContent>
             </Card>
             <Card className="border-emerald-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="space-y-2 p-4">
-                <div className="flex items-center justify-between">
-                  <Settings2 className="h-4 w-4 text-emerald-600" />
-                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
+              <CardContent className="space-y-1.5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Settings2 className="h-4 w-4 text-emerald-600" />
+                    <p className="text-[11px] text-slate-500">連携設定</p>
+                  </div>
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[10px] text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
                 </div>
-                <p className="text-xs text-slate-500">連携設定</p>
-                <p className="text-sm font-medium text-slate-900">{ownConfigStatus.regionLabel}</p>
-                <p className="text-[11px] text-slate-500">連絡経路: {ownConfigStatus.emergencyRoute}</p>
-                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-600 hover:text-indigo-700">薬局設定を開く</Link>
+                <p className="text-sm font-medium leading-tight text-slate-900">{ownConfigStatus.regionLabel}</p>
+                <p className="text-[11px] text-slate-500">{ownConfigStatus.emergencyRoute}</p>
+                <Link href="/dashboard/settings/pharmacy" className="inline-flex text-[11px] text-indigo-600 hover:text-indigo-700">薬局設定</Link>
               </CardContent>
             </Card>
           </div>
