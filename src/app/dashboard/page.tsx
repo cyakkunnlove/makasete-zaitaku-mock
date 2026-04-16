@@ -679,6 +679,8 @@ function PharmacyDayTaskCardActions({
   onStart,
   onComplete,
   onDragHandlePointerDown,
+  onDragHandlePointerUp,
+  isDragHandleActive,
   completionHelpText,
   planButtonLabel,
   reorderHintText,
@@ -694,6 +696,8 @@ function PharmacyDayTaskCardActions({
   onStart: () => void
   onComplete: () => void
   onDragHandlePointerDown: () => void
+  onDragHandlePointerUp: () => void
+  isDragHandleActive: boolean
   completionHelpText: string
   planButtonLabel: string
   reorderHintText: string
@@ -704,9 +708,15 @@ function PharmacyDayTaskCardActions({
         {planButtonLabel}
       </Button>
       <span
-        className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing"
+        className={cn(
+          'soft-pop-sm inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing',
+          isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
+        )}
         onMouseDown={onDragHandlePointerDown}
         onTouchStart={onDragHandlePointerDown}
+        onMouseUp={onDragHandlePointerUp}
+        onTouchEnd={onDragHandlePointerUp}
+        onMouseLeave={onDragHandlePointerUp}
       >
         <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
@@ -756,6 +766,7 @@ function PharmacyDayTaskCard({
   draggingTaskId,
   dragOverTaskId,
   dragEnabled,
+  isDragHandleActive,
   setDraggingTaskId,
   setDragOverTaskId,
   onEnableDrag,
@@ -785,6 +796,7 @@ function PharmacyDayTaskCard({
   draggingTaskId: string | null
   dragOverTaskId: string | null
   dragEnabled: boolean
+  isDragHandleActive: boolean
   setDraggingTaskId: (id: string | null) => void
   setDragOverTaskId: (id: string | null) => void
   onEnableDrag: () => void
@@ -834,9 +846,10 @@ function PharmacyDayTaskCard({
         onDisableDrag()
       }}
       className={cn(
-        'border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md',
-        draggingTaskId === visit.id && 'opacity-60 ring-1 ring-indigo-400/60',
-        dragOverTaskId === visit.id && 'border-sky-400 ring-2 ring-sky-400/40'
+        'soft-pop border border-slate-200 bg-white shadow-sm hover:border-indigo-200 hover:shadow-md',
+        isDragHandleActive && 'border-indigo-200 shadow-sm',
+        draggingTaskId === visit.id && 'scale-[0.99] -translate-y-0.5 opacity-85 ring-1 ring-indigo-400/60 shadow-lg',
+        dragOverTaskId === visit.id && 'border-sky-400 bg-sky-50/50 ring-2 ring-sky-400/40'
       )}
     >
       <CardContent className="space-y-3 p-4">
@@ -868,6 +881,8 @@ function PharmacyDayTaskCard({
           onStart={onStart}
           onComplete={onComplete}
           onDragHandlePointerDown={onEnableDrag}
+          onDragHandlePointerUp={onDisableDrag}
+          isDragHandleActive={isDragHandleActive}
           completionHelpText={completionHelpText}
           planButtonLabel={planButtonLabel}
           reorderHintText={reorderHintText}
@@ -895,6 +910,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
   const [dragEnabledTaskId, setDragEnabledTaskId] = useState<string | null>(null)
+  const [dragHandleActiveTaskId, setDragHandleActiveTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
@@ -1957,10 +1973,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     draggingTaskId={draggingTaskId}
                     dragOverTaskId={dragOverTaskId}
                     dragEnabled={dragEnabledTaskId === visit.id}
+                    isDragHandleActive={dragHandleActiveTaskId === visit.id || draggingTaskId === visit.id}
                     setDraggingTaskId={setDraggingTaskId}
                     setDragOverTaskId={setDragOverTaskId}
-                    onEnableDrag={() => setDragEnabledTaskId(visit.id)}
-                    onDisableDrag={() => setDragEnabledTaskId(null)}
+                    onEnableDrag={() => {
+                      setDragEnabledTaskId(visit.id)
+                      setDragHandleActiveTaskId(visit.id)
+                    }}
+                    onDisableDrag={() => {
+                      setDragEnabledTaskId(null)
+                      setDragHandleActiveTaskId(null)
+                    }}
                     onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
                     canStart={canStart}
                     canComplete={canComplete}
