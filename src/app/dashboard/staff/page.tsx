@@ -150,6 +150,15 @@ function getWorkloadTone(score: number, settings: typeof defaultWorkloadSettings
   return 'light' as const
 }
 
+function getTaskStageLabel(task: Pick<DayTaskItem, 'status' | 'flowDate' | 'plannedById' | 'handledById' | 'completedAt'>, today: string) {
+  if (task.status === 'completed') return '完了'
+  if (task.status === 'in_progress') return '対応中'
+  if (task.flowDate === today) return '今日対応予定'
+  if (task.flowDate < today) return '再確認待ち'
+  if (task.plannedById || task.handledById) return '予定あり'
+  return '日程未確定'
+}
+
 function toDateKey(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -297,7 +306,7 @@ export default function StaffPage() {
       estimatedDistanceKm: number
       workloadScore: number
       tone: keyof typeof workloadToneClass
-      patientStages: { patientName: string; stageLabel: string }[]
+      patientStages: { patientName: string; stageLabel: string; stagePriority: number }[]
     }>()
 
     recentDayTasks
@@ -326,19 +335,33 @@ export default function StaffPage() {
         else current.plannedCount += 1
         if (task.note.includes('初回') || task.visitType === '臨時') current.firstVisitCount += 1
         current.estimatedDistanceKm += 3
-        if (task.status !== 'completed') {
-          current.patientStages.push({
-            patientName: patientNameMap.get(task.patientId) ?? task.patientId,
-            stageLabel: task.status === 'in_progress' ? '対応中' : '予定',
-          })
+
+        const patientName = patientNameMap.get(task.patientId) ?? task.patientId
+        const stageLabel = getTaskStageLabel(task, today)
+        const stagePriority = stageLabel === '対応中' ? 4 : stageLabel === '今日対応予定' ? 3 : stageLabel === '再確認待ち' ? 2 : stageLabel === '予定あり' ? 1 : 0
+        const existingIndex = current.patientStages.findIndex((item) => item.patientName === patientName)
+        if (existingIndex >= 0) {
+          if (current.patientStages[existingIndex].stagePriority < stagePriority) {
+            current.patientStages[existingIndex] = { patientName, stageLabel, stagePriority }
+          }
+        } else if (stageLabel !== '完了') {
+          current.patientStages.push({ patientName, stageLabel, stagePriority })
         }
+
         current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + current.estimatedDistanceKm * workloadSettings.distanceWeight
         current.tone = getWorkloadTone(current.workloadScore, workloadSettings)
         counts.set(actorId, current)
       })
 
     return Array.from(counts.values())
-      .map((item) => ({ ...item, estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)), patientStages: item.patientStages.slice(0, 4) }))
+      .map((item) => ({
+        ...item,
+        estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)),
+        patientStages: item.patientStages
+          .sort((a, b) => b.stagePriority - a.stagePriority || a.patientName.localeCompare(b.patientName, 'ja'))
+          .slice(0, 4)
+          .map(({ patientName, stageLabel }) => ({ patientName, stageLabel })),
+      }))
       .sort((a, b) => b.workloadScore - a.workloadScore)
   }, [activityRange, ownPatients, recentDayTasks, visibleStaffMembers, workloadSettings])
 
@@ -982,14 +1005,18 @@ export default function StaffPage() {
                         <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">距離目安</p><p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm}km</p></div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white p-3">
-                        <p className="text-[11px] font-medium text-slate-600">担当患者の見え方</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {item.patientStages.map((patient) => (
-                            <span key={`${item.id}-${patient.patientName}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
-                              {patient.patientName} / {patient.stageLabel}
-                            </span>
-                          ))}
-                        </div>
+                        <p className="text-[11px] font-medium text-slate-600">今の担当患者</p>
+                        {item.patientStages.length === 0 ? (
+                          <p className="mt-2 text-[11px] text-slate-500">進行中の患者はありません。</p>
+                        ) : (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {item.patientStages.map((patient) => (
+                              <span key={`${item.id}-${patient.patientName}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                                {patient.patientName} / {patient.stageLabel}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       {isPharmacyAdmin ? (
                         <div className="flex justify-end">
