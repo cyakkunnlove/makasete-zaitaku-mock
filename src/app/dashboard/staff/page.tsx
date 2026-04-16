@@ -36,7 +36,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
-import { Plus, Calendar, Users } from 'lucide-react'
+import { Plus, Calendar, Users, ChevronDown } from 'lucide-react'
 
 import {
   shiftData,
@@ -1026,7 +1026,10 @@ export default function StaffPage() {
                           <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">持越</p><p className="mt-0.5 font-semibold text-rose-700">{item.carriedOverCount}</p></div>
                           <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">患者</p><p className="mt-0.5 font-semibold text-slate-900">{item.patientCount}</p></div>
                         </div>
-                        <p className="text-[10px] text-slate-500">{isExpanded ? 'タップで閉じる' : 'タップで詳細'}</p>
+                        <div className="flex items-center justify-between text-[10px] text-slate-500">
+                          <span>{isExpanded ? 'タップで閉じる' : 'タップで詳細'}</span>
+                          <ChevronDown className={cn('h-4 w-4 transition-transform duration-200', isExpanded && 'rotate-180')} />
+                        </div>
                         {isExpanded ? (
                           <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2.5">
                             <div className="grid grid-cols-3 gap-1.5 text-[11px]">
