@@ -686,18 +686,18 @@ export default function RequestDetailPage() {
 
       {/* Tabs: Checklist / Timeline */}
       <Tabs defaultValue={isAdmin ? 'timeline' : 'checklist'} className="space-y-3">
-        <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-[#111827] p-1">
+        <TabsList className="h-auto w-full justify-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1">
           {!isAdmin && (
             <TabsTrigger
               value="checklist"
-              className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
             >
               チェックリスト
             </TabsTrigger>
           )}
           <TabsTrigger
             value="timeline"
-            className="rounded-md border border-[#2a3553] bg-[#111827] px-3 py-1.5 text-xs text-gray-300 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
           >
             タイムライン
           </TabsTrigger>
@@ -705,10 +705,10 @@ export default function RequestDetailPage() {
 
         {/* Checklist Tab - hidden for admin */}
         {!isAdmin && <TabsContent value="checklist">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-sm text-white">対応チェックリスト</CardTitle>
+                <CardTitle className="text-sm text-slate-900">対応チェックリスト</CardTitle>
                 <div className="flex gap-2">
                   {(Object.keys(checklistTypeLabels) as ChecklistType[]).map((type) => (
                     <Button
@@ -719,8 +719,8 @@ export default function RequestDetailPage() {
                       className={cn(
                         'h-7 border text-xs',
                         checklistType === type
-                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
-                          : 'border-[#2a3553] bg-[#0a0e1a] text-gray-400 hover:bg-[#212b45]'
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       )}
                     >
                       {checklistTypeLabels[type]}
@@ -733,19 +733,19 @@ export default function RequestDetailPage() {
               {/* Progress */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">
+                  <span className="text-slate-500">
                     完了: {checkedCount} / {totalCount}
                   </span>
                   <span className={cn(
                     'font-medium',
-                    progressPercent === 100 ? 'text-emerald-400' : 'text-indigo-400'
+                    progressPercent === 100 ? 'text-emerald-600' : 'text-indigo-600'
                   )}>
                     {progressPercent}%
                   </span>
                 </div>
                 <Progress
                   value={progressPercent}
-                  className="h-2 bg-[#0a0e1a]"
+                  className="h-2 bg-slate-100"
                 />
               </div>
 
@@ -757,22 +757,22 @@ export default function RequestDetailPage() {
                     className={cn(
                       'flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors',
                       item.checked
-                        ? 'border-emerald-500/30 bg-emerald-500/10'
-                        : 'border-[#2a3553] bg-[#0a0e1a] hover:border-[#3a4563]'
+                        ? 'border-emerald-200 bg-emerald-50'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                     )}
                   >
                     <Checkbox
                       checked={item.checked}
                       onCheckedChange={() => toggleCheckItem(index)}
                       className={cn(
-                        'border-[#2a3553]',
+                        'border-slate-300',
                         item.checked && 'border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white'
                       )}
                     />
                     <span
                       className={cn(
                         'text-sm',
-                        item.checked ? 'text-emerald-300 line-through' : 'text-gray-200'
+                        item.checked ? 'text-emerald-700 line-through' : 'text-slate-800'
                       )}
                     >
                       {item.label}
@@ -799,7 +799,7 @@ export default function RequestDetailPage() {
                       <div
                         className={cn(
                           'absolute left-[11px] top-6 h-full w-px',
-                          event.done ? 'bg-indigo-500/50' : 'bg-[#2a3553]'
+                          event.done ? 'bg-indigo-300' : 'bg-slate-200'
                         )}
                       />
                     )}
@@ -809,13 +809,13 @@ export default function RequestDetailPage() {
                         'relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border',
                         event.done
                           ? 'border-indigo-500 bg-indigo-500 text-white'
-                          : 'border-[#2a3553] bg-[#0a0e1a] text-gray-600'
+                          : 'border-slate-300 bg-white text-slate-500'
                       )}
                     >
                       {event.done ? (
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       ) : (
-                        <div className="h-2 w-2 rounded-full bg-gray-600" />
+                        <div className="h-2 w-2 rounded-full bg-slate-400" />
                       )}
                     </div>
                     {/* Content */}
@@ -823,13 +823,13 @@ export default function RequestDetailPage() {
                       <p
                         className={cn(
                           'text-sm',
-                          event.done ? 'font-medium text-white' : 'text-gray-500'
+                          event.done ? 'font-medium text-slate-900' : 'text-slate-500'
                         )}
                       >
                         {event.label}
                       </p>
                       {event.time && event.done && (
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                           <Clock3 className="h-3 w-3" />
                           {request.receivedDate} {event.time}
                         </p>

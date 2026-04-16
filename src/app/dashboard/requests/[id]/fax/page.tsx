@@ -121,22 +121,22 @@ export default function RequestFaxReviewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-3 text-xs text-gray-300">
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                <p className="text-gray-500">受信時刻</p>
-                <p className="mt-1 text-white">{request.receivedDate} {request.receivedAt}</p>
+            <div className="grid gap-3 text-xs md:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-slate-500">受信時刻</p>
+                <p className="mt-1 text-slate-900">{request.receivedDate} {request.receivedAt}</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                <p className="text-gray-500">FAX状況</p>
-                <p className="mt-1 text-white">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-slate-500">FAX状況</p>
+                <p className="mt-1 text-slate-900">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-                <p className="text-gray-500">現在の状態</p>
-                <p className="mt-1 text-white">患者・薬局 未特定</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-slate-500">現在の状態</p>
+                <p className="mt-1 text-slate-900">患者・薬局 未特定</p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-dashed border-[#3a4563] bg-[#11182c] p-6">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
               <div className="aspect-[3/4] w-full rounded-lg border border-[#2a3553] bg-gradient-to-b from-white to-slate-100 p-6 text-slate-900 shadow-inner">
                 <div className="flex items-start justify-between border-b border-slate-300 pb-3">
                   <div>
@@ -167,10 +167,10 @@ export default function RequestFaxReviewPage() {
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-[#2a3553] bg-[#1a2035]">
+          <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">確認患者</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-slate-900">確認患者</CardTitle>
+              <CardDescription className="text-slate-500">
                 FAX内容を見て絞り込まれた候補患者を確認します。
               </CardDescription>
             </CardHeader>
@@ -222,27 +222,27 @@ export default function RequestFaxReviewPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-indigo-500/30 bg-indigo-500/10">
+          <Card className="border-indigo-200 bg-indigo-50 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <User className="h-4 w-4 text-indigo-200" />
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <User className="h-4 w-4 text-indigo-600" />
                 患者確認・受付確定
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-indigo-50">候補患者に問題なければ受付を確定します。確定した時刻が受付時間として記録されます。</p>
-              <div className="grid gap-3 md:grid-cols-3 text-sm">
-                <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
-                  <p className="text-xs text-indigo-200/70">確認対象</p>
-                  <p className="mt-1 text-white">{selectedPatient ? selectedPatient.name : '未選択'}</p>
+              <p className="text-sm text-slate-700">候補患者に問題なければ受付を確定します。確定した時刻が受付時間として記録されます。</p>
+              <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div className="rounded-lg border border-indigo-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">確認対象</p>
+                  <p className="mt-1 text-slate-900">{selectedPatient ? selectedPatient.name : '未選択'}</p>
                 </div>
-                <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
-                  <p className="text-xs text-indigo-200/70">受付時間</p>
-                  <p className="mt-1 text-white">確定時に自動記録</p>
+                <div className="rounded-lg border border-indigo-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">受付時間</p>
+                  <p className="mt-1 text-slate-900">確定時に自動記録</p>
                 </div>
-                <div className="rounded-lg border border-indigo-500/20 bg-black/10 p-3">
-                  <p className="text-xs text-indigo-200/70">次の画面</p>
-                  <p className="mt-1 text-white">対応ページ</p>
+                <div className="rounded-lg border border-indigo-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">次の画面</p>
+                  <p className="mt-1 text-slate-900">対応ページ</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -252,14 +252,14 @@ export default function RequestFaxReviewPage() {
                   </Button>
                 </Link>
                 <Link href={`/dashboard/requests/${request.id}`}>
-                  <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
+                  <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                     対応ページへ進む
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
-              <div className="flex items-start gap-2 text-xs text-indigo-100/80">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+              <div className="flex items-start gap-2 text-xs text-slate-600">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                 候補提示は補助のみです。最終判断はFAX原本の目視確認を前提にします。
               </div>
             </CardContent>
