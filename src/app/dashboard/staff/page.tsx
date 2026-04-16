@@ -353,15 +353,22 @@ export default function StaffPage() {
       })
 
     return Array.from(counts.values())
-      .map((item) => ({
-        ...item,
-        estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)),
-        patientCount: item.patientStages.length,
-        patientStages: item.patientStages
-          .sort((a, b) => b.stagePriority - a.stagePriority || a.patientName.localeCompare(b.patientName, 'ja'))
-          .slice(0, 4)
-          .map(({ patientName, stageLabel }) => ({ patientName, stageLabel })),
-      }))
+      .map((item) => {
+        const totalCount = item.completedCount + item.pendingCount
+        const completionRate = totalCount > 0 ? Math.round((item.completedCount / totalCount) * 100) : 0
+        const progressLabel = completionRate >= 80 ? '進み良好' : completionRate >= 50 ? '進行中' : '要フォロー'
+        return {
+          ...item,
+          completionRate,
+          progressLabel,
+          estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)),
+          patientCount: item.patientStages.length,
+          patientStages: item.patientStages
+            .sort((a, b) => b.stagePriority - a.stagePriority || a.patientName.localeCompare(b.patientName, 'ja'))
+            .slice(0, 4)
+            .map(({ patientName, stageLabel }) => ({ patientName, stageLabel })),
+        }
+      })
       .sort((a, b) => {
         if (b.carriedOverCount !== a.carriedOverCount) return b.carriedOverCount - a.carriedOverCount
         if (b.pendingCount !== a.pendingCount) return b.pendingCount - a.pendingCount
@@ -999,9 +1006,29 @@ export default function StaffPage() {
                           <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                           <p className="text-xs text-slate-500">{roleLabel[item.role]}</p>
                         </div>
-                        <Badge variant="outline" className={cn('border text-xs', workloadToneClass[item.tone])}>
-                          {item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="border-slate-200 bg-white text-xs text-slate-700">
+                            完了率 {item.completionRate}%
+                          </Badge>
+                          <Badge variant="outline" className={cn('border text-xs', item.completionRate >= 80 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : item.completionRate >= 50 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-rose-200 bg-rose-50 text-rose-700')}>
+                            {item.progressLabel}
+                          </Badge>
+                          <Badge variant="outline" className={cn('border text-xs', workloadToneClass[item.tone])}>
+                            {item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white p-3">
+                        <div className="flex items-center justify-between gap-3 text-[11px]">
+                          <span className="font-medium text-slate-600">進み具合</span>
+                          <span className="text-slate-500">{item.completedCount} / {item.completedCount + item.pendingCount} 件完了</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={cn('h-full rounded-full', item.completionRate >= 80 ? 'bg-emerald-500' : item.completionRate >= 50 ? 'bg-amber-500' : 'bg-rose-500')}
+                            style={{ width: `${item.completionRate}%` }}
+                          />
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
                         <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p></div>
