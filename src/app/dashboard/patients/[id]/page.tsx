@@ -1272,25 +1272,25 @@ export default function PatientDetailPage() {
       </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-[#2a3553] bg-[#1a2035] text-gray-100 sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white text-slate-900 shadow-xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>患者情報を編集</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pb-2">
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
-              <p className="font-medium text-white">現在の権限</p>
-              <p className="mt-1 inline-flex items-center gap-1 text-amber-200"><ShieldCheck className="h-3.5 w-3.5" />薬局管理者・薬局スタッフは、患者基本情報と医療情報を編集できます。</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-medium text-slate-900">現在の権限</p>
+              <p className="mt-1 inline-flex items-center gap-1 text-amber-700"><ShieldCheck className="h-3.5 w-3.5" />薬局管理者・薬局スタッフは、患者基本情報と医療情報を編集できます。</p>
             </div>
             <div>
-              <p className="mb-2 text-xs text-gray-500">編集項目</p>
+              <p className="mb-2 text-xs text-slate-600">編集項目</p>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500">住所</p>
-                  <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  <p className="text-xs text-slate-600">住所</p>
+                  <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">電話番号</p>
-                  <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+                  <p className="text-xs text-slate-600">電話番号</p>
+                  <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-slate-200 bg-white text-slate-900" inputMode="tel" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">病院・クリニック</p>
@@ -1454,15 +1454,15 @@ export default function PatientDetailPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs text-gray-500">補足</p>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 text-xs text-gray-300">
+              <p className="mb-2 text-xs text-slate-600">補足</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                 <p>患者の所属薬局やステータス変更は Pharmacy Admin の責務です。</p>
                 <p className="mt-1">他薬局の Pharmacy Staff / Pharmacy Admin、Night Pharmacist、Regional Admin、System Admin は患者情報を編集できません。</p>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">キャンセル</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">キャンセル</Button>
             <Button onClick={() => void handleSavePatientEdit()} className="bg-indigo-600 text-white hover:bg-indigo-700">保存する</Button>
           </DialogFooter>
         </DialogContent>

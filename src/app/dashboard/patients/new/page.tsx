@@ -988,12 +988,12 @@ export default function NewPatientPage() {
                 <div><Label className="text-slate-700">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="090-1234-5678" inputMode="tel" /></div>
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label className="text-gray-300">病院・クリニック</Label>
-                <Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="○○クリニック" />
-                <p className="text-[11px] text-gray-500">過去に登録した病院があれば候補を表示します。なければこの名前のまま登録できます。</p>
-                {medicalInstitutionLoading && <p className="text-[11px] text-gray-500">病院候補を確認中です...</p>}
+                <Label className="text-slate-700">病院・クリニック</Label>
+                <Input value={form.doctorClinic} onChange={(e) => handleChange('doctorClinic', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="○○クリニック" />
+                <p className="text-[11px] text-slate-500">過去に登録した病院があれば候補を表示します。なければこの名前のまま登録できます。</p>
+                {medicalInstitutionLoading && <p className="text-[11px] text-slate-500">病院候補を確認中です...</p>}
                 {!medicalInstitutionLoading && medicalInstitutionOptions.length > 0 && (
-                  <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                     {medicalInstitutionOptions.slice(0, 5).map((option) => (
                       <button
                         key={option.id}
@@ -1004,7 +1004,7 @@ export default function NewPatientPage() {
                           setForm((prev) => ({ ...prev, doctorClinic: option.name }))
                           void searchDoctors(option.id)
                         }}
-                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium">{option.name}</p>
@@ -1012,7 +1012,7 @@ export default function NewPatientPage() {
                             <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
                           )}
                         </div>
-                        <p className="mt-1 text-[11px] text-gray-400">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
+                        <p className="mt-1 text-[11px] text-slate-500">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
                       </button>
                     ))}
                   </div>
@@ -1021,7 +1021,7 @@ export default function NewPatientPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]"
+                    className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     onClick={() => {
                       setEditingInstitutionId(null)
                       setInstitutionForm({ name: form.doctorClinic, phone: '', address: '' })
@@ -1035,7 +1035,7 @@ export default function NewPatientPage() {
                       <Button
                         type="button"
                         variant="ghost"
-                        className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                        className="text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         onClick={() => {
                           setSelectedMedicalInstitutionId(null)
                           setSelectedDoctorMasterId(null)
@@ -1070,12 +1070,12 @@ export default function NewPatientPage() {
                 </div>
               </div>
               <div className="md:col-span-2 space-y-2">
-                <Label className="text-gray-300">主治医</Label>
-                <Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="田中医師" />
-                <p className="text-[11px] text-gray-500">病院を選ぶと、その病院に登録済みの医師候補が出ます。</p>
-                {doctorLoading && selectedMedicalInstitutionId && <p className="text-[11px] text-gray-500">医師候補を確認中です...</p>}
+                <Label className="text-slate-700">主治医</Label>
+                <Input value={form.doctorName} onChange={(e) => handleChange('doctorName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="田中医師" />
+                <p className="text-[11px] text-slate-500">病院を選ぶと、その病院に登録済みの医師候補が出ます。</p>
+                {doctorLoading && selectedMedicalInstitutionId && <p className="text-[11px] text-slate-500">医師候補を確認中です...</p>}
                 {!doctorLoading && selectedMedicalInstitutionId && doctorOptions.length > 0 && (
-                  <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                     {doctorOptions.slice(0, 5).map((option) => (
                       <button
                         key={option.id}
@@ -1084,7 +1084,7 @@ export default function NewPatientPage() {
                           setSelectedDoctorMasterId(option.id)
                           setForm((prev) => ({ ...prev, doctorName: option.fullName, doctorPhone: normalizePhone(option.phone) }))
                         }}
-                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                        className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium">{option.fullName}</p>
@@ -1092,7 +1092,7 @@ export default function NewPatientPage() {
                             <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
                           )}
                         </div>
-                        <p className="mt-1 text-[11px] text-gray-400">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
+                        <p className="mt-1 text-[11px] text-slate-500">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
                       </button>
                     ))}
                   </div>
@@ -1101,7 +1101,7 @@ export default function NewPatientPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]"
+                    className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     disabled={!selectedMedicalInstitutionId}
                     onClick={() => {
                       setEditingDoctorId(null)
@@ -1116,7 +1116,7 @@ export default function NewPatientPage() {
                       <Button
                         type="button"
                         variant="ghost"
-                        className="text-gray-400 hover:bg-[#11182c] hover:text-white"
+                        className="text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         onClick={() => setSelectedDoctorMasterId(null)}
                       >
                         選択を外す
@@ -1146,20 +1146,20 @@ export default function NewPatientPage() {
                   )}
                 </div>
               </div>
-              <div><Label className="text-gray-300">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="03-1234-5678" inputMode="tel" /></div>
-              <div><Label className="text-gray-300">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="ラシックス など" /></div>
-              <div><Label className="text-gray-300">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="心不全 など" /></div>
-              <div className="md:col-span-2"><Label className="text-gray-300">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="既往歴を入力" /></div>
-              <div><Label className="text-gray-300">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="なし / ペニシリン系 など" /></div>
-              <div><Label className="text-gray-300">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険種別・負担割合など" /></div>
+              <div><Label className="text-slate-700">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="03-1234-5678" inputMode="tel" /></div>
+              <div><Label className="text-slate-700">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="ラシックス など" /></div>
+              <div><Label className="text-slate-700">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="心不全 など" /></div>
+              <div className="md:col-span-2"><Label className="text-slate-700">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="既往歴を入力" /></div>
+              <div><Label className="text-slate-700">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="なし / ペニシリン系 など" /></div>
+              <div><Label className="text-slate-700">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="保険種別・負担割合など" /></div>
             </div>
             <div>
-              <Label className="text-gray-300">タグ</Label>
+              <Label className="text-slate-700">タグ</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {patientTagOptions.map((tag) => {
                   const active = selectedTags.includes(tag)
                   return (
-                    <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-3 py-1.5 text-xs ${active ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-200' : 'border-[#2a3553] bg-[#11182c] text-gray-400'}`}>
+                    <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-3 py-1.5 text-xs ${active ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                       {tag}
                     </button>
                   )
