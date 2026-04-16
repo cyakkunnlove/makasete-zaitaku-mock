@@ -6,6 +6,57 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .soft-pop {
+    transition:
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 180ms ease,
+      border-color 180ms ease,
+      background-color 180ms ease,
+      color 180ms ease;
+    will-change: transform;
+  }
+
+  .soft-pop:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .soft-pop:active {
+    transform: translateY(0) scale(0.985, 1.01);
+  }
+
+  .soft-pop-sm {
+    transition:
+      transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 140ms ease,
+      border-color 140ms ease,
+      background-color 140ms ease,
+      color 140ms ease;
+    will-change: transform;
+  }
+
+  .soft-pop-sm:hover {
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  .soft-pop-sm:active {
+    transform: translateY(0) scale(0.985, 1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soft-pop,
+  .soft-pop-sm {
+    transition: none;
+    will-change: auto;
+  }
+
+  .soft-pop:hover,
+  .soft-pop:hover:active,
+  .soft-pop-sm:hover,
+  .soft-pop-sm:hover:active {
+    transform: none;
+  }
 }
 
 @layer base {

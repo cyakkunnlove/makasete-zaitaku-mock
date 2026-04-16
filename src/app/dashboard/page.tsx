@@ -469,7 +469,7 @@ function PharmacyDashboardSummaryCard({
             <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
             pharmacyStaffHandledCounts.map((item) => (
-              <div key={item.name} className={`${adminPanelClass} h-full cursor-pointer p-2 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md`}>
+              <div key={item.name} className={`${adminPanelClass} soft-pop h-full cursor-pointer p-2 hover:border-slate-300 hover:bg-white hover:shadow-md`}>
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -481,7 +481,7 @@ function PharmacyDashboardSummaryCard({
                     <p className="mt-0.5 text-[10px] text-slate-500">{getWorkloadToneLabel(item.workloadTone)}</p>
                   </div>
                   {showDetailLink ? (
-                    <Link href="/dashboard/staff" className="inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/dashboard/staff" className="soft-pop-sm inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
                       詳細
                     </Link>
                   ) : null}
@@ -2007,7 +2007,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
                 const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
                 return (
-                  <Card key={patient.id} className="border-slate-200 bg-white text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
+                  <Card key={patient.id} className="soft-pop border-slate-200 bg-white text-slate-900 shadow-sm hover:border-indigo-300 hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
