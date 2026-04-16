@@ -255,7 +255,7 @@ export default function AuditPage() {
           const expanded = expandedId === entry.id
 
           return (
-            <Card key={entry.id} className={cn('cursor-pointer', adminCardClass)} onClick={() => setExpandedId(expanded ? null : entry.id)}>
+            <Card key={entry.id} className={cn('cursor-pointer transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md', adminCardClass)} onClick={() => setExpandedId(expanded ? null : entry.id)}>
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -300,7 +300,7 @@ export default function AuditPage() {
 
                 return (
                   <Fragment key={entry.id}>
-                    <TableRow className="cursor-pointer border-slate-200 hover:bg-slate-50" onClick={() => setExpandedId(expanded ? null : entry.id)}>
+                    <TableRow className="cursor-pointer border-slate-200 transition hover:bg-slate-50" onClick={() => setExpandedId(expanded ? null : entry.id)}>
                       <TableCell className="text-slate-600">{entry.timestamp}</TableCell>
                       <TableCell className="text-slate-900">
                         <div>

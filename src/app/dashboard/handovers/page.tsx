@@ -89,7 +89,7 @@ export default function HandoversPage() {
           const isStaffConfirmed = staffConfirmedIds.has(handover.id)
 
           return (
-            <Card key={handover.id} className="border-slate-200 bg-white shadow-sm">
+            <Card key={handover.id} className="border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link href={`/dashboard/handovers/${handover.id}`} className="hover:opacity-80">

@@ -592,7 +592,7 @@ export default function BillingPage() {
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div key={record.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
@@ -774,7 +774,7 @@ export default function BillingPage() {
                 </TableHeader>
                 <TableBody>
                   {mergedCollectionRecords.map((record) => (
-                    <TableRow key={record.id} className="border-slate-200 hover:bg-slate-50">
+                    <TableRow key={record.id} className="border-slate-200 transition hover:bg-slate-50">
                       <TableCell className="font-medium text-slate-900">{record.patientName}</TableCell>
                       <TableCell className="text-xs text-slate-700">
                         <div className="flex items-center gap-1">

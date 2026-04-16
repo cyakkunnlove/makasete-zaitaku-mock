@@ -291,7 +291,7 @@ export default function RequestsPage() {
             <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
-                  `${adminCardClass} cursor-pointer border-l-4 transition hover:border-indigo-400`,
+                  `${adminCardClass} cursor-pointer border-l-4 transition hover:-translate-y-0.5 hover:border-indigo-400 hover:shadow-md`,
                   priority.mobileBorder
                 )}
               >
@@ -392,7 +392,7 @@ export default function RequestsPage() {
                 <TableRow
                   key={request.id}
                   onClick={() => { if (!isPharmacyAdmin) router.push(`/dashboard/requests/${request.id}`) }}
-                  className={cn('border-slate-200 hover:bg-slate-50', !isPharmacyAdmin && 'cursor-pointer')}
+                  className={cn('border-slate-200 transition hover:bg-slate-50', !isPharmacyAdmin && 'cursor-pointer')}
                 >
                   <TableCell>
                     <span className="inline-flex items-center gap-2">
