@@ -150,13 +150,10 @@ function getWorkloadTone(score: number, settings: typeof defaultWorkloadSettings
   return 'light' as const
 }
 
-function getTaskStageLabel(task: Pick<DayTaskItem, 'status' | 'flowDate' | 'plannedById' | 'handledById' | 'completedAt'>, today: string) {
-  if (task.status === 'completed') return '完了'
-  if (task.status === 'in_progress') return '対応中'
-  if (task.flowDate === today) return '今日対応予定'
-  if (task.flowDate < today) return '再確認待ち'
-  if (task.plannedById || task.handledById) return '予定あり'
-  return '日程未確定'
+function getHistoryStageLabel(task: Pick<DayTaskItem, 'status' | 'flowDate'>, today: string) {
+  if (task.status === 'completed') return '対応済み'
+  if (task.flowDate < today) return '持ち越し'
+  return '未完了'
 }
 
 function toDateKey(date: Date) {
@@ -299,10 +296,11 @@ export default function StaffPage() {
       id: string
       name: string
       role: UserRole
-      plannedCount: number
+      pendingCount: number
       completedCount: number
-      inProgressCount: number
+      carriedOverCount: number
       firstVisitCount: number
+      patientCount: number
       estimatedDistanceKm: number
       workloadScore: number
       tone: keyof typeof workloadToneClass
@@ -321,34 +319,35 @@ export default function StaffPage() {
           id: actorId,
           name: actorName,
           role,
-          plannedCount: 0,
+          pendingCount: 0,
           completedCount: 0,
-          inProgressCount: 0,
+          carriedOverCount: 0,
           firstVisitCount: 0,
+          patientCount: 0,
           estimatedDistanceKm: 0,
           workloadScore: 0,
           tone: 'light' as keyof typeof workloadToneClass,
           patientStages: [],
         }
         if (task.status === 'completed') current.completedCount += 1
-        else if (task.status === 'in_progress') current.inProgressCount += 1
-        else current.plannedCount += 1
+        else current.pendingCount += 1
         if (task.note.includes('初回') || task.visitType === '臨時') current.firstVisitCount += 1
         current.estimatedDistanceKm += 3
 
         const patientName = patientNameMap.get(task.patientId) ?? task.patientId
-        const stageLabel = getTaskStageLabel(task, today)
-        const stagePriority = stageLabel === '対応中' ? 4 : stageLabel === '今日対応予定' ? 3 : stageLabel === '再確認待ち' ? 2 : stageLabel === '予定あり' ? 1 : 0
+        const stageLabel = getHistoryStageLabel(task, today)
+        if (stageLabel === '持ち越し') current.carriedOverCount += 1
+        const stagePriority = stageLabel === '持ち越し' ? 3 : stageLabel === '未完了' ? 2 : 1
         const existingIndex = current.patientStages.findIndex((item) => item.patientName === patientName)
         if (existingIndex >= 0) {
           if (current.patientStages[existingIndex].stagePriority < stagePriority) {
             current.patientStages[existingIndex] = { patientName, stageLabel, stagePriority }
           }
-        } else if (stageLabel !== '完了') {
+        } else {
           current.patientStages.push({ patientName, stageLabel, stagePriority })
         }
 
-        current.workloadScore = current.completedCount + current.plannedCount + current.inProgressCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + current.estimatedDistanceKm * workloadSettings.distanceWeight
+        current.workloadScore = current.completedCount + current.pendingCount + current.carriedOverCount * workloadSettings.inProgressWeight + current.firstVisitCount * workloadSettings.firstVisitWeight + current.estimatedDistanceKm * workloadSettings.distanceWeight
         current.tone = getWorkloadTone(current.workloadScore, workloadSettings)
         counts.set(actorId, current)
       })
@@ -357,6 +356,7 @@ export default function StaffPage() {
       .map((item) => ({
         ...item,
         estimatedDistanceKm: Number(item.estimatedDistanceKm.toFixed(1)),
+        patientCount: item.patientStages.length,
         patientStages: item.patientStages
           .sort((a, b) => b.stagePriority - a.stagePriority || a.patientName.localeCompare(b.patientName, 'ja'))
           .slice(0, 4)
@@ -998,16 +998,16 @@ export default function StaffPage() {
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">予定</p><p className="mt-1 font-semibold text-slate-900">{item.plannedCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">対応中</p><p className="mt-1 font-semibold text-amber-700">{item.inProgressCount > 0 ? 'あり' : 'なし'}</p></div>
                         <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">未完了</p><p className="mt-1 font-semibold text-amber-700">{item.pendingCount}件</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">持ち越し</p><p className="mt-1 font-semibold text-rose-700">{item.carriedOverCount}件</p></div>
                         <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">初回</p><p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">距離目安</p><p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm}km</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">対応患者数</p><p className="mt-1 font-semibold text-slate-900">{item.patientCount}人</p></div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white p-3">
-                        <p className="text-[11px] font-medium text-slate-600">今の担当患者</p>
+                        <p className="text-[11px] font-medium text-slate-600">期間内の患者状況</p>
                         {item.patientStages.length === 0 ? (
-                          <p className="mt-2 text-[11px] text-slate-500">進行中の患者はありません。</p>
+                          <p className="mt-2 text-[11px] text-slate-500">期間内の患者記録はありません。</p>
                         ) : (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {item.patientStages.map((patient) => (
