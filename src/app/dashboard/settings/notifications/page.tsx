@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
   Bell, MessageCircle, Mail, Phone, Save,
   Shield, ChevronDown, ChevronUp
@@ -57,7 +58,7 @@ export default function NotificationSettingsPage() {
     <div className="space-y-6 text-slate-900">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-20 right-4 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg animate-in fade-in slide-in-from-top-2">
+        <div className="fade-in-up fixed top-20 right-4 z-50 rounded-lg bg-emerald-600/90 px-4 py-2 text-sm text-white shadow-lg">
           {toast}
         </div>
       )}
@@ -71,7 +72,7 @@ export default function NotificationSettingsPage() {
         {isAdmin && (
           <Button
             onClick={handleSave}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="press-squish focus-ring bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             <Save size={16} className="mr-2" />
             保存
@@ -107,7 +108,7 @@ export default function NotificationSettingsPage() {
                           key={ch.key}
                           onClick={() => toggleChannel(setting.event, ch.key)}
                           disabled={!isAdmin}
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                          className={`press-squish focus-ring inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
                             setting[ch.key]
                               ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                               : 'border-slate-200 bg-slate-50 text-slate-500'
@@ -144,17 +145,12 @@ export default function NotificationSettingsPage() {
                         <td className="px-4 py-2.5 text-slate-700">{setting.eventLabel}</td>
                         {channelHeaders.map(ch => (
                           <td key={ch.key} className="text-center px-4 py-2.5">
-                            <button
-                              onClick={() => toggleChannel(setting.event, ch.key)}
+                            <Switch
+                              checked={setting[ch.key]}
+                              onCheckedChange={() => toggleChannel(setting.event, ch.key)}
                               disabled={!isAdmin}
-                              className={`relative h-6 w-10 rounded-full transition-colors ${
-                                setting[ch.key] ? 'bg-indigo-500' : 'bg-slate-300'
-                              } ${isAdmin ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
-                            >
-                              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                                setting[ch.key] ? 'left-5' : 'left-1'
-                              }`} />
-                            </button>
+                              className={setting[ch.key] ? 'data-[state=checked]:bg-indigo-500' : 'data-[state=unchecked]:bg-slate-300'}
+                            />
                           </td>
                         ))}
                       </tr>
@@ -175,7 +171,7 @@ export default function NotificationSettingsPage() {
             <Card key={rule.event} className="border-slate-200 bg-white shadow-sm">
               <CardContent className="p-0">
                 <button
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  className="press-squish focus-ring w-full flex items-center justify-between px-4 py-3 text-left"
                   onClick={() => setExpandedEscalation(
                     expandedEscalation === rule.event ? null : rule.event
                   )}
@@ -185,8 +181,8 @@ export default function NotificationSettingsPage() {
                     <p className="text-xs text-slate-500">{rule.steps.length}ステップ</p>
                   </div>
                   {expandedEscalation === rule.event
-                    ? <ChevronUp size={16} className="text-slate-400" />
-                    : <ChevronDown size={16} className="text-slate-400" />
+                    ? <ChevronUp size={16} className="accordion-chevron text-slate-400" data-state="open" />
+                    : <ChevronDown size={16} className="accordion-chevron text-slate-400" />
                   }
                 </button>
                 {expandedEscalation === rule.event && (
