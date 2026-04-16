@@ -982,8 +982,8 @@ export default function StaffPage() {
                 </div>
                 <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
                   <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
-                    <TabsTrigger value="7d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
-                    <TabsTrigger value="30d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
+                    <TabsTrigger value="7d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
+                    <TabsTrigger value="30d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -1137,7 +1137,7 @@ export default function StaffPage() {
                 ) : filteredStaff.map((member) => {
                   const isSelf = member.id === user?.id
                   return (
-                  <TableRow key={member.id} className="border-slate-200 hover:bg-slate-50">
+                  <TableRow key={member.id} className="border-slate-200 transition hover:bg-slate-50">
                     <TableCell className="font-medium text-slate-900">
                       <div className="flex items-center gap-2">
                         <span>{member.name}</span>
@@ -1220,7 +1220,7 @@ export default function StaffPage() {
                 <p className="text-sm text-slate-500">条件に合う招待はまだありません。</p>
               ) : (
                 filteredInvitations.map((invitation) => (
-                  <div key={invitation.id} className={`${adminPanelClass} flex flex-col gap-3 p-4 transition hover:border-slate-300 hover:bg-white sm:flex-row sm:items-center sm:justify-between`}>
+                  <div key={invitation.id} className={`${adminPanelClass} flex flex-col gap-3 p-4 transition cursor-pointer hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md sm:flex-row sm:items-center sm:justify-between`}>
                     <div className="space-y-1 text-sm text-slate-600">
                       <p className="font-medium text-slate-900">{invitation.email}</p>
                       <p>役割: {roleLabel[invitation.role]}</p>

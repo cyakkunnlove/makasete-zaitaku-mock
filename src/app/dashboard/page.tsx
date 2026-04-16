@@ -549,8 +549,8 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
       <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1 text-slate-500">
-        <TabsTrigger value="today" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
-        <TabsTrigger value="master" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
+        <TabsTrigger value="today" className="rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
