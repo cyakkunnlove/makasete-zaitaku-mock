@@ -257,17 +257,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {role === 'pharmacy_staff' && (
           <div className="px-4 pt-3">
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-white">{pharmacyStaffStats.total}</p>
-                <p className="text-[10px] text-gray-500">本日合計</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-slate-900">{pharmacyStaffStats.total}</p>
+                <p className="text-[10px] font-medium text-slate-600">本日合計</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-emerald-400">{pharmacyStaffStats.completed}</p>
-                <p className="text-[10px] text-gray-500">訪問済</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-emerald-600">{pharmacyStaffStats.completed}</p>
+                <p className="text-[10px] font-medium text-slate-600">訪問済</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-amber-300">{pharmacyStaffStats.inProgress}</p>
-                <p className="text-[10px] text-gray-500">対応中</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-amber-600">{pharmacyStaffStats.inProgress}</p>
+                <p className="text-[10px] font-medium text-slate-600">対応中</p>
               </div>
             </div>
           </div>
@@ -276,17 +276,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {role === 'pharmacy_admin' && (
           <div className="px-4 pt-3">
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-white">{pharmacyAdminStats.requests}</p>
-                <p className="text-[10px] text-gray-500">支給依頼</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-slate-900">{pharmacyAdminStats.requests}</p>
+                <p className="text-[10px] font-medium text-slate-600">支給依頼</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-indigo-300">{pharmacyAdminStats.preparing}</p>
-                <p className="text-[10px] text-gray-500">対応準備中</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-indigo-600">{pharmacyAdminStats.preparing}</p>
+                <p className="text-[10px] font-medium text-slate-600">対応準備中</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-2 py-2 text-center">
-                <p className="text-base font-bold text-amber-300">{pharmacyAdminStats.inProgress}</p>
-                <p className="text-[10px] text-gray-500">対応中</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-amber-600">{pharmacyAdminStats.inProgress}</p>
+                <p className="text-[10px] font-medium text-slate-600">対応中</p>
               </div>
             </div>
           </div>

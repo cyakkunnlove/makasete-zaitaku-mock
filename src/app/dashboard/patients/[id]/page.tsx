@@ -839,17 +839,17 @@ export default function PatientDetailPage() {
               <p className="mt-0.5 text-sm text-slate-700">{age} 歳</p>
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-gray-500">
+              <p className="flex items-center gap-1 text-xs text-slate-600">
                 <MapPin className="h-3 w-3" />
                 住所
               </p>
               <div className="mt-0.5 flex items-center gap-2">
-                <p className="text-sm text-gray-200">{patient.address}</p>
+                <p className="text-sm text-slate-800">{patient.address}</p>
                 <a
                   href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-300 transition hover:bg-indigo-500/20"
+                  className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700 transition hover:bg-indigo-100"
                 >
                   <MapPin className="h-3 w-3" />
                   地図を開く
@@ -858,11 +858,11 @@ export default function PatientDetailPage() {
               </div>
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-gray-500">
+              <p className="flex items-center gap-1 text-xs text-slate-600">
                 <Phone className="h-3 w-3" />
                 電話番号
               </p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.phone ?? '-'}</p>
+              <p className="mt-0.5 text-sm text-slate-800">{patient.phone ?? '-'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">請求設定</p>
@@ -876,10 +876,10 @@ export default function PatientDetailPage() {
               </div>
             </div>
             <div className="sm:col-span-2 lg:col-span-2">
-              <p className="text-xs text-gray-500">担当薬局</p>
+              <p className="text-xs text-slate-600">担当薬局</p>
               <Link
                 href={`/dashboard/pharmacies/${patient.pharmacyId}`}
-                className="mt-0.5 inline-block text-sm text-indigo-400 hover:text-indigo-300 hover:underline"
+                className="mt-0.5 inline-block text-sm text-indigo-700 hover:text-indigo-800 hover:underline"
               >
                 {patient.pharmacyName}
               </Link>
