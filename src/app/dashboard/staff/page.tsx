@@ -1002,7 +1002,7 @@ export default function StaffPage() {
                         key={`${activityRange}-${item.id}`}
                         type="button"
                         onClick={() => setExpandedActivityCardId((current) => current === item.id ? null : item.id)}
-                        className={`${adminPanelClass} space-y-2 p-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50`}
+                        className={`${adminPanelClass} space-y-2 p-2.5 text-left transition cursor-pointer hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-1.5">
                           <div>
@@ -1220,7 +1220,7 @@ export default function StaffPage() {
                 <p className="text-sm text-slate-500">条件に合う招待はまだありません。</p>
               ) : (
                 filteredInvitations.map((invitation) => (
-                  <div key={invitation.id} className={`${adminPanelClass} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+                  <div key={invitation.id} className={`${adminPanelClass} flex flex-col gap-3 p-4 transition hover:border-slate-300 hover:bg-white sm:flex-row sm:items-center sm:justify-between`}>
                     <div className="space-y-1 text-sm text-slate-600">
                       <p className="font-medium text-slate-900">{invitation.email}</p>
                       <p>役割: {roleLabel[invitation.role]}</p>
