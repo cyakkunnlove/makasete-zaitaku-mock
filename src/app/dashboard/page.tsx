@@ -90,6 +90,21 @@ function getWorkloadToneLabel(tone: 'light' | 'medium' | 'heavy') {
   return '軽め'
 }
 
+function summarizeWorkloadReasons(input: {
+  completedCount: number
+  inProgressCount: number
+  plannedCount: number
+  firstVisitCount: number
+  estimatedDistanceKm: number | null
+}) {
+  const reasons: string[] = []
+  if (input.inProgressCount > 0) reasons.push(`対応中 ${input.inProgressCount}件`)
+  if (input.firstVisitCount > 0) reasons.push(`初回 ${input.firstVisitCount}件`)
+  if ((input.estimatedDistanceKm ?? 0) >= 5) reasons.push(`距離目安 ${(input.estimatedDistanceKm ?? 0).toFixed(1)}km`)
+  if (input.completedCount + input.plannedCount >= 8) reasons.push(`担当件数 ${input.completedCount + input.plannedCount}件`)
+  return reasons.length > 0 ? reasons.join(' / ') : '件数は落ち着いています'
+}
+
 type GoogleMapsLatLng = { lat: number; lng: number }
 type GoogleMapsNamespace = {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => { fitBounds: (bounds: { isEmpty: () => boolean }, padding?: number) => void }
@@ -480,6 +495,7 @@ function PharmacyDashboardSummaryCard({
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] text-slate-500">総合負荷スコア {item.workloadScore.toFixed(1)}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{summarizeWorkloadReasons(item)}</p>
               </div>
             ))
           )}
@@ -1323,6 +1339,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setSaveToast('ルート提案したい患者を選んでください')
       return
     }
+    if (selectedRoutePatientIds.length === 1) {
+      setSaveToast('ルート提案は2人以上選ぶと作成できます')
+      return
+    }
 
     setRoutePlanLoading(true)
     try {
@@ -1748,9 +1768,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
-                    <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。</p>
+                    <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。2人以上選ぶと作成できます。</p>
                   </div>
-                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
+                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
                     {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
                   </Button>
                 </div>
