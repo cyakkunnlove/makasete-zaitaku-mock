@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
@@ -128,11 +127,7 @@ const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'pharmacy_staff', label: '薬局スタッフ' },
 ]
 
-const workloadToneClass = {
-  light: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  medium: 'border-amber-200 bg-amber-50 text-amber-700',
-  heavy: 'border-rose-200 bg-rose-50 text-rose-700',
-} as const
+type WorkloadTone = 'light' | 'medium' | 'heavy'
 
 const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
 
@@ -197,6 +192,7 @@ export default function StaffPage() {
   const [recentDayTasks, setRecentDayTasks] = useState<DayTaskItem[]>([])
   const [isActivityLoading, setIsActivityLoading] = useState(false)
   const [workloadSettings, setWorkloadSettings] = useState(defaultWorkloadSettings)
+  const [expandedActivityCardId, setExpandedActivityCardId] = useState<string | null>(null)
 
   // Staff list state
   const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([])
@@ -303,7 +299,7 @@ export default function StaffPage() {
       patientCount: number
       estimatedDistanceKm: number
       workloadScore: number
-      tone: keyof typeof workloadToneClass
+      tone: WorkloadTone
       patientStages: { patientName: string; stageLabel: string; stagePriority: number }[]
     }>()
 
@@ -326,7 +322,7 @@ export default function StaffPage() {
           patientCount: 0,
           estimatedDistanceKm: 0,
           workloadScore: 0,
-          tone: 'light' as keyof typeof workloadToneClass,
+          tone: 'light' as WorkloadTone,
           patientStages: [],
         }
         if (task.status === 'completed') current.completedCount += 1
@@ -998,68 +994,65 @@ export default function StaffPage() {
               ) : staffActivitySummaries.length === 0 ? (
                 <p className="text-sm text-slate-500">表示できる活動量データはまだありません。</p>
               ) : (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {staffActivitySummaries.map((item) => (
-                    <div key={`${activityRange}-${item.id}`} className={`${adminPanelClass} space-y-3 p-4`}>
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                          <p className="text-xs text-slate-500">{roleLabel[item.role]}</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="border-slate-200 bg-white text-xs text-slate-700">
-                            完了率 {item.completionRate}%
-                          </Badge>
-                          <Badge variant="outline" className={cn('border text-xs', item.completionRate >= 80 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : item.completionRate >= 50 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-rose-200 bg-rose-50 text-rose-700')}>
-                            {item.progressLabel}
-                          </Badge>
-                          <Badge variant="outline" className={cn('border text-xs', workloadToneClass[item.tone])}>
-                            {item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-3">
-                        <div className="flex items-center justify-between gap-3 text-[11px]">
-                          <span className="font-medium text-slate-600">進み具合</span>
-                          <span className="text-slate-500">{item.completedCount} / {item.completedCount + item.pendingCount} 件完了</span>
-                        </div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className={cn('h-full rounded-full', item.completionRate >= 80 ? 'bg-emerald-500' : item.completionRate >= 50 ? 'bg-amber-500' : 'bg-rose-500')}
-                            style={{ width: `${item.completionRate}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">未完了</p><p className="mt-1 font-semibold text-amber-700">{item.pendingCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">持ち越し</p><p className="mt-1 font-semibold text-rose-700">{item.carriedOverCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">初回</p><p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
-                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">対応患者数</p><p className="mt-1 font-semibold text-slate-900">{item.patientCount}人</p></div>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-3">
-                        <p className="text-[11px] font-medium text-slate-600">期間内の患者状況</p>
-                        {item.patientStages.length === 0 ? (
-                          <p className="mt-2 text-[11px] text-slate-500">期間内の患者記録はありません。</p>
-                        ) : (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {item.patientStages.map((patient) => (
-                              <span key={`${item.id}-${patient.patientName}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
-                                {patient.patientName} / {patient.stageLabel}
-                              </span>
-                            ))}
+                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                  {staffActivitySummaries.map((item) => {
+                    const isExpanded = expandedActivityCardId === item.id
+                    return (
+                      <button
+                        key={`${activityRange}-${item.id}`}
+                        type="button"
+                        onClick={() => setExpandedActivityCardId((current) => current === item.id ? null : item.id)}
+                        className={`${adminPanelClass} space-y-3 p-3 text-left transition hover:border-slate-300 hover:bg-slate-50`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                            <p className="text-[11px] text-slate-500">{roleLabel[item.role]}</p>
                           </div>
-                        )}
-                      </div>
-                      {isPharmacyAdmin ? (
-                        <div className="flex justify-end">
-                          <Link href="/dashboard" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
-                            ダッシュボードでも確認する
-                          </Link>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {item.carriedOverCount > 0 ? (
+                              <Badge variant="outline" className="border-rose-200 bg-rose-50 text-[11px] text-rose-700">持ち越し {item.carriedOverCount}件</Badge>
+                            ) : null}
+                            {item.pendingCount > 0 ? (
+                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[11px] text-amber-700">未完了 {item.pendingCount}件</Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700">完了中心</Badge>
+                            )}
+                          </div>
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}</p></div>
+                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">未完了</p><p className="mt-1 font-semibold text-amber-700">{item.pendingCount}</p></div>
+                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">持ち越し</p><p className="mt-1 font-semibold text-rose-700">{item.carriedOverCount}</p></div>
+                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">患者</p><p className="mt-1 font-semibold text-slate-900">{item.patientCount}</p></div>
+                        </div>
+                        <p className="text-[11px] text-slate-500">{isExpanded ? 'タップで詳細を閉じる' : 'タップで詳細を見る'}</p>
+                        {isExpanded ? (
+                          <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+                            <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">初回</p><p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">完了率</p><p className="mt-1 font-semibold text-slate-900">{item.completionRate}%</p></div>
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">負荷感</p><p className="mt-1 font-semibold text-slate-900">{item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}</p></div>
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-medium text-slate-600">期間内の患者状況</p>
+                              {item.patientStages.length === 0 ? (
+                                <p className="mt-2 text-[11px] text-slate-500">期間内の患者記録はありません。</p>
+                              ) : (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {item.patientStages.map((patient) => (
+                                    <span key={`${item.id}-${patient.patientName}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                                      {patient.patientName} / {patient.stageLabel}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
