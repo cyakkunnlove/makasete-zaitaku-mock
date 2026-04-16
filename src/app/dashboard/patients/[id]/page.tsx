@@ -776,11 +776,11 @@ export default function PatientDetailPage() {
       )}
 
       {(!patient.phone || patient.phone === '-') && canEditThisPatient && (
-        <Card className="border-amber-500/40 bg-amber-500/10">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
+        <Card className="border-amber-200 bg-amber-50 shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-900">
             <div>
-              <p className="font-medium text-amber-300">連絡先未設定</p>
-              <p className="mt-1 text-xs text-amber-100/80">患者本人の連絡先電話が未設定です。必要に応じて登録してください。</p>
+              <p className="font-medium text-amber-800">連絡先未設定</p>
+              <p className="mt-1 text-xs text-amber-700">患者本人の連絡先電話が未設定です。必要に応じて登録してください。</p>
             </div>
             <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
               連絡先を入力する
@@ -790,11 +790,11 @@ export default function PatientDetailPage() {
       )}
 
       {patient.emergencyContact.phone === '-' && canEditThisPatient && (
-        <Card className="border-amber-500/40 bg-amber-500/10">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-100">
+        <Card className="border-amber-200 bg-amber-50 shadow-sm">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-4 text-sm text-amber-900">
             <div>
-              <p className="font-medium text-amber-300">緊急連絡先未設定</p>
-              <p className="mt-1 text-xs text-amber-100/80">夜間や緊急時に備えて、緊急連絡先の整備をおすすめします。</p>
+              <p className="font-medium text-amber-800">緊急連絡先未設定</p>
+              <p className="mt-1 text-xs text-amber-700">夜間や緊急時に備えて、緊急連絡先の整備をおすすめします。</p>
             </div>
             <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
               緊急連絡先を入力する
@@ -805,13 +805,13 @@ export default function PatientDetailPage() {
 
       {/* Visit Notes Alert Card - TOP PRIORITY */}
       {patient.visitNotes && (
-        <Card className="border-amber-500/40 bg-amber-500/10">
+        <Card className="border-amber-200 bg-amber-50 shadow-sm">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-300">訪問時注意事項</p>
-                <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-amber-100">
+                <p className="text-sm font-semibold text-amber-800">訪問時注意事項</p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-amber-900">
                   {patient.visitNotes}
                 </p>
               </div>
@@ -865,7 +865,7 @@ export default function PatientDetailPage() {
               <p className="mt-0.5 text-sm text-slate-800">{patient.phone ?? '-'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">請求設定</p>
+              <p className="text-xs text-slate-600">請求設定</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className={patient.isBillable === false ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
                   {patient.isBillable === false ? '請求対象外' : '請求対象'}
@@ -981,15 +981,15 @@ export default function PatientDetailPage() {
               <p className="mt-0.5 text-sm font-medium text-slate-900">{patient.emergencyContact.name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">続柄</p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.emergencyContact.relation}</p>
+              <p className="text-xs text-slate-600">続柄</p>
+              <p className="mt-0.5 text-sm text-slate-800">{patient.emergencyContact.relation}</p>
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-gray-500">
+              <p className="flex items-center gap-1 text-xs text-slate-600">
                 <Phone className="h-3 w-3" />
                 電話番号
               </p>
-              <p className="mt-0.5 text-sm text-indigo-300">{patient.emergencyContact.phone}</p>
+              <p className="mt-0.5 text-sm text-indigo-700">{patient.emergencyContact.phone}</p>
             </div>
           </CardContent>
         </Card>
@@ -1004,19 +1004,19 @@ export default function PatientDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-xs text-gray-500">医師名</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-200">{patient.doctor.name}</p>
+              <p className="text-xs text-slate-600">医師名</p>
+              <p className="mt-0.5 text-sm font-medium text-slate-800">{patient.doctor.name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">医療機関</p>
-              <p className="mt-0.5 text-sm text-gray-200">{patient.doctor.clinic}</p>
+              <p className="text-xs text-slate-600">医療機関</p>
+              <p className="mt-0.5 text-sm text-slate-800">{patient.doctor.clinic}</p>
             </div>
             <div>
-              <p className="flex items-center gap-1 text-xs text-gray-500">
+              <p className="flex items-center gap-1 text-xs text-slate-600">
                 <Phone className="h-3 w-3" />
                 夜間連絡先
               </p>
-              <p className="mt-0.5 text-sm text-indigo-300">{patient.doctor.phone}</p>
+              <p className="mt-0.5 text-sm text-indigo-700">{patient.doctor.phone}</p>
             </div>
           </CardContent>
         </Card>
@@ -1032,15 +1032,15 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-xs text-gray-500">既往歴</p>
-            <p className="mt-0.5 text-sm text-gray-200">{patient.medicalHistory}</p>
+            <p className="text-xs text-slate-600">既往歴</p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.medicalHistory}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">アレルギー</p>
+            <p className="text-xs text-slate-600">アレルギー</p>
             <p
               className={cn(
                 'mt-0.5 text-sm',
-                hasAllergies ? 'font-medium text-rose-300' : 'text-gray-200'
+                hasAllergies ? 'font-medium text-rose-700' : 'text-slate-800'
               )}
             >
               {hasAllergies && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
@@ -1048,12 +1048,12 @@ export default function PatientDetailPage() {
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">保険情報</p>
-            <p className="mt-0.5 text-sm text-gray-200">{patient.insuranceInfo}</p>
+            <p className="text-xs text-slate-600">保険情報</p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.insuranceInfo}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">主疾患</p>
-            <p className="mt-0.5 text-sm text-gray-200">{patient.diseaseName}</p>
+            <p className="text-xs text-slate-600">主疾患</p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.diseaseName}</p>
           </div>
         </CardContent>
       </Card>
@@ -1069,7 +1069,7 @@ export default function PatientDetailPage() {
           <CardContent className="space-y-3 text-sm text-slate-700">
             {patient.manualTags && patient.manualTags.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500">共有メモ</p>
+                <p className="text-xs text-slate-600">共有メモ</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {patient.manualTags.map((tag) => (
                     <Badge key={tag} variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">
@@ -1081,12 +1081,12 @@ export default function PatientDetailPage() {
             )}
             {patient.visitRules && patient.visitRules.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500">訪問の目安</p>
+                <p className="text-xs text-slate-600">訪問の目安</p>
                 <p className="mt-1">{formatVisitRuleSummary(patient)}</p>
               </div>
             )}
             {authMode !== 'cognito' && patient.registrationMeta && (
-              <div className="grid gap-2 sm:grid-cols-2 text-xs text-gray-400">
+              <div className="grid gap-2 sm:grid-cols-2 text-xs text-slate-500">
                 <p>登録者: {patient.registrationMeta.createdByName}</p>
                 <p>登録日時: {new Date(patient.registrationMeta.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                 <p>最終更新者: {patient.registrationMeta.updatedByName}</p>

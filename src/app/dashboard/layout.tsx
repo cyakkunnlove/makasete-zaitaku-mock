@@ -242,13 +242,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {role === 'night_pharmacist' && (
           <div className="px-4 pt-3">
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-center">
-                <p className="text-base font-bold text-rose-400">{unreadFaxCount}</p>
-                <p className="text-[10px] text-gray-500">未確認FAX</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-rose-600">{unreadFaxCount}</p>
+                <p className="text-[10px] font-medium text-slate-600">未確認FAX</p>
               </div>
-              <div className="rounded-lg border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-center">
-                <p className="text-base font-bold text-indigo-300">{candidateCount}</p>
-                <p className="text-[10px] text-gray-500">照合候補</p>
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
+                <p className="text-base font-bold text-indigo-600">{candidateCount}</p>
+                <p className="text-[10px] font-medium text-slate-600">照合候補</p>
               </div>
             </div>
           </div>
