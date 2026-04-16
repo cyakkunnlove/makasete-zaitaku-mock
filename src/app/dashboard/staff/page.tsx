@@ -994,7 +994,7 @@ export default function StaffPage() {
               ) : staffActivitySummaries.length === 0 ? (
                 <p className="text-sm text-slate-500">表示できる活動量データはまだありません。</p>
               ) : (
-                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2 2xl:grid-cols-3">
                   {staffActivitySummaries.map((item) => {
                     const isExpanded = expandedActivityCardId === item.id
                     return (
@@ -1002,14 +1002,14 @@ export default function StaffPage() {
                         key={`${activityRange}-${item.id}`}
                         type="button"
                         onClick={() => setExpandedActivityCardId((current) => current === item.id ? null : item.id)}
-                        className={`${adminPanelClass} space-y-3 p-3 text-left transition hover:border-slate-300 hover:bg-slate-50`}
+                        className={`${adminPanelClass} space-y-2 p-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50`}
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-start justify-between gap-1.5">
                           <div>
                             <p className="text-sm font-semibold text-slate-900">{item.name}</p>
                             <p className="text-[11px] text-slate-500">{roleLabel[item.role]}</p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1">
                             {item.carriedOverCount > 0 ? (
                               <Badge variant="outline" className="border-rose-200 bg-rose-50 text-[11px] text-rose-700">持ち越し {item.carriedOverCount}件</Badge>
                             ) : null}
@@ -1020,19 +1020,19 @@ export default function StaffPage() {
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-2 text-xs">
-                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}</p></div>
-                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">未完了</p><p className="mt-1 font-semibold text-amber-700">{item.pendingCount}</p></div>
-                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">持ち越し</p><p className="mt-1 font-semibold text-rose-700">{item.carriedOverCount}</p></div>
-                          <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">患者</p><p className="mt-1 font-semibold text-slate-900">{item.patientCount}</p></div>
+                        <div className="grid grid-cols-4 gap-1.5 text-[11px]">
+                          <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">完了</p><p className="mt-0.5 font-semibold text-emerald-700">{item.completedCount}</p></div>
+                          <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">未完了</p><p className="mt-0.5 font-semibold text-amber-700">{item.pendingCount}</p></div>
+                          <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">持越</p><p className="mt-0.5 font-semibold text-rose-700">{item.carriedOverCount}</p></div>
+                          <div className="rounded-md border border-slate-200 bg-white px-1.5 py-1.5"><p className="text-slate-500">患者</p><p className="mt-0.5 font-semibold text-slate-900">{item.patientCount}</p></div>
                         </div>
-                        <p className="text-[11px] text-slate-500">{isExpanded ? 'タップで詳細を閉じる' : 'タップで詳細を見る'}</p>
+                        <p className="text-[10px] text-slate-500">{isExpanded ? 'タップで閉じる' : 'タップで詳細'}</p>
                         {isExpanded ? (
-                          <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
-                            <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
-                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">初回</p><p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
-                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">完了率</p><p className="mt-1 font-semibold text-slate-900">{item.completionRate}%</p></div>
-                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2"><p className="text-slate-500">負荷感</p><p className="mt-1 font-semibold text-slate-900">{item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}</p></div>
+                          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2.5">
+                            <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                              <div className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1.5"><p className="text-slate-500">初回</p><p className="mt-0.5 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
+                              <div className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1.5"><p className="text-slate-500">完了率</p><p className="mt-0.5 font-semibold text-slate-900">{item.completionRate}%</p></div>
+                              <div className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1.5"><p className="text-slate-500">負荷感</p><p className="mt-0.5 font-semibold text-slate-900">{item.tone === 'heavy' ? '高め' : item.tone === 'medium' ? '中' : '軽め'}</p></div>
                             </div>
                             <div>
                               <p className="text-[11px] font-medium text-slate-600">期間内の患者状況</p>
