@@ -362,7 +362,13 @@ export default function StaffPage() {
           .slice(0, 4)
           .map(({ patientName, stageLabel }) => ({ patientName, stageLabel })),
       }))
-      .sort((a, b) => b.workloadScore - a.workloadScore)
+      .sort((a, b) => {
+        if (b.carriedOverCount !== a.carriedOverCount) return b.carriedOverCount - a.carriedOverCount
+        if (b.pendingCount !== a.pendingCount) return b.pendingCount - a.pendingCount
+        if (b.completedCount !== a.completedCount) return b.completedCount - a.completedCount
+        if (b.firstVisitCount !== a.firstVisitCount) return b.firstVisitCount - a.firstVisitCount
+        return a.name.localeCompare(b.name, 'ja')
+      })
   }, [activityRange, ownPatients, recentDayTasks, visibleStaffMembers, workloadSettings])
 
   useEffect(() => {
@@ -969,7 +975,7 @@ export default function StaffPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <CardTitle className="text-base text-slate-900">スタッフ活動量の詳細</CardTitle>
-                  <CardDescription className="text-slate-600">直近 7日 / 30日 で、誰がどの患者をどの段階で持っているかを見やすくまとめます。</CardDescription>
+                  <CardDescription className="text-slate-600">直近 7日 / 30日 の実績を、持ち越しと未完了を優先して見やすくまとめます。</CardDescription>
                 </div>
                 <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
                   <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
