@@ -563,12 +563,14 @@ function PharmacyDayTaskCardHeader({
   visit,
   patientName,
   patientAddress,
+  patientPhone,
   statusClassName,
   statusLabel,
 }: {
   visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
   patientName: string
   patientAddress: string
+  patientPhone?: string | null
   statusClassName: string
   statusLabel: string
 }) {
@@ -586,6 +588,16 @@ function PharmacyDayTaskCardHeader({
           <Badge variant="outline" className="border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
         </div>
         <p className="mt-1 text-xs text-slate-500">{patientAddress}</p>
+        {patientPhone && patientPhone !== '-' ? (
+          <p className="mt-1 text-[11px]">
+            <a
+              href={`tel:${patientPhone.replace(/[^\d+]/g, '')}`}
+              className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 hover:underline"
+            >
+              電話: {patientPhone}
+            </a>
+          </p>
+        ) : null}
         <p className="mt-1 text-[11px] text-slate-500">予定 {visit.scheduledTime} / {visit.note}</p>
       </div>
       <div className="text-right text-xs text-slate-500">
@@ -810,6 +822,7 @@ function PharmacyDayTaskCard({
           visit={visit}
           patientName={patient.name}
           patientAddress={patient.address}
+          patientPhone={typeof (patient as { phone?: string | null }).phone === 'string' ? (patient as { phone?: string | null }).phone : null}
           statusClassName={statusClassName}
           statusLabel={statusLabel}
         />
