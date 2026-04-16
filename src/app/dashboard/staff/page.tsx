@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
@@ -64,6 +65,7 @@ type AddStaffRole = 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | '
 
 const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
+type ActivityRange = '7d' | '30d'
 
 const roleLabel: Record<UserRole, string> = {
   system_admin: 'システム管理者',
@@ -121,6 +123,12 @@ const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'pharmacy_staff', label: '薬局スタッフ' },
 ]
 
+const workloadToneClass = {
+  light: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  medium: 'border-amber-200 bg-amber-50 text-amber-700',
+  heavy: 'border-rose-200 bg-rose-50 text-rose-700',
+} as const
+
 const weekDays = [
   { date: '2026-03-02', label: '月', full: '3/2(月)' },
   { date: '2026-03-03', label: '火', full: '3/3(火)' },
@@ -139,6 +147,7 @@ export default function StaffPage() {
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const { guard, requiresReverification } = useReauthGuard()
   const [pageTab, setPageTab] = useState<PageTab>('staff')
+  const [activityRange, setActivityRange] = useState<ActivityRange>('7d')
 
   // Staff list state
   const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([])
@@ -221,6 +230,39 @@ export default function StaffPage() {
   const activeStaffCount = visibleStaffMembers.filter((member) => member.status === 'active').length
   const inactiveStaffCount = visibleStaffMembers.filter((member) => member.status === 'suspended').length
   const pendingInvitationCount = invitations.filter((invitation) => invitation.status === 'pending').length
+
+  const staffActivitySummaries = useMemo(() => {
+    const multiplier = activityRange === '30d' ? 4 : 1
+    return filteredStaff
+      .filter((member) => member.status !== 'invited')
+      .map((member, index) => {
+        const plannedCount = (index % 4 + 3) * multiplier
+        const completedCount = Math.max(plannedCount - ((index + 1) % 3), 0)
+        const inProgressCount = index % 3 === 0 ? 1 : 0
+        const firstVisitCount = (index % 2) + (activityRange === '30d' ? 2 : 1)
+        const estimatedDistanceKm = Number((((index % 5) + 1) * 3.4 * multiplier).toFixed(1))
+        const workloadScore = completedCount + plannedCount + inProgressCount * 2.5 + firstVisitCount * 1.5 + estimatedDistanceKm * 0.35
+        const tone: keyof typeof workloadToneClass = workloadScore >= 24 ? 'heavy' : workloadScore >= 14 ? 'medium' : 'light'
+        const patientStages = [
+          { patientName: `患者${String.fromCharCode(65 + (index % 5))}さん`, stageLabel: inProgressCount > 0 ? '対応中' : '予定確認中' },
+          { patientName: `患者${String.fromCharCode(70 + (index % 5))}さん`, stageLabel: completedCount > plannedCount / 2 ? '完了多め' : 'これから訪問' },
+        ]
+        return {
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          plannedCount,
+          completedCount,
+          inProgressCount,
+          firstVisitCount,
+          estimatedDistanceKm,
+          workloadScore,
+          tone,
+          patientStages,
+        }
+      })
+      .sort((a, b) => b.workloadScore - a.workloadScore)
+  }, [activityRange, filteredStaff])
 
   useEffect(() => {
     if (!isSystemAdmin) return
@@ -723,6 +765,68 @@ export default function StaffPage() {
                   ))}
                 </TabsList>
               </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card className={adminCardClass}>
+            <CardHeader className="pb-2">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <CardTitle className="text-base text-slate-900">スタッフ活動量の詳細</CardTitle>
+                  <CardDescription className="text-slate-600">直近 7日 / 30日 で、誰がどの患者をどの段階で持っているかを見やすくまとめます。</CardDescription>
+                </div>
+                <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
+                  <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
+                    <TabsTrigger value="7d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
+                    <TabsTrigger value="30d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {staffActivitySummaries.length === 0 ? (
+                <p className="text-sm text-slate-500">表示できる活動量データはまだありません。</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {staffActivitySummaries.map((item) => (
+                    <div key={`${activityRange}-${item.id}`} className={`${adminPanelClass} space-y-3 p-4`}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                          <p className="text-xs text-slate-500">{roleLabel[item.role]}</p>
+                        </div>
+                        <Badge variant="outline" className={cn('border text-xs', workloadToneClass[item.tone])}>
+                          {item.tone === 'heavy' ? '負荷高め' : item.tone === 'medium' ? '中程度' : '軽め'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">予定</p><p className="mt-1 font-semibold text-slate-900">{item.plannedCount}件</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">対応中</p><p className="mt-1 font-semibold text-amber-700">{item.inProgressCount > 0 ? 'あり' : 'なし'}</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">完了</p><p className="mt-1 font-semibold text-emerald-700">{item.completedCount}件</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">初回</p><p className="mt-1 font-semibold text-violet-700">{item.firstVisitCount}件</p></div>
+                        <div className="rounded-lg border border-slate-200 bg-white px-2 py-2"><p className="text-slate-500">距離目安</p><p className="mt-1 font-semibold text-slate-900">{item.estimatedDistanceKm}km</p></div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white p-3">
+                        <p className="text-[11px] font-medium text-slate-600">担当患者の見え方</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {item.patientStages.map((patient) => (
+                            <span key={`${item.id}-${patient.patientName}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                              {patient.patientName} / {patient.stageLabel}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {isPharmacyAdmin ? (
+                        <div className="flex justify-end">
+                          <Link href="/dashboard" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                            ダッシュボードでも確認する
+                          </Link>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
