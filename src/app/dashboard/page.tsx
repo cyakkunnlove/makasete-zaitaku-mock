@@ -589,6 +589,7 @@ function PharmacyDayTaskCardActions({
   onMoveDown,
   onStart,
   onComplete,
+  onDragHandlePointerDown,
   completionHelpText,
   planButtonLabel,
   reorderHintText,
@@ -603,6 +604,7 @@ function PharmacyDayTaskCardActions({
   onMoveDown: () => void
   onStart: () => void
   onComplete: () => void
+  onDragHandlePointerDown: () => void
   completionHelpText: string
   planButtonLabel: string
   reorderHintText: string
@@ -612,7 +614,11 @@ function PharmacyDayTaskCardActions({
       <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
         {planButtonLabel}
       </Button>
-      <span className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing">
+      <span
+        className="inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing"
+        onMouseDown={onDragHandlePointerDown}
+        onTouchStart={onDragHandlePointerDown}
+      >
         <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
       </span>
@@ -660,8 +666,11 @@ function PharmacyDayTaskCard({
   collectionClassName,
   draggingTaskId,
   dragOverTaskId,
+  dragEnabled,
   setDraggingTaskId,
   setDragOverTaskId,
+  onEnableDrag,
+  onDisableDrag,
   onDropReorder,
   canStart,
   canComplete,
@@ -686,8 +695,11 @@ function PharmacyDayTaskCard({
   collectionClassName: string
   draggingTaskId: string | null
   dragOverTaskId: string | null
+  dragEnabled: boolean
   setDraggingTaskId: (id: string | null) => void
   setDragOverTaskId: (id: string | null) => void
+  onEnableDrag: () => void
+  onDisableDrag: () => void
   onDropReorder: () => void
   canStart: boolean
   canComplete: boolean
@@ -707,14 +719,16 @@ function PharmacyDayTaskCard({
 }) {
   return (
     <Card
-      draggable
+      draggable={dragEnabled}
       onDragStart={() => {
+        if (!dragEnabled) return
         setDraggingTaskId(visit.id)
         setDragOverTaskId(null)
       }}
       onDragEnd={() => {
         setDraggingTaskId(null)
         setDragOverTaskId(null)
+        onDisableDrag()
       }}
       onDragOver={(event) => {
         event.preventDefault()
@@ -728,6 +742,7 @@ function PharmacyDayTaskCard({
         onDropReorder()
         setDraggingTaskId(null)
         setDragOverTaskId(null)
+        onDisableDrag()
       }}
       className={cn(
         'border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md',
@@ -761,6 +776,7 @@ function PharmacyDayTaskCard({
           onMoveDown={onMoveDown}
           onStart={onStart}
           onComplete={onComplete}
+          onDragHandlePointerDown={onEnableDrag}
           completionHelpText={completionHelpText}
           planButtonLabel={planButtonLabel}
           reorderHintText={reorderHintText}
@@ -787,6 +803,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [dragEnabledTaskId, setDragEnabledTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
@@ -1259,6 +1276,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientIds: selectedRoutePatientIds }),
       })
+      setDragEnabledTaskId(null)
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.ok || !result?.routePlan) {
         setSaveToast(result?.details ?? 'ルート提案の取得に失敗しました')
@@ -1787,8 +1805,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                     collectionClassName={collection.className}
                     draggingTaskId={draggingTaskId}
                     dragOverTaskId={dragOverTaskId}
+                    dragEnabled={dragEnabledTaskId === visit.id}
                     setDraggingTaskId={setDraggingTaskId}
                     setDragOverTaskId={setDragOverTaskId}
+                    onEnableDrag={() => setDragEnabledTaskId(visit.id)}
+                    onDisableDrag={() => setDragEnabledTaskId(null)}
                     onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
                     canStart={canStart}
                     canComplete={canComplete}
