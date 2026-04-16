@@ -425,14 +425,14 @@ function PharmacyDashboardHeaderCard({
           {hasOrderDraft ? (
             <>
               <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{orderDraftBadgeText}</Badge>
-              <Button size="sm" onClick={handleSaveOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{resetOrderButtonText}</Button>
+              <Button size="sm" onClick={handleSaveOrder} className="press-squish focus-ring bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
+              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="press-squish focus-ring border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{resetOrderButtonText}</Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{orderSavedButtonText}</Button>
+            <Button size="sm" variant="outline" className="press-squish border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{orderSavedButtonText}</Button>
           )}
           {undoTarget && (
-            <Button size="sm" variant="outline" onClick={handleUndo} className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100">
+            <Button size="sm" variant="outline" onClick={handleUndo} className="press-squish focus-ring border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100">
               <RotateCcw className="h-3.5 w-3.5" />
               取り消す
             </Button>
@@ -481,8 +481,9 @@ function PharmacyDashboardSummaryCard({
                     <p className="mt-0.5 text-[10px] text-slate-500">{getWorkloadToneLabel(item.workloadTone)}</p>
                   </div>
                   {showDetailLink ? (
-                    <Link href="/dashboard/staff" className="soft-pop-sm inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                    <Link href="/dashboard/staff" className="group soft-pop-sm focus-ring inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
                       詳細
+                      <ArrowUpRight className="icon-nudge ml-1 h-3 w-3" />
                     </Link>
                   ) : null}
                 </div>
@@ -549,8 +550,8 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
       <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1 text-slate-500">
-        <TabsTrigger value="today" className="rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
-        <TabsTrigger value="master" className="rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
+        <TabsTrigger value="today" className="press-squish focus-ring rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">今日の対応予定</TabsTrigger>
+        <TabsTrigger value="master" className="press-squish focus-ring rounded-lg transition hover:bg-white/70 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">患者一覧（簡易）</TabsTrigger>
       </TabsList>
       {children}
     </Tabs>
@@ -1837,19 +1838,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         )}
 
         {saveToast && (
-          <PharmacyDashboardNoticeCard
-            tone="success"
-            message={saveToast}
-            subtext="shared mock save"
-          />
+          <div className="fade-in-up">
+            <PharmacyDashboardNoticeCard
+              tone="success"
+              message={saveToast}
+              subtext="shared mock save"
+            />
+          </div>
         )}
 
         {undoTarget && (
-          <PharmacyDashboardNoticeCard
-            tone="warning"
-            message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
-            subtext="billing / 回収管理に反映する想定の mock 連携です。"
-          />
+          <div className="fade-in-up">
+            <PharmacyDashboardNoticeCard
+              tone="warning"
+              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
+              subtext="billing / 回収管理に反映する想定の mock 連携です。"
+            />
+          </div>
         )}
 
         <PharmacyDashboardTabs>

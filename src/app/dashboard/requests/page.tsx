@@ -258,7 +258,7 @@ export default function RequestsPage() {
                 <TabsTrigger
                   key={tab.key}
                   value={tab.key}
-                  className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
+                  className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-500 data-[state=active]:text-white"
                 >
                   {tab.label}
                 </TabsTrigger>

@@ -896,7 +896,7 @@ export default function StaffPage() {
       />
 
       {toast && (
-        <Card className="border-emerald-200 bg-emerald-50 text-emerald-900 shadow-sm">
+        <Card className="fade-in-up border-emerald-200 bg-emerald-50 text-emerald-900 shadow-sm">
           <CardContent className="p-4 text-sm">{toast}</CardContent>
         </Card>
       )}
@@ -923,14 +923,14 @@ export default function StaffPage() {
             <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-slate-100 p-1">
               <TabsTrigger
                 value="staff"
-                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                className="press-squish focus-ring flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
               >
                 <Users className="h-4 w-4" />
                 スタッフ一覧
               </TabsTrigger>
               <TabsTrigger
                 value="shift"
-                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                className="press-squish focus-ring flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
               >
                 <Calendar className="h-4 w-4" />
                 シフト管理
@@ -963,7 +963,7 @@ export default function StaffPage() {
                     <TabsTrigger
                       key={item.key}
                       value={item.key}
-                      className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+                      className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
                     >
                       {item.label}
                     </TabsTrigger>
@@ -982,8 +982,8 @@ export default function StaffPage() {
                 </div>
                 <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
                   <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
-                    <TabsTrigger value="7d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
-                    <TabsTrigger value="30d" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
+                    <TabsTrigger value="7d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
+                    <TabsTrigger value="30d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
