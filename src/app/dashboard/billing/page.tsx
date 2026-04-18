@@ -357,6 +357,48 @@ export default function BillingPage() {
     return dateCollectionSummaries.find((item) => item.date === selectedCollectionDate) ?? null
   }, [dateCollectionSummaries, selectedCollectionDate])
 
+  const adminBillingRecords = useMemo(() => {
+    const source = mergedCollectionRecords.filter((record) => record.billable)
+    if (source.length === 0) return records
+
+    const monthMap = new Map<string, BillingRecord>()
+    for (const record of source) {
+      const month = record.month
+      const key = `${ownPharmacyId}-${month}`
+      const totalAmountForMonth = source
+        .filter((item) => item.month === month)
+        .reduce((sum, item) => sum + item.amount, 0)
+      const nextStatus: BillingStatus = record.status === 'paid'
+        ? 'paid'
+        : record.status === 'needs_attention'
+          ? 'overdue'
+          : 'unpaid'
+
+      const current = monthMap.get(key)
+      if (!current) {
+        monthMap.set(key, {
+          id: `BL-${key}`,
+          invoiceNumber: `INV-${month.replace('-', '')}-${ownPharmacyId}`,
+          pharmacyId: ownPharmacyId,
+          pharmacyName: 'マカセテ在宅テスト薬局',
+          month,
+          saasFee: 0,
+          nightFee: totalAmountForMonth,
+          tax: 0,
+          total: totalAmountForMonth,
+          status: nextStatus,
+        })
+        continue
+      }
+
+      if (current.status !== 'overdue') {
+        current.status = nextStatus === 'overdue' ? 'overdue' : current.status === 'paid' && nextStatus === 'paid' ? 'paid' : 'unpaid'
+      }
+    }
+
+    return Array.from(monthMap.values()).sort((a, b) => b.month.localeCompare(a.month))
+  }, [mergedCollectionRecords, ownPharmacyId, records])
+
   const summary = useMemo(() => {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
@@ -369,14 +411,14 @@ export default function BillingPage() {
     }
 
     return {
-      issued: records.length,
-      paid: records.filter((record) => record.status === 'paid').length,
-      pending: records.filter((record) => record.status !== 'paid').length,
+      issued: adminBillingRecords.length,
+      paid: adminBillingRecords.filter((record) => record.status === 'paid').length,
+      pending: adminBillingRecords.filter((record) => record.status !== 'paid').length,
     }
-  }, [isPharmacyRole, records, mergedCollectionRecords])
+  }, [adminBillingRecords, isPharmacyRole, mergedCollectionRecords])
 
   const handleBatchGenerate = () => {
-    setGeneratedLabel(`${batchMonth} の請求書を ${records.length} 件生成しました（モック）`)
+    setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
     setBatchDialogOpen(false)
   }
 
@@ -833,9 +875,9 @@ export default function BillingPage() {
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <AdminStatCard label="請求書発行済み" value={records.length} icon={<FileText className="h-4 w-4" />} />
-        <AdminStatCard label="入金確認済み" value={records.filter((record) => record.status === 'paid').length} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
-        <AdminStatCard label="確認待ち" value={records.filter((record) => record.status !== 'paid').length} tone="warning" icon={<Layers className="h-4 w-4" />} />
+        <AdminStatCard label="請求書発行済み" value={adminBillingRecords.length} icon={<FileText className="h-4 w-4" />} />
+        <AdminStatCard label="入金確認済み" value={adminBillingRecords.filter((record) => record.status === 'paid').length} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+        <AdminStatCard label="確認待ち" value={adminBillingRecords.filter((record) => record.status !== 'paid').length} tone="warning" icon={<Layers className="h-4 w-4" />} />
       </section>
 
       {generatedLabel && <Card className="border-indigo-200 bg-indigo-50"><CardContent className="p-3 text-sm text-indigo-700">{generatedLabel}</CardContent></Card>}
@@ -891,7 +933,7 @@ export default function BillingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((record) => (
+              {adminBillingRecords.map((record) => (
                 <TableRow key={record.id} className="border-slate-200 hover:bg-slate-50">
                   <TableCell className="font-medium text-slate-900">{record.pharmacyName}</TableCell>
                   <TableCell className="text-slate-600">{record.invoiceNumber}</TableCell>
