@@ -51,6 +51,19 @@ type CalendarActionDraft = {
   note: string
 }
 
+function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayTaskItem['collectionStatus'] {
+  switch (status) {
+    case 'needs_billing':
+      return '未着手'
+    case 'billed':
+    case 'needs_attention':
+      return '回収中'
+    case 'paid':
+      return '入金済'
+    default:
+      return '未着手'
+  }
+}
 
 function parseIsoDateParts(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -83,7 +96,9 @@ const visitChargeHistory = {
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
-  const [collectionRecords, setCollectionRecords] = useState(initialPatientCollectionRecords)
+  const [collectionRecords, setCollectionRecords] = useState(() => (
+    role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
+  ))
   const [sharedDayTasks, setSharedDayTasks] = useState<DayTaskItem[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
@@ -198,7 +213,7 @@ export default function BillingPage() {
       .filter((task) => task.pharmacyId === ownPharmacyId)
       .map((task) => {
         const patient = patientMap.get(task.patientId)
-        const existing = initialPatientCollectionRecords.find((record) => record.linkedTaskId === task.id)
+        const existing = collectionRecords.find((record) => record.linkedTaskId === task.id)
         const patientBilling = patientBillingSettings.get(task.patientId)
         const status = existing?.status ?? task.collectionStatus ?? 'needs_billing'
         return {
@@ -216,7 +231,7 @@ export default function BillingPage() {
         }
       })
       .filter((record) => ownPatientNames.has(record.patientName))
-  }, [ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
+  }, [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -371,7 +386,8 @@ export default function BillingPage() {
 
   const updateCollectionStatus = async (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
     const target = mergedCollectionRecords.find((record) => record.id === recordId)
-    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: note?.trim() ? note.trim() : r.note } : r)))
+    const trimmedNote = note?.trim()
+    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note } : r)))
 
     if (target?.linkedTaskId) {
       const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
@@ -384,13 +400,18 @@ export default function BillingPage() {
               task: {
                 ...dayTask,
                 collectionStatus: status,
-                note: note?.trim() ? note.trim() : dayTask.note,
+                note: trimmedNote ? trimmedNote : dayTask.note,
               },
             }),
           })
           if (!response.ok) {
             throw new Error('collection_status_save_failed')
           }
+          setSharedDayTasks((prev) => prev.map((task) => (
+            task.id === dayTask.id
+              ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus(status), note: trimmedNote ? trimmedNote : task.note }
+              : task
+          )))
         } catch {
           setToastMessage('回収状況の保存に失敗しました')
           setTimeout(() => setToastMessage(''), 3000)
