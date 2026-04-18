@@ -65,6 +65,29 @@ type PharmacyWorkloadSettings = {
   distanceWeight: number
 }
 
+type RoutePlanPatient = {
+  id: string
+  name: string
+  address: string
+  geocodeInputAddress?: string | null
+  geocodeStatus?: string | null
+  geocodeWarnings?: Array<{ code: string; message: string }>
+  latitude?: number | null
+  longitude?: number | null
+}
+
+type RoutePlanResult = {
+  ready: boolean
+  suggestedOrder: RoutePlanPatient[]
+  missingCoordinates: RoutePlanPatient[]
+  totalDuration?: string | null
+  totalDistanceMeters?: number | null
+  polyline?: string | null
+  origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }
+  debug?: { selectedPatients: RoutePlanPatient[] }
+  message: string
+}
+
 const defaultWorkloadSettings: PharmacyWorkloadSettings = {
   lightMax: 4,
   mediumMax: 8,
@@ -611,6 +634,109 @@ function PharmacyDashboardLoadingBanner({
   )
 }
 
+function PharmacyDashboardRoutePlanner({
+  routePlanLoading,
+  selectedRoutePatientIds,
+  onSuggestRoute,
+  routePlanResult,
+  routeEmailHref,
+  onApplySuggestedOrder,
+  routeMapRef,
+}: {
+  routePlanLoading: boolean
+  selectedRoutePatientIds: string[]
+  onSuggestRoute: () => void
+  routePlanResult: RoutePlanResult | null
+  routeEmailHref: string | null
+  onApplySuggestedOrder: () => void
+  routeMapRef: React.MutableRefObject<HTMLDivElement | null>
+}) {
+  return (
+    <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
+            <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。2人以上選ぶと作成できます。</p>
+          </div>
+          <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={onSuggestRoute}>
+            {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
+          </Button>
+        </div>
+        {routePlanResult && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium text-slate-900">{routePlanResult.message}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {routeEmailHref && (
+                  <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50">
+                    <a href={routeEmailHref}>自分のメールに送る</a>
+                  </Button>
+                )}
+                {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+                  <Button size="sm" onClick={onApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
+                    この順番を今日の並びに反映
+                  </Button>
+                )}
+              </div>
+            </div>
+            {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
+              <>
+                <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-slate-200 bg-slate-100" />
+                <p className="mt-2 text-xs text-slate-500">
+                  {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
+                  {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
+                </p>
+                {routePlanResult.origin && (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                    <p className="font-medium text-slate-900">起点</p>
+                    <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
+                    <p className="mt-1 text-slate-500">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
+                    <p className="mt-1 text-slate-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
+                    {routePlanResult.origin.geocodeWarnings && routePlanResult.origin.geocodeWarnings.length > 0 && (
+                      <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                        {routePlanResult.origin.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <ol className="mt-3 space-y-2">
+                  {routePlanResult.suggestedOrder.map((patient, index) => (
+                    <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
+                      <div>
+                        <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
+                        <span className="font-medium text-slate-900">{patient.name}</span>
+                        <span className="ml-2 text-xs text-slate-500">{patient.address}</span>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
+                      {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
+                        <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                          {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+            {routePlanResult.missingCoordinates.length > 0 && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <p className="font-medium text-amber-700">座標未取得の患者</p>
+                <ul className="mt-2 space-y-1">
+                  {routePlanResult.missingCoordinates.map((patient) => (
+                    <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}{patient.geocodeWarnings && patient.geocodeWarnings.length > 0 ? ` / 注意: ${patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}` : ''}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -991,17 +1117,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [workloadSettings, setWorkloadSettings] = useState<PharmacyWorkloadSettings>(defaultWorkloadSettings)
   const routeMapRef = useRef<HTMLDivElement | null>(null)
   const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  const [routePlanResult, setRoutePlanResult] = useState<null | {
-    ready: boolean
-    suggestedOrder: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; geocodeWarnings?: Array<{ code: string; message: string }>; latitude?: number | null; longitude?: number | null }>
-    missingCoordinates: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; geocodeWarnings?: Array<{ code: string; message: string }> }>
-    totalDuration?: string | null
-    totalDistanceMeters?: number | null
-    polyline?: string | null
-    origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }
-    debug?: { selectedPatients: Array<{ id: string; name: string; address: string; geocodeInputAddress?: string | null; geocodeStatus?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }> }
-    message: string
-  }>(null)
+  const [routePlanResult, setRoutePlanResult] = useState<RoutePlanResult | null>(null)
   const routeEmailHref = useMemo(() => {
     if (!user?.email || !routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) return null
 
@@ -1905,88 +2021,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
             <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
-            <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="space-y-3 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
-                    <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。2人以上選ぶと作成できます。</p>
-                  </div>
-                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={() => void handleSuggestRoute()}>
-                    {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
-                  </Button>
-                </div>
-                {routePlanResult && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-slate-900">{routePlanResult.message}</p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {routeEmailHref && (
-                          <Button asChild size="sm" variant="outline" className="border-sky-200 bg-white text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50">
-                            <a href={routeEmailHref}>自分のメールに送る</a>
-                          </Button>
-                        )}
-                        {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
-                          <Button size="sm" onClick={handleApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
-                            この順番を今日の並びに反映
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
-                      <>
-                        <div ref={routeMapRef} className="mt-3 h-56 rounded-lg border border-slate-200 bg-slate-100" />
-                        <p className="mt-2 text-xs text-slate-500">
-                          {routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : '総移動時間: 計算中'}
-                          {typeof routePlanResult.totalDistanceMeters === 'number' ? ` / 総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : ''}
-                        </p>
-                        {routePlanResult.origin && (
-                          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                            <p className="font-medium text-slate-900">起点</p>
-                            <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
-                            <p className="mt-1 text-slate-500">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
-                            <p className="mt-1 text-slate-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
-                            {routePlanResult.origin.geocodeWarnings && routePlanResult.origin.geocodeWarnings.length > 0 && (
-                              <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                                {routePlanResult.origin.geocodeWarnings.map((warning) => warning.message).join(' / ')}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <ol className="mt-3 space-y-2">
-                          {routePlanResult.suggestedOrder.map((patient, index) => (
-                            <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-                              <div>
-                                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
-                                <span className="font-medium text-slate-900">{patient.name}</span>
-                                <span className="ml-2 text-xs text-slate-500">{patient.address}</span>
-                              </div>
-                              <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
-                              <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
-                              {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
-                                <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                                  {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
-                                </div>
-                              )}
-                            </li>
-                          ))}
-                        </ol>
-                      </>
-                    )}
-                    {routePlanResult.missingCoordinates.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                        <p className="font-medium text-amber-700">座標未取得の患者</p>
-                        <ul className="mt-2 space-y-1">
-                          {routePlanResult.missingCoordinates.map((patient) => (
-                            <li key={patient.id}>{patient.name} / {patient.address} / 解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}{patient.geocodeWarnings && patient.geocodeWarnings.length > 0 ? ` / 注意: ${patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}` : ''}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <PharmacyDashboardRoutePlanner
+              routePlanLoading={routePlanLoading}
+              selectedRoutePatientIds={selectedRoutePatientIds}
+              onSuggestRoute={() => void handleSuggestRoute()}
+              routePlanResult={routePlanResult}
+              routeEmailHref={routeEmailHref}
+              onApplySuggestedOrder={handleApplySuggestedOrder}
+              routeMapRef={routeMapRef}
+            />
             <div className="space-y-2">
               {draggingTaskId && (
                 <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
