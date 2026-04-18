@@ -737,6 +737,82 @@ function PharmacyDashboardRoutePlanner({
   )
 }
 
+function PharmacyDashboardMasterPatientSection({
+  searchQuery,
+  filteredMasterPatients,
+  ownRequests,
+  handoverData,
+  ownPharmacyId,
+  draftDayTasks,
+  flowDate,
+  onAddPatientToTodayFlow,
+}: {
+  searchQuery: string
+  filteredMasterPatients: RegisteredPatientRecord[]
+  ownRequests: Array<{ patientId: string | null }>
+  handoverData: Array<{ patientId: string; pharmacyId: string; confirmed: boolean }>
+  ownPharmacyId: string
+  draftDayTasks: DayTaskItem[]
+  flowDate: string
+  onAddPatientToTodayFlow: (patient: RegisteredPatientRecord) => void
+}) {
+  return (
+    <>
+      <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+        <Users className="h-4 w-4 text-indigo-500" />
+        患者一覧（簡易）
+        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
+      </h2>
+      <div className="space-y-2">
+        {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardContent className="p-4 text-sm text-slate-500">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
+          </Card>
+        )}
+        {searchQuery.trim() && filteredMasterPatients.length === 0 && (
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardContent className="p-4 text-sm text-slate-500">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
+          </Card>
+        )}
+        {filteredMasterPatients.map((patient) => {
+          const flags = getAttentionFlags(patient)
+          const hasOvernightRequest = ownRequests.some((request) => request.patientId === patient.id)
+          const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
+          const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
+          return (
+            <Card key={patient.id} className="soft-pop border-slate-200 bg-white text-slate-900 shadow-sm hover:border-indigo-300 hover:shadow-md">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">{patient.name}</Link>
+                      {hasOvernightRequest && <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">直近対応あり</Badge>}
+                      {unconfirmedHandover && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">引き継ぎ確認待ち</Badge>}
+                      {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700">本日フローに追加済み</Badge>}
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">{patient.address}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
+                    <p className="mt-1 text-[11px] text-amber-700">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50" asChild>
+                      <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
+                    </Button>
+                    <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => onAddPatientToTodayFlow(patient)}>
+                      今日対応予定にする
+                    </Button>
+                  </div>
+                </div>
+                {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -2101,57 +2177,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           </TabsContent>
 
           <TabsContent value="master" className="space-y-2">
-            <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
-              <Users className="h-4 w-4 text-indigo-500" />
-              患者一覧（簡易）
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
-            </h2>
-            <div className="space-y-2">
-              {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-slate-200 bg-white shadow-sm">
-                  <CardContent className="p-4 text-sm text-slate-500">昨日・今日・明日の対応候補はいま表示対象にありません。必要な患者は上の検索から探せます。</CardContent>
-                </Card>
-              )}
-              {searchQuery.trim() && filteredMasterPatients.length === 0 && (
-                <Card className="border-slate-200 bg-white shadow-sm">
-                  <CardContent className="p-4 text-sm text-slate-500">該当する患者が見つかりませんでした。患者情報ページでの確認もできます。</CardContent>
-                </Card>
-              )}
-              {filteredMasterPatients.map((patient) => {
-                const flags = getAttentionFlags(patient)
-                const hasOvernightRequest = ownRequests.some((request) => request.patientId === patient.id)
-                const unconfirmedHandover = handoverData.find((handover) => handover.patientId === patient.id && handover.pharmacyId === ownPharmacyId && !handover.confirmed)
-                const hasTodayFlowTask = draftDayTasks.some((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
-                return (
-                  <Card key={patient.id} className="soft-pop border-slate-200 bg-white text-slate-900 shadow-sm hover:border-indigo-300 hover:shadow-md">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link href={`/dashboard/patients/${patient.id}`} className="text-sm font-semibold text-slate-900 hover:text-indigo-600">{patient.name}</Link>
-                            {hasOvernightRequest && <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">直近対応あり</Badge>}
-                            {unconfirmedHandover && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">引き継ぎ確認待ち</Badge>}
-                            {hasTodayFlowTask && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700">本日フローに追加済み</Badge>}
-                          </div>
-                          <p className="mt-0.5 text-xs text-slate-500">{patient.address}</p>
-                          <p className="mt-1 text-[11px] text-slate-500">次回訪問ルール: {formatVisitRuleSummary(patient)}</p>
-                          <p className="mt-1 text-[11px] text-amber-700">訪問ルール数: {countVisitRuleTouches(patient)}（超過時も保存可 / 警告表示のみ）</p>
-                        </div>
-                        <div className="flex shrink-0 gap-2">
-                          <Button size="sm" variant="outline" className="border-slate-200 bg-white text-xs text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50" asChild>
-                            <Link href={`/dashboard/patients/${patient.id}`}>詳細を見る</Link>
-                          </Button>
-                          <Button size="sm" className="bg-indigo-600 text-xs text-white hover:bg-indigo-500 disabled:bg-indigo-900" disabled={hasTodayFlowTask} onClick={() => handleAddPatientToTodayFlow(patient)}>
-                            今日対応予定にする
-                          </Button>
-                        </div>
-                      </div>
-                      {flags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{flags.slice(0, 3).map((flag) => <Badge key={flag.key} variant="outline" className={cn('border text-[10px]', getAttentionFlagClass(flag.tone))}>{flag.label}</Badge>)}</div>}
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
+            <PharmacyDashboardMasterPatientSection
+              searchQuery={searchQuery}
+              filteredMasterPatients={filteredMasterPatients}
+              ownRequests={ownRequests}
+              handoverData={handoverData}
+              ownPharmacyId={ownPharmacyId}
+              draftDayTasks={draftDayTasks}
+              flowDate={flowDate}
+              onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
+            />
           </TabsContent>
         </PharmacyDashboardTabs>
       </>
