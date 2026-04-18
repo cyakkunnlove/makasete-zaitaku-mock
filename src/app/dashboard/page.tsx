@@ -1038,6 +1038,40 @@ function PharmacyDashboardTransientNotices({
   )
 }
 
+function PharmacyDashboardUnconfirmedHandoverAlert({
+  handoverData,
+}: {
+  handoverData: Array<{ id: string; patientId: string; patientName: string; pharmacistName: string; situation: string; recommendation: string; confirmed: boolean }>
+}) {
+  const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
+  if (unconfirmed.length === 0) return null
+
+  return (
+    <Card className="border-amber-200 bg-amber-50 text-slate-900 shadow-sm">
+      <CardContent className="space-y-2 p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+          <AlertTriangle className="h-4 w-4" />
+          引き継ぎ確認待ち（{unconfirmed.length}件）
+        </div>
+        {unconfirmed.map((ho) => (
+          <div key={ho.id} className="rounded-lg border border-amber-200 bg-white p-3 text-xs shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="font-medium text-slate-900">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
+                <p className="mt-1 text-slate-600">{ho.situation}</p>
+                <p className="mt-1 text-amber-700">{ho.recommendation}</p>
+              </div>
+              <Link href={`/dashboard/patients/${ho.patientId}`}>
+                <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -2142,34 +2176,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   return (
     <div className="space-y-4">
-      {(() => {
-        const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
-        if (unconfirmed.length === 0) return null
-        return (
-          <Card className="border-amber-200 bg-amber-50 text-slate-900 shadow-sm">
-            <CardContent className="space-y-2 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
-                <AlertTriangle className="h-4 w-4" />
-                引き継ぎ確認待ち（{unconfirmed.length}件）
-              </div>
-              {unconfirmed.map((ho) => (
-                <div key={ho.id} className="rounded-lg border border-amber-200 bg-white p-3 text-xs shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-slate-900">{ho.patientName} — 引き継ぎ担当 {ho.pharmacistName}</p>
-                      <p className="mt-1 text-slate-600">{ho.situation}</p>
-                      <p className="mt-1 text-amber-700">{ho.recommendation}</p>
-                    </div>
-                    <Link href={`/dashboard/patients/${ho.patientId}`}>
-                      <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )
-      })()}
+      <PharmacyDashboardUnconfirmedHandoverAlert handoverData={handoverData} />
 
       <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
