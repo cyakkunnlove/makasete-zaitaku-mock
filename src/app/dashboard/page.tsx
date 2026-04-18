@@ -130,9 +130,6 @@ function getDayTaskStorageKey(pharmacyId: string, flowDate: string) {
   return `makasete-day-flow:${pharmacyId}:${flowDate}`
 }
 
-function getSharedDayTaskStorageKey(pharmacyId: string, flowDate: string) {
-  return `makasete-day-flow:shared:${pharmacyId}:${flowDate}`
-}
 
 function isUuidLike(value: string | null | undefined) {
   if (!value) return false
@@ -1505,7 +1502,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const ownPharmacyId = getScopedPharmacyId(user)
   const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
-  const sharedDayTaskStorageKey = useMemo(() => getSharedDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const fallbackRegisteredPatients = useMemo(() => {
     if (databasePatients.length === 0) return registeredPatients
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
@@ -1637,21 +1633,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         setRegisteredPatients(loadMockFallbackPatients())
         setFlowLoadKey((prev) => prev + 1)
       }
-      if (event.key !== sharedDayTaskStorageKey || !event.newValue) return
-      try {
-        const parsed = JSON.parse(event.newValue) as { tasks: DayTaskItem[]; savedAt?: string; savedBy?: string }
-        if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-          setDayTasks(parsed.tasks)
-          setDraftDayTasks(parsed.tasks)
-          setHasOrderDraft(false)
-          setLastOrderSavedAt(parsed.savedAt ?? null)
-          setLastOrderSavedBy(parsed.savedBy ?? null)
-        }
-      } catch {}
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
-  }, [sharedDayTaskStorageKey])
+  }, [])
 
   useEffect(() => {
     if (!undoTarget) return
@@ -2182,10 +2167,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setHasOrderDraft(false)
     setLastOrderSavedAt(savedAt)
     setLastOrderSavedBy(savedBy)
-    setSaveToast('並び順を保存しました。他スタッフにも反映されます。')
-    try {
-      window.localStorage.setItem(sharedDayTaskStorageKey, JSON.stringify({ tasks: draftDayTasks, savedAt, savedBy }))
-    } catch {}
+    setSaveToast('並び順を保存しました。')
   }
 
   const handleResetOrderDraft = () => {
