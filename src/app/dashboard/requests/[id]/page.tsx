@@ -25,7 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { cn } from '@/lib/utils'
-import type { ChecklistType, ChecklistItem, RequestStatus } from '@/types/database'
+import type { ChecklistType, ChecklistItem } from '@/types/database'
 import {
   ArrowLeft,
   Clock3,
@@ -37,29 +37,7 @@ import {
   CheckCircle2,
   FileText,
 } from 'lucide-react'
-
-function getAdminDisplayStatus(status: RequestStatus, patientId: string | null) {
-  if (status === 'completed') {
-    return { label: '完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
-  }
-  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
-    return { label: '対応中', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
-  }
-  if (patientId) {
-    return { label: '患者特定済', className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' }
-  }
-  return { label: '受付', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
-}
-
-function getPharmacyDisplayStatus(status: RequestStatus) {
-  if (status === 'completed') {
-    return { label: '完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
-  }
-  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
-    return { label: '対応中', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
-  }
-  return { label: '対応準備中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
-}
+import { getRequestDisplayStatus } from '@/lib/status-meta'
 
 export default function RequestDetailPage() {
   const params = useParams()
@@ -131,7 +109,13 @@ export default function RequestDetailPage() {
   }
 
   const currentStep = requestStepIndex[request.status]
-  const status = isAdmin ? getAdminDisplayStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyDisplayStatus(request.status) : statusMeta[request.status]
+  const status = isAdmin
+    ? getRequestDisplayStatus(request.status, 'admin', request.patientId)
+    : isPharmacyAdmin
+      ? getRequestDisplayStatus(request.status, 'pharmacy', request.patientId)
+      : isNightPharmacist
+        ? getRequestDisplayStatus(request.status, 'night_pharmacist', request.patientId)
+        : statusMeta[request.status]
   const priority = priorityMeta[request.priority]
   const attentionFlags = patient ? getAttentionFlags(patient) : []
   const currentChecklist = checklists[checklistType]

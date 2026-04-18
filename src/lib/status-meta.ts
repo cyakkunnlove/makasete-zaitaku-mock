@@ -1,7 +1,8 @@
-import type { BillingStatus } from '@/types/database'
+import type { BillingStatus, RequestStatus } from '@/types/database'
 import type { PharmacyStatus } from '@/lib/mock-data'
 
 export type CollectionWorkflowStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
+export type RequestStatusRole = 'admin' | 'night_pharmacist' | 'pharmacy'
 
 export type StatusMeta = {
   label: string
@@ -31,4 +32,36 @@ export const pharmacyDetailStatusMeta: Record<PharmacyStatus, StatusMeta> = {
   active: { label: '利用中', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' },
   pending: { label: '初期設定中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' },
   suspended: { label: '停止中', className: 'border-rose-500/40 bg-rose-500/20 text-rose-300' },
+}
+
+export function getRequestDisplayStatus(status: RequestStatus, role: RequestStatusRole, patientId: string | null): StatusMeta {
+  if (status === 'completed') {
+    return { label: '完了', className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' }
+  }
+
+  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
+    return { label: '対応中', className: 'border-sky-500/40 bg-sky-500/20 text-sky-300' }
+  }
+
+  if (role === 'admin') {
+    if (patientId) {
+      return { label: '患者特定済', className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' }
+    }
+    return { label: '受付', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+  }
+
+  if (role === 'night_pharmacist') {
+    if (patientId) {
+      return { label: '受付済み', className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300' }
+    }
+    if (status === 'fax_received') {
+      return { label: '患者特定待ち', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
+    }
+    if (status === 'fax_pending') {
+      return { label: 'FAX受信待ち', className: 'border-purple-500/40 bg-purple-500/20 text-purple-300' }
+    }
+    return { label: '受電済み', className: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300' }
+  }
+
+  return { label: '対応準備中', className: 'border-amber-500/40 bg-amber-500/20 text-amber-300' }
 }

@@ -42,35 +42,9 @@ import {
   statusMeta,
   priorityMeta,
 } from '@/lib/mock-data'
-import type { RequestStatus } from '@/types/database'
+import { getRequestDisplayStatus } from '@/lib/status-meta'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
-
-
-function getAdminStatus(status: RequestStatus, patientId: string | null) {
-  if (status === 'completed') {
-    return {
-      label: '完了',
-      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-    }
-  }
-  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
-    return {
-      label: '対応中',
-      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
-    }
-  }
-  if (patientId) {
-    return {
-      label: '患者特定済',
-      className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
-    }
-  }
-  return {
-    label: '受付',
-    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  }
-}
 
 function getNightNextAction(request: (typeof requestData)[number]) {
   if (request.status === 'fax_pending') {
@@ -85,61 +59,6 @@ function getNightNextAction(request: (typeof requestData)[number]) {
   return { label: '依頼詳細を開く', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
 }
 
-function getNightPharmacistStatus(status: RequestStatus, patientId: string | null) {
-  if (status === 'completed') {
-    return {
-      label: '完了',
-      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-    }
-  }
-  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
-    return {
-      label: '対応中',
-      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
-    }
-  }
-  if (patientId) {
-    return {
-      label: '受付済み',
-      className: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
-    }
-  }
-  if (status === 'fax_received') {
-    return {
-      label: '患者特定待ち',
-      className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-    }
-  }
-  if (status === 'fax_pending') {
-    return {
-      label: 'FAX受信待ち',
-      className: 'border-purple-500/40 bg-purple-500/20 text-purple-300',
-    }
-  }
-  return {
-    label: '受電済み',
-    className: 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300',
-  }
-}
-
-function getPharmacyStatus(status: RequestStatus) {
-  if (status === 'completed') {
-    return {
-      label: '完了',
-      className: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-    }
-  }
-  if (['dispatched', 'arrived', 'in_progress'].includes(status)) {
-    return {
-      label: '対応中',
-      className: 'border-sky-500/40 bg-sky-500/20 text-sky-300',
-    }
-  }
-  return {
-    label: '対応準備中',
-    className: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  }
-}
 
 export default function RequestsPage() {
   const router = useRouter()
@@ -277,7 +196,13 @@ export default function RequestsPage() {
             </CardContent>
           </Card>
         ) : filteredRequests.map((request) => {
-          const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
+          const status = isAdmin
+            ? getRequestDisplayStatus(request.status, 'admin', request.patientId)
+            : isPharmacyAdmin
+              ? getRequestDisplayStatus(request.status, 'pharmacy', request.patientId)
+              : isNightPharmacist
+                ? getRequestDisplayStatus(request.status, 'night_pharmacist', request.patientId)
+                : statusMeta[request.status]
           const priority = priorityMeta[request.priority]
           const patientLabel = isAdmin
             ? request.patientId
@@ -378,7 +303,13 @@ export default function RequestsPage() {
                 </TableCell>
               </TableRow>
             ) : filteredRequests.map((request) => {
-              const status = isAdmin ? getAdminStatus(request.status, request.patientId) : isPharmacyAdmin ? getPharmacyStatus(request.status) : isNightPharmacist ? getNightPharmacistStatus(request.status, request.patientId) : statusMeta[request.status]
+              const status = isAdmin
+                ? getRequestDisplayStatus(request.status, 'admin', request.patientId)
+                : isPharmacyAdmin
+                  ? getRequestDisplayStatus(request.status, 'pharmacy', request.patientId)
+                  : isNightPharmacist
+                    ? getRequestDisplayStatus(request.status, 'night_pharmacist', request.patientId)
+                    : statusMeta[request.status]
               const priority = priorityMeta[request.priority]
                   const patientLabel = isAdmin
                 ? request.patientId
