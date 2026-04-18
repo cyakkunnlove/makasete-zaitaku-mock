@@ -546,6 +546,71 @@ function PharmacyDashboardNoticeCard({
   )
 }
 
+function PharmacyDashboardSearchCard({
+  searchQuery,
+  onSearchChange,
+}: {
+  searchQuery: string
+  onSearchChange: (value: string) => void
+}) {
+  return (
+    <Card className="border-slate-200 bg-white shadow-sm">
+      <CardContent className="space-y-3 p-4">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">患者検索</p>
+          <p className="text-xs text-slate-500">名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。</p>
+        </div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} placeholder="患者名で検索" className="h-11 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function PharmacyDashboardFlowDateNavigator({
+  flowDateLabel,
+  onPrevious,
+  onNext,
+}: {
+  flowDateLabel: string
+  onPrevious: () => void
+  onNext: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm">
+      <button onClick={onPrevious} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
+      <div className="text-center leading-tight">
+        <p className="text-[11px] text-slate-500">表示中の日中フロー</p>
+        <p className="text-base font-semibold text-slate-900">{flowDateLabel}</p>
+      </div>
+      <button onClick={onNext} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
+    </div>
+  )
+}
+
+function PharmacyDashboardLoadingBanner({
+  isPatientsLoading,
+  isDayFlowLoading,
+}: {
+  isPatientsLoading: boolean
+  isDayFlowLoading: boolean
+}) {
+  if (!isPatientsLoading && !isDayFlowLoading) return null
+
+  return (
+    <Card className="border-sky-200 bg-sky-50">
+      <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-800">
+        <span>データベースから最新データを読み込み中です...</span>
+        <span className="text-xs text-sky-700">
+          {isPatientsLoading && isDayFlowLoading ? '患者情報と今日の対応予定を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : '今日の対応予定を読み込み中'}
+        </span>
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -1689,27 +1754,13 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         )
       })()}
 
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardContent className="space-y-3 p-4">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">患者検索</p>
-            <p className="text-xs text-slate-500">名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。</p>
-          </div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="患者名で検索" className="h-11 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
-          </div>
-        </CardContent>
-      </Card>
+      <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm">
-        <button onClick={() => shiftFlowDate(-1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">前日</button>
-        <div className="text-center leading-tight">
-          <p className="text-[11px] text-slate-500">表示中の日中フロー</p>
-          <p className="text-base font-semibold text-slate-900">{flowDateLabel}</p>
-        </div>
-        <button onClick={() => shiftFlowDate(1)} className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">翌日</button>
-      </div>
+      <PharmacyDashboardFlowDateNavigator
+        flowDateLabel={flowDateLabel}
+        onPrevious={() => shiftFlowDate(-1)}
+        onNext={() => shiftFlowDate(1)}
+      />
 
       <>
         {isPharmacyAdmin && (
@@ -1826,16 +1877,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           showDetailLink={isPharmacyAdmin}
         />
 
-        {(isPatientsLoading || isDayFlowLoading) && (
-          <Card className="border-sky-200 bg-sky-50">
-            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-sky-800">
-              <span>データベースから最新データを読み込み中です...</span>
-              <span className="text-xs text-sky-700">
-                {isPatientsLoading && isDayFlowLoading ? '患者情報と今日の対応予定を読み込み中' : isPatientsLoading ? '患者情報を読み込み中' : '今日の対応予定を読み込み中'}
-              </span>
-            </CardContent>
-          </Card>
-        )}
+        <PharmacyDashboardLoadingBanner
+          isPatientsLoading={isPatientsLoading}
+          isDayFlowLoading={isDayFlowLoading}
+        />
 
         {saveToast && (
           <div className="fade-in-up">
