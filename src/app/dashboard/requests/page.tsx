@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { adminCardClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Clock3, Plus } from 'lucide-react'
 import {
   requestData,
@@ -190,11 +191,11 @@ export default function RequestsPage() {
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
         {filteredRequests.length === 0 ? (
-          <Card className={adminCardClass}>
-            <CardContent className="p-4 text-sm text-slate-500">
-              条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="条件に合う依頼はまだありません"
+            description="新しい依頼が入るとここに表示されます。"
+            className={adminCardClass}
+          />
         ) : filteredRequests.map((request) => {
           const status = isAdmin
             ? getRequestDisplayStatus(request.status, 'admin', request.patientId)
@@ -298,8 +299,12 @@ export default function RequestsPage() {
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow className="border-slate-200 hover:bg-slate-50">
-                <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-8 text-center text-sm text-slate-500">
-                  条件に合う依頼はまだありません。新しい依頼が入るとここに表示されます。
+                <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-6">
+                  <EmptyState
+                    title="条件に合う依頼はまだありません"
+                    description="新しい依頼が入るとここに表示されます。"
+                    className="border-0 bg-transparent px-0 py-2 shadow-none"
+                  />
                 </TableCell>
               </TableRow>
             ) : filteredRequests.map((request) => {

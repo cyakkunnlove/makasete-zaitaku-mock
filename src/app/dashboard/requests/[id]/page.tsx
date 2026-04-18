@@ -26,6 +26,7 @@ import { Progress } from '@/components/ui/progress'
 import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { cn } from '@/lib/utils'
 import type { ChecklistType, ChecklistItem } from '@/types/database'
+import { EmptyState } from '@/components/common/EmptyState'
 import {
   ArrowLeft,
   Clock3,
@@ -92,18 +93,19 @@ export default function RequestDetailPage() {
   if (!request) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className={`${adminCardClass} p-8 text-center`}>
-          <CardContent className="space-y-4">
-            <p className="text-lg font-semibold text-slate-900">依頼が見つかりません</p>
-            <p className="text-sm text-slate-500">ID: {id} に該当する依頼データが存在しません。</p>
+        <EmptyState
+          title="依頼が見つかりません"
+          description={`ID: ${id} に該当する依頼データが存在しません。`}
+          className={`${adminCardClass} w-full max-w-xl`}
+          action={(
             <Link href="/dashboard/requests">
               <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 依頼一覧へ戻る
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          )}
+        />
       </div>
     )
   }
