@@ -24,6 +24,8 @@ import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient, PatientHomePhoto } from '@/types/database'
 import { adminCardClass } from '@/components/admin-ui'
+import { LoadingState } from '@/components/common/LoadingState'
+import { EmptyState } from '@/components/common/EmptyState'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -274,8 +276,8 @@ export default function PatientDetailPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Card className={adminCardClass}>
-          <CardContent className="p-8 text-center">
-            <p className="text-sm text-slate-500">患者情報を読み込んでいます...</p>
+          <CardContent className="p-8">
+            <LoadingState message="患者情報を読み込んでいます。" />
           </CardContent>
         </Card>
       </div>
@@ -285,18 +287,19 @@ export default function PatientDetailPage() {
   if (!patient) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Card className={adminCardClass}>
-          <CardContent className="p-8 text-center">
-            <User className="mx-auto mb-3 h-10 w-10 text-slate-400" />
-            <p className="text-sm text-slate-500">患者が見つかりませんでした。</p>
+        <EmptyState
+          title="患者が見つかりませんでした"
+          description="指定された患者データが存在しません。"
+          className={`${adminCardClass} w-full max-w-xl`}
+          action={(
             <Link href="/dashboard/patients">
-              <Button variant="outline" className="mt-4 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+              <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 患者一覧に戻る
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          )}
+        />
       </div>
     )
   }
