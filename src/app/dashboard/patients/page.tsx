@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { adminCardClass, adminInputClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
+import { LoadingState } from '@/components/common/LoadingState'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
@@ -216,18 +218,18 @@ export default function PatientsPage() {
 
       {isRegionalAdmin && isSearchLoading && (
         <Card className={adminCardClass}>
-          <CardContent className="p-6 text-center text-sm text-slate-500">
-            患者候補を検索中です...
+          <CardContent className="p-6">
+            <LoadingState message="患者候補を検索中です。" />
           </CardContent>
         </Card>
       )}
 
       {filteredPatients.length === 0 && !isSearchLoading && (
-        <Card className={adminCardClass}>
-          <CardContent className="p-6 text-center text-sm text-slate-500">
-            {isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません。検索すると候補が表示されます。' : '該当する患者が見つかりません。'}
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません' : '該当する患者が見つかりません'}
+          description={isRegionalAdmin && !searchQuery.trim() ? '検索すると候補が表示されます。' : '検索条件を変えると見つかる場合があります。'}
+          className={adminCardClass}
+        />
       )}
 
       {filteredPatients.length > 0 && (
