@@ -2115,17 +2115,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       if (index === -1) return prev
       const targetIndex = direction === 'up' ? index - 1 : index + 1
       if (targetIndex < 0 || targetIndex >= items.length) return prev
-      const current = items[index]
-      const target = items[targetIndex]
-      const temp = current.sortOrder
-      current.sortOrder = target.sortOrder
-      target.sortOrder = temp
-      current.updatedAt = '2026-03-29 12:47'
-      current.updatedById = 'ST-07'
-      target.updatedAt = '2026-03-29 12:47'
-      target.updatedById = 'ST-07'
+      const [moved] = items.splice(index, 1)
+      items.splice(targetIndex, 0, moved)
+      const now = new Date().toISOString()
+      const normalized = items.map((item, normalizedIndex) => ({
+        ...item,
+        sortOrder: normalizedIndex + 1,
+        updatedAt: now,
+        updatedById: user?.id ?? 'ST-07',
+      }))
       setHasOrderDraft(true)
-      return [...items]
+      return normalized
     })
   }
 
@@ -2138,11 +2138,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       if (fromIndex === -1 || toIndex === -1) return prev
       const [moved] = items.splice(fromIndex, 1)
       items.splice(toIndex, 0, moved)
+      const now = new Date().toISOString()
       const normalized = items.map((item, index) => ({
         ...item,
         sortOrder: index + 1,
-        updatedAt: '2026-03-29 12:54',
-        updatedById: 'ST-07',
+        updatedAt: now,
+        updatedById: user?.id ?? 'ST-07',
       }))
       setHasOrderDraft(true)
       return normalized
@@ -2153,14 +2154,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const previousDayTasks = dayTasks
     const savedAt = new Date().toISOString()
     const savedBy = user?.full_name ?? '伊藤 真理'
+    const normalizedDraftDayTasks = [...draftDayTasks]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((task, index) => ({
+        ...task,
+        sortOrder: index + 1,
+        updatedAt: savedAt,
+        updatedById: user?.id ?? 'ST-07',
+      }))
 
-    setDayTasks(draftDayTasks)
+    setDraftDayTasks(normalizedDraftDayTasks)
+    setDayTasks(normalizedDraftDayTasks)
     setHasOrderDraft(false)
     setLastOrderSavedAt(savedAt)
     setLastOrderSavedBy(savedBy)
 
     try {
-      for (const task of draftDayTasks) {
+      for (const task of normalizedDraftDayTasks) {
         await upsertTask(task)
       }
       setSaveToast('並び順を保存しました。')

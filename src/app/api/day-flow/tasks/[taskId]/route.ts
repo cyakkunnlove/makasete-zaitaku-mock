@@ -32,12 +32,36 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const previousNote = existingResult.error ? null : String((existingResult.data as Record<string, unknown> | null)?.note ?? '') || null
   const previousAmount = existingResult.error ? null : Number((existingResult.data as Record<string, unknown> | null)?.amount ?? 0)
 
+  const patientId = typeof task.patientId === 'string' ? task.patientId : null
+  const flowDate = typeof task.flowDate === 'string' ? task.flowDate : null
+
+  if (!patientId || !flowDate) {
+    return NextResponse.json({ ok: false, error: 'patient_and_flow_date_required' }, { status: 400 })
+  }
+
+  const duplicateResult = await supabase
+    .from('patient_day_tasks')
+    .select('id, source, status, planning_status')
+    .eq('pharmacy_id', scopedPharmacyId)
+    .eq('patient_id', patientId)
+    .eq('flow_date', flowDate)
+    .neq('id', params.taskId)
+    .limit(5)
+
+  if (duplicateResult.error) {
+    return NextResponse.json({ ok: false, error: 'day_flow_duplicate_check_failed', details: duplicateResult.error.message }, { status: 500 })
+  }
+
+  if ((duplicateResult.data ?? []).length > 0) {
+    return NextResponse.json({ ok: false, error: 'duplicate_patient_day_task', details: '同じ患者は同じ日に1件だけ登録できます' }, { status: 409 })
+  }
+
   const payload = {
     id: params.taskId,
     organization_id: user.organization_id,
     pharmacy_id: scopedPharmacyId,
-    patient_id: typeof task.patientId === 'string' ? task.patientId : null,
-    flow_date: typeof task.flowDate === 'string' ? task.flowDate : null,
+    patient_id: patientId,
+    flow_date: flowDate,
     sort_order: typeof task.sortOrder === 'number' ? task.sortOrder : 1,
     scheduled_time: typeof task.scheduledTime === 'string' ? task.scheduledTime : '10:00',
     visit_type: typeof task.visitType === 'string' ? task.visitType : '定期',
