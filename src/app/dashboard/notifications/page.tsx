@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/common/EmptyState'
 import {
   Bell, RefreshCw, Filter, MessageCircle,
   Mail, Phone, AlertCircle, CheckCircle2,
@@ -142,7 +143,13 @@ export default function NotificationsPage() {
 
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
-        {filtered.map((log) => (
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="該当する通知ログがありません"
+            description="条件を変えると表示される場合があります。"
+            className="border-slate-200 bg-white"
+          />
+        ) : filtered.map((log) => (
           <Card key={log.id} className="border-slate-200 bg-white shadow-sm">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-start justify-between">
@@ -247,9 +254,12 @@ export default function NotificationsPage() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-slate-500">
-          <Bell size={40} className="mx-auto mb-3 opacity-30" />
-          <p>該当する通知ログがありません</p>
+        <div className="hidden lg:block">
+          <EmptyState
+            title="該当する通知ログがありません"
+            description="条件を変えると表示される場合があります。"
+            className="border-slate-200 bg-white"
+          />
         </div>
       )}
     </div>
