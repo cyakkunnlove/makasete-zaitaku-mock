@@ -36,6 +36,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
+import { LoadingState } from '@/components/common/LoadingState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Plus, Calendar, Users, ChevronDown } from 'lucide-react'
 
 import {
@@ -902,9 +905,11 @@ export default function StaffPage() {
       )}
 
       {errorMessage && (
-        <Card className="border-rose-200 bg-rose-50 text-rose-900 shadow-sm">
-          <CardContent className="p-4 text-sm">{errorMessage}</CardContent>
-        </Card>
+        <ErrorState
+          title="スタッフ管理で問題がありました"
+          description={errorMessage}
+          className="px-4 py-6"
+        />
       )}
 
       {requiresReverification && (
@@ -990,9 +995,13 @@ export default function StaffPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {isActivityLoading ? (
-                <p className="text-sm text-slate-500">活動量データを読み込み中です。</p>
+                <LoadingState message="活動量データを読み込み中です。" />
               ) : staffActivitySummaries.length === 0 ? (
-                <p className="text-sm text-slate-500">表示できる活動量データはまだありません。</p>
+                <EmptyState
+                  title="表示できる活動量データはまだありません"
+                  description="活動量データが入るとここに表示されます。"
+                  className="px-4 py-8 shadow-none"
+                />
               ) : (
                 <div className="grid grid-cols-1 gap-2 xl:grid-cols-2 2xl:grid-cols-3">
                   {staffActivitySummaries.map((item) => {
@@ -1064,12 +1073,16 @@ export default function StaffPage() {
           <div className="grid grid-cols-1 gap-3 lg:hidden">
             {isUserListLoading ? (
               <Card className={adminCardClass}>
-                <CardContent className="p-4 text-sm text-slate-500">アカウント一覧を読み込み中です。</CardContent>
+                <CardContent className="p-4">
+                  <LoadingState message="アカウント一覧を読み込み中です。" />
+                </CardContent>
               </Card>
             ) : filteredStaff.length === 0 ? (
-              <Card className={adminCardClass}>
-                <CardContent className="p-4 text-sm text-slate-500">表示できるアカウントはまだありません。</CardContent>
-              </Card>
+              <EmptyState
+                title="表示できるアカウントはまだありません"
+                description="条件に合うアカウントが入るとここに表示されます。"
+                className={adminCardClass}
+              />
             ) : filteredStaff.map((member) => (
               <Card key={member.id} className={adminCardClass}>
                 <CardContent className="space-y-3 p-4">
@@ -1131,11 +1144,19 @@ export default function StaffPage() {
               <TableBody>
                 {isUserListLoading ? (
                   <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableCell colSpan={7} className="text-center text-sm text-slate-500">アカウント一覧を読み込み中です。</TableCell>
+                    <TableCell colSpan={7} className="py-4">
+                      <LoadingState message="アカウント一覧を読み込み中です。" className="justify-center" />
+                    </TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
                   <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableCell colSpan={7} className="text-center text-sm text-slate-500">表示できるアカウントはまだありません。</TableCell>
+                    <TableCell colSpan={7} className="py-4">
+                      <EmptyState
+                        title="表示できるアカウントはまだありません"
+                        description="条件に合うアカウントが入るとここに表示されます。"
+                        className="border-0 bg-transparent px-0 py-2 shadow-none"
+                      />
+                    </TableCell>
                   </TableRow>
                 ) : filteredStaff.map((member) => {
                   const isSelf = member.id === user?.id
@@ -1218,9 +1239,13 @@ export default function StaffPage() {
                 className={adminInputClass}
               />
               {isInvitationListLoading ? (
-                <p className="text-sm text-slate-500">招待一覧を読み込み中です。</p>
+                <LoadingState message="招待一覧を読み込み中です。" />
               ) : filteredInvitations.length === 0 ? (
-                <p className="text-sm text-slate-500">条件に合う招待はまだありません。</p>
+                <EmptyState
+                  title="条件に合う招待はまだありません"
+                  description="招待中アカウントがあるとここに表示されます。"
+                  className="px-4 py-8 shadow-none"
+                />
               ) : (
                 filteredInvitations.map((invitation) => (
                   <div key={invitation.id} className={`${adminPanelClass} soft-pop flex flex-col gap-3 p-4 cursor-pointer hover:border-slate-300 hover:bg-white hover:shadow-md sm:flex-row sm:items-center sm:justify-between`}>
