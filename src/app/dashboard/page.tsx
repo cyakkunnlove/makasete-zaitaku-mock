@@ -891,6 +891,121 @@ function PharmacyDashboardAdminQuickSummary({
   )
 }
 
+function PharmacyDashboardTodayTaskList({
+  draggingTaskId,
+  orderedVisits,
+  selectedRoutePatientIds,
+  handleToggleRoutePatient,
+  dragOverTaskId,
+  dragEnabledTaskId,
+  dragHandleActiveTaskId,
+  setDraggingTaskId,
+  setDragOverTaskId,
+  setDragEnabledTaskId,
+  setDragHandleActiveTaskId,
+  reorderTaskByDrag,
+  handlePlanTask,
+  moveTask,
+  handleStartTask,
+  handleCompleteTask,
+  completionHelpText,
+  plannedLabelPrefix,
+  updatedLabelPrefix,
+  reorderHintText,
+}: {
+  draggingTaskId: string | null
+  orderedVisits: Array<DayTaskItem & { patient?: RegisteredPatientRecord | undefined }>
+  selectedRoutePatientIds: string[]
+  handleToggleRoutePatient: (patientId: string) => void
+  dragOverTaskId: string | null
+  dragEnabledTaskId: string | null
+  dragHandleActiveTaskId: string | null
+  setDraggingTaskId: React.Dispatch<React.SetStateAction<string | null>>
+  setDragOverTaskId: React.Dispatch<React.SetStateAction<string | null>>
+  setDragEnabledTaskId: React.Dispatch<React.SetStateAction<string | null>>
+  setDragHandleActiveTaskId: React.Dispatch<React.SetStateAction<string | null>>
+  reorderTaskByDrag: (draggedTaskId: string, targetTaskId: string) => void
+  handlePlanTask: (taskId: string) => void
+  moveTask: (taskId: string, direction: 'up' | 'down') => void
+  handleStartTask: (taskId: string) => void
+  handleCompleteTask: (taskId: string) => void
+  completionHelpText: string
+  plannedLabelPrefix: string
+  updatedLabelPrefix: string
+  reorderHintText: string
+}) {
+  return (
+    <div className="space-y-2">
+      {draggingTaskId && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
+        </div>
+      )}
+      {orderedVisits.map((visit) => {
+        const patient = visit.patient
+        if (!patient) return null
+        const status = taskStatusMeta(visit.status)
+        const collection = collectionStatusMeta(visit.collectionStatus)
+        const isCompleted = visit.status === 'completed'
+        const canPlanToggle = !isCompleted
+        const canStart = visit.status === 'scheduled'
+        const canComplete = visit.status === 'in_progress'
+        return (
+          <div key={visit.id} className="space-y-2">
+            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
+              <input
+                type="checkbox"
+                checked={selectedRoutePatientIds.includes(visit.patientId)}
+                onChange={() => handleToggleRoutePatient(visit.patientId)}
+                className="h-4 w-4 rounded border-slate-300 bg-white"
+              />
+              <span>巡回順の提案に含める</span>
+            </label>
+            <PharmacyDayTaskCard
+              key={visit.id}
+              visit={visit}
+              patient={patient}
+              statusClassName={status.className}
+              statusLabel={status.label}
+              collectionClassName={collection.className}
+              draggingTaskId={draggingTaskId}
+              dragOverTaskId={dragOverTaskId}
+              dragEnabled={dragEnabledTaskId === visit.id}
+              isDragHandleActive={dragHandleActiveTaskId === visit.id || draggingTaskId === visit.id}
+              setDraggingTaskId={setDraggingTaskId}
+              setDragOverTaskId={setDragOverTaskId}
+              onEnableDrag={() => {
+                setDragEnabledTaskId(visit.id)
+                setDragHandleActiveTaskId(visit.id)
+              }}
+              onDisableDrag={() => {
+                setDragEnabledTaskId(null)
+                setDragHandleActiveTaskId(null)
+              }}
+              onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
+              canStart={canStart}
+              canComplete={canComplete}
+              canMoveUp={!isCompleted}
+              canMoveDown={!isCompleted}
+              canPlanToggle={canPlanToggle}
+              onPlanToggle={() => handlePlanTask(visit.id)}
+              onMoveUp={() => moveTask(visit.id, 'up')}
+              onMoveDown={() => moveTask(visit.id, 'down')}
+              onStart={() => handleStartTask(visit.id)}
+              onComplete={() => handleCompleteTask(visit.id)}
+              completionHelpText={completionHelpText}
+              plannedLabelPrefix={plannedLabelPrefix}
+              updatedLabelPrefix={updatedLabelPrefix}
+              planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
+              reorderHintText={reorderHintText}
+            />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -2127,74 +2242,28 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               onApplySuggestedOrder={handleApplySuggestedOrder}
               routeMapRef={routeMapRef}
             />
-            <div className="space-y-2">
-              {draggingTaskId && (
-                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-                  青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
-                </div>
-              )}
-              {orderedVisits.map((visit) => {
-                const patient = visit.patient
-                if (!patient) return null
-                const status = taskStatusMeta(visit.status)
-                const collection = collectionStatusMeta(visit.collectionStatus)
-                const isCompleted = visit.status === 'completed'
-                const canPlanToggle = !isCompleted
-                const canStart = visit.status === 'scheduled'
-                const canComplete = visit.status === 'in_progress'
-                return (
-                  <div key={visit.id} className="space-y-2">
-                    <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedRoutePatientIds.includes(visit.patientId)}
-                        onChange={() => handleToggleRoutePatient(visit.patientId)}
-                        className="h-4 w-4 rounded border-slate-300 bg-white"
-                      />
-                      <span>巡回順の提案に含める</span>
-                    </label>
-                    <PharmacyDayTaskCard
-                    key={visit.id}
-                    visit={visit}
-                    patient={patient}
-                    statusClassName={status.className}
-                    statusLabel={status.label}
-                    collectionClassName={collection.className}
-                    draggingTaskId={draggingTaskId}
-                    dragOverTaskId={dragOverTaskId}
-                    dragEnabled={dragEnabledTaskId === visit.id}
-                    isDragHandleActive={dragHandleActiveTaskId === visit.id || draggingTaskId === visit.id}
-                    setDraggingTaskId={setDraggingTaskId}
-                    setDragOverTaskId={setDragOverTaskId}
-                    onEnableDrag={() => {
-                      setDragEnabledTaskId(visit.id)
-                      setDragHandleActiveTaskId(visit.id)
-                    }}
-                    onDisableDrag={() => {
-                      setDragEnabledTaskId(null)
-                      setDragHandleActiveTaskId(null)
-                    }}
-                    onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
-                    canStart={canStart}
-                    canComplete={canComplete}
-                    canMoveUp={!isCompleted}
-                    canMoveDown={!isCompleted}
-                    canPlanToggle={canPlanToggle}
-                    onPlanToggle={() => handlePlanTask(visit.id)}
-                    onMoveUp={() => moveTask(visit.id, 'up')}
-                    onMoveDown={() => moveTask(visit.id, 'down')}
-                    onStart={() => handleStartTask(visit.id)}
-                    onComplete={() => handleCompleteTask(visit.id)}
-                    completionHelpText={completionHelpText}
-                    plannedLabelPrefix={plannedLabelPrefix}
-                    updatedLabelPrefix={updatedLabelPrefix}
-                    planButtonLabel={visit.planningStatus === 'planned' ? '予定を外す' : '今日対応予定にする'}
-                    reorderHintText={reorderHintText}
-                  />
-                  </div>
-                )
-              })}
-            </div>
+            <PharmacyDashboardTodayTaskList
+              draggingTaskId={draggingTaskId}
+              orderedVisits={orderedVisits}
+              selectedRoutePatientIds={selectedRoutePatientIds}
+              handleToggleRoutePatient={handleToggleRoutePatient}
+              dragOverTaskId={dragOverTaskId}
+              dragEnabledTaskId={dragEnabledTaskId}
+              dragHandleActiveTaskId={dragHandleActiveTaskId}
+              setDraggingTaskId={setDraggingTaskId}
+              setDragOverTaskId={setDragOverTaskId}
+              setDragEnabledTaskId={setDragEnabledTaskId}
+              setDragHandleActiveTaskId={setDragHandleActiveTaskId}
+              reorderTaskByDrag={reorderTaskByDrag}
+              handlePlanTask={handlePlanTask}
+              moveTask={moveTask}
+              handleStartTask={handleStartTask}
+              handleCompleteTask={handleCompleteTask}
+              completionHelpText={completionHelpText}
+              plannedLabelPrefix={plannedLabelPrefix}
+              updatedLabelPrefix={updatedLabelPrefix}
+              reorderHintText={reorderHintText}
+            />
           </TabsContent>
 
           <TabsContent value="master" className="space-y-2">
