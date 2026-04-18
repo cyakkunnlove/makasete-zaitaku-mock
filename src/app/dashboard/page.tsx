@@ -35,7 +35,7 @@ import {
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
-import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
@@ -1518,7 +1518,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const dayFlowPatients = useMemo(() => ownPatients.filter((patient) => isUuidLike(patient.id)), [ownPatients])
 
   useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()
@@ -1634,7 +1634,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === 'makasete-patient-master:v1') {
-        setRegisteredPatients(loadRegisteredPatients())
+        setRegisteredPatients(loadMockFallbackPatients())
         setFlowLoadKey((prev) => prev + 1)
       }
       if (event.key !== sharedDayTaskStorageKey || !event.newValue) return

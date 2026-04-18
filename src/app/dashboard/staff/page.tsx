@@ -47,7 +47,7 @@ import {
   type ShiftEntry,
   type DayTaskItem,
 } from '@/lib/mock-data'
-import { loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
@@ -402,7 +402,7 @@ export default function StaffPage() {
   }, [isSystemAdmin])
 
   useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()

@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
-import { formatVisitRuleSummary, loadRegisteredPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, loadMockFallbackPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient, PatientHomePhoto } from '@/types/database'
@@ -120,7 +120,7 @@ export default function PatientDetailPage() {
       return
     }
 
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients())
+    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') {
@@ -329,7 +329,7 @@ export default function PatientDetailPage() {
             }
           : undefined,
       })
-      setRegisteredPatients(loadRegisteredPatients())
+      setRegisteredPatients(loadMockFallbackPatients())
       setEditSavedNotice('訪問スケジュールを保存しました')
       setTimeout(() => setEditSavedNotice(null), 2500)
       return
@@ -688,7 +688,7 @@ export default function PatientDetailPage() {
             }
           : current.registrationMeta,
       }))
-      setRegisteredPatients(loadRegisteredPatients())
+      setRegisteredPatients(loadMockFallbackPatients())
     }
     setGeocodeConfirmOpen(false)
     setGeocodePreview(null)

@@ -1,5 +1,8 @@
 import { pharmacyData, type PatientRecord } from '@/lib/mock-data'
 
+// NOTE:
+// This localStorage key is only a mock / local fallback during the migration period.
+// The long-term source of truth for patient data should be the database and scoped APIs.
 export const PATIENT_MASTER_STORAGE_KEY = 'makasete-patient-master:v1'
 
 export type VisitRulePattern = 'weekly' | 'biweekly' | 'custom'
@@ -72,7 +75,7 @@ function safeWindow(): Window | null {
   return typeof window === 'undefined' ? null : window
 }
 
-export function loadRegisteredPatients(): RegisteredPatientRecord[] {
+export function loadMockFallbackPatients(): RegisteredPatientRecord[] {
   const win = safeWindow()
   if (!win) return []
 
@@ -86,25 +89,35 @@ export function loadRegisteredPatients(): RegisteredPatientRecord[] {
   }
 }
 
-export function saveRegisteredPatients(patients: RegisteredPatientRecord[]) {
+export function saveMockFallbackPatients(patients: RegisteredPatientRecord[]) {
   const win = safeWindow()
   if (!win) return
   win.localStorage.setItem(PATIENT_MASTER_STORAGE_KEY, JSON.stringify(patients))
 }
 
+// Backward-compatible alias while callers migrate off the old name.
+export function loadRegisteredPatients(): RegisteredPatientRecord[] {
+  return loadMockFallbackPatients()
+}
+
+// Backward-compatible alias while callers migrate off the old name.
+export function saveRegisteredPatients(patients: RegisteredPatientRecord[]) {
+  saveMockFallbackPatients(patients)
+}
+
 export function upsertRegisteredPatient(patient: RegisteredPatientRecord) {
-  const current = loadRegisteredPatients()
+  const current = loadMockFallbackPatients()
   const next = [patient, ...current.filter((item) => item.id !== patient.id)]
-  saveRegisteredPatients(next)
+  saveMockFallbackPatients(next)
 }
 
 export function updateRegisteredPatient(
   patientId: string,
   updater: (patient: RegisteredPatientRecord) => RegisteredPatientRecord,
 ) {
-  const current = loadRegisteredPatients()
+  const current = loadMockFallbackPatients()
   const next = current.map((patient) => (patient.id === patientId ? updater(patient) : patient))
-  saveRegisteredPatients(next)
+  saveMockFallbackPatients(next)
 }
 
 export function getPatientMasterRecords(registeredPatients: RegisteredPatientRecord[] = []): RegisteredPatientRecord[] {

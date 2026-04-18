@@ -15,7 +15,7 @@ import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permission
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
 import {
   buildRegisteredPatientRecord,
-  loadRegisteredPatients,
+  loadMockFallbackPatients,
   upsertRegisteredPatient,
   type PatientVisitRule,
   type VisitRulePattern,
@@ -667,7 +667,7 @@ export default function NewPatientPage() {
       const shouldPersistLocal = createResult?.mode === 'mock'
 
       if (shouldPersistLocal) {
-        const existing = loadRegisteredPatients()
+        const existing = loadMockFallbackPatients()
         const patient = buildRegisteredPatientRecord(
           {
             name: form.name,

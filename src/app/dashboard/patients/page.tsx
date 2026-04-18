@@ -21,7 +21,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
-import { countVisitRuleTouches, formatVisitRuleSummary, loadRegisteredPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 
 function isUuidLike(value: string | null | undefined) {
@@ -45,7 +45,7 @@ export default function PatientsPage() {
   const ownPharmacyId = getScopedPharmacyId(user)
 
   useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadRegisteredPatients().filter((patient) => !isUuidLike(patient.id)))
+    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients().filter((patient) => !isUuidLike(patient.id)))
     syncPatients()
     const handleStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'makasete-patient-master:v1') {
