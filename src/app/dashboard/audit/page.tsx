@@ -30,6 +30,7 @@ import {
   adminPanelClass,
   adminTableClass,
 } from '@/components/admin-ui'
+import { LoadingState } from '@/components/common/LoadingState'
 import {
   auditLogData,
   auditActionLabel,
@@ -248,7 +249,7 @@ export default function AuditPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-500">{isLoading ? '監査ログを読み込み中です。' : `表示件数: ${filteredLogs.length}件`}</p>
+      {isLoading ? <LoadingState message="監査ログを読み込み中です。" className="text-xs" /> : <p className="text-xs text-slate-500">表示件数: {filteredLogs.length}件</p>}
 
       <div className="space-y-2 lg:hidden">
         {filteredLogs.map((entry) => {

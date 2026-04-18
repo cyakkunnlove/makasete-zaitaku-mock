@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/common/EmptyState'
 
 export default function HandoverDetailPage() {
   const { role, user } = useAuth()
@@ -29,17 +30,18 @@ export default function HandoverDetailPage() {
     return (
       <div className="min-h-screen bg-slate-50 p-4 text-slate-900">
         <div className="mx-auto max-w-3xl">
-          <Card className="border-slate-200 bg-white shadow-sm">
-            <CardContent className="py-12 text-center">
-              <p className="text-slate-500">申し送りが見つかりませんでした</p>
+          <EmptyState
+            title="申し送りが見つかりませんでした"
+            description="一覧に戻って、対象の申し送りを選び直してください。"
+            action={(
               <Link href="/dashboard/handovers">
-                <Button variant="ghost" className="mt-4 text-indigo-400 hover:text-indigo-300">
+                <Button variant="ghost" className="text-indigo-400 hover:text-indigo-300">
                   <ArrowLeft className="mr-1.5 h-4 w-4" />
                   一覧に戻る
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
+            )}
+          />
         </div>
       </div>
     )
