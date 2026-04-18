@@ -408,6 +408,7 @@ function PharmacyDashboardHeaderCard({
   billableReadyCount,
   primarySummaryBadge,
   hasOrderDraft,
+  isSavingOrder,
   handleSaveOrder,
   handleResetOrderDraft,
   orderDraftBadgeText,
@@ -420,6 +421,7 @@ function PharmacyDashboardHeaderCard({
   billableReadyCount: number
   primarySummaryBadge: string
   hasOrderDraft: boolean
+  isSavingOrder: boolean
   handleSaveOrder: () => void
   handleResetOrderDraft: () => void
   orderDraftBadgeText: string
@@ -440,9 +442,9 @@ function PharmacyDashboardHeaderCard({
           <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">{primarySummaryBadge}</Badge>
           {hasOrderDraft ? (
             <>
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{orderDraftBadgeText}</Badge>
-              <Button size="sm" onClick={handleSaveOrder} className="press-squish focus-ring bg-emerald-600 text-white hover:bg-emerald-500">順番を保存</Button>
-              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} className="press-squish focus-ring border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{resetOrderButtonText}</Button>
+              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{isSavingOrder ? '保存中...' : orderDraftBadgeText}</Badge>
+              <Button size="sm" onClick={handleSaveOrder} disabled={isSavingOrder} className="press-squish focus-ring bg-emerald-600 text-white hover:bg-emerald-500 disabled:cursor-wait disabled:bg-emerald-400">{isSavingOrder ? '保存中...' : '順番を保存'}</Button>
+              <Button size="sm" variant="outline" onClick={handleResetOrderDraft} disabled={isSavingOrder} className="press-squish focus-ring border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">{resetOrderButtonText}</Button>
             </>
           ) : (
             <Button size="sm" variant="outline" className="press-squish border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{orderSavedButtonText}</Button>
@@ -1467,6 +1469,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
+  const [isSavingOrder, setIsSavingOrder] = useState(false)
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
   const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
@@ -2151,6 +2154,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }
 
   const handleSaveOrder = async () => {
+    if (isSavingOrder) return
+
     const previousDayTasks = dayTasks
     const savedAt = new Date().toISOString()
     const savedBy = user?.full_name ?? '伊藤 真理'
@@ -2163,6 +2168,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         updatedById: user?.id ?? 'ST-07',
       }))
 
+    setIsSavingOrder(true)
     setDraftDayTasks(normalizedDraftDayTasks)
     setDayTasks(normalizedDraftDayTasks)
     setHasOrderDraft(false)
@@ -2182,6 +2188,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setLastOrderSavedAt(null)
       setLastOrderSavedBy(null)
       setSaveToast(error instanceof Error ? error.message : '並び順の保存に失敗しました')
+    } finally {
+      setIsSavingOrder(false)
     }
   }
 
@@ -2231,6 +2239,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           billableReadyCount={billableReadyCount}
           primarySummaryBadge={primarySummaryBadge}
           hasOrderDraft={hasOrderDraft}
+          isSavingOrder={isSavingOrder}
           handleSaveOrder={handleSaveOrder}
           handleResetOrderDraft={handleResetOrderDraft}
           orderDraftBadgeText={orderDraftBadgeText}
