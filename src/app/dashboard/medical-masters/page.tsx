@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Building2, Stethoscope } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
@@ -103,7 +104,13 @@ export default function MedicalMastersPage() {
                 <p className="mt-1 text-xs text-slate-500">{item.address || '住所未設定'} / 医師候補 {item.doctorCount}件</p>
               </button>
             ))}
-            {institutions.length === 0 && <p className="text-sm text-slate-500">該当する病院候補はありません。</p>}
+            {institutions.length === 0 && (
+              <EmptyState
+                title="該当する病院候補はありません"
+                description="検索条件を変えると候補が見つかる場合があります。"
+                className="px-4 py-8 shadow-none"
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -120,7 +127,13 @@ export default function MedicalMastersPage() {
                 <p className="mt-1 text-xs text-slate-500">{item.department || '診療科未設定'}{item.phone ? ` / ${item.phone}` : ''}</p>
               </div>
             ))}
-            {selectedInstitutionId && doctors.length === 0 && <p className="text-sm text-slate-500">この病院に紐づく医師候補はありません。</p>}
+            {selectedInstitutionId && doctors.length === 0 && (
+              <EmptyState
+                title="この病院に紐づく医師候補はありません"
+                description="候補が追加されるとここに表示されます。"
+                className="px-4 py-8 shadow-none"
+              />
+            )}
           </CardContent>
         </Card>
       </div>

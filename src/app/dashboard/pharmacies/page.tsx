@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { LoadingState } from '@/components/common/LoadingState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -202,9 +205,11 @@ export default function PharmaciesPage() {
       />
 
       {errorMessage && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          加盟店データの読み込みまたは保存で問題がありました: {errorMessage}
-        </div>
+        <ErrorState
+          title="加盟店データの読み込みまたは保存で問題がありました"
+          description={errorMessage}
+          className="px-4 py-6"
+        />
       )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -230,12 +235,16 @@ export default function PharmaciesPage() {
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {isLoading ? (
           <Card className={`${adminCardClass} lg:col-span-2`}>
-            <CardContent className="p-6 text-sm text-slate-500">加盟店データを読み込み中です...</CardContent>
+            <CardContent className="p-6">
+              <LoadingState message="加盟店データを読み込み中です。" />
+            </CardContent>
           </Card>
         ) : visiblePharmacies.length === 0 ? (
-          <Card className={`${adminCardClass} lg:col-span-2`}>
-            <CardContent className="p-6 text-sm text-slate-500">このリージョンにはまだ加盟店が登録されていません。右上の「加盟店を追加」から基本情報を登録すると、ここに表示されます。</CardContent>
-          </Card>
+          <EmptyState
+            title="このリージョンにはまだ加盟店が登録されていません"
+            description="右上の「加盟店を追加」から基本情報を登録すると、ここに表示されます。"
+            className={`${adminCardClass} lg:col-span-2`}
+          />
         ) : visiblePharmacies.map((pharmacy) => {
           const forwarding = getForwardingSummary(pharmacy)
 

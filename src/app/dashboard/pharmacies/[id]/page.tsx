@@ -8,6 +8,9 @@ import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { LoadingState } from '@/components/common/LoadingState'
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -150,9 +153,9 @@ export default function PharmacyDetailPage() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Card className={adminCardClass}>
-          <CardHeader>
-            <CardTitle className="text-base text-slate-900">加盟店情報を読み込み中です</CardTitle>
-          </CardHeader>
+          <CardContent className="p-6">
+            <LoadingState message="加盟店情報を読み込み中です。" />
+          </CardContent>
         </Card>
       </div>
     )
@@ -161,20 +164,19 @@ export default function PharmacyDetailPage() {
   if (!pharmacy) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Card className={adminCardClass}>
-          <CardHeader>
-            <CardTitle className="text-base text-slate-900">薬局が見つかりません</CardTitle>
-            <CardDescription className="text-slate-500">指定されたIDの薬局は存在しません。</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <EmptyState
+          title="薬局が見つかりません"
+          description="指定されたIDの薬局は存在しません。"
+          className={`${adminCardClass} w-full max-w-xl`}
+          action={(
             <Link href="/dashboard/pharmacies">
               <Button variant="ghost" className="text-indigo-400 hover:text-indigo-300">
                 <ArrowLeft className="mr-1.5 h-4 w-4" />
                 加盟店一覧に戻る
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          )}
+        />
       </div>
     )
   }
@@ -266,9 +268,11 @@ export default function PharmacyDetailPage() {
       </div>
 
       {loadError && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          加盟店データの読み込みで問題がありました: {loadError}
-        </div>
+        <ErrorState
+          title="加盟店データの読み込みで問題がありました"
+          description={loadError}
+          className="px-4 py-6"
+        />
       )}
 
       <Card className={adminCardClass}>
