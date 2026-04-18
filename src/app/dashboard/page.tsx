@@ -1006,6 +1006,38 @@ function PharmacyDashboardTodayTaskList({
   )
 }
 
+function PharmacyDashboardTransientNotices({
+  saveToast,
+  undoTarget,
+}: {
+  saveToast: string | null
+  undoTarget: { taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null
+}) {
+  return (
+    <>
+      {saveToast && (
+        <div className="fade-in-up">
+          <PharmacyDashboardNoticeCard
+            tone="success"
+            message={saveToast}
+            subtext="shared mock save"
+          />
+        </div>
+      )}
+
+      {undoTarget && (
+        <div className="fade-in-up">
+          <PharmacyDashboardNoticeCard
+            tone="warning"
+            message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
+            subtext="billing / 回収管理に反映する想定の mock 連携です。"
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -2210,25 +2242,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           isDayFlowLoading={isDayFlowLoading}
         />
 
-        {saveToast && (
-          <div className="fade-in-up">
-            <PharmacyDashboardNoticeCard
-              tone="success"
-              message={saveToast}
-              subtext="shared mock save"
-            />
-          </div>
-        )}
-
-        {undoTarget && (
-          <div className="fade-in-up">
-            <PharmacyDashboardNoticeCard
-              tone="warning"
-              message={`${undoTarget.actionLabel}。短時間だけ元に戻せます。`}
-              subtext="billing / 回収管理に反映する想定の mock 連携です。"
-            />
-          </div>
-        )}
+        <PharmacyDashboardTransientNotices
+          saveToast={saveToast}
+          undoTarget={undoTarget}
+        />
 
         <PharmacyDashboardTabs>
           <TabsContent value="today" className="space-y-2">
