@@ -33,7 +33,6 @@ import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
-const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 const BILLING_FLOW_DATE = '2026-03-28'
 
 type CollectionStatusChangeDraft = {
@@ -163,13 +162,9 @@ export default function BillingPage() {
         }
       } catch {}
 
-      try {
-        const raw = window.localStorage.getItem(DAY_TASK_STORAGE_KEY)
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (Array.isArray(parsed) && parsed.length > 0 && !cancelled) setSharedDayTasks(parsed)
-        }
-      } catch {}
+      if (!cancelled) {
+        setSharedDayTasks(dayTaskData)
+      }
     }
 
     fetchDayTasks()
