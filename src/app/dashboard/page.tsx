@@ -442,7 +442,7 @@ function PharmacyDashboardHeaderCard({
           <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-700">{primarySummaryBadge}</Badge>
           {hasOrderDraft ? (
             <>
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">{isSavingOrder ? '保存中...' : orderDraftBadgeText}</Badge>
+              <Badge variant="outline" className={`border-amber-200 bg-amber-50 text-amber-700 ${isSavingOrder ? 'status-pulse-soft' : ''}`}>{isSavingOrder ? '保存中...' : orderDraftBadgeText}</Badge>
               <Button size="sm" onClick={handleSaveOrder} disabled={isSavingOrder} className="press-squish focus-ring bg-emerald-600 text-white hover:bg-emerald-500 disabled:cursor-wait disabled:bg-emerald-400">{isSavingOrder ? '保存中...' : '順番を保存'}</Button>
               <Button size="sm" variant="outline" onClick={handleResetOrderDraft} disabled={isSavingOrder} className="press-squish focus-ring border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">{resetOrderButtonText}</Button>
             </>
@@ -533,7 +533,7 @@ function PharmacyDashboardSummaryCard({
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">{adminWarningText}</span>
           )}
           {saveStateBadge && (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">{saveStateBadge}</span>
+            <span className="success-badge-pop rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">{saveStateBadge}</span>
           )}
         </div>
       </CardContent>
