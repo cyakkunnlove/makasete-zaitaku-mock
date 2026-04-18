@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils'
 import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
-import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
+import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
@@ -84,7 +84,7 @@ export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const [collectionRecords, setCollectionRecords] = useState(initialPatientCollectionRecords)
-  const [sharedDayTasks, setSharedDayTasks] = useState(dayTaskData)
+  const [sharedDayTasks, setSharedDayTasks] = useState<DayTaskItem[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
@@ -107,9 +107,7 @@ export default function BillingPage() {
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
 
   const ownPatients = useMemo(() => {
-    const source = databasePatients.length > 0
-      ? mergePatientSources({ databasePatients, includeMockPatients: false })
-      : patientData
+    const source = mergePatientSources({ databasePatients, includeMockPatients: false })
     return source.filter((patient) => patient.pharmacyId === ownPharmacyId)
   }, [databasePatients, ownPharmacyId])
 
@@ -163,7 +161,7 @@ export default function BillingPage() {
       } catch {}
 
       if (!cancelled) {
-        setSharedDayTasks(dayTaskData)
+        setSharedDayTasks([])
       }
     }
 
@@ -193,11 +191,13 @@ export default function BillingPage() {
     }
   }, [ownPharmacyId])
 
+  const patientMap = useMemo(() => new Map(ownPatients.map((patient) => [patient.id, patient])), [ownPatients])
+
   const dayTaskCollectionRecords = useMemo(() => {
     return sharedDayTasks
       .filter((task) => task.pharmacyId === ownPharmacyId)
       .map((task) => {
-        const patient = patientData.find((item) => item.id === task.patientId)
+        const patient = patientMap.get(task.patientId)
         const existing = initialPatientCollectionRecords.find((record) => record.linkedTaskId === task.id)
         const patientBilling = patientBillingSettings.get(task.patientId)
         const status = existing?.status ?? task.collectionStatus ?? 'needs_billing'
@@ -216,7 +216,7 @@ export default function BillingPage() {
         }
       })
       .filter((record) => ownPatientNames.has(record.patientName))
-  }, [ownPatientNames, ownPharmacyId, patientBillingSettings, sharedDayTasks])
+  }, [ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -225,7 +225,7 @@ export default function BillingPage() {
 
   const patientVisitHistory = useMemo(() => {
     return ownPatients.map((patient) => {
-      const tasks = dayTaskData.filter((task) => task.patientId === patient.id)
+      const tasks = sharedDayTasks.filter((task) => task.patientId === patient.id)
       const patientRecords = mergedCollectionRecords.filter((record) => record.patientName === patient.name)
       const visits = (visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []).map((visit) => {
         const linkedCollection = patientRecords.find((record) => record.handledAt?.slice(0, 10) === visit.visitDate)
@@ -252,13 +252,13 @@ export default function BillingPage() {
         calendarMonth: month - 1,
       }
     })
-  }, [mergedCollectionRecords, ownPatients])
+  }, [mergedCollectionRecords, ownPatients, sharedDayTasks])
 
   const unbilledVisitRecords = useMemo(() => {
     return sharedDayTasks
       .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
       .map((task) => {
-        const patient = patientData.find((item) => item.id === task.patientId)
+        const patient = patientMap.get(task.patientId)
         return {
           id: `UNB-${task.id}`,
           linkedTaskId: task.id,
@@ -275,7 +275,7 @@ export default function BillingPage() {
       })
       .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
       .filter((record) => !processedUnbilledIds.has(record.id))
-  }, [mergedCollectionRecords, ownPharmacyId, processedUnbilledIds, sharedDayTasks])
+  }, [mergedCollectionRecords, ownPharmacyId, patientMap, processedUnbilledIds, sharedDayTasks])
 
   const filteredPatientVisitHistory = useMemo(() => {
     return patientVisitHistory.filter((item) => {
