@@ -1072,6 +1072,39 @@ function PharmacyDashboardUnconfirmedHandoverAlert({
   )
 }
 
+function PharmacyDashboardAdminHandoverConfirmation({
+  ownUnconfirmedHandovers,
+}: {
+  ownUnconfirmedHandovers: Array<{ id: string; patientId: string; patientName: string; pharmacistName: string; timestamp: string }>
+}) {
+  if (ownUnconfirmedHandovers.length === 0) return null
+
+  return (
+    <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
+          <UserCog className="h-4 w-4 text-indigo-600" />
+          管理者向けの引き継ぎ確認
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {ownUnconfirmedHandovers.slice(0, 3).map((handover) => (
+          <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">{handover.patientName}</p>
+              <p className="text-xs text-slate-500">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
+              <p className="mt-1 text-[11px] text-amber-700">引き継ぎ内容の確認と優先度の見直しが必要です</p>
+            </div>
+            <Link href={`/dashboard/patients/${handover.patientId}`}>
+              <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
+            </Link>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
   return (
     <Tabs defaultValue="today" className="space-y-3">
@@ -2210,29 +2243,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           handleUndo={handleUndo}
         />
 
-        {isPharmacyAdmin && ownUnconfirmedHandovers.length > 0 && (
-          <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-                <UserCog className="h-4 w-4 text-indigo-600" />
-                管理者向けの引き継ぎ確認
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {ownUnconfirmedHandovers.slice(0, 3).map((handover) => (
-                <div key={handover.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{handover.patientName}</p>
-                    <p className="text-xs text-slate-500">担当者: {handover.pharmacistName} / {handover.timestamp}</p>
-                    <p className="mt-1 text-[11px] text-amber-700">引き継ぎ内容の確認と優先度の見直しが必要です</p>
-                  </div>
-                  <Link href={`/dashboard/patients/${handover.patientId}`}>
-                    <Button size="sm" variant="outline" className="border-amber-200 bg-white text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100">患者情報で確認</Button>
-                  </Link>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+        {isPharmacyAdmin && (
+          <PharmacyDashboardAdminHandoverConfirmation
+            ownUnconfirmedHandovers={ownUnconfirmedHandovers}
+          />
         )}
 
         <PharmacyDashboardSummaryCard
