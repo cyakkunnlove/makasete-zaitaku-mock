@@ -1816,7 +1816,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     : `全体更新 ${draftDayTasks.filter((task) => task.updatedById).length}件`
   const summarySupportText = '完了・対応中・予定をスタッフごとに確認できます'
   const saveStateBadge = lastOrderSavedBy && lastOrderSavedAt
-    ? `最終保存: ${lastOrderSavedBy} / ${lastOrderSavedAt}`
+    ? `最終保存: ${lastOrderSavedBy} / ${formatJapanDateTime(lastOrderSavedAt)}`
     : null
   const adminWarningText = isPharmacyAdmin ? '完了後の予定変更は警告付きで許可' : null
   const orderDraftBadgeText = '未保存の順番変更あり'
