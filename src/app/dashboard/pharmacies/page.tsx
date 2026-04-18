@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -28,7 +29,8 @@ import {
   adminPanelClass,
 } from '@/components/admin-ui'
 import { Building2, Plus, Phone, Users, Clock3, ShieldCheck, Settings2, AlertTriangle } from 'lucide-react'
-import { pharmacyData, type PharmacyItem, type PharmacyStatus } from '@/lib/mock-data'
+import { pharmacyData, type PharmacyItem } from '@/lib/mock-data'
+import { pharmacyStatusMeta } from '@/lib/status-meta'
 
 type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
 type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
@@ -49,18 +51,6 @@ type PharmacyView = PharmacyItem & {
     ready: boolean
     needs: string[]
   }
-}
-
-const statusClass: Record<PharmacyStatus, string> = {
-  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  pending: 'border-amber-200 bg-amber-50 text-amber-700',
-  suspended: 'border-rose-200 bg-rose-50 text-rose-700',
-}
-
-const statusLabel: Record<PharmacyStatus, string> = {
-  active: '利用中',
-  pending: '初期設定中',
-  suspended: '停止中',
 }
 
 const adminStatusLabel: Record<PharmacyAdminStatus, string> = {
@@ -259,9 +249,7 @@ export default function PharmaciesPage() {
                     </Link>
                     <p className="text-xs text-slate-500">{pharmacy.area}</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>
-                    {statusLabel[pharmacy.status]}
-                  </Badge>
+                  <StatusBadge meta={pharmacyStatusMeta[pharmacy.status]} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">

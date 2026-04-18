@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { adminCardClass, adminPageClass, adminPanelClass } from '@/components/admin-ui'
 import { ArrowLeft, Building2, CheckCircle2, Clock3, CreditCard, Settings2, Users } from 'lucide-react'
 import { billingData, requestData, type PharmacyItem } from '@/lib/mock-data'
+import { pharmacyDetailStatusMeta } from '@/lib/status-meta'
 
 type PharmacyAdminStatus = 'uninvited' | 'invited' | 'active'
 type ForwardingMode = 'manual_on' | 'manual_off' | 'auto'
@@ -34,12 +36,6 @@ type PharmacyDetailView = PharmacyItem & {
     ready: boolean
     needs: string[]
   }
-}
-
-const statusClass: Record<PharmacyItem['status'], string> = {
-  active: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
-  pending: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
-  suspended: 'border-rose-500/40 bg-rose-500/20 text-rose-300',
 }
 
 const billingStatusClass: Record<string, string> = {
@@ -259,7 +255,7 @@ export default function PharmacyDetailPage() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-semibold text-slate-900">{pharmacy.name}</h1>
-              <Badge variant="outline" className={cn('border text-xs', statusClass[pharmacy.status])}>{pharmacy.status}</Badge>
+              <StatusBadge meta={pharmacyDetailStatusMeta[pharmacy.status]} />
             </div>
             <p className="text-xs text-slate-500">{pharmacy.id}{pharmacy.regionName ? ` / ${pharmacy.regionName}` : ''}</p>
           </div>

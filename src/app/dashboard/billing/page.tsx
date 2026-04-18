@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import type { BillingStatus } from '@/types/database'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -30,11 +31,10 @@ import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react
 
 import { billingData, dayTaskData, patientData, type BillingRecord } from '@/lib/mock-data'
 import { mergePatientSources } from '@/lib/patient-read-model'
+import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
 const DAY_TASK_STORAGE_KEY = 'makasete-day-tasks'
 const BILLING_FLOW_DATE = '2026-03-28'
-
-type CollectionWorkflowStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
 
 type CollectionStatusChangeDraft = {
   recordId: string
@@ -52,31 +52,6 @@ type CalendarActionDraft = {
   note: string
 }
 
-const statusClass: Record<BillingStatus, string> = {
-  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  unpaid: 'border-amber-200 bg-amber-50 text-amber-700',
-  overdue: 'border-rose-200 bg-rose-50 text-rose-700',
-}
-
-const statusLabel: Record<BillingStatus, string> = {
-  paid: '入金済',
-  unpaid: '未入金',
-  overdue: '期限超過',
-}
-
-const collectionStatusClass: Record<CollectionWorkflowStatus, string> = {
-  needs_billing: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  billed: 'border-amber-200 bg-amber-50 text-amber-700',
-  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  needs_attention: 'border-rose-200 bg-rose-50 text-rose-700',
-}
-
-const collectionStatusLabel: Record<CollectionWorkflowStatus, string> = {
-  needs_billing: '請求必要',
-  billed: '請求済み',
-  paid: '入金済み',
-  needs_attention: '要確認',
-}
 
 function parseIsoDateParts(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -685,7 +660,7 @@ export default function BillingPage() {
                           <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
                           <p className="mt-1 text-xs text-slate-500">{item.visitDate} の回収状況を確認します</p>
                         </div>
-                        <Badge variant="outline" className={cn('border text-xs', collectionStatusClass[item.status])}>{collectionStatusLabel[item.status]}</Badge>
+                        <StatusBadge meta={collectionWorkflowStatusMeta[item.status]} />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Button
@@ -712,7 +687,7 @@ export default function BillingPage() {
                             <p className="text-xs text-slate-500">{calendarActionDialog.patientName} / {calendarActionDialog.visitDate}</p>
                           </div>
                           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                            <p>現在状態: <span className="font-medium text-slate-900">{collectionStatusLabel[calendarActionDialog.status]}</span></p>
+                            <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
                             <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
                           </div>
                           <div className="mt-3 space-y-2">
@@ -794,7 +769,7 @@ export default function BillingPage() {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell><Badge variant="outline" className={cn('border text-xs', collectionStatusClass[record.status])}>{collectionStatusLabel[record.status]}</Badge></TableCell>
+                      <TableCell><StatusBadge meta={collectionWorkflowStatusMeta[record.status]} /></TableCell>
                       <TableCell className="text-xs text-slate-500">{record.note || '—'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -864,11 +839,11 @@ export default function BillingPage() {
                     <p className="text-base font-semibold text-slate-900">{record.pharmacyName}</p>
                     <p className="text-xs text-slate-500">{record.month} 請求</p>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge>
+                  <StatusBadge meta={billingStatusMeta[record.status]} />
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
                   <div><p>請求書番号</p><p className="mt-1 text-slate-900">{record.invoiceNumber}</p></div>
-                  <div><p>状態</p><p className="mt-1 text-slate-900">{statusLabel[record.status]}</p></div>
+                  <div><p>状態</p><p className="mt-1 text-slate-900">{billingStatusMeta[record.status].label}</p></div>
                   <div className="col-span-2"><p>確認状況</p><p className="mt-1 text-slate-900">{record.status === 'paid' ? '入金確認済みです' : '確認待ちです'}</p></div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -903,7 +878,7 @@ export default function BillingPage() {
                   <TableCell className="font-medium text-slate-900">{record.pharmacyName}</TableCell>
                   <TableCell className="text-slate-600">{record.invoiceNumber}</TableCell>
                   <TableCell className="text-slate-600">{record.month}</TableCell>
-                  <TableCell><Badge variant="outline" className={cn('border text-xs', statusClass[record.status])}>{statusLabel[record.status]}</Badge></TableCell>
+                  <TableCell><StatusBadge meta={billingStatusMeta[record.status]} /></TableCell>
                   <TableCell className="text-slate-600">{record.status === 'paid' ? '入金確認済み' : '確認待ち'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -940,13 +915,13 @@ export default function BillingPage() {
           <DialogHeader>
             <DialogTitle className="text-slate-900">回収状況を更新</DialogTitle>
             <DialogDescription className="text-slate-600">
-              {statusDialog ? `${statusDialog.patientName} の回収状況を「${collectionStatusLabel[statusDialog.to]}」に変更します。` : '回収状況を変更します。'}
+              {statusDialog ? `${statusDialog.patientName} の回収状況を「${collectionWorkflowStatusMeta[statusDialog.to].label}」に変更します。` : '回収状況を変更します。'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm text-slate-700">
             <div className={`${adminPanelClass} p-4`}>
-              <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.from] : '—'}</span></p>
-              <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionStatusLabel[statusDialog.to] : '—'}</span></p>
+              <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.from].label : '—'}</span></p>
+              <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.to].label : '—'}</span></p>
               {statusDialog?.from === 'paid' ? <p className="mt-2 text-xs text-amber-700">入金済みからの見直しは管理者向けの慎重操作です。</p> : null}
             </div>
             <div className="space-y-2">
@@ -971,7 +946,7 @@ export default function BillingPage() {
             <div className="space-y-3 text-sm text-slate-700">
               <div className={`${adminPanelClass} p-4`}>
                 <p>請求書番号: <span className="text-slate-900">{selectedRecord.invoiceNumber}</span></p>
-                <p className="mt-1">現在状態: <span className="text-slate-900">{statusLabel[selectedRecord.status]}</span></p>
+                <p className="mt-1">現在状態: <span className="text-slate-900">{billingStatusMeta[selectedRecord.status].label}</span></p>
                 <p className="mt-1">対象月: <span className="text-slate-900">{selectedRecord.month}</span></p>
                 <p className="mt-1">確認状況: <span className="text-slate-900">{selectedRecord.status === 'paid' ? '入金確認済みです' : '確認待ちです'}</span></p>
               </div>
