@@ -126,10 +126,6 @@ type GoogleMapsNamespace = {
   SymbolPath: { CIRCLE: unknown }
 }
 
-function getDayTaskStorageKey(pharmacyId: string, flowDate: string) {
-  return `makasete-day-flow:${pharmacyId}:${flowDate}`
-}
-
 
 function isUuidLike(value: string | null | undefined) {
   if (!value) return false
@@ -1501,7 +1497,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [flowDate, routePlanResult, user?.email])
 
   const ownPharmacyId = getScopedPharmacyId(user)
-  const dayTaskStorageKey = useMemo(() => getDayTaskStorageKey(ownPharmacyId, flowDate), [ownPharmacyId, flowDate])
   const fallbackRegisteredPatients = useMemo(() => {
     if (databasePatients.length === 0) return registeredPatients
     return registeredPatients.filter((patient) => !isUuidLike(patient.id))
@@ -1620,12 +1615,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       cancelled = true
     }
   }, [dayFlowPatients, flowDate, flowLoadKey, scopedBaseDayTasks])
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(dayTaskStorageKey, JSON.stringify(draftDayTasks))
-    } catch {}
-  }, [dayTaskStorageKey, draftDayTasks])
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -2160,14 +2149,30 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }
 
-  const handleSaveOrder = () => {
-    const savedAt = '2026-03-29 13:00'
+  const handleSaveOrder = async () => {
+    const previousDayTasks = dayTasks
+    const savedAt = new Date().toISOString()
     const savedBy = user?.full_name ?? '伊藤 真理'
+
     setDayTasks(draftDayTasks)
     setHasOrderDraft(false)
     setLastOrderSavedAt(savedAt)
     setLastOrderSavedBy(savedBy)
-    setSaveToast('並び順を保存しました。')
+
+    try {
+      for (const task of draftDayTasks) {
+        await upsertTask(task)
+      }
+      setSaveToast('並び順を保存しました。')
+      setFlowLoadKey((prev) => prev + 1)
+    } catch (error) {
+      setDayTasks(previousDayTasks)
+      setDraftDayTasks(previousDayTasks)
+      setHasOrderDraft(true)
+      setLastOrderSavedAt(null)
+      setLastOrderSavedBy(null)
+      setSaveToast(error instanceof Error ? error.message : '並び順の保存に失敗しました')
+    }
   }
 
   const handleResetOrderDraft = () => {
