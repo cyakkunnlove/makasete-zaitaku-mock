@@ -76,23 +76,6 @@ const initialPatientCollectionRecords = [
   { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'needs_attention' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
-const visitChargeHistory = {
-  'PT-001': [
-    { visitId: 'V-001', prescriptionDate: '2026-03-01', visitDate: '2026-03-02', amount: 6400, status: 'paid' as BillingStatus },
-    { visitId: 'V-002', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 6400, status: 'paid' as BillingStatus },
-  ],
-  'PT-011': [
-    { visitId: 'V-003', prescriptionDate: '2026-03-08', visitDate: '2026-03-09', amount: 4700, status: 'paid' as BillingStatus },
-    { visitId: 'V-004', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 4700, status: 'unpaid' as BillingStatus },
-  ],
-  'PT-012': [
-    { visitId: 'V-005', prescriptionDate: '2026-03-15', visitDate: '2026-03-16', amount: 15600, status: 'overdue' as BillingStatus },
-  ],
-  'PT-013': [
-    { visitId: 'V-006', prescriptionDate: '2026-03-12', visitDate: '2026-03-13', amount: 11200, status: 'unpaid' as BillingStatus },
-  ],
-}
-
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
@@ -242,20 +225,39 @@ export default function BillingPage() {
     return ownPatients.map((patient) => {
       const tasks = sharedDayTasks.filter((task) => task.patientId === patient.id)
       const patientRecords = mergedCollectionRecords.filter((record) => record.patientName === patient.name)
-      const visits = (visitChargeHistory[patient.id as keyof typeof visitChargeHistory] ?? []).map((visit) => {
-        const linkedCollection = patientRecords.find((record) => record.handledAt?.slice(0, 10) === visit.visitDate)
-          ?? patientRecords.find((record) => record.status === (visit.status === 'paid' ? 'paid' : visit.status === 'overdue' ? 'needs_attention' : 'billed'))
-          ?? patientRecords[0]
-        const workflowStatus = linkedCollection?.status ?? (visit.status === 'paid' ? 'paid' : visit.status === 'overdue' ? 'needs_attention' : 'billed')
-        return {
-          ...visit,
-          workflowStatus,
-          collectionRecordId: linkedCollection?.id ?? null,
-          note: linkedCollection?.note ?? '',
-        }
-      })
+      const completedTaskVisits = tasks
+        .filter((task) => task.status === 'completed' && !!task.completedAt)
+        .map((task) => {
+          const visitDate = task.completedAt?.slice(0, 10) ?? BILLING_FLOW_DATE
+          const linkedCollection = patientRecords.find((record) => record.linkedTaskId === task.id)
+            ?? patientRecords.find((record) => record.handledAt?.slice(0, 10) === visitDate)
+            ?? null
+          return {
+            visitId: `VISIT-${task.id}`,
+            prescriptionDate: visitDate,
+            visitDate,
+            amount: linkedCollection?.amount ?? task.amount,
+            workflowStatus: linkedCollection?.status ?? (task.billable ? 'needs_billing' : 'needs_attention'),
+            collectionRecordId: linkedCollection?.id ?? null,
+            note: linkedCollection?.note ?? task.note ?? '',
+          }
+        })
+
+      const recordOnlyVisits = patientRecords
+        .filter((record) => !completedTaskVisits.some((visit) => visit.collectionRecordId === record.id))
+        .map((record) => ({
+          visitId: `COLLECT-${record.id}`,
+          prescriptionDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
+          visitDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
+          amount: record.amount,
+          workflowStatus: record.status,
+          collectionRecordId: record.id,
+          note: record.note ?? '',
+        }))
+
+      const visits = [...completedTaskVisits, ...recordOnlyVisits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
       const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
-      const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? '2026-03-01'
+      const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? BILLING_FLOW_DATE
       const { year, month } = parseIsoDateParts(calendarMonth)
       return {
         patientId: patient.id,
