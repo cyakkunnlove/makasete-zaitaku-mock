@@ -30,6 +30,7 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
+import { buildDayTaskCollectionRecords, type BillingCollectionRecord } from '@/lib/billing-read-model'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
@@ -79,7 +80,7 @@ const initialPatientCollectionRecords = [
 export default function BillingPage() {
   const { role } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
-  const [collectionRecords, setCollectionRecords] = useState(() => (
+  const [collectionRecords, setCollectionRecords] = useState<BillingCollectionRecord[]>(() => (
     role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
   ))
   const [sharedDayTasks, setSharedDayTasks] = useState<DayTaskItem[]>([])
@@ -88,6 +89,7 @@ export default function BillingPage() {
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
+  const [adminBillingRecords, setAdminBillingRecords] = useState<BillingRecord[]>(billingData)
   const [toastMessage, setToastMessage] = useState('')
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
@@ -191,30 +193,14 @@ export default function BillingPage() {
 
   const patientMap = useMemo(() => new Map(ownPatients.map((patient) => [patient.id, patient])), [ownPatients])
 
-  const dayTaskCollectionRecords = useMemo(() => {
-    return sharedDayTasks
-      .filter((task) => task.pharmacyId === ownPharmacyId)
-      .map((task) => {
-        const patient = patientMap.get(task.patientId)
-        const existing = collectionRecords.find((record) => record.linkedTaskId === task.id)
-        const patientBilling = patientBillingSettings.get(task.patientId)
-        const status = existing?.status ?? task.collectionStatus ?? 'needs_billing'
-        return {
-          id: existing?.id ?? `COL-${task.id}`,
-          patientName: patient?.name ?? task.patientId,
-          month: '2026-03',
-          amount: task.amount,
-          status: status as CollectionWorkflowStatus,
-          dueDate: existing?.dueDate ?? '2026-03-25',
-          note: existing?.note ?? (patientBilling?.isBillable === false ? (patientBilling.reason ?? '請求対象外') : 'day task 由来の請求候補'),
-          linkedTaskId: task.id,
-          handledBy: task.handledBy,
-          handledAt: task.completedAt ?? task.handledAt,
-          billable: task.billable && patientBilling?.isBillable !== false,
-        }
-      })
-      .filter((record) => ownPatientNames.has(record.patientName))
-  }, [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
+  const dayTaskCollectionRecords = useMemo(() => buildDayTaskCollectionRecords({
+    sharedDayTasks,
+    ownPharmacyId,
+    ownPatientNames,
+    patientMap,
+    patientBillingSettings,
+    collectionRecords,
+  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -357,48 +343,6 @@ export default function BillingPage() {
     return dateCollectionSummaries.find((item) => item.date === selectedCollectionDate) ?? null
   }, [dateCollectionSummaries, selectedCollectionDate])
 
-  const adminBillingRecords = useMemo(() => {
-    const source = mergedCollectionRecords.filter((record) => record.billable)
-    if (source.length === 0) return records
-
-    const monthMap = new Map<string, BillingRecord>()
-    for (const record of source) {
-      const month = record.month
-      const key = `${ownPharmacyId}-${month}`
-      const totalAmountForMonth = source
-        .filter((item) => item.month === month)
-        .reduce((sum, item) => sum + item.amount, 0)
-      const nextStatus: BillingStatus = record.status === 'paid'
-        ? 'paid'
-        : record.status === 'needs_attention'
-          ? 'overdue'
-          : 'unpaid'
-
-      const current = monthMap.get(key)
-      if (!current) {
-        monthMap.set(key, {
-          id: `BL-${key}`,
-          invoiceNumber: `INV-${month.replace('-', '')}-${ownPharmacyId}`,
-          pharmacyId: ownPharmacyId,
-          pharmacyName: 'マカセテ在宅テスト薬局',
-          month,
-          saasFee: 0,
-          nightFee: totalAmountForMonth,
-          tax: 0,
-          total: totalAmountForMonth,
-          status: nextStatus,
-        })
-        continue
-      }
-
-      if (current.status !== 'overdue') {
-        current.status = nextStatus === 'overdue' ? 'overdue' : current.status === 'paid' && nextStatus === 'paid' ? 'paid' : 'unpaid'
-      }
-    }
-
-    return Array.from(monthMap.values()).sort((a, b) => b.month.localeCompare(a.month))
-  }, [mergedCollectionRecords, ownPharmacyId, records])
-
   const summary = useMemo(() => {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
@@ -416,6 +360,38 @@ export default function BillingPage() {
       pending: adminBillingRecords.filter((record) => record.status !== 'paid').length,
     }
   }, [adminBillingRecords, isPharmacyRole, mergedCollectionRecords])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchAdminBillingReadModel() {
+      try {
+        const response = await fetch('/api/billing/read-model', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            collectionRecords: mergedCollectionRecords,
+            pharmacyId: ownPharmacyId,
+            pharmacyName: 'マカセテ在宅テスト薬局',
+          }),
+        })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.adminBillingRecords)) {
+          setAdminBillingRecords(result.adminBillingRecords)
+          return
+        }
+      } catch {}
+
+      if (!cancelled) {
+        setAdminBillingRecords(billingData)
+      }
+    }
+
+    void fetchAdminBillingReadModel()
+    return () => {
+      cancelled = true
+    }
+  }, [mergedCollectionRecords, ownPharmacyId])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
