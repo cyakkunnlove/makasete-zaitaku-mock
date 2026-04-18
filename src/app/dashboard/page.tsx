@@ -1003,19 +1003,31 @@ function PharmacyDashboardTodayTaskList({
 
 function PharmacyDashboardTransientNotices({
   saveToast,
+  saveError,
   undoTarget,
 }: {
   saveToast: string | null
+  saveError: string | null
   undoTarget: { taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null
 }) {
   return (
     <>
+      {saveError && (
+        <div className="fade-in-up">
+          <PharmacyDashboardNoticeCard
+            tone="warning"
+            message={saveError}
+            subtext="保存に失敗した内容です。もう一度操作する前に原因を確認してください。"
+          />
+        </div>
+      )}
+
       {saveToast && (
         <div className="fade-in-up">
           <PharmacyDashboardNoticeCard
             tone="success"
             message={saveToast}
-            subtext="shared mock save"
+            subtext="保存できた内容です。"
           />
         </div>
       )}
@@ -1467,6 +1479,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [dragEnabledTaskId, setDragEnabledTaskId] = useState<string | null>(null)
   const [dragHandleActiveTaskId, setDragHandleActiveTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [isSavingOrder, setIsSavingOrder] = useState(false)
@@ -2014,12 +2027,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
 
     setHasOrderDraft(true)
+    setSaveError(null)
     setSaveToast('おすすめ順を今日の並び順に反映しました。必要なら「順番を保存」を押してください。')
   }
 
   const handleAddPatientToTodayFlow = async (patient: RegisteredPatientRecord) => {
     const existing = draftDayTasks.find((task) => task.patientId === patient.id && task.flowDate === flowDate && task.status !== 'completed')
     if (existing) {
+      setSaveError(null)
       setSaveToast('この患者はすでに本日のフローに入っています')
       return
     }
@@ -2055,12 +2070,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     try {
       await upsertTask(nextTask)
+      setSaveError(null)
       setSaveToast('本日の対応フローに追加しました')
       setFlowLoadKey((prev) => prev + 1)
     } catch (error) {
       setDraftDayTasks((prev) => prev.filter((task) => task.id !== nextTask.id))
       setDayTasks((prev) => prev.filter((task) => task.id !== nextTask.id))
-      setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
+      setSaveError(error instanceof Error ? error.message : '保存に失敗しました')
+      setSaveToast(null)
     }
   }
 
@@ -2186,6 +2203,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       }))
 
     setIsSavingOrder(true)
+    setSaveError(null)
     setDraftDayTasks(normalizedDraftDayTasks)
     setDayTasks(normalizedDraftDayTasks)
     setHasOrderDraft(false)
@@ -2194,6 +2212,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     try {
       await saveTasksBulk(normalizedDraftDayTasks)
+      setSaveError(null)
       setSaveToast('並び順を保存しました。')
       setFlowLoadKey((prev) => prev + 1)
     } catch (error) {
@@ -2202,7 +2221,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       setHasOrderDraft(true)
       setLastOrderSavedAt(null)
       setLastOrderSavedBy(null)
-      setSaveToast(error instanceof Error ? error.message : '並び順の保存に失敗しました')
+      setSaveError(error instanceof Error ? error.message : '並び順の保存に失敗しました')
+      setSaveToast(null)
     } finally {
       setIsSavingOrder(false)
     }
@@ -2286,6 +2306,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
         <PharmacyDashboardTransientNotices
           saveToast={saveToast}
+          saveError={saveError}
           undoTarget={undoTarget}
         />
 
