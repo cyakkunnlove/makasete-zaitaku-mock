@@ -1912,6 +1912,23 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
   }
 
+  const saveTasksBulk = async (tasks: DayTaskItem[]) => {
+    const response = await fetch('/api/day-flow/tasks/bulk', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tasks }),
+    })
+
+    if (!response.ok) {
+      let message = '保存に失敗しました'
+      try {
+        const result = await response.json()
+        if (result?.details) message = `保存に失敗しました: ${result.details}`
+      } catch {}
+      throw new Error(message)
+    }
+  }
+
   const persistTaskChange = async (taskId: string, updater: (task: DayTaskItem) => DayTaskItem, actionLabel: string) => {
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
@@ -2176,9 +2193,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setLastOrderSavedBy(savedBy)
 
     try {
-      for (const task of normalizedDraftDayTasks) {
-        await upsertTask(task)
-      }
+      await saveTasksBulk(normalizedDraftDayTasks)
       setSaveToast('並び順を保存しました。')
       setFlowLoadKey((prev) => prev + 1)
     } catch (error) {
