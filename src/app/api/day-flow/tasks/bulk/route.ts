@@ -111,6 +111,36 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: 'day_flow_previous_fetch_failed', details: previousRowsResult.error.message }, { status: 500 })
   }
 
+  const sortWindowResult = await supabase
+    .from('patient_day_tasks')
+    .select('id, flow_date, sort_order')
+    .eq('pharmacy_id', scopedPharmacyId)
+    .in('flow_date', flowDates)
+
+  if (sortWindowResult.error) {
+    return NextResponse.json({ ok: false, error: 'day_flow_sort_window_failed', details: sortWindowResult.error.message }, { status: 500 })
+  }
+
+  const maxSortOrderByDate = new Map<string, number>()
+  for (const row of (sortWindowResult.data ?? []) as Array<Record<string, unknown>>) {
+    const flowDate = String(row.flow_date)
+    const sortOrder = Number(row.sort_order ?? 0)
+    maxSortOrderByDate.set(flowDate, Math.max(maxSortOrderByDate.get(flowDate) ?? 0, sortOrder))
+  }
+
+  const tempTasks = normalizedTasks.map((task, index) => ({
+    ...task,
+    sort_order: (maxSortOrderByDate.get(task.flow_date) ?? 0) + index + 1,
+  }))
+
+  const { error: tempError } = await supabase
+    .from('patient_day_tasks')
+    .upsert(tempTasks as never, { onConflict: 'id' })
+
+  if (tempError) {
+    return NextResponse.json({ ok: false, error: 'day_flow_bulk_temp_shift_failed', details: tempError.message }, { status: 500 })
+  }
+
   const { data, error } = await supabase
     .from('patient_day_tasks')
     .upsert(normalizedTasks as never, { onConflict: 'id' })
