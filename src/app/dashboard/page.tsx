@@ -899,6 +899,7 @@ function PharmacyDashboardTodayTaskList({
   setDragEnabledTaskId,
   setDragHandleActiveTaskId,
   reorderTaskByDrag,
+  taskCardRefs,
   handlePlanTask,
   moveTask,
   handleStartTask,
@@ -923,6 +924,7 @@ function PharmacyDashboardTodayTaskList({
   setDragEnabledTaskId: React.Dispatch<React.SetStateAction<string | null>>
   setDragHandleActiveTaskId: React.Dispatch<React.SetStateAction<string | null>>
   reorderTaskByDrag: (draggedTaskId: string, targetTaskId: string) => void
+  taskCardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>
   handlePlanTask: (taskId: string) => void
   moveTask: (taskId: string, direction: 'up' | 'down') => void
   handleStartTask: (taskId: string) => void
@@ -986,6 +988,9 @@ function PharmacyDashboardTodayTaskList({
                 setDragHandleActiveTaskId(null)
               }}
               onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
+              cardRef={(node) => {
+                taskCardRefs.current[visit.id] = node
+              }}
               canStart={canStart}
               canComplete={canComplete}
               canMoveUp={!isCompleted}
@@ -1352,6 +1357,7 @@ function PharmacyDayTaskCard({
   onEnableDrag,
   onDisableDrag,
   onDropReorder,
+  cardRef,
   canStart,
   canComplete,
   canMoveUp,
@@ -1385,6 +1391,7 @@ function PharmacyDayTaskCard({
   onEnableDrag: () => void
   onDisableDrag: () => void
   onDropReorder: () => void
+  cardRef?: React.Ref<HTMLDivElement>
   canStart: boolean
   canComplete: boolean
   canMoveUp: boolean
@@ -1406,6 +1413,7 @@ function PharmacyDayTaskCard({
 }) {
   return (
     <Card
+      ref={cardRef}
       draggable={dragEnabled}
       onDragStart={() => {
         if (!dragEnabled) return
@@ -1521,6 +1529,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
   const [workloadSettings, setWorkloadSettings] = useState<PharmacyWorkloadSettings>(defaultWorkloadSettings)
   const routeMapRef = useRef<HTMLDivElement | null>(null)
+  const taskCardRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const [routePlanResult, setRoutePlanResult] = useState<RoutePlanResult | null>(null)
   const routeEmailHref = useMemo(() => {
@@ -1682,6 +1691,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const timeout = window.setTimeout(() => setSaveToast(null), 2500)
     return () => window.clearTimeout(timeout)
   }, [saveToast])
+
+  useEffect(() => {
+    const latestTaskId = recentlySavedTaskIds[recentlySavedTaskIds.length - 1]
+    if (!latestTaskId) return
+    const target = taskCardRefs.current[latestTaskId]
+    if (!target) return
+
+    const frame = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [recentlySavedTaskIds])
 
   const enrichedVisits = useMemo(() => {
     return draftDayTasks
@@ -2374,6 +2396,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               setDragEnabledTaskId={setDragEnabledTaskId}
               setDragHandleActiveTaskId={setDragHandleActiveTaskId}
               reorderTaskByDrag={reorderTaskByDrag}
+              taskCardRefs={taskCardRefs}
               handlePlanTask={handlePlanTask}
               moveTask={moveTask}
               handleStartTask={handleStartTask}
