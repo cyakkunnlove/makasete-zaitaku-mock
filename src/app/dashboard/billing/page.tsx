@@ -458,6 +458,36 @@ export default function BillingPage() {
     setCalendarActionNote(draft.note ?? '')
   }
 
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      const trigger = target.closest<HTMLElement>('[data-open-collection-record]')
+      if (!trigger) return
+
+      const recordId = trigger.dataset.openCollectionRecord
+      const patientName = trigger.dataset.openCollectionPatientName
+      const visitDate = trigger.dataset.openCollectionVisitDate
+      const amount = Number(trigger.dataset.openCollectionAmount ?? '0')
+      const status = trigger.dataset.openCollectionStatus as CollectionWorkflowStatus | undefined
+      const note = trigger.dataset.openCollectionNote ?? ''
+
+      if (!recordId || !patientName || !visitDate || !status) return
+
+      openCalendarActionDialog({
+        recordId,
+        patientName,
+        visitDate,
+        amount,
+        status,
+        note,
+      })
+    }
+
+    document.addEventListener('click', handleDocumentClick)
+    return () => document.removeEventListener('click', handleDocumentClick)
+  }, [])
+
   const submitCalendarAction = async (status: CollectionWorkflowStatus) => {
     if (!calendarActionDialog) return
     await updateCollectionStatus(calendarActionDialog.recordId, status, calendarActionNote)
@@ -711,14 +741,12 @@ export default function BillingPage() {
                         <Button
                           type="button"
                           size="sm"
-                          onClick={() => openCalendarActionDialog({
-                            recordId: item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`,
-                            patientName: item.patientName,
-                            visitDate: item.visitDate,
-                            amount: item.amount,
-                            status: item.status,
-                            note: item.note,
-                          })}
+                          data-open-collection-record={item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`}
+                          data-open-collection-patient-name={item.patientName}
+                          data-open-collection-visit-date={item.visitDate}
+                          data-open-collection-amount={String(item.amount ?? 0)}
+                          data-open-collection-status={item.status}
+                          data-open-collection-note={item.note ?? ''}
                           className="bg-indigo-600 text-white hover:bg-indigo-600/90"
                         >
                           {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
