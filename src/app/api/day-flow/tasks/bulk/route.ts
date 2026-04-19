@@ -5,6 +5,26 @@ import { writeAuditLog } from '@/lib/audit-log'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
+function normalizeCollectionStatus(status: unknown) {
+  switch (status) {
+    case '未着手':
+    case '請求準備OK':
+    case 'needs_billing':
+      return 'needs_billing'
+    case '回収中':
+    case 'billed':
+      return 'billed'
+    case '入金済':
+    case 'paid':
+      return 'paid'
+    case '要確認':
+    case 'needs_attention':
+      return 'needs_attention'
+    default:
+      return 'needs_billing'
+  }
+}
+
 export async function PATCH(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
@@ -54,7 +74,7 @@ export async function PATCH(request: Request) {
       handled_at: typeof current.handledAt === 'string' ? current.handledAt : null,
       completed_at: typeof current.completedAt === 'string' ? current.completedAt : null,
       billable: Boolean(current.billable),
-      collection_status: typeof current.collectionStatus === 'string' ? current.collectionStatus : 'needs_billing',
+      collection_status: normalizeCollectionStatus(current.collectionStatus),
       amount: typeof current.amount === 'number' ? current.amount : 0,
       note: typeof current.note === 'string' ? current.note : '',
       updated_by_id: user.id,
