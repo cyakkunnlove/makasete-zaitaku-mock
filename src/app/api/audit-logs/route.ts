@@ -99,7 +99,7 @@ export async function GET() {
         role: actor?.role ?? 'system_admin',
         action: item.action,
         target: item.action === 'billing_collection_status_changed'
-          ? `${String((item.details as Record<string, unknown> | null)?.patient_name ?? (item.details as Record<string, unknown> | null)?.patient_id ?? item.target_id ?? '対象なし')} / 回収状況変更`
+          ? `${String((item.details as Record<string, unknown> | null)?.patient_name ?? (item.details as Record<string, unknown> | null)?.patient_id ?? item.target_id ?? '対象なし')} / 回収状況更新`
           : item.target_id ?? item.target_type ?? '対象なし',
         targetType: item.target_type ?? null,
         result: item.action === 'account_invitation_revoked'

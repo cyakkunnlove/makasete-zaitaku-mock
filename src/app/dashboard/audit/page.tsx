@@ -178,7 +178,7 @@ export default function AuditPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <AdminStatCard label="表示件数" value={filteredLogs.length} />
         <AdminStatCard label="アカウント管理" value={filteredLogs.filter((entry) => accountAuditActions.includes(entry.action as (typeof accountAuditActions)[number])).length} tone="primary" />
-        <AdminStatCard label="回収管理" value={filteredLogs.filter((entry) => billingAuditActions.includes(entry.action as (typeof billingAuditActions)[number])).length} tone="warning" />
+        <AdminStatCard label="回収状況更新" value={filteredLogs.filter((entry) => billingAuditActions.includes(entry.action as (typeof billingAuditActions)[number])).length} tone="warning" />
         <AdminStatCard label="成功" value={filteredLogs.filter((entry) => entry.result === 'success').length} tone="success" />
         <AdminStatCard label="拒否アクセス" value={filteredLogs.filter((entry) => entry.result === 'denied').length} tone="danger" />
       </div>
@@ -204,7 +204,7 @@ export default function AuditPage() {
               className={cn('cursor-pointer border text-xs', actionFilter === 'billing_collection_status_changed' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 bg-amber-50 text-amber-700')}
               onClick={() => setActionFilter('billing_collection_status_changed')}
             >
-              回収状況変更だけ
+              回収状況更新だけ
             </Badge>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -221,7 +221,7 @@ export default function AuditPage() {
                   <SelectItem value="handover_confirm">申し送り確認</SelectItem>
                   <SelectItem value="staff_update">スタッフ更新</SelectItem>
                   <SelectItem value="billing_generate">請求生成</SelectItem>
-                  <SelectItem value="billing_collection_status_changed">回収状況変更</SelectItem>
+                  <SelectItem value="billing_collection_status_changed">回収状況更新</SelectItem>
                   <SelectItem value="export_csv">CSV出力</SelectItem>
                   <SelectItem value="pharmacy_update">加盟店更新</SelectItem>
                   <SelectItem value="fax_opened">FAX閲覧</SelectItem>
@@ -293,7 +293,7 @@ export default function AuditPage() {
                 </div>
 
                 <p className="text-xs text-slate-700">対象: {entry.target}</p>
-                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です。前の状態から今の状態への変更が分かります</p> : null}
+                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の更新履歴です。前の状態から今の状態への流れが分かります</p> : null}
                 <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
 
                 {expanded ? (
@@ -334,7 +334,7 @@ export default function AuditPage() {
                       <TableCell className="text-slate-600">
                         <div>
                           <p>{entry.timestamp}</p>
-                          {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴</p> : null}
+                          {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の更新履歴</p> : null}
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-900">
@@ -360,7 +360,7 @@ export default function AuditPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-500">
-                        {entry.action === 'billing_collection_status_changed' ? 'クリックで変更内容を表示' : 'クリックで詳細表示'}
+                        {entry.action === 'billing_collection_status_changed' ? 'クリックで更新内容を表示' : 'クリックで詳細表示'}
                       </TableCell>
                     </TableRow>
 

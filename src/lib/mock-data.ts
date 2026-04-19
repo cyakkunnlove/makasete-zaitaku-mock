@@ -785,7 +785,7 @@ export const auditActionLabel: Record<AuditActionType, string> = {
   account_invitation_revoked: '招待取消',
   account_user_updated: 'アカウント更新',
   account_user_status_changed: '利用状態変更',
-  billing_collection_status_changed: '回収状況変更',
+  billing_collection_status_changed: '回収状況更新',
 }
 
 export const auditActionClass: Record<AuditActionType, string> = {
