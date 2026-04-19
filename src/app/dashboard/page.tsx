@@ -955,6 +955,7 @@ function PharmacyDashboardTodayTaskList({
         const canPlanToggle = !isCompleted && !isTaskSaving
         const canStart = visit.status === 'scheduled' && !isTaskSaving
         const canComplete = visit.status === 'in_progress' && !isTaskSaving
+        const canReorder = !isTaskSaving
         return (
           <div key={visit.id} className="space-y-2">
             <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
@@ -993,8 +994,8 @@ function PharmacyDashboardTodayTaskList({
               }}
               canStart={canStart}
               canComplete={canComplete}
-              canMoveUp={!isCompleted}
-              canMoveDown={!isCompleted}
+              canMoveUp={canReorder}
+              canMoveDown={canReorder}
               canPlanToggle={canPlanToggle}
               isSaving={isTaskSaving}
               isRecentlySaved={isTaskRecentlySaved}
@@ -1937,14 +1938,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const updatedLabelPrefix = isPharmacyStaff ? '更新: ' : '最終更新: '
   const reorderHintText = isPharmacyStaff ? 'ドラッグ移動' : 'ドラッグ移動'
   const orderedVisits = useMemo(() => {
-    return [...filteredVisits].sort((a, b) => {
-      if (a.status === 'completed' && b.status !== 'completed') return 1
-      if (a.status !== 'completed' && b.status === 'completed') return -1
-      if (a.status === 'completed' && b.status === 'completed') {
-        return (a.completedAt ?? '').localeCompare(b.completedAt ?? '')
-      }
-      return a.sortOrder - b.sortOrder
-    })
+    return [...filteredVisits].sort((a, b) => a.sortOrder - b.sortOrder)
   }, [filteredVisits])
   const pharmacyStaffHandledCounts = useMemo(() => {
     const patientNameMap = new Map(ownPatients.map((patient) => [patient.id, patient.name]))
