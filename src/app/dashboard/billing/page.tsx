@@ -656,6 +656,9 @@ export default function BillingPage() {
                             />
                           </div>
                           <div className="mt-3 grid grid-cols-1 gap-2">
+                            {calendarActionDialog.status === 'needs_billing' ? (
+                              <Button type="button" onClick={() => void submitCalendarAction('billed')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '請求済みにする'}</Button>
+                            ) : null}
                             {(calendarActionDialog.status === 'billed' || calendarActionDialog.status === 'needs_attention') ? (
                               <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
                             ) : null}
