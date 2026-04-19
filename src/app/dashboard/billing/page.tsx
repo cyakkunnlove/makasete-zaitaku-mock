@@ -99,9 +99,9 @@ function formatJstDateTime(value: string | null | undefined) {
 export default function BillingPage() {
   const { role, user } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
-  const [collectionRecords, setCollectionRecords] = useState<BillingCollectionRecord[]>(() => (
+  const collectionRecords = useMemo<BillingCollectionRecord[]>(() => (
     role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
-  ))
+  ), [role])
   const [sharedDayTasks, setSharedDayTasks] = useState<DayTaskItem[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<BillingRecord | null>(null)
@@ -318,7 +318,6 @@ export default function BillingPage() {
     setSavingCollectionRecordId(recordId)
     setFailedCollectionRecordId(null)
     setCollectionErrorMessage('')
-    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note, handledBy: actorName, handledAt } : r)))
 
     if (target?.linkedTaskId) {
       const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
