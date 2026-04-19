@@ -1288,33 +1288,61 @@ function PharmacyDayTaskCardActions({
   reorderHintText: string
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
-        {isSaving ? '保存中...' : planButtonLabel}
-      </Button>
-      <span
-        className={cn(
-          'soft-pop-sm inline-flex cursor-grab items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 active:cursor-grabbing',
-          isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
-        )}
-        onMouseDown={onDragHandlePointerDown}
-        onTouchStart={onDragHandlePointerDown}
-        onMouseUp={onDragHandlePointerUp}
-        onTouchEnd={onDragHandlePointerUp}
-        onMouseLeave={onDragHandlePointerUp}
-      >
-        <GripVertical className="h-3.5 w-3.5 text-slate-400" />
-        {reorderHintText}
-      </span>
-      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp || isSaving} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↑</Button>
-      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown || isSaving} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↓</Button>
-      <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500">
-        {isSaving ? '保存中...' : '対応する'}
-      </Button>
-      <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500">
-        {isSaving ? '保存中...' : '対応完了'}
-      </Button>
-      <span className="text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60">
+          {isSaving ? '保存中...' : planButtonLabel}
+        </Button>
+
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+          <span className="text-[11px] font-medium text-slate-600">並び替え</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onMoveUp}
+            disabled={!canMoveUp || isSaving}
+            className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ↑
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onMoveDown}
+            disabled={!canMoveDown || isSaving}
+            className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ↓
+          </Button>
+          <button
+            type="button"
+            className={cn(
+              'soft-pop-sm inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition',
+              'cursor-grab border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100 active:cursor-grabbing',
+              isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
+            )}
+            onMouseDown={onDragHandlePointerDown}
+            onTouchStart={onDragHandlePointerDown}
+            onMouseUp={onDragHandlePointerUp}
+            onTouchEnd={onDragHandlePointerUp}
+            onMouseLeave={onDragHandlePointerUp}
+            aria-label="ドラッグで並び替え"
+          >
+            <GripVertical className={cn('h-3.5 w-3.5', isDragHandleActive ? 'text-indigo-600' : 'text-slate-400')} />
+            <span>{reorderHintText}</span>
+          </button>
+        </div>
+
+        <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60">
+          {isSaving ? '保存中...' : '対応する'}
+        </Button>
+        <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60">
+          {isSaving ? '保存中...' : '対応完了'}
+        </Button>
+      </div>
+      <span className="block text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
   )
 }
@@ -1907,7 +1935,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
   const plannedLabelPrefix = isPharmacyStaff ? '対応予定: ' : 'Admin確認予定: '
   const updatedLabelPrefix = isPharmacyStaff ? '更新: ' : '最終更新: '
-  const reorderHintText = isPharmacyStaff ? 'ドラッグで並び替え' : 'Adminも並び替え可能'
+  const reorderHintText = isPharmacyStaff ? 'ドラッグ移動' : 'ドラッグ移動'
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1
