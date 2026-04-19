@@ -96,6 +96,7 @@ export default function BillingPage() {
   const [apiUnbilledVisitRecords, setApiUnbilledVisitRecords] = useState<BillingUnbilledVisitRecord[]>([])
   const [toastMessage, setToastMessage] = useState('')
   const [savingCollectionRecordId, setSavingCollectionRecordId] = useState<string | null>(null)
+  const [recentlySavedCollectionRecordId, setRecentlySavedCollectionRecordId] = useState<string | null>(null)
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
@@ -331,6 +332,8 @@ export default function BillingPage() {
     setToastMessage(`回収状況を更新しました`)
     setTimeout(() => setToastMessage(''), 3000)
     setSavingCollectionRecordId(null)
+    setRecentlySavedCollectionRecordId(recordId)
+    setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === recordId ? null : current), 1500)
   }
 
   const openStatusDialog = (recordId: string, to: CollectionWorkflowStatus) => {
@@ -413,6 +416,8 @@ export default function BillingPage() {
       setToastMessage(`${record.patientName} を請求必要へ追加しました`)
       setTimeout(() => setToastMessage(''), 3000)
       setSavingCollectionRecordId(null)
+      setRecentlySavedCollectionRecordId(record.id)
+      setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === record.id ? null : current), 1500)
     } catch {
       setToastMessage('請求必要への追加に失敗しました')
       setTimeout(() => setToastMessage(''), 3000)
@@ -502,7 +507,7 @@ export default function BillingPage() {
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className="soft-pop rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md">
+                  <div key={record.id} className={cn("soft-pop rounded-lg border bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md", savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null)}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
@@ -589,7 +594,7 @@ export default function BillingPage() {
                 </div>
                 <div className="mt-3 space-y-3">
                   {selectedDateSummary.items.map((item) => (
-                    <div key={`${item.patientId}-${item.visitDate}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div key={`${item.patientId}-${item.visitDate}`} className={cn('rounded-lg border bg-slate-50 p-3', savingCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null)}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
@@ -625,6 +630,7 @@ export default function BillingPage() {
                             <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
                             <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
                             {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
+                            {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました</p> : null}
                           </div>
                           <div className="mt-3 space-y-2">
                             <p className="text-xs text-slate-500">処理メモ</p>

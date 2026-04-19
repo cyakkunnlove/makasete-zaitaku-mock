@@ -905,6 +905,7 @@ function PharmacyDashboardTodayTaskList({
   handleCompleteTask,
   completionHelpText,
   pendingTaskIds,
+  recentlySavedTaskIds,
   plannedLabelPrefix,
   updatedLabelPrefix,
   reorderHintText,
@@ -927,6 +928,7 @@ function PharmacyDashboardTodayTaskList({
   handleCompleteTask: (taskId: string) => void
   completionHelpText: string
   pendingTaskIds: string[]
+  recentlySavedTaskIds: string[]
   plannedLabelPrefix: string
   updatedLabelPrefix: string
   reorderHintText: string
@@ -945,6 +947,7 @@ function PharmacyDashboardTodayTaskList({
         const collection = collectionStatusMeta(visit.collectionStatus)
         const isCompleted = visit.status === 'completed'
         const isTaskSaving = pendingTaskIds.includes(visit.id)
+        const isTaskRecentlySaved = recentlySavedTaskIds.includes(visit.id)
         const canPlanToggle = !isCompleted && !isTaskSaving
         const canStart = visit.status === 'scheduled' && !isTaskSaving
         const canComplete = visit.status === 'in_progress' && !isTaskSaving
@@ -987,6 +990,7 @@ function PharmacyDashboardTodayTaskList({
               canMoveDown={!isCompleted}
               canPlanToggle={canPlanToggle}
               isSaving={isTaskSaving}
+              isRecentlySaved={isTaskRecentlySaved}
               onPlanToggle={() => handlePlanTask(visit.id)}
               onMoveUp={() => moveTask(visit.id, 'up')}
               onMoveDown={() => moveTask(visit.id, 'down')}
@@ -1351,6 +1355,7 @@ function PharmacyDayTaskCard({
   canMoveDown,
   canPlanToggle,
   isSaving,
+  isRecentlySaved,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1382,6 +1387,7 @@ function PharmacyDayTaskCard({
   canMoveDown: boolean
   canPlanToggle: boolean
   isSaving: boolean
+  isRecentlySaved: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1423,6 +1429,8 @@ function PharmacyDayTaskCard({
       className={cn(
         'soft-pop border border-slate-200 bg-white shadow-sm hover:border-indigo-200 hover:shadow-md',
         isDragHandleActive && 'border-indigo-200 shadow-sm',
+        isSaving && 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft',
+        isRecentlySaved && 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop',
         draggingTaskId === visit.id && 'scale-[0.99] -translate-y-0.5 opacity-85 ring-1 ring-indigo-400/60 shadow-lg',
         dragOverTaskId === visit.id && 'border-sky-400 bg-sky-50/50 ring-2 ring-sky-400/40'
       )}
@@ -1444,6 +1452,7 @@ function PharmacyDayTaskCard({
           collectionStatus={visit.collectionStatus}
           collectionClassName={collectionClassName}
         />
+        {isRecentlySaved ? <div className="success-badge-pop -mt-1 text-[11px] font-medium text-emerald-600">✓ 保存できました</div> : null}
         <PharmacyDayTaskCardActions
           canStart={canStart}
           canComplete={canComplete}
@@ -1490,6 +1499,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
+  const [recentlySavedTaskIds, setRecentlySavedTaskIds] = useState<string[]>([])
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [isSavingOrder, setIsSavingOrder] = useState(false)
@@ -1965,6 +1975,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     try {
       await upsertTask(next)
       setSaveToast(`${actionLabel} 保存しました`)
+      setRecentlySavedTaskIds((prev) => prev.includes(taskId) ? prev : [...prev, taskId])
+      setTimeout(() => {
+        setRecentlySavedTaskIds((prev) => prev.filter((id) => id !== taskId))
+      }, 1500)
     } catch (error) {
       setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
@@ -2356,6 +2370,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               handleCompleteTask={handleCompleteTask}
               completionHelpText={completionHelpText}
               pendingTaskIds={pendingTaskIds}
+              recentlySavedTaskIds={recentlySavedTaskIds}
               plannedLabelPrefix={plannedLabelPrefix}
               updatedLabelPrefix={updatedLabelPrefix}
               reorderHintText={reorderHintText}
