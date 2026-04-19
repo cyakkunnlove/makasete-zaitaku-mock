@@ -88,6 +88,11 @@ function formatDetails(value: string | Record<string, unknown> | null) {
   return JSON.stringify(value, null, 2)
 }
 
+function splitBillingAuditDetails(value: string | Record<string, unknown> | null) {
+  const formatted = formatDetails(value)
+  return formatted.split(' / ').filter(Boolean)
+}
+
 export default function AuditPage() {
   const { role } = useAuth()
   const [actionFilter, setActionFilter] = useState<AuditActionType | 'all'>('all')
@@ -186,6 +191,22 @@ export default function AuditPage() {
             placeholder="ユーザー名、対象患者、スコープ、操作内容で検索"
             className={adminInputClass}
           />
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant="outline"
+              className={cn('cursor-pointer border text-xs', actionFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700')}
+              onClick={() => setActionFilter('all')}
+            >
+              すべて
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn('cursor-pointer border text-xs', actionFilter === 'billing_collection_status_changed' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 bg-amber-50 text-amber-700')}
+              onClick={() => setActionFilter('billing_collection_status_changed')}
+            >
+              回収状況変更だけ
+            </Badge>
+          </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="space-y-1.5">
               <p className="text-xs text-slate-500">アクション種別</p>
@@ -275,7 +296,15 @@ export default function AuditPage() {
                 {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です。前の状態から今の状態への変更が分かります</p> : null}
                 <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
 
-                {expanded && <div className={`${adminPanelClass} p-2 text-xs text-slate-700`}>{formatDetails(entry.details)}</div>}
+                {expanded ? (
+                  <div className={`${adminPanelClass} space-y-2 p-2 text-xs text-slate-700`}>
+                    {entry.action === 'billing_collection_status_changed'
+                      ? splitBillingAuditDetails(entry.details).map((line) => (
+                          <p key={line} className="rounded-md border border-slate-200 bg-white px-2 py-1">{line}</p>
+                        ))
+                      : <p className="whitespace-pre-wrap">{formatDetails(entry.details)}</p>}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           )
@@ -301,7 +330,7 @@ export default function AuditPage() {
 
                 return (
                   <Fragment key={entry.id}>
-                    <TableRow className="cursor-pointer border-slate-200 transition hover:bg-slate-50" onClick={() => setExpandedId(expanded ? null : entry.id)}>
+                    <TableRow className={cn('cursor-pointer border-slate-200 transition hover:bg-slate-50', entry.action === 'billing_collection_status_changed' ? 'bg-amber-50/40' : '')} onClick={() => setExpandedId(expanded ? null : entry.id)}>
                       <TableCell className="text-slate-600">
                         <div>
                           <p>{entry.timestamp}</p>
@@ -330,13 +359,23 @@ export default function AuditPage() {
                           <p className="text-[11px] text-slate-500">{entry.scopeLabel}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-500">クリックで詳細表示</TableCell>
+                      <TableCell className="text-slate-500">
+                        {entry.action === 'billing_collection_status_changed' ? 'クリックで変更内容を表示' : 'クリックで詳細表示'}
+                      </TableCell>
                     </TableRow>
 
                     {expanded && (
                       <TableRow className="border-slate-200 bg-slate-50 hover:bg-slate-50">
-                        <TableCell colSpan={5} className="space-y-1 text-sm text-slate-700">
-                          <p className="whitespace-pre-wrap">{formatDetails(entry.details)}</p>
+                        <TableCell colSpan={6} className="space-y-2 text-sm text-slate-700">
+                          {entry.action === 'billing_collection_status_changed' ? (
+                            <div className="space-y-2">
+                              {splitBillingAuditDetails(entry.details).map((line) => (
+                                <p key={line} className="rounded-md border border-slate-200 bg-white px-3 py-2">{line}</p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="whitespace-pre-wrap">{formatDetails(entry.details)}</p>
+                          )}
                           <p className="text-[11px] text-slate-500">scope_type: {entry.scopeType}</p>
                         </TableCell>
                       </TableRow>
