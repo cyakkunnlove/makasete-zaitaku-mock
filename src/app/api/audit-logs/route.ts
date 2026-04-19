@@ -18,10 +18,13 @@ function summarizeAuditDetails(action: string, details: Record<string, unknown> 
 
   if (action === 'billing_collection_status_changed') {
     const patientName = String(details.patient_name ?? details.patient_id ?? '対象患者')
-    const status = String(details.collection_status ?? '')
-    const statusLabel = billingStatusLabel[status] ?? (status || '状態更新')
+    const nextStatus = String(details.collection_status ?? '')
+    const previousStatus = String(details.previous_collection_status ?? '')
+    const nextStatusLabel = billingStatusLabel[nextStatus] ?? (nextStatus || '状態更新')
+    const previousStatusLabel = previousStatus ? (billingStatusLabel[previousStatus] ?? previousStatus) : '未設定'
+    const flowDate = typeof details.flow_date === 'string' && details.flow_date ? ` / 対象日: ${details.flow_date}` : ''
     const note = typeof details.note === 'string' && details.note.trim() ? ` / メモ: ${details.note.trim()}` : ''
-    return `${patientName} を ${statusLabel} に更新${note}`
+    return `${patientName} を ${previousStatusLabel} → ${nextStatusLabel} に更新${flowDate}${note}`
   }
 
   return details

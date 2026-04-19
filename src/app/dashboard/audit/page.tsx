@@ -272,7 +272,7 @@ export default function AuditPage() {
                 </div>
 
                 <p className="text-xs text-slate-700">対象: {entry.target}</p>
-                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です</p> : null}
+                {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴です。前の状態から今の状態への変更が分かります</p> : null}
                 <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
 
                 {expanded && <div className={`${adminPanelClass} p-2 text-xs text-slate-700`}>{formatDetails(entry.details)}</div>}
@@ -302,7 +302,12 @@ export default function AuditPage() {
                 return (
                   <Fragment key={entry.id}>
                     <TableRow className="cursor-pointer border-slate-200 transition hover:bg-slate-50" onClick={() => setExpandedId(expanded ? null : entry.id)}>
-                      <TableCell className="text-slate-600">{entry.timestamp}</TableCell>
+                      <TableCell className="text-slate-600">
+                        <div>
+                          <p>{entry.timestamp}</p>
+                          {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の変更履歴</p> : null}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-slate-900">
                         <div>
                           <p>{entry.user}</p>
