@@ -34,7 +34,14 @@ import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type Billi
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
-const BILLING_FLOW_DATE = '2026-03-28'
+function getTodayJstDateKey() {
+  const now = new Date()
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
+  const year = jst.getFullYear()
+  const month = String(jst.getMonth() + 1).padStart(2, '0')
+  const day = String(jst.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 type CollectionStatusChangeDraft = {
   recordId: string
@@ -99,6 +106,7 @@ export default function BillingPage() {
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
   const [showCollectionTable, setShowCollectionTable] = useState(false)
   const ownPharmacyId = 'PH-01'
+  const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
@@ -124,7 +132,7 @@ export default function BillingPage() {
 
     async function fetchDayTasks() {
       try {
-        const response = await fetch(`/api/day-flow/${BILLING_FLOW_DATE}/tasks`, { cache: 'no-store' })
+        const response = await fetch(`/api/day-flow/${billingFlowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
           const mapped = result.tasks.map((task: Record<string, unknown>) => ({
@@ -166,7 +174,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [billingFlowDate])
 
   useEffect(() => {
     let cancelled = false

@@ -9,7 +9,14 @@ import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-per
 import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
-const BILLING_FLOW_DATE = '2026-03-28'
+function getTodayJstDateKey() {
+  const now = new Date()
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
+  const year = jst.getFullYear()
+  const month = String(jst.getMonth() + 1).padStart(2, '0')
+  const day = String(jst.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -21,7 +28,7 @@ export async function POST(request: Request) {
     : []
   const flowDate = body && typeof body === 'object' && typeof (body as Record<string, unknown>).flowDate === 'string'
     ? String((body as Record<string, unknown>).flowDate)
-    : BILLING_FLOW_DATE
+    : getTodayJstDateKey()
   const patientSearch = body && typeof body === 'object' && typeof (body as Record<string, unknown>).patientSearch === 'string'
     ? String((body as Record<string, unknown>).patientSearch)
     : ''
