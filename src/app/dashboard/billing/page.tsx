@@ -64,8 +64,9 @@ function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayT
     case 'needs_billing':
       return '未着手'
     case 'billed':
-    case 'needs_attention':
       return '回収中'
+    case 'needs_attention':
+      return '要確認'
     case 'paid':
       return '入金済'
     default:

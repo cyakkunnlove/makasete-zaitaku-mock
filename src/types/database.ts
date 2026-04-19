@@ -386,7 +386,7 @@ export interface PatientDayTask {
   handled_at: string | null
   completed_at: string | null
   billable: boolean
-  collection_status: '未着手' | '請求準備OK' | '回収中' | '入金済'
+  collection_status: '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済'
   amount: number
   note: string
   updated_by_id: string | null

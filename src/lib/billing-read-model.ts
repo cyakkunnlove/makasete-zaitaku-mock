@@ -307,6 +307,8 @@ function mapLegacyCollectionStatus(status: DayTaskItem['collectionStatus']): Col
       return 'paid'
     case '回収中':
       return 'billed'
+    case '要確認':
+      return 'needs_attention'
     case '請求準備OK':
       return 'needs_billing'
     case '未着手':

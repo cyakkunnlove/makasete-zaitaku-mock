@@ -277,7 +277,7 @@ export interface DayTaskItem {
   handledAt: string | null
   completedAt: string | null
   billable: boolean
-  collectionStatus: '未着手' | '請求準備OK' | '回収中' | '入金済'
+  collectionStatus: '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済'
   amount: number
   note: string
   updatedAt: string | null
