@@ -448,16 +448,16 @@ export default function BillingPage() {
           : task
       )))
       setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
-      setToastMessage(`${record.patientName} を請求必要へ追加しました`)
+      setToastMessage(`${record.patientName} を回収管理へ追加しました`)
       setTimeout(() => setToastMessage(''), 3000)
       setSavingCollectionRecordId(null)
       setRecentlySavedCollectionRecordId(record.id)
       setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === record.id ? null : current), 1500)
     } catch {
-      setToastMessage('請求必要への追加に失敗しました')
+      setToastMessage('回収管理への追加に失敗しました')
       setTimeout(() => setToastMessage(''), 3000)
       setFailedCollectionRecordId(record.id)
-      setCollectionErrorMessage('請求必要への追加がまだ保存できていません。少し待ってから再度お試しください。')
+      setCollectionErrorMessage('回収管理への追加がまだ保存できていません。少し待ってから再度お試しください。')
       setSavingCollectionRecordId(null)
     }
   }
@@ -465,9 +465,9 @@ export default function BillingPage() {
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className={adminPageClass}>
-        <AdminPageHeader title="回収管理" description="対応完了後の請求必要、請求済み、入金済み、要確認を追います。" />
+        <AdminPageHeader title="回収管理" description="対応完了後の請求対象、未入金、入金済み、要確認を追います。" />
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <AdminStatCard label="請求必要" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
+          <AdminStatCard label="請求対象" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
           <AdminStatCard label="未入金" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
           <AdminStatCard label="入金済み" value={summary.paid} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
           <AdminStatCard label="要確認" value={summary.needsAttention} tone="danger" icon={<CalendarDays className="h-4 w-4" />} />
@@ -476,7 +476,7 @@ export default function BillingPage() {
         <Card className={adminCardClass}>
           <CardContent className="space-y-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-              <span>対応完了した訪問のうち、請求対象だけを請求必要から入金済みまで追います。</span>
+              <span>対応完了した訪問のうち、請求対象だけを回収管理で追います。</span>
               <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">回収進捗管理</Badge>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -489,9 +489,9 @@ export default function BillingPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   { key: 'all', label: '全て' },
-                  { key: 'ready', label: '請求必要' },
+                  { key: 'ready', label: '請求対象' },
                   { key: 'pending', label: '未入金' },
-                  { key: 'on_hold', label: '要注意' },
+                  { key: 'on_hold', label: '要確認' },
                   { key: 'paid', label: '入金済み' },
                 ].map((option) => (
                   <Button
@@ -516,14 +516,14 @@ export default function BillingPage() {
 
         <Card className={adminCardClass}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-900">請求必要の訪問一覧</CardTitle>
-            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここで回収管理に進めます</CardDescription>
+            <CardTitle className="text-sm text-slate-900">回収管理へ追加する訪問一覧</CardTitle>
+            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここから回収管理へ載せます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                 <p className="text-2xl font-bold text-slate-900">{unbilledVisitRecords.length}</p>
-                <p className="text-[10px] text-slate-500">請求必要</p>
+                <p className="text-[10px] text-slate-500">回収管理へ追加待ち</p>
               </div>
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-600">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
@@ -540,7 +540,7 @@ export default function BillingPage() {
             </div>
 
             {unbilledVisitRecords.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">請求必要の候補はありません。対応完了かつ請求対象の訪問があるとここに載ります。</p>
+              <p className="py-4 text-center text-xs text-slate-500">追加待ちの候補はありません。対応完了かつ請求対象の訪問があるとここに載ります。</p>
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
@@ -562,7 +562,7 @@ export default function BillingPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} disabled={savingCollectionRecordId === record.id} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === record.id ? '保存中...' : '請求必要に追加'}</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} disabled={savingCollectionRecordId === record.id} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === record.id ? '保存中...' : '回収管理に追加'}</Button>
                     </div>
                   </div>
                 ))}
@@ -603,14 +603,14 @@ export default function BillingPage() {
                           <p className="text-sm font-semibold text-slate-900">{summaryItem.date}</p>
                           <p className="mt-1 text-xs text-slate-600">
                             {summaryItem.attentionCount > 0
-                              ? '要注意の患者があります'
+                              ? '要確認の患者があります'
                               : allPaid
                                 ? 'この日はすべて入金済みです'
                                 : '未入金の患者があります'}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-[11px]">
-                          {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要注意あり</Badge> : null}
+                          {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要確認あり</Badge> : null}
                           {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">未入金あり</Badge> : null}
                           {allPaid ? <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">すべて入金済み</Badge> : null}
                         </div>
