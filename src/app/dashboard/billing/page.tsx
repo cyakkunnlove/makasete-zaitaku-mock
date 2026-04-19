@@ -74,11 +74,26 @@ function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayT
   }
 }
 
+const onHoldReasonTags = [
+  '連絡待ち',
+  '再確認必要',
+  '金額確認',
+  '書類待ち',
+  '再請求待ち',
+] as const
+
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
   { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'pending' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
   { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'on_hold' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
+
+function appendReasonTag(note: string, tag: string) {
+  const trimmed = note.trim()
+  const tagged = `#${tag}`
+  if (trimmed.includes(tagged)) return trimmed
+  return trimmed ? `${trimmed} ${tagged}` : tagged
+}
 
 function formatJstDateTime(value: string | null | undefined) {
   if (!value) return '—'
@@ -434,6 +449,10 @@ export default function BillingPage() {
     setStatusChangeNote('')
   }
 
+  const applyStatusReasonTag = (tag: string) => {
+    setStatusChangeNote((current) => appendReasonTag(current, tag))
+  }
+
   const openCalendarActionDialog = (draft: CalendarActionDraft, patientId?: string) => {
     setCalendarActionDialog(draft)
     setCalendarActionNote(draft.note ?? '')
@@ -446,6 +465,10 @@ export default function BillingPage() {
     setCalendarActionDialog(null)
     setCalendarActionNote('')
     setInlineActionPatientId(null)
+  }
+
+  const applyCalendarReasonTag = (tag: string) => {
+    setCalendarActionNote((current) => appendReasonTag(current, tag))
   }
 
   const sendUnbilledToCollections = async (record: {
@@ -720,6 +743,15 @@ export default function BillingPage() {
                           </div>
                           <div className="mt-3 space-y-2">
                             <p className="text-xs text-slate-500">処理メモ</p>
+                            {(calendarActionDialog.status !== 'paid') ? (
+                              <div className="flex flex-wrap gap-2">
+                                {onHoldReasonTags.map((tag) => (
+                                  <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyCalendarReasonTag(tag)} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                                    #{tag}
+                                  </Button>
+                                ))}
+                              </div>
+                            ) : null}
                             <Input
                               value={calendarActionNote}
                               onChange={(e) => setCalendarActionNote(e.target.value)}
@@ -1067,6 +1099,15 @@ export default function BillingPage() {
             </div>
             <div className="space-y-2">
               <p className="text-xs text-slate-500">メモ（任意）</p>
+              {statusDialog?.to === 'on_hold' ? (
+                <div className="flex flex-wrap gap-2">
+                  {onHoldReasonTags.map((tag) => (
+                    <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyStatusReasonTag(tag)} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                      #{tag}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
               <Input value={statusChangeNote} onChange={(e) => setStatusChangeNote(e.target.value)} className={adminInputClass} placeholder="通帳確認、電話確認など" />
             </div>
           </div>
