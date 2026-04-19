@@ -1043,7 +1043,7 @@ function PharmacyDashboardTransientNotices({
           <PharmacyDashboardNoticeCard
             tone="success"
             message={saveToast}
-            subtext="保存できた内容です。"
+            subtext="反映済みです。"
           />
         </div>
       )}
@@ -1516,6 +1516,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [failedTaskId, setFailedTaskId] = useState<string | null>(null)
   const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
   const [recentlySavedTaskIds, setRecentlySavedTaskIds] = useState<string[]>([])
+  const [recentlySavedOrderTaskIds, setRecentlySavedOrderTaskIds] = useState<string[]>([])
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [isSavingOrder, setIsSavingOrder] = useState(false)
@@ -1688,7 +1689,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   useEffect(() => {
     if (!saveToast) return
-    const timeout = window.setTimeout(() => setSaveToast(null), 2500)
+    const timeout = window.setTimeout(() => setSaveToast(null), 1600)
     return () => window.clearTimeout(timeout)
   }, [saveToast])
 
@@ -1704,6 +1705,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     return () => window.cancelAnimationFrame(frame)
   }, [recentlySavedTaskIds])
+
+  useEffect(() => {
+    const latestTaskId = recentlySavedOrderTaskIds[0]
+    if (!latestTaskId) return
+    const target = taskCardRefs.current[latestTaskId]
+    if (!target) return
+
+    const frame = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [recentlySavedOrderTaskIds])
 
   const enrichedVisits = useMemo(() => {
     return draftDayTasks
@@ -2262,6 +2276,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         updatedAt: savedAt,
         updatedById: user?.id ?? 'ST-07',
       }))
+    const movedTaskIds = normalizedDraftDayTasks
+      .filter((task) => previousDayTasks.find((previous) => previous.id === task.id)?.sortOrder !== task.sortOrder)
+      .map((task) => task.id)
 
     setIsSavingOrder(true)
     setSaveError(null)
@@ -2274,7 +2291,15 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     try {
       await saveTasksBulk(normalizedDraftDayTasks)
       setSaveError(null)
-      setSaveToast('並び順を保存しました。')
+      setSaveToast('並び順を保存しました')
+      if (movedTaskIds.length > 0) {
+        setRecentlySavedOrderTaskIds(movedTaskIds)
+        setRecentlySavedTaskIds((prev) => Array.from(new Set([...prev, ...movedTaskIds])))
+        window.setTimeout(() => {
+          setRecentlySavedOrderTaskIds((current) => current.filter((id) => !movedTaskIds.includes(id)))
+          setRecentlySavedTaskIds((prev) => prev.filter((id) => !movedTaskIds.includes(id)))
+        }, 1800)
+      }
       setFlowLoadKey((prev) => prev + 1)
     } catch (error) {
       setDayTasks(previousDayTasks)
