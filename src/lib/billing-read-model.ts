@@ -29,6 +29,8 @@ export type BillingPatientVisitHistory = {
     workflowStatus: CollectionWorkflowStatus
     collectionRecordId: string | null
     note: string
+    handledBy: string | null
+    handledAt: string | null
   }>
 }
 
@@ -46,6 +48,8 @@ export type BillingDateCollectionSummary = {
     status: CollectionWorkflowStatus
     note: string
     recordId: string | null
+    handledBy: string | null
+    handledAt: string | null
   }>
 }
 
@@ -146,8 +150,8 @@ export function buildDayTaskCollectionRecords({
         dueDate: existing?.dueDate ?? `${task.flowDate.slice(0, 7)}-25`,
         note: existing?.note ?? (patientBilling?.isBillable === false ? (patientBilling.reason ?? '請求対象外') : 'day task 由来の請求候補'),
         linkedTaskId: task.id,
-        handledBy: task.handledBy,
-        handledAt: task.completedAt ?? task.handledAt,
+        handledBy: existing?.handledBy ?? task.handledBy,
+        handledAt: existing?.handledAt ?? task.completedAt ?? task.handledAt,
         billable: task.billable && patientBilling?.isBillable !== false,
       }
     })
@@ -181,6 +185,8 @@ export function buildPatientVisitHistory({
           workflowStatus: linkedCollection?.status ?? (task.billable ? 'needs_billing' : 'needs_attention'),
           collectionRecordId: linkedCollection?.id ?? null,
           note: linkedCollection?.note ?? task.note ?? '',
+          handledBy: linkedCollection?.handledBy ?? null,
+          handledAt: linkedCollection?.handledAt ?? null,
         }
       })
 
@@ -194,6 +200,8 @@ export function buildPatientVisitHistory({
         workflowStatus: record.status,
         collectionRecordId: record.id,
         note: record.note ?? '',
+        handledBy: record.handledBy ?? null,
+        handledAt: record.handledAt ?? null,
       }))
 
     const visits = [...completedTaskVisits, ...recordOnlyVisits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
@@ -248,6 +256,8 @@ export function buildDateCollectionSummaries({
         status: visit.workflowStatus,
         note: visit.note,
         recordId: visit.collectionRecordId ?? null,
+        handledBy: visit.handledBy,
+        handledAt: visit.handledAt,
       })
       map.set(visit.visitDate, existing)
     })

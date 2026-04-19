@@ -79,8 +79,24 @@ const initialPatientCollectionRecords = [
   { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'needs_attention' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
+function formatJstDateTime(value: string | null | undefined) {
+  if (!value) return '—'
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T')
+  const date = new Date(normalized)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
 export default function BillingPage() {
-  const { role } = useAuth()
+  const { role, user } = useAuth()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const [collectionRecords, setCollectionRecords] = useState<BillingCollectionRecord[]>(() => (
     role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
@@ -296,10 +312,12 @@ export default function BillingPage() {
   const updateCollectionStatus = async (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
     const target = mergedCollectionRecords.find((record) => record.id === recordId)
     const trimmedNote = note?.trim()
+    const actorName = user?.full_name ?? '担当者'
+    const handledAt = new Date().toISOString()
     setSavingCollectionRecordId(recordId)
     setFailedCollectionRecordId(null)
     setCollectionErrorMessage('')
-    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note } : r)))
+    setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note, handledBy: actorName, handledAt } : r)))
 
     if (target?.linkedTaskId) {
       const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
@@ -642,6 +660,7 @@ export default function BillingPage() {
                           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                             <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
                             <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
+                            <p className="mt-2 text-xs text-slate-500">最終処理: {item.handledBy ?? '未対応'} / {formatJstDateTime(item.handledAt)}</p>
                             {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
                             {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました</p> : null}
                             {failedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
@@ -656,10 +675,7 @@ export default function BillingPage() {
                             />
                           </div>
                           <div className="mt-3 grid grid-cols-1 gap-2">
-                            {calendarActionDialog.status === 'needs_billing' ? (
-                              <Button type="button" onClick={() => void submitCalendarAction('billed')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '請求済みにする'}</Button>
-                            ) : null}
-                            {(calendarActionDialog.status === 'billed' || calendarActionDialog.status === 'needs_attention') ? (
+                            {calendarActionDialog.status !== 'paid' ? (
                               <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
                             ) : null}
                             {calendarActionDialog.status !== 'needs_attention' && calendarActionDialog.status !== 'paid' ? (
@@ -719,7 +735,7 @@ export default function BillingPage() {
                       </TableCell>
                       <TableCell className="text-xs text-slate-700">
                         <p>{record.handledBy ?? '未対応'}</p>
-                        <p className="text-slate-500">{record.handledAt ?? '—'}</p>
+                        <p className="text-slate-500">{formatJstDateTime(record.handledAt)}</p>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
@@ -739,9 +755,8 @@ export default function BillingPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '請求済みにする'}</Button>}
-                          {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
-                          {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
+                          {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
+                          {record.billable && record.status !== 'needs_attention' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
                           {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みを見直す'}</Button>}
                         </div>
                       </TableCell>
