@@ -705,7 +705,7 @@ export default function BillingPage() {
                 </TableHeader>
                 <TableBody>
                   {mergedCollectionRecords.map((record) => (
-                    <TableRow key={record.id} className="border-slate-200 transition hover:bg-slate-50">
+                    <TableRow key={record.id} className={cn('border-slate-200 transition hover:bg-slate-50', savingCollectionRecordId === record.id ? 'bg-indigo-50/70' : null, recentlySavedCollectionRecordId === record.id ? 'bg-emerald-50/70' : null, failedCollectionRecordId === record.id ? 'bg-rose-50/80' : null)}>
                       <TableCell className="font-medium text-slate-900">{record.patientName}</TableCell>
                       <TableCell className="text-xs text-slate-700">
                         <div className="flex items-center gap-1">
@@ -726,13 +726,20 @@ export default function BillingPage() {
                         </div>
                       </TableCell>
                       <TableCell><StatusBadge meta={collectionWorkflowStatusMeta[record.status]} /></TableCell>
-                      <TableCell className="text-xs text-slate-500">{record.note || '—'}</TableCell>
+                      <TableCell className="text-xs text-slate-500">
+                        <div className="space-y-1">
+                          <p>{record.note || '—'}</p>
+                          {savingCollectionRecordId === record.id ? <p className="font-medium text-indigo-600">保存中です。反映まで少しお待ちください。</p> : null}
+                          {recentlySavedCollectionRecordId === record.id ? <p className="font-medium text-emerald-600">✓ 保存できました</p> : null}
+                          {failedCollectionRecordId === record.id ? <p className="font-medium text-rose-600">{collectionErrorMessage}</p> : null}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">請求済みにする</Button>}
-                          {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">入金済みにする</Button>}
-                          {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800">要確認にする</Button>}
-                          {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800">入金済みを見直す</Button>}
+                          {record.billable && record.status === 'needs_billing' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'billed')} className="text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '請求済みにする'}</Button>}
+                          {record.billable && (record.status === 'billed' || record.status === 'needs_attention') && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
+                          {record.billable && record.status !== 'needs_attention' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
+                          {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みを見直す'}</Button>}
                         </div>
                       </TableCell>
                     </TableRow>
