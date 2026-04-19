@@ -136,7 +136,6 @@ export default function BillingPage() {
   const [statusChangeNote, setStatusChangeNote] = useState('')
   const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
   const [calendarActionNote, setCalendarActionNote] = useState('')
-  const [inlineActionPatientId, setInlineActionPatientId] = useState<string | null>(null)
   const [patientSearch, setPatientSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | CollectionWorkflowStatus>('all')
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
@@ -453,10 +452,9 @@ export default function BillingPage() {
     setStatusChangeNote((current) => appendReasonTag(current, tag))
   }
 
-  const openCalendarActionDialog = (draft: CalendarActionDraft, patientId?: string) => {
+  const openCalendarActionDialog = (draft: CalendarActionDraft) => {
     setCalendarActionDialog(draft)
     setCalendarActionNote(draft.note ?? '')
-    setInlineActionPatientId(patientId ?? null)
   }
 
   const submitCalendarAction = async (status: CollectionWorkflowStatus) => {
@@ -464,7 +462,6 @@ export default function BillingPage() {
     await updateCollectionStatus(calendarActionDialog.recordId, status, calendarActionNote)
     setCalendarActionDialog(null)
     setCalendarActionNote('')
-    setInlineActionPatientId(null)
   }
 
   const applyCalendarReasonTag = (tag: string) => {
@@ -697,7 +694,7 @@ export default function BillingPage() {
                     <p className="text-sm font-semibold text-slate-900">{selectedDateSummary.date} の対象患者</p>
                     <p className="text-xs text-slate-500">その日の患者だけを下に表示しています</p>
                   </div>
-                  <Button type="button" variant="ghost" onClick={() => { setSelectedCollectionDate(null); setCalendarActionDialog(null); setInlineActionPatientId(null) }}>閉じる</Button>
+                  <Button type="button" variant="ghost" onClick={() => { setSelectedCollectionDate(null); setCalendarActionDialog(null) }}>閉じる</Button>
                 </div>
                 <div className="mt-3 space-y-3">
                   {selectedDateSummary.items.map((item) => (
@@ -720,59 +717,12 @@ export default function BillingPage() {
                             amount: item.amount,
                             status: item.status,
                             note: item.note,
-                          }, item.patientId)}
+                          })}
                           className="bg-indigo-600 text-white hover:bg-indigo-600/90"
                         >
-                          この患者を確認する
+                          {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
                         </Button>
                       </div>
-
-                      {calendarActionDialog && inlineActionPatientId === item.patientId && calendarActionDialog.visitDate === item.visitDate ? (
-                        <div className="mt-3 rounded-xl border border-indigo-200 bg-white p-4 shadow-sm">
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-slate-900">回収処理</p>
-                            <p className="text-xs text-slate-500">{calendarActionDialog.patientName} / {calendarActionDialog.visitDate}</p>
-                          </div>
-                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                            <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
-                            <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
-                            <p className="mt-2 text-xs text-slate-500">最終処理: {item.handledBy ?? '未対応'} / {formatJstDateTime(item.handledAt)}</p>
-                            {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
-                            {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました</p> : null}
-                            {failedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
-                          </div>
-                          <div className="mt-3 space-y-2">
-                            <p className="text-xs text-slate-500">処理メモ</p>
-                            {(calendarActionDialog.status !== 'paid') ? (
-                              <div className="flex flex-wrap gap-2">
-                                {onHoldReasonTags.map((tag) => (
-                                  <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyCalendarReasonTag(tag)} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
-                                    #{tag}
-                                  </Button>
-                                ))}
-                              </div>
-                            ) : null}
-                            <Input
-                              value={calendarActionNote}
-                              onChange={(e) => setCalendarActionNote(e.target.value)}
-                              className={adminInputClass}
-                              placeholder="入金確認、連絡内容、差し戻し理由など"
-                            />
-                          </div>
-                          <div className="mt-3 grid grid-cols-1 gap-2">
-                            {calendarActionDialog.status !== 'paid' ? (
-                              <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
-                            ) : null}
-                            {calendarActionDialog.status !== 'on_hold' && calendarActionDialog.status !== 'paid' ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
-                            ) : null}
-                            {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
-                            ) : null}
-                            <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote(''); setInlineActionPatientId(null) }}>閉じる</Button>
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -1114,6 +1064,70 @@ export default function BillingPage() {
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setStatusDialog(null)}>キャンセル</Button>
             <Button type="button" onClick={confirmStatusChange} className="bg-indigo-500 text-white hover:bg-indigo-500/90">変更する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!calendarActionDialog} onOpenChange={(open) => {
+        if (!open) {
+          setCalendarActionDialog(null)
+          setCalendarActionNote('')
+        }
+      }}>
+        <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">患者ごとの回収処理</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {calendarActionDialog ? `${calendarActionDialog.patientName} / ${calendarActionDialog.visitDate}` : '対象患者の回収状況を確認します。'}
+            </DialogDescription>
+          </DialogHeader>
+          {calendarActionDialog ? (
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-4`}>
+                <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
+                <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
+                {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
+                {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました。一覧の状態も更新されています。</p> : null}
+                {failedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
+              </div>
+              <div className={`${adminPanelClass} p-4`}>
+                <p>最終処理者: <span className="text-slate-900">{mergedCollectionRecords.find((record) => record.id === calendarActionDialog.recordId)?.handledBy ?? '未対応'}</span></p>
+                <p className="mt-1">最終処理日時: <span className="text-slate-900">{formatJstDateTime(mergedCollectionRecords.find((record) => record.id === calendarActionDialog.recordId)?.handledAt ?? null)}</span></p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">処理メモ</p>
+                {calendarActionDialog.status !== 'paid' ? (
+                  <div className="flex flex-wrap gap-2">
+                    {onHoldReasonTags.map((tag) => (
+                      <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyCalendarReasonTag(tag)} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                        #{tag}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+                <Input
+                  value={calendarActionNote}
+                  onChange={(e) => setCalendarActionNote(e.target.value)}
+                  className={adminInputClass}
+                  placeholder="入金確認、連絡内容、差し戻し理由など"
+                />
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            {calendarActionDialog && calendarActionDialog.status !== 'paid' ? (
+              <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
+            ) : null}
+            {calendarActionDialog && calendarActionDialog.status !== 'on_hold' && calendarActionDialog.status !== 'paid' ? (
+              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
+            ) : null}
+            {calendarActionDialog && calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
+              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
+            ) : null}
+            <Button type="button" variant="ghost" onClick={() => {
+              setCalendarActionDialog(null)
+              setCalendarActionNote('')
+            }}>閉じる</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
