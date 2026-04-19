@@ -103,6 +103,7 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<AuditPageEntry[]>(auditLogData)
   const [isLoading, setIsLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [billingStatusFocus, setBillingStatusFocus] = useState<'all' | 'on_hold'>('all')
 
   useEffect(() => {
     let cancelled = false
@@ -138,6 +139,12 @@ export default function AuditPage() {
     return logs.filter((entry) => {
       if (actionFilter !== 'all' && entry.action !== actionFilter) return false
       if (userFilter !== 'all' && entry.user !== userFilter) return false
+      if (billingStatusFocus === 'on_hold') {
+        const detailText = typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details)
+        const targetText = entry.target ?? ''
+        const isBillingAttention = entry.action === 'billing_collection_status_changed' && (`${targetText} ${detailText}`).includes('要確認')
+        if (!isBillingAttention) return false
+      }
 
       const timestamp = parseTimestamp(entry.timestamp)
 
@@ -158,7 +165,7 @@ export default function AuditPage() {
 
       return true
     })
-  }, [actionFilter, userFilter, endDate, startDate, logs, search])
+  }, [actionFilter, billingStatusFocus, userFilter, endDate, startDate, logs, search])
 
   if (role !== 'system_admin') {
     return (
@@ -195,7 +202,10 @@ export default function AuditPage() {
             <Badge
               variant="outline"
               className={cn('cursor-pointer border text-xs', actionFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700')}
-              onClick={() => setActionFilter('all')}
+              onClick={() => {
+                setActionFilter('all')
+                setBillingStatusFocus('all')
+              }}
             >
               すべて
             </Badge>
@@ -205,6 +215,16 @@ export default function AuditPage() {
               onClick={() => setActionFilter('billing_collection_status_changed')}
             >
               回収状況更新だけ
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn('cursor-pointer border text-xs', billingStatusFocus === 'on_hold' ? 'border-rose-500 bg-rose-500 text-white' : 'border-rose-200 bg-rose-50 text-rose-700')}
+              onClick={() => {
+                setActionFilter('billing_collection_status_changed')
+                setBillingStatusFocus((current) => current === 'on_hold' ? 'all' : 'on_hold')
+              }}
+            >
+              要確認だけ
             </Badge>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
