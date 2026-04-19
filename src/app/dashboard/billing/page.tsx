@@ -97,6 +97,8 @@ export default function BillingPage() {
   const [toastMessage, setToastMessage] = useState('')
   const [savingCollectionRecordId, setSavingCollectionRecordId] = useState<string | null>(null)
   const [recentlySavedCollectionRecordId, setRecentlySavedCollectionRecordId] = useState<string | null>(null)
+  const [failedCollectionRecordId, setFailedCollectionRecordId] = useState<string | null>(null)
+  const [collectionErrorMessage, setCollectionErrorMessage] = useState<string>('')
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
@@ -295,6 +297,8 @@ export default function BillingPage() {
     const target = mergedCollectionRecords.find((record) => record.id === recordId)
     const trimmedNote = note?.trim()
     setSavingCollectionRecordId(recordId)
+    setFailedCollectionRecordId(null)
+    setCollectionErrorMessage('')
     setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note } : r)))
 
     if (target?.linkedTaskId) {
@@ -323,6 +327,8 @@ export default function BillingPage() {
         } catch {
           setToastMessage('回収状況の保存に失敗しました')
           setTimeout(() => setToastMessage(''), 3000)
+          setFailedCollectionRecordId(recordId)
+          setCollectionErrorMessage('この患者の回収状況はまだ保存できていません。もう一度お試しください。')
           setSavingCollectionRecordId(null)
           return
         }
@@ -332,6 +338,8 @@ export default function BillingPage() {
     setToastMessage(`回収状況を更新しました`)
     setTimeout(() => setToastMessage(''), 3000)
     setSavingCollectionRecordId(null)
+    setFailedCollectionRecordId(null)
+    setCollectionErrorMessage('')
     setRecentlySavedCollectionRecordId(recordId)
     setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === recordId ? null : current), 1500)
   }
@@ -391,6 +399,8 @@ export default function BillingPage() {
 
     try {
       setSavingCollectionRecordId(record.id)
+    setFailedCollectionRecordId(null)
+    setCollectionErrorMessage('')
       const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -421,6 +431,8 @@ export default function BillingPage() {
     } catch {
       setToastMessage('請求必要への追加に失敗しました')
       setTimeout(() => setToastMessage(''), 3000)
+      setFailedCollectionRecordId(record.id)
+      setCollectionErrorMessage('請求必要への追加がまだ保存できていません。少し待ってから再度お試しください。')
       setSavingCollectionRecordId(null)
     }
   }
@@ -507,7 +519,7 @@ export default function BillingPage() {
             ) : (
               <div className="space-y-2">
                 {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className={cn("soft-pop rounded-lg border bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md", savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null)}>
+                  <div key={record.id} className={cn("soft-pop rounded-lg border bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md", savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === record.id ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
@@ -521,6 +533,7 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <p className="mt-2 text-xs text-slate-500">{record.note}</p>
+                    {failedCollectionRecordId === record.id ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
@@ -594,7 +607,7 @@ export default function BillingPage() {
                 </div>
                 <div className="mt-3 space-y-3">
                   {selectedDateSummary.items.map((item) => (
-                    <div key={`${item.patientId}-${item.visitDate}`} className={cn('rounded-lg border bg-slate-50 p-3', savingCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null)}>
+                    <div key={`${item.patientId}-${item.visitDate}`} className={cn('rounded-lg border bg-slate-50 p-3', savingCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
@@ -631,6 +644,7 @@ export default function BillingPage() {
                             <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
                             {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
                             {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました</p> : null}
+                            {failedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
                           </div>
                           <div className="mt-3 space-y-2">
                             <p className="text-xs text-slate-500">処理メモ</p>

@@ -906,6 +906,7 @@ function PharmacyDashboardTodayTaskList({
   completionHelpText,
   pendingTaskIds,
   recentlySavedTaskIds,
+  failedTaskId,
   plannedLabelPrefix,
   updatedLabelPrefix,
   reorderHintText,
@@ -929,6 +930,7 @@ function PharmacyDashboardTodayTaskList({
   completionHelpText: string
   pendingTaskIds: string[]
   recentlySavedTaskIds: string[]
+  failedTaskId: string | null
   plannedLabelPrefix: string
   updatedLabelPrefix: string
   reorderHintText: string
@@ -991,6 +993,7 @@ function PharmacyDashboardTodayTaskList({
               canPlanToggle={canPlanToggle}
               isSaving={isTaskSaving}
               isRecentlySaved={isTaskRecentlySaved}
+              isSaveFailed={failedTaskId === visit.id}
               onPlanToggle={() => handlePlanTask(visit.id)}
               onMoveUp={() => moveTask(visit.id, 'up')}
               onMoveDown={() => moveTask(visit.id, 'down')}
@@ -1356,6 +1359,7 @@ function PharmacyDayTaskCard({
   canPlanToggle,
   isSaving,
   isRecentlySaved,
+  isSaveFailed,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1388,6 +1392,7 @@ function PharmacyDayTaskCard({
   canPlanToggle: boolean
   isSaving: boolean
   isRecentlySaved: boolean
+  isSaveFailed: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1431,6 +1436,7 @@ function PharmacyDayTaskCard({
         isDragHandleActive && 'border-indigo-200 shadow-sm',
         isSaving && 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft',
         isRecentlySaved && 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop',
+        isSaveFailed && 'border-rose-300 ring-2 ring-rose-100',
         draggingTaskId === visit.id && 'scale-[0.99] -translate-y-0.5 opacity-85 ring-1 ring-indigo-400/60 shadow-lg',
         dragOverTaskId === visit.id && 'border-sky-400 bg-sky-50/50 ring-2 ring-sky-400/40'
       )}
@@ -1453,6 +1459,7 @@ function PharmacyDayTaskCard({
           collectionClassName={collectionClassName}
         />
         {isRecentlySaved ? <div className="success-badge-pop -mt-1 text-[11px] font-medium text-emerald-600">✓ 保存できました</div> : null}
+        {isSaveFailed ? <div className="-mt-1 text-[11px] font-medium text-rose-600">保存に失敗しました。もう一度お試しください。</div> : null}
         <PharmacyDayTaskCardActions
           canStart={canStart}
           canComplete={canComplete}
@@ -1498,6 +1505,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [dragHandleActiveTaskId, setDragHandleActiveTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [failedTaskId, setFailedTaskId] = useState<string | null>(null)
   const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
   const [recentlySavedTaskIds, setRecentlySavedTaskIds] = useState<string[]>([])
   const isPharmacyAdmin = !isPharmacyStaff
@@ -1967,6 +1975,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     if (!current) return
     const next = updater(current)
     setPendingTaskIds((prev) => prev.includes(taskId) ? prev : [...prev, taskId])
+    setFailedTaskId(null)
     setSaveToast('保存中です。反映まで少しお待ちください。')
     setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
@@ -1982,6 +1991,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     } catch (error) {
       setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
+      setFailedTaskId(taskId)
       setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
     } finally {
       setPendingTaskIds((prev) => prev.filter((id) => id !== taskId))
@@ -2371,6 +2381,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               completionHelpText={completionHelpText}
               pendingTaskIds={pendingTaskIds}
               recentlySavedTaskIds={recentlySavedTaskIds}
+              failedTaskId={failedTaskId}
               plannedLabelPrefix={plannedLabelPrefix}
               updatedLabelPrefix={updatedLabelPrefix}
               reorderHintText={reorderHintText}
