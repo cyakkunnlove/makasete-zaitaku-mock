@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, adminInputClass, adminPageClass, adminPanelClass, adminTableClass } from '@/components/admin-ui'
-import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
+import { CalendarDays, CheckCircle, ChevronDown, ChevronRight, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
 import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
@@ -126,6 +126,7 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | CollectionWorkflowStatus>('all')
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
   const [showCollectionTable, setShowCollectionTable] = useState(false)
+  const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
   const ownPharmacyId = 'PH-01'
   const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
@@ -265,6 +266,7 @@ export default function BillingPage() {
       patientName: string
       records: BillingCollectionRecord[]
       latestHandledAt: string | null
+      latestStatus: CollectionWorkflowStatus | null
     }>()
 
     mergedCollectionRecords
@@ -277,11 +279,20 @@ export default function BillingPage() {
           patientName: record.patientName,
           records: sortedRecords,
           latestHandledAt: sortedRecords[0]?.handledAt ?? null,
+          latestStatus: sortedRecords[0]?.status ?? null,
         })
       })
 
     return Array.from(map.values()).sort((a, b) => (b.latestHandledAt ?? '').localeCompare(a.latestHandledAt ?? ''))
   }, [mergedCollectionRecords])
+
+  const togglePatientHistory = (patientName: string) => {
+    setExpandedHistoryPatients((prev) => (
+      prev.includes(patientName)
+        ? prev.filter((name) => name !== patientName)
+        : [...prev, patientName]
+    ))
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -736,32 +747,52 @@ export default function BillingPage() {
               <p className="py-4 text-center text-xs text-slate-500">回収履歴はまだありません。</p>
             ) : (
               <div className="space-y-3">
-                {patientCollectionHistories.map((patientHistory) => (
-                  <div key={patientHistory.patientName} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{patientHistory.patientName}</p>
-                        <p className="text-xs text-slate-500">最新処理: {formatJstDateTime(patientHistory.latestHandledAt)}</p>
-                      </div>
-                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">履歴 {patientHistory.records.length}件</Badge>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {patientHistory.records.map((record) => (
-                        <div key={record.id} className="rounded-lg border border-white bg-white p-3 text-xs text-slate-700 shadow-sm">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
-                              <span>{formatJstDateTime(record.handledAt)}</span>
-                              <span className="text-slate-500">{record.handledBy ?? '未対応'}</span>
-                            </div>
-                            <span className="text-slate-500">{record.linkedTaskId}</span>
+                {patientCollectionHistories.map((patientHistory) => {
+                  const expanded = expandedHistoryPatients.includes(patientHistory.patientName)
+                  return (
+                    <div key={patientHistory.patientName} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <button type="button" onClick={() => togglePatientHistory(patientHistory.patientName)} className="flex w-full flex-wrap items-center justify-between gap-2 text-left">
+                        <div className="flex items-start gap-2">
+                          {expanded ? <ChevronDown className="mt-0.5 h-4 w-4 text-slate-400" /> : <ChevronRight className="mt-0.5 h-4 w-4 text-slate-400" />}
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{patientHistory.patientName}</p>
+                            <p className="text-xs text-slate-500">最新処理: {formatJstDateTime(patientHistory.latestHandledAt)}</p>
                           </div>
-                          <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-2">
+                          {patientHistory.latestStatus ? <StatusBadge meta={collectionWorkflowStatusMeta[patientHistory.latestStatus]} /> : null}
+                          <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">履歴 {patientHistory.records.length}件</Badge>
+                        </div>
+                      </button>
+                      {expanded ? (
+                        <div className="mt-3 space-y-2">
+                          {patientHistory.records.map((record, index) => {
+                            const previousRecord = patientHistory.records[index + 1] ?? null
+                            return (
+                              <div key={record.id} className="rounded-lg border border-white bg-white p-3 text-xs text-slate-700 shadow-sm">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {previousRecord ? (
+                                      <>
+                                        <StatusBadge meta={collectionWorkflowStatusMeta[previousRecord.status]} />
+                                        <span className="text-slate-400">→</span>
+                                      </>
+                                    ) : null}
+                                    <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
+                                    <span>{formatJstDateTime(record.handledAt)}</span>
+                                    <span className="text-slate-500">{record.handledBy ?? '未対応'}</span>
+                                  </div>
+                                  <span className="text-slate-500">{record.linkedTaskId}</span>
+                                </div>
+                                <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
