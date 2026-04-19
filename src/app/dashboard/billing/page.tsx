@@ -127,6 +127,7 @@ export default function BillingPage() {
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
   const [showCollectionTable, setShowCollectionTable] = useState(false)
   const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
+  const [historyViewMode, setHistoryViewMode] = useState<'latest' | 'all'>('latest')
   const ownPharmacyId = 'PH-01'
   const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
@@ -285,6 +286,12 @@ export default function BillingPage() {
 
     return Array.from(map.values()).sort((a, b) => (b.latestHandledAt ?? '').localeCompare(a.latestHandledAt ?? ''))
   }, [mergedCollectionRecords])
+
+  const filteredPatientCollectionHistories = useMemo(() => {
+    const keyword = patientSearch.trim().toLowerCase()
+    if (!keyword) return patientCollectionHistories
+    return patientCollectionHistories.filter((item) => item.patientName.toLowerCase().includes(keyword))
+  }, [patientCollectionHistories, patientSearch])
 
   const togglePatientHistory = (patientName: string) => {
     setExpandedHistoryPatients((prev) => (
@@ -739,15 +746,39 @@ export default function BillingPage() {
 
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-900">患者ごとの回収履歴</CardTitle>
-            <CardDescription className="text-slate-600">誰がいつ何に変えたかを、患者ごとにまとめて見返せます。</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-sm text-slate-900">患者ごとの回収履歴</CardTitle>
+                <CardDescription className="text-slate-600">誰がいつ何に変えたかを、患者ごとにまとめて見返せます。</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={historyViewMode === 'latest' ? 'default' : 'outline'}
+                  onClick={() => setHistoryViewMode('latest')}
+                  className={cn(historyViewMode === 'latest' ? 'bg-indigo-600 text-white hover:bg-indigo-600/90' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
+                >
+                  最新だけ
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={historyViewMode === 'all' ? 'default' : 'outline'}
+                  onClick={() => setHistoryViewMode('all')}
+                  className={cn(historyViewMode === 'all' ? 'bg-indigo-600 text-white hover:bg-indigo-600/90' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
+                >
+                  全履歴
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {patientCollectionHistories.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">回収履歴はまだありません。</p>
+            {filteredPatientCollectionHistories.length === 0 ? (
+              <p className="py-4 text-center text-xs text-slate-500">条件に合う回収履歴はありません。</p>
             ) : (
               <div className="space-y-3">
-                {patientCollectionHistories.map((patientHistory) => {
+                {filteredPatientCollectionHistories.map((patientHistory) => {
                   const expanded = expandedHistoryPatients.includes(patientHistory.patientName)
                   return (
                     <div key={patientHistory.patientName} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -766,8 +797,10 @@ export default function BillingPage() {
                       </button>
                       {expanded ? (
                         <div className="mt-3 space-y-2">
-                          {patientHistory.records.map((record, index) => {
-                            const previousRecord = patientHistory.records[index + 1] ?? null
+                          {(historyViewMode === 'latest' ? patientHistory.records.slice(0, 1) : patientHistory.records).map((record, index, visibleRecords) => {
+                            const sourceIndex = patientHistory.records.findIndex((item) => item.id === record.id)
+                            const previousRecord = historyViewMode === 'all' ? patientHistory.records[sourceIndex + 1] ?? null : patientHistory.records[sourceIndex + 1] ?? null
+                            const isLatestOnly = visibleRecords.length === 1 && historyViewMode === 'latest'
                             return (
                               <div key={record.id} className="rounded-lg border border-white bg-white p-3 text-xs text-slate-700 shadow-sm">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -784,6 +817,7 @@ export default function BillingPage() {
                                   </div>
                                   <span className="text-slate-500">{record.linkedTaskId}</span>
                                 </div>
+                                {isLatestOnly && previousRecord ? <p className="mt-2 text-[11px] text-slate-500">直前の状態: {collectionWorkflowStatusMeta[previousRecord.status].label}</p> : null}
                                 <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
                               </div>
                             )
