@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { buildAdminBillingRecords, buildDateCollectionSummaries, buildDayTaskCollectionRecords, buildPatientVisitHistory, type BillingCollectionRecord } from '@/lib/billing-read-model'
+import { buildAdminBillingRecords, buildDateCollectionSummaries, buildDayTaskCollectionRecords, buildPatientVisitHistory, buildUnbilledVisitRecords, type BillingCollectionRecord } from '@/lib/billing-read-model'
 import { billingData } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
@@ -28,6 +28,9 @@ export async function POST(request: Request) {
   const statusFilter = body && typeof body === 'object' && typeof (body as Record<string, unknown>).statusFilter === 'string'
     ? ((body as Record<string, unknown>).statusFilter as 'all' | 'needs_billing' | 'billed' | 'paid' | 'needs_attention')
     : 'all'
+  const processedUnbilledIds = body && typeof body === 'object' && Array.isArray((body as Record<string, unknown>).processedUnbilledIds)
+    ? new Set(((body as Record<string, unknown>).processedUnbilledIds as unknown[]).filter((item): item is string => typeof item === 'string'))
+    : new Set<string>()
 
   const scopedPharmacyId = getScopedPharmacyId(user)
   if (!scopedPharmacyId) {
@@ -148,6 +151,38 @@ export async function POST(request: Request) {
     statusFilter,
   })
 
+  const unbilledVisitRecords = buildUnbilledVisitRecords({
+    sharedDayTasks: ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => ({
+      id: String(task.id),
+      patientId: String(task.patient_id ?? ''),
+      pharmacyId: String(task.pharmacy_id ?? ''),
+      flowDate: String(task.flow_date ?? flowDate),
+      sortOrder: Number(task.sort_order ?? 1),
+      scheduledTime: String(task.scheduled_time ?? '10:00'),
+      visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
+      source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
+      status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
+      planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
+      plannedBy: (task.planned_by as string | null) ?? null,
+      plannedById: (task.planned_by_id as string | null) ?? null,
+      plannedAt: (task.planned_at as string | null) ?? null,
+      handledBy: (task.handled_by as string | null) ?? null,
+      handledById: (task.handled_by_id as string | null) ?? null,
+      handledAt: (task.handled_at as string | null) ?? null,
+      completedAt: (task.completed_at as string | null) ?? null,
+      billable: Boolean(task.billable),
+      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+      amount: Number(task.amount ?? 0),
+      note: String(task.note ?? ''),
+      updatedAt: (task.updated_at as string | null) ?? null,
+      updatedById: (task.updated_by_id as string | null) ?? null,
+    })),
+    ownPharmacyId: scopedPharmacyId,
+    patientMap,
+    mergedCollectionRecords,
+    processedUnbilledIds,
+  })
+
   const adminBillingRecords = buildAdminBillingRecords({
     collectionRecords: mergedCollectionRecords,
     fallbackRecords: billingData,
@@ -155,5 +190,5 @@ export async function POST(request: Request) {
     pharmacyName,
   })
 
-  return NextResponse.json({ ok: true, adminBillingRecords, pharmacyName, dateCollectionSummaries })
+  return NextResponse.json({ ok: true, adminBillingRecords, pharmacyName, dateCollectionSummaries, unbilledVisitRecords })
 }

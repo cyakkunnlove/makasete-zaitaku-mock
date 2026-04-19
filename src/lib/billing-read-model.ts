@@ -49,6 +49,20 @@ export type BillingDateCollectionSummary = {
   }>
 }
 
+export type BillingUnbilledVisitRecord = {
+  id: string
+  linkedTaskId: string
+  patientId: string
+  patientName: string
+  visitDate: string
+  prescriptionDate: string
+  visitType: string
+  staffName: string
+  amount: number
+  status: 'ready' | 'review'
+  note: string
+}
+
 export function buildAdminBillingRecords({
   collectionRecords,
   fallbackRecords,
@@ -240,6 +254,41 @@ export function buildDateCollectionSummaries({
   })
 
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export function buildUnbilledVisitRecords({
+  sharedDayTasks,
+  ownPharmacyId,
+  patientMap,
+  mergedCollectionRecords,
+  processedUnbilledIds,
+}: {
+  sharedDayTasks: DayTaskItem[]
+  ownPharmacyId: string
+  patientMap: Map<string, RegisteredPatientRecord>
+  mergedCollectionRecords: BillingCollectionRecord[]
+  processedUnbilledIds: Set<string>
+}): BillingUnbilledVisitRecord[] {
+  return sharedDayTasks
+    .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
+    .map((task) => {
+      const patient = patientMap.get(task.patientId)
+      return {
+        id: `UNB-${task.id}`,
+        linkedTaskId: task.id,
+        patientId: task.patientId,
+        patientName: patient?.name ?? task.patientId,
+        visitDate: task.completedAt?.slice(0, 10) ?? task.flowDate,
+        prescriptionDate: task.completedAt?.slice(0, 10) ?? task.flowDate,
+        visitType: task.visitType,
+        staffName: task.handledBy ?? '未設定',
+        amount: task.amount,
+        status: (mapLegacyCollectionStatus(task.collectionStatus) === 'needs_billing' ? 'ready' : 'review') as 'ready' | 'review',
+        note: task.note,
+      }
+    })
+    .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
+    .filter((record) => !processedUnbilledIds.has(record.id))
 }
 
 function mapLegacyCollectionStatus(status: DayTaskItem['collectionStatus']): CollectionWorkflowStatus {

@@ -30,7 +30,7 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
-import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary } from '@/lib/billing-read-model'
+import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
@@ -86,6 +86,7 @@ export default function BillingPage() {
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [adminBillingRecords, setAdminBillingRecords] = useState<BillingRecord[]>(billingData)
   const [apiDateCollectionSummaries, setApiDateCollectionSummaries] = useState<BillingDateCollectionSummary[]>([])
+  const [apiUnbilledVisitRecords, setApiUnbilledVisitRecords] = useState<BillingUnbilledVisitRecord[]>([])
   const [toastMessage, setToastMessage] = useState('')
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
@@ -203,28 +204,7 @@ export default function BillingPage() {
     return [...dayTaskCollectionRecords, ...manualOnly]
   }, [collectionRecords, dayTaskCollectionRecords])
 
-  const unbilledVisitRecords = useMemo(() => {
-    return sharedDayTasks
-      .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
-      .map((task) => {
-        const patient = patientMap.get(task.patientId)
-        return {
-          id: `UNB-${task.id}`,
-          linkedTaskId: task.id,
-          patientId: task.patientId,
-          patientName: patient?.name ?? task.patientId,
-          visitDate: task.completedAt?.slice(0, 10) ?? '2026-03-15',
-          prescriptionDate: task.completedAt?.slice(0, 10) ?? '2026-03-15',
-          visitType: task.visitType,
-          staffName: task.handledBy ?? '未設定',
-          amount: task.amount,
-          status: String(task.collectionStatus) === 'needs_billing' ? 'ready' : 'review',
-          note: task.note,
-        }
-      })
-      .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
-      .filter((record) => !processedUnbilledIds.has(record.id))
-  }, [mergedCollectionRecords, ownPharmacyId, patientMap, processedUnbilledIds, sharedDayTasks])
+  const unbilledVisitRecords = apiUnbilledVisitRecords
 
   const dateCollectionSummaries = apiDateCollectionSummaries
 
@@ -265,12 +245,14 @@ export default function BillingPage() {
             pharmacyName: 'マカセテ在宅テスト薬局',
             patientSearch,
             statusFilter,
+            processedUnbilledIds: Array.from(processedUnbilledIds),
           }),
         })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.adminBillingRecords)) {
           setAdminBillingRecords(result.adminBillingRecords)
           setApiDateCollectionSummaries(Array.isArray(result.dateCollectionSummaries) ? result.dateCollectionSummaries : [])
+          setApiUnbilledVisitRecords(Array.isArray(result.unbilledVisitRecords) ? result.unbilledVisitRecords : [])
           return
         }
       } catch {}
@@ -278,6 +260,7 @@ export default function BillingPage() {
       if (!cancelled) {
         setAdminBillingRecords(billingData)
         setApiDateCollectionSummaries([])
+        setApiUnbilledVisitRecords([])
       }
     }
 
@@ -285,7 +268,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [mergedCollectionRecords, ownPharmacyId, patientSearch, statusFilter])
+  }, [mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
