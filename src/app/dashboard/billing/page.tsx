@@ -354,7 +354,7 @@ export default function BillingPage() {
     setInlineActionPatientId(null)
   }
 
-  const createCollectionRecordFromUnbilled = (record: {
+  const sendUnbilledToCollections = async (record: {
     id: string
     linkedTaskId: string
     patientName: string
@@ -363,39 +363,46 @@ export default function BillingPage() {
     staffName: string
     visitDate: string
   }) => {
-    const collectionId = `COL-${record.linkedTaskId}`
-    setCollectionRecords((prev) => [
-      {
-        id: collectionId,
-        patientName: record.patientName,
-        month: record.visitDate.slice(0, 7),
-        amount: record.amount,
-        status: 'needs_billing' as CollectionWorkflowStatus,
-        dueDate: '2026-03-25',
-        note: `請求処理へ回した訪問: ${record.note}`,
-        linkedTaskId: record.linkedTaskId,
-        handledBy: record.staffName,
-        handledAt: `${record.visitDate} 18:00`,
-        billable: true,
-      },
-      ...prev,
-    ])
-    setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
-    return collectionId
-  }
+    const dayTask = sharedDayTasks.find((task) => task.id === record.linkedTaskId)
+    if (!dayTask) {
+      setToastMessage('対象の訪問データが見つかりませんでした')
+      setTimeout(() => setToastMessage(''), 3000)
+      return
+    }
 
-  const sendUnbilledToCollections = (record: {
-    id: string
-    linkedTaskId: string
-    patientName: string
-    amount: number
-    note: string
-    staffName: string
-    visitDate: string
-  }) => {
-    createCollectionRecordFromUnbilled(record)
-    setToastMessage(`${record.patientName} を請求必要へ追加しました`)
-    setTimeout(() => setToastMessage(''), 3000)
+    const nextNote = record.note?.trim().length
+      ? `請求処理へ回した訪問: ${record.note}`
+      : '請求処理へ回した訪問'
+
+    try {
+      const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task: {
+            ...dayTask,
+            collectionStatus: 'needs_billing',
+            note: nextNote,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('add_collection_record_failed')
+      }
+
+      setSharedDayTasks((prev) => prev.map((task) => (
+        task.id === dayTask.id
+          ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus('needs_billing'), note: nextNote }
+          : task
+      )))
+      setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
+      setToastMessage(`${record.patientName} を請求必要へ追加しました`)
+      setTimeout(() => setToastMessage(''), 3000)
+    } catch {
+      setToastMessage('請求必要への追加に失敗しました')
+      setTimeout(() => setToastMessage(''), 3000)
+    }
   }
 
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
