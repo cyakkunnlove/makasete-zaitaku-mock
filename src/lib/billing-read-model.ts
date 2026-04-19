@@ -17,6 +17,38 @@ export type BillingCollectionRecord = {
   billable: boolean
 }
 
+export type BillingPatientVisitHistory = {
+  patientId: string
+  patientName: string
+  lastVisitAt: string
+  visits: Array<{
+    visitId: string
+    prescriptionDate: string
+    visitDate: string
+    amount: number
+    workflowStatus: CollectionWorkflowStatus
+    collectionRecordId: string | null
+    note: string
+  }>
+}
+
+export type BillingDateCollectionSummary = {
+  date: string
+  patientCount: number
+  paidCount: number
+  billedCount: number
+  attentionCount: number
+  items: Array<{
+    patientId: string
+    patientName: string
+    visitDate: string
+    amount: number
+    status: CollectionWorkflowStatus
+    note: string
+    recordId: string | null
+  }>
+}
+
 export function buildAdminBillingRecords({
   collectionRecords,
   fallbackRecords,
@@ -106,6 +138,108 @@ export function buildDayTaskCollectionRecords({
       }
     })
     .filter((record) => ownPatientNames.has(record.patientName))
+}
+
+export function buildPatientVisitHistory({
+  ownPatients,
+  sharedDayTasks,
+  mergedCollectionRecords,
+}: {
+  ownPatients: RegisteredPatientRecord[]
+  sharedDayTasks: DayTaskItem[]
+  mergedCollectionRecords: BillingCollectionRecord[]
+}): BillingPatientVisitHistory[] {
+  return ownPatients.map((patient) => {
+    const tasks = sharedDayTasks.filter((task) => task.patientId === patient.id)
+    const patientRecords = mergedCollectionRecords.filter((record) => record.patientName === patient.name)
+    const completedTaskVisits = tasks
+      .filter((task) => task.status === 'completed' && !!task.completedAt)
+      .map((task) => {
+        const visitDate = task.completedAt?.slice(0, 10) ?? task.flowDate
+        const linkedCollection = patientRecords.find((record) => record.linkedTaskId === task.id)
+          ?? patientRecords.find((record) => record.handledAt?.slice(0, 10) === visitDate)
+          ?? null
+        return {
+          visitId: `VISIT-${task.id}`,
+          prescriptionDate: visitDate,
+          visitDate,
+          amount: linkedCollection?.amount ?? task.amount,
+          workflowStatus: linkedCollection?.status ?? (task.billable ? 'needs_billing' : 'needs_attention'),
+          collectionRecordId: linkedCollection?.id ?? null,
+          note: linkedCollection?.note ?? task.note ?? '',
+        }
+      })
+
+    const recordOnlyVisits = patientRecords
+      .filter((record) => !completedTaskVisits.some((visit) => visit.collectionRecordId === record.id))
+      .map((record) => ({
+        visitId: `COLLECT-${record.id}`,
+        prescriptionDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
+        visitDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
+        amount: record.amount,
+        workflowStatus: record.status,
+        collectionRecordId: record.id,
+        note: record.note ?? '',
+      }))
+
+    const visits = [...completedTaskVisits, ...recordOnlyVisits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
+    const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
+
+    return {
+      patientId: patient.id,
+      patientName: patient.name,
+      lastVisitAt: lastVisit?.completedAt ?? '—',
+      visits,
+    }
+  })
+}
+
+export function buildDateCollectionSummaries({
+  patientVisitHistory,
+  patientSearch,
+  statusFilter,
+}: {
+  patientVisitHistory: BillingPatientVisitHistory[]
+  patientSearch: string
+  statusFilter: 'all' | CollectionWorkflowStatus
+}): BillingDateCollectionSummary[] {
+  const filteredPatientVisitHistory = patientVisitHistory.filter((item) => {
+    const matchesSearch = patientSearch.trim().length === 0 || item.patientName.toLowerCase().includes(patientSearch.trim().toLowerCase())
+    const matchesStatus = statusFilter === 'all' || item.visits.some((visit) => visit.workflowStatus === statusFilter)
+    return matchesSearch && matchesStatus
+  })
+
+  const map = new Map<string, BillingDateCollectionSummary>()
+  filteredPatientVisitHistory.forEach((patient) => {
+    patient.visits.forEach((visit) => {
+      const matchesStatus = statusFilter === 'all' || visit.workflowStatus === statusFilter
+      if (!matchesStatus) return
+      const existing = map.get(visit.visitDate) ?? {
+        date: visit.visitDate,
+        patientCount: 0,
+        paidCount: 0,
+        billedCount: 0,
+        attentionCount: 0,
+        items: [],
+      }
+      existing.patientCount += 1
+      if (visit.workflowStatus === 'paid') existing.paidCount += 1
+      if (visit.workflowStatus === 'billed' || visit.workflowStatus === 'needs_billing') existing.billedCount += 1
+      if (visit.workflowStatus === 'needs_attention') existing.attentionCount += 1
+      existing.items.push({
+        patientId: patient.patientId,
+        patientName: patient.patientName,
+        visitDate: visit.visitDate,
+        amount: visit.amount,
+        status: visit.workflowStatus,
+        note: visit.note,
+        recordId: visit.collectionRecordId ?? null,
+      })
+      map.set(visit.visitDate, existing)
+    })
+  })
+
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 function mapLegacyCollectionStatus(status: DayTaskItem['collectionStatus']): CollectionWorkflowStatus {

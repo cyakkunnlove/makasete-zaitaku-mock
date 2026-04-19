@@ -30,7 +30,7 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
-import { buildDayTaskCollectionRecords, type BillingCollectionRecord } from '@/lib/billing-read-model'
+import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary } from '@/lib/billing-read-model'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
@@ -66,11 +66,6 @@ function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayT
   }
 }
 
-function parseIsoDateParts(dateStr: string) {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  return { year, month, day }
-}
-
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
   { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'billed' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
@@ -90,6 +85,7 @@ export default function BillingPage() {
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [adminBillingRecords, setAdminBillingRecords] = useState<BillingRecord[]>(billingData)
+  const [apiDateCollectionSummaries, setApiDateCollectionSummaries] = useState<BillingDateCollectionSummary[]>([])
   const [toastMessage, setToastMessage] = useState('')
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
@@ -207,56 +203,6 @@ export default function BillingPage() {
     return [...dayTaskCollectionRecords, ...manualOnly]
   }, [collectionRecords, dayTaskCollectionRecords])
 
-  const patientVisitHistory = useMemo(() => {
-    return ownPatients.map((patient) => {
-      const tasks = sharedDayTasks.filter((task) => task.patientId === patient.id)
-      const patientRecords = mergedCollectionRecords.filter((record) => record.patientName === patient.name)
-      const completedTaskVisits = tasks
-        .filter((task) => task.status === 'completed' && !!task.completedAt)
-        .map((task) => {
-          const visitDate = task.completedAt?.slice(0, 10) ?? BILLING_FLOW_DATE
-          const linkedCollection = patientRecords.find((record) => record.linkedTaskId === task.id)
-            ?? patientRecords.find((record) => record.handledAt?.slice(0, 10) === visitDate)
-            ?? null
-          return {
-            visitId: `VISIT-${task.id}`,
-            prescriptionDate: visitDate,
-            visitDate,
-            amount: linkedCollection?.amount ?? task.amount,
-            workflowStatus: linkedCollection?.status ?? (task.billable ? 'needs_billing' : 'needs_attention'),
-            collectionRecordId: linkedCollection?.id ?? null,
-            note: linkedCollection?.note ?? task.note ?? '',
-          }
-        })
-
-      const recordOnlyVisits = patientRecords
-        .filter((record) => !completedTaskVisits.some((visit) => visit.collectionRecordId === record.id))
-        .map((record) => ({
-          visitId: `COLLECT-${record.id}`,
-          prescriptionDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
-          visitDate: record.handledAt?.slice(0, 10) ?? `${record.month}-01`,
-          amount: record.amount,
-          workflowStatus: record.status,
-          collectionRecordId: record.id,
-          note: record.note ?? '',
-        }))
-
-      const visits = [...completedTaskVisits, ...recordOnlyVisits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
-      const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
-      const calendarMonth = visits[0]?.visitDate ?? tasks.find((task) => task.completedAt)?.completedAt?.slice(0, 10) ?? BILLING_FLOW_DATE
-      const { year, month } = parseIsoDateParts(calendarMonth)
-      return {
-        patientId: patient.id,
-        patientName: patient.name,
-        lastVisitAt: lastVisit?.completedAt ?? '—',
-        tasks,
-        visits,
-        calendarYear: year,
-        calendarMonth: month - 1,
-      }
-    })
-  }, [mergedCollectionRecords, ownPatients, sharedDayTasks])
-
   const unbilledVisitRecords = useMemo(() => {
     return sharedDayTasks
       .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
@@ -280,63 +226,7 @@ export default function BillingPage() {
       .filter((record) => !processedUnbilledIds.has(record.id))
   }, [mergedCollectionRecords, ownPharmacyId, patientMap, processedUnbilledIds, sharedDayTasks])
 
-  const filteredPatientVisitHistory = useMemo(() => {
-    return patientVisitHistory.filter((item) => {
-      const matchesSearch = patientSearch.trim().length === 0 || item.patientName.toLowerCase().includes(patientSearch.trim().toLowerCase())
-      const matchesStatus = statusFilter === 'all' || item.visits.some((visit) => visit.workflowStatus === statusFilter)
-      return matchesSearch && matchesStatus
-    })
-  }, [patientSearch, patientVisitHistory, statusFilter])
-
-  const dateCollectionSummaries = useMemo(() => {
-    const map = new Map<string, {
-      date: string
-      patientCount: number
-      paidCount: number
-      billedCount: number
-      attentionCount: number
-      items: Array<{
-        patientId: string
-        patientName: string
-        visitDate: string
-        amount: number
-        status: CollectionWorkflowStatus
-        note: string
-        recordId: string | null
-      }>
-    }>()
-
-    filteredPatientVisitHistory.forEach((patient) => {
-      patient.visits.forEach((visit) => {
-        const matchesStatus = statusFilter === 'all' || visit.workflowStatus === statusFilter
-        if (!matchesStatus) return
-        const existing = map.get(visit.visitDate) ?? {
-          date: visit.visitDate,
-          patientCount: 0,
-          paidCount: 0,
-          billedCount: 0,
-          attentionCount: 0,
-          items: [],
-        }
-        existing.patientCount += 1
-        if (visit.workflowStatus === 'paid') existing.paidCount += 1
-        if (visit.workflowStatus === 'billed' || visit.workflowStatus === 'needs_billing') existing.billedCount += 1
-        if (visit.workflowStatus === 'needs_attention') existing.attentionCount += 1
-        existing.items.push({
-          patientId: patient.patientId,
-          patientName: patient.patientName,
-          visitDate: visit.visitDate,
-          amount: visit.amount,
-          status: visit.workflowStatus,
-          note: visit.note,
-          recordId: visit.collectionRecordId ?? null,
-        })
-        map.set(visit.visitDate, existing)
-      })
-    })
-
-    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
-  }, [filteredPatientVisitHistory, statusFilter])
+  const dateCollectionSummaries = apiDateCollectionSummaries
 
   const selectedDateSummary = useMemo(() => {
     if (!selectedCollectionDate) return null
@@ -373,17 +263,21 @@ export default function BillingPage() {
             collectionRecords: mergedCollectionRecords,
             pharmacyId: ownPharmacyId,
             pharmacyName: 'マカセテ在宅テスト薬局',
+            patientSearch,
+            statusFilter,
           }),
         })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.adminBillingRecords)) {
           setAdminBillingRecords(result.adminBillingRecords)
+          setApiDateCollectionSummaries(Array.isArray(result.dateCollectionSummaries) ? result.dateCollectionSummaries : [])
           return
         }
       } catch {}
 
       if (!cancelled) {
         setAdminBillingRecords(billingData)
+        setApiDateCollectionSummaries([])
       }
     }
 
@@ -391,7 +285,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [mergedCollectionRecords, ownPharmacyId])
+  }, [mergedCollectionRecords, ownPharmacyId, patientSearch, statusFilter])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
