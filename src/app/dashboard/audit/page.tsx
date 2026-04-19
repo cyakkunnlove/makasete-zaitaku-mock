@@ -93,6 +93,12 @@ function splitBillingAuditDetails(value: string | Record<string, unknown> | null
   return formatted.split(' / ').filter(Boolean)
 }
 
+function extractReasonTags(value: string | Record<string, unknown> | null) {
+  const formatted = formatDetails(value)
+  const matches = formatted.match(/#[^\s#/]+/g) ?? []
+  return Array.from(new Set(matches))
+}
+
 export default function AuditPage() {
   const { role } = useAuth()
   const [actionFilter, setActionFilter] = useState<AuditActionType | 'all'>('all')
@@ -315,6 +321,13 @@ export default function AuditPage() {
                 <p className="text-xs text-slate-700">対象: {entry.target}</p>
                 {entry.action === 'billing_collection_status_changed' ? <p className="text-[11px] text-slate-500">回収状況の更新履歴です。前の状態から今の状態への流れが分かります</p> : null}
                 <p className="text-[11px] text-slate-500">スコープ: {entry.scopeLabel}</p>
+                {entry.action === 'billing_collection_status_changed' && extractReasonTags(entry.details).length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {extractReasonTags(entry.details).map((tag) => (
+                      <Badge key={tag} variant="outline" className="border-rose-200 bg-rose-50 text-[10px] text-rose-700">{tag}</Badge>
+                    ))}
+                  </div>
+                ) : null}
 
                 {expanded ? (
                   <div className={`${adminPanelClass} space-y-2 p-2 text-xs text-slate-700`}>
@@ -377,6 +390,13 @@ export default function AuditPage() {
                         <div>
                           <p>{entry.target}</p>
                           <p className="text-[11px] text-slate-500">{entry.scopeLabel}</p>
+                          {entry.action === 'billing_collection_status_changed' && extractReasonTags(entry.details).length > 0 ? (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {extractReasonTags(entry.details).map((tag) => (
+                                <Badge key={tag} variant="outline" className="border-rose-200 bg-rose-50 text-[10px] text-rose-700">{tag}</Badge>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-500">
@@ -389,6 +409,13 @@ export default function AuditPage() {
                         <TableCell colSpan={6} className="space-y-2 text-sm text-slate-700">
                           {entry.action === 'billing_collection_status_changed' ? (
                             <div className="space-y-2">
+                              {extractReasonTags(entry.details).length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {extractReasonTags(entry.details).map((tag) => (
+                                    <Badge key={tag} variant="outline" className="border-rose-200 bg-rose-50 text-rose-700">{tag}</Badge>
+                                  ))}
+                                </div>
+                              ) : null}
                               {splitBillingAuditDetails(entry.details).map((line) => (
                                 <p key={line} className="rounded-md border border-slate-200 bg-white px-3 py-2">{line}</p>
                               ))}
