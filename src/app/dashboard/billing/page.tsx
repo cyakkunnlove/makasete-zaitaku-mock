@@ -340,7 +340,14 @@ export default function BillingPage() {
           }
           setSharedDayTasks((prev) => prev.map((task) => (
             task.id === dayTask.id
-              ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus(status), note: trimmedNote ? trimmedNote : task.note }
+              ? {
+                  ...task,
+                  collectionStatus: toLegacyDayTaskCollectionStatus(status),
+                  note: trimmedNote ? trimmedNote : task.note,
+                  handledBy: actorName,
+                  handledById: user?.id ?? task.handledById,
+                  handledAt,
+                }
               : task
           )))
         } catch {
