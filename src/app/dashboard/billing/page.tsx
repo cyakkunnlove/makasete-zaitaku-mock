@@ -260,6 +260,29 @@ export default function BillingPage() {
     }
   }, [adminBillingRecords, isPharmacyRole, mergedCollectionRecords])
 
+  const patientCollectionHistories = useMemo(() => {
+    const map = new Map<string, {
+      patientName: string
+      records: BillingCollectionRecord[]
+      latestHandledAt: string | null
+    }>()
+
+    mergedCollectionRecords
+      .filter((record) => record.billable)
+      .forEach((record) => {
+        const current = map.get(record.patientName)
+        const nextRecords = current ? [...current.records, record] : [record]
+        const sortedRecords = nextRecords.sort((a, b) => (b.handledAt ?? '').localeCompare(a.handledAt ?? ''))
+        map.set(record.patientName, {
+          patientName: record.patientName,
+          records: sortedRecords,
+          latestHandledAt: sortedRecords[0]?.handledAt ?? null,
+        })
+      })
+
+    return Array.from(map.values()).sort((a, b) => (b.latestHandledAt ?? '').localeCompare(a.latestHandledAt ?? ''))
+  }, [mergedCollectionRecords])
+
   useEffect(() => {
     let cancelled = false
 
@@ -700,6 +723,47 @@ export default function BillingPage() {
                 </div>
               </div>
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-900">患者ごとの回収履歴</CardTitle>
+            <CardDescription className="text-slate-600">誰がいつ何に変えたかを、患者ごとにまとめて見返せます。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {patientCollectionHistories.length === 0 ? (
+              <p className="py-4 text-center text-xs text-slate-500">回収履歴はまだありません。</p>
+            ) : (
+              <div className="space-y-3">
+                {patientCollectionHistories.map((patientHistory) => (
+                  <div key={patientHistory.patientName} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{patientHistory.patientName}</p>
+                        <p className="text-xs text-slate-500">最新処理: {formatJstDateTime(patientHistory.latestHandledAt)}</p>
+                      </div>
+                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">履歴 {patientHistory.records.length}件</Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {patientHistory.records.map((record) => (
+                        <div key={record.id} className="rounded-lg border border-white bg-white p-3 text-xs text-slate-700 shadow-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
+                              <span>{formatJstDateTime(record.handledAt)}</span>
+                              <span className="text-slate-500">{record.handledBy ?? '未対応'}</span>
+                            </div>
+                            <span className="text-slate-500">{record.linkedTaskId}</span>
+                          </div>
+                          <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
