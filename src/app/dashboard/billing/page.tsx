@@ -95,6 +95,7 @@ export default function BillingPage() {
   const [apiDateCollectionSummaries, setApiDateCollectionSummaries] = useState<BillingDateCollectionSummary[]>([])
   const [apiUnbilledVisitRecords, setApiUnbilledVisitRecords] = useState<BillingUnbilledVisitRecord[]>([])
   const [toastMessage, setToastMessage] = useState('')
+  const [savingCollectionRecordId, setSavingCollectionRecordId] = useState<string | null>(null)
   const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
@@ -292,6 +293,7 @@ export default function BillingPage() {
   const updateCollectionStatus = async (recordId: string, status: CollectionWorkflowStatus, note?: string) => {
     const target = mergedCollectionRecords.find((record) => record.id === recordId)
     const trimmedNote = note?.trim()
+    setSavingCollectionRecordId(recordId)
     setCollectionRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status, note: trimmedNote ? trimmedNote : r.note } : r)))
 
     if (target?.linkedTaskId) {
@@ -320,6 +322,7 @@ export default function BillingPage() {
         } catch {
           setToastMessage('回収状況の保存に失敗しました')
           setTimeout(() => setToastMessage(''), 3000)
+          setSavingCollectionRecordId(null)
           return
         }
       }
@@ -327,6 +330,7 @@ export default function BillingPage() {
 
     setToastMessage(`回収状況を更新しました`)
     setTimeout(() => setToastMessage(''), 3000)
+    setSavingCollectionRecordId(null)
   }
 
   const openStatusDialog = (recordId: string, to: CollectionWorkflowStatus) => {
@@ -383,6 +387,7 @@ export default function BillingPage() {
       : '請求処理へ回した訪問'
 
     try {
+      setSavingCollectionRecordId(record.id)
       const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -407,9 +412,11 @@ export default function BillingPage() {
       setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
       setToastMessage(`${record.patientName} を請求必要へ追加しました`)
       setTimeout(() => setToastMessage(''), 3000)
+      setSavingCollectionRecordId(null)
     } catch {
       setToastMessage('請求必要への追加に失敗しました')
       setTimeout(() => setToastMessage(''), 3000)
+      setSavingCollectionRecordId(null)
     }
   }
 
@@ -512,7 +519,7 @@ export default function BillingPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
                       <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">請求必要に追加</Button>
+                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} disabled={savingCollectionRecordId === record.id} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === record.id ? '保存中...' : '請求必要に追加'}</Button>
                     </div>
                   </div>
                 ))}
@@ -617,6 +624,7 @@ export default function BillingPage() {
                           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                             <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
                             <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
+                            {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
                           </div>
                           <div className="mt-3 space-y-2">
                             <p className="text-xs text-slate-500">処理メモ</p>
@@ -629,13 +637,13 @@ export default function BillingPage() {
                           </div>
                           <div className="mt-3 grid grid-cols-1 gap-2">
                             {(calendarActionDialog.status === 'billed' || calendarActionDialog.status === 'needs_attention') ? (
-                              <Button type="button" onClick={() => void submitCalendarAction('paid')} className="bg-emerald-600 text-white hover:bg-emerald-600/90">入金済みにする</Button>
+                              <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
                             ) : null}
                             {calendarActionDialog.status !== 'needs_attention' && calendarActionDialog.status !== 'paid' ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">要確認にする</Button>
+                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
                             ) : null}
                             {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">入金済みを見直す</Button>
+                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
                             ) : null}
                             <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote(''); setInlineActionPatientId(null) }}>閉じる</Button>
                           </div>

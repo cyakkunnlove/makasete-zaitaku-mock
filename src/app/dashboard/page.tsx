@@ -904,6 +904,7 @@ function PharmacyDashboardTodayTaskList({
   handleStartTask,
   handleCompleteTask,
   completionHelpText,
+  pendingTaskIds,
   plannedLabelPrefix,
   updatedLabelPrefix,
   reorderHintText,
@@ -925,6 +926,7 @@ function PharmacyDashboardTodayTaskList({
   handleStartTask: (taskId: string) => void
   handleCompleteTask: (taskId: string) => void
   completionHelpText: string
+  pendingTaskIds: string[]
   plannedLabelPrefix: string
   updatedLabelPrefix: string
   reorderHintText: string
@@ -942,9 +944,10 @@ function PharmacyDashboardTodayTaskList({
         const status = taskStatusMeta(visit.status)
         const collection = collectionStatusMeta(visit.collectionStatus)
         const isCompleted = visit.status === 'completed'
-        const canPlanToggle = !isCompleted
-        const canStart = visit.status === 'scheduled'
-        const canComplete = visit.status === 'in_progress'
+        const isTaskSaving = pendingTaskIds.includes(visit.id)
+        const canPlanToggle = !isCompleted && !isTaskSaving
+        const canStart = visit.status === 'scheduled' && !isTaskSaving
+        const canComplete = visit.status === 'in_progress' && !isTaskSaving
         return (
           <div key={visit.id} className="space-y-2">
             <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
@@ -983,6 +986,7 @@ function PharmacyDashboardTodayTaskList({
               canMoveUp={!isCompleted}
               canMoveDown={!isCompleted}
               canPlanToggle={canPlanToggle}
+              isSaving={isTaskSaving}
               onPlanToggle={() => handlePlanTask(visit.id)}
               onMoveUp={() => moveTask(visit.id, 'up')}
               onMoveDown={() => moveTask(visit.id, 'down')}
@@ -1240,6 +1244,7 @@ function PharmacyDayTaskCardActions({
   canMoveUp,
   canMoveDown,
   canPlanToggle,
+  isSaving,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1257,6 +1262,7 @@ function PharmacyDayTaskCardActions({
   canMoveUp: boolean
   canMoveDown: boolean
   canPlanToggle: boolean
+  isSaving: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1272,7 +1278,7 @@ function PharmacyDayTaskCardActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100">
-        {planButtonLabel}
+        {isSaving ? '保存中...' : planButtonLabel}
       </Button>
       <span
         className={cn(
@@ -1288,15 +1294,15 @@ function PharmacyDayTaskCardActions({
         <GripVertical className="h-3.5 w-3.5 text-slate-400" />
         {reorderHintText}
       </span>
-      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↑</Button>
-      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↓</Button>
+      <Button size="sm" variant="outline" onClick={onMoveUp} disabled={!canMoveUp || isSaving} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↑</Button>
+      <Button size="sm" variant="outline" onClick={onMoveDown} disabled={!canMoveDown || isSaving} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">↓</Button>
       <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500">
-        対応する
+        {isSaving ? '保存中...' : '対応する'}
       </Button>
       <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500">
-        対応完了
+        {isSaving ? '保存中...' : '対応完了'}
       </Button>
-      <span className="text-[11px] text-slate-500">{completionHelpText}</span>
+      <span className="text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
   )
 }
@@ -1344,6 +1350,7 @@ function PharmacyDayTaskCard({
   canMoveUp,
   canMoveDown,
   canPlanToggle,
+  isSaving,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1374,6 +1381,7 @@ function PharmacyDayTaskCard({
   canMoveUp: boolean
   canMoveDown: boolean
   canPlanToggle: boolean
+  isSaving: boolean
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1442,6 +1450,7 @@ function PharmacyDayTaskCard({
           canMoveUp={canMoveUp}
           canMoveDown={canMoveDown}
           canPlanToggle={canPlanToggle}
+          isSaving={isSaving}
           onPlanToggle={onPlanToggle}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
@@ -1480,6 +1489,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [dragHandleActiveTaskId, setDragHandleActiveTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
   const isPharmacyAdmin = !isPharmacyStaff
   const [hasOrderDraft, setHasOrderDraft] = useState(false)
   const [isSavingOrder, setIsSavingOrder] = useState(false)
@@ -1946,16 +1956,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     const current = draftDayTasks.find((task) => task.id === taskId)
     if (!current) return
     const next = updater(current)
+    setPendingTaskIds((prev) => prev.includes(taskId) ? prev : [...prev, taskId])
+    setSaveToast('保存中です。反映まで少しお待ちください。')
     setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setDayTasks((prev) => prev.map((task) => (task.id === taskId ? next : task)))
     setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
 
     try {
       await upsertTask(next)
+      setSaveToast(`${actionLabel} 保存しました`)
     } catch (error) {
       setDraftDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setDayTasks((prev) => prev.map((task) => (task.id === taskId ? current : task)))
       setSaveToast(error instanceof Error ? error.message : '保存に失敗しました')
+    } finally {
+      setPendingTaskIds((prev) => prev.filter((id) => id !== taskId))
     }
   }
 
@@ -2340,6 +2355,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               handleStartTask={handleStartTask}
               handleCompleteTask={handleCompleteTask}
               completionHelpText={completionHelpText}
+              pendingTaskIds={pendingTaskIds}
               plannedLabelPrefix={plannedLabelPrefix}
               updatedLabelPrefix={updatedLabelPrefix}
               reorderHintText={reorderHintText}
