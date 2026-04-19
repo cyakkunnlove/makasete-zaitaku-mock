@@ -128,6 +128,7 @@ export default function BillingPage() {
   const [showCollectionTable, setShowCollectionTable] = useState(false)
   const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
   const [historyViewMode, setHistoryViewMode] = useState<'latest' | 'all'>('latest')
+  const [historyStatusFocus, setHistoryStatusFocus] = useState<'all' | 'on_hold'>('all')
   const ownPharmacyId = 'PH-01'
   const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
@@ -289,9 +290,13 @@ export default function BillingPage() {
 
   const filteredPatientCollectionHistories = useMemo(() => {
     const keyword = patientSearch.trim().toLowerCase()
-    if (!keyword) return patientCollectionHistories
-    return patientCollectionHistories.filter((item) => item.patientName.toLowerCase().includes(keyword))
-  }, [patientCollectionHistories, patientSearch])
+
+    return patientCollectionHistories.filter((item) => {
+      const matchesKeyword = !keyword || item.patientName.toLowerCase().includes(keyword)
+      const matchesStatusFocus = historyStatusFocus === 'all' || item.latestStatus === 'on_hold'
+      return matchesKeyword && matchesStatusFocus
+    })
+  }, [historyStatusFocus, patientCollectionHistories, patientSearch])
 
   const togglePatientHistory = (patientName: string) => {
     setExpandedHistoryPatients((prev) => (
@@ -755,6 +760,24 @@ export default function BillingPage() {
                 <Button
                   type="button"
                   size="sm"
+                  variant={historyStatusFocus === 'all' ? 'default' : 'outline'}
+                  onClick={() => setHistoryStatusFocus('all')}
+                  className={cn(historyStatusFocus === 'all' ? 'bg-slate-900 text-white hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
+                >
+                  全患者
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={historyStatusFocus === 'on_hold' ? 'default' : 'outline'}
+                  onClick={() => setHistoryStatusFocus('on_hold')}
+                  className={cn(historyStatusFocus === 'on_hold' ? 'bg-rose-600 text-white hover:bg-rose-600/90' : 'border-rose-200 bg-white text-rose-700 hover:bg-rose-50')}
+                >
+                  要確認だけ
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant={historyViewMode === 'latest' ? 'default' : 'outline'}
                   onClick={() => setHistoryViewMode('latest')}
                   className={cn(historyViewMode === 'latest' ? 'bg-indigo-600 text-white hover:bg-indigo-600/90' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
@@ -818,6 +841,7 @@ export default function BillingPage() {
                                   <span className="text-slate-500">{record.linkedTaskId}</span>
                                 </div>
                                 {isLatestOnly && previousRecord ? <p className="mt-2 text-[11px] text-slate-500">直前の状態: {collectionWorkflowStatusMeta[previousRecord.status].label}</p> : null}
+                                {previousRecord && previousRecord.note && previousRecord.note !== record.note ? <p className="mt-2 text-[11px] text-slate-500">前回メモ: {previousRecord.note}</p> : null}
                                 <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
                               </div>
                             )
