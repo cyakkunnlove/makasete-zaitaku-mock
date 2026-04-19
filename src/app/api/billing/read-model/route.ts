@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     ? String((body as Record<string, unknown>).patientSearch)
     : ''
   const statusFilter = body && typeof body === 'object' && typeof (body as Record<string, unknown>).statusFilter === 'string'
-    ? ((body as Record<string, unknown>).statusFilter as 'all' | 'needs_billing' | 'billed' | 'paid' | 'needs_attention')
+    ? ((body as Record<string, unknown>).statusFilter as 'all' | 'ready' | 'pending' | 'paid' | 'on_hold')
     : 'all'
   const processedUnbilledIds = body && typeof body === 'object' && Array.isArray((body as Record<string, unknown>).processedUnbilledIds)
     ? new Set(((body as Record<string, unknown>).processedUnbilledIds as unknown[]).filter((item): item is string => typeof item === 'string'))
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       handledAt: (task.handled_at as string | null) ?? null,
       completedAt: (task.completed_at as string | null) ?? null,
       billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
       amount: Number(task.amount ?? 0),
       note: String(task.note ?? ''),
       updatedAt: (task.updated_at as string | null) ?? null,
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       handledAt: (task.handled_at as string | null) ?? null,
       completedAt: (task.completed_at as string | null) ?? null,
       billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
       amount: Number(task.amount ?? 0),
       note: String(task.note ?? ''),
       updatedAt: (task.updated_at as string | null) ?? null,
@@ -178,7 +178,7 @@ export async function POST(request: Request) {
       handledAt: (task.handled_at as string | null) ?? null,
       completedAt: (task.completed_at as string | null) ?? null,
       billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '入金済') ?? '未着手',
+      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
       amount: Number(task.amount ?? 0),
       note: String(task.note ?? ''),
       updatedAt: (task.updated_at as string | null) ?? null,

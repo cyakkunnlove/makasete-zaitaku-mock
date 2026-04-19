@@ -1,7 +1,8 @@
 import type { BillingStatus, RequestStatus } from '@/types/database'
 import type { PharmacyStatus } from '@/lib/mock-data'
 
-export type CollectionWorkflowStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
+export type CollectionWorkflowStatus = 'ready' | 'pending' | 'paid' | 'on_hold'
+export type CollectionWorkflowDbStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
 export type RequestStatusRole = 'admin' | 'night_pharmacist' | 'pharmacy'
 
 export type StatusMeta = {
@@ -16,10 +17,46 @@ export const billingStatusMeta: Record<BillingStatus, StatusMeta> = {
 }
 
 export const collectionWorkflowStatusMeta: Record<CollectionWorkflowStatus, StatusMeta> = {
-  needs_billing: { label: '請求必要', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
-  billed: { label: '請求済み', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  ready: { label: '請求対象', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  pending: { label: '未入金', className: 'border-amber-200 bg-amber-50 text-amber-700' },
   paid: { label: '入金済み', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-  needs_attention: { label: '要確認', className: 'border-rose-200 bg-rose-50 text-rose-700' },
+  on_hold: { label: '要確認', className: 'border-rose-200 bg-rose-50 text-rose-700' },
+}
+
+export function mapCollectionDbStatusToApp(status: string | null | undefined): CollectionWorkflowStatus {
+  switch (status) {
+    case 'needs_billing':
+    case 'ready':
+      return 'ready'
+    case 'billed':
+    case 'pending':
+      return 'pending'
+    case 'needs_attention':
+    case 'on_hold':
+      return 'on_hold'
+    case 'paid':
+      return 'paid'
+    default:
+      return 'ready'
+  }
+}
+
+export function mapCollectionAppStatusToDb(status: CollectionWorkflowStatus | string | null | undefined): CollectionWorkflowDbStatus {
+  switch (status) {
+    case 'ready':
+    case 'needs_billing':
+      return 'needs_billing'
+    case 'pending':
+    case 'billed':
+      return 'billed'
+    case 'on_hold':
+    case 'needs_attention':
+      return 'needs_attention'
+    case 'paid':
+      return 'paid'
+    default:
+      return 'needs_billing'
+  }
 }
 
 export const pharmacyStatusMeta: Record<PharmacyStatus, StatusMeta> = {

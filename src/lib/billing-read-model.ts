@@ -90,7 +90,7 @@ export function buildAdminBillingRecords({
       .reduce((sum, item) => sum + item.amount, 0)
     const nextStatus: BillingStatus = record.status === 'paid'
       ? 'paid'
-      : record.status === 'needs_attention'
+      : record.status === 'on_hold'
         ? 'overdue'
         : 'unpaid'
 
@@ -182,7 +182,7 @@ export function buildPatientVisitHistory({
           prescriptionDate: visitDate,
           visitDate,
           amount: linkedCollection?.amount ?? task.amount,
-          workflowStatus: linkedCollection?.status ?? (task.billable ? 'needs_billing' : 'needs_attention'),
+          workflowStatus: linkedCollection?.status ?? (task.billable ? 'ready' : 'on_hold'),
           collectionRecordId: linkedCollection?.id ?? null,
           note: linkedCollection?.note ?? task.note ?? '',
           handledBy: linkedCollection?.handledBy ?? null,
@@ -246,8 +246,8 @@ export function buildDateCollectionSummaries({
       }
       existing.patientCount += 1
       if (visit.workflowStatus === 'paid') existing.paidCount += 1
-      if (visit.workflowStatus === 'billed' || visit.workflowStatus === 'needs_billing') existing.billedCount += 1
-      if (visit.workflowStatus === 'needs_attention') existing.attentionCount += 1
+      if (visit.workflowStatus === 'pending' || visit.workflowStatus === 'ready') existing.billedCount += 1
+      if (visit.workflowStatus === 'on_hold') existing.attentionCount += 1
       existing.items.push({
         patientId: patient.patientId,
         patientName: patient.patientName,
@@ -293,7 +293,7 @@ export function buildUnbilledVisitRecords({
         visitType: task.visitType,
         staffName: task.handledBy ?? '未設定',
         amount: task.amount,
-        status: (mapLegacyCollectionStatus(task.collectionStatus) === 'needs_billing' ? 'ready' : 'review') as 'ready' | 'review',
+        status: (mapLegacyCollectionStatus(task.collectionStatus) === 'ready' ? 'ready' : 'review') as 'ready' | 'review',
         note: task.note,
       }
     })
@@ -306,13 +306,13 @@ function mapLegacyCollectionStatus(status: DayTaskItem['collectionStatus']): Col
     case '入金済':
       return 'paid'
     case '回収中':
-      return 'billed'
+      return 'pending'
     case '要確認':
-      return 'needs_attention'
+      return 'on_hold'
     case '請求準備OK':
-      return 'needs_billing'
+      return 'ready'
     case '未着手':
     default:
-      return 'needs_billing'
+      return 'ready'
   }
 }

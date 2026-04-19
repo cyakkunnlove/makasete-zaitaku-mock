@@ -4,10 +4,13 @@ import { getCurrentUser } from '@/lib/auth'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
 const billingStatusLabel: Record<string, string> = {
-  needs_billing: '請求必要',
-  billed: '請求済み',
+  needs_billing: '請求対象',
+  billed: '未入金',
   paid: '入金済み',
   needs_attention: '要確認',
+  ready: '請求対象',
+  pending: '未入金',
+  on_hold: '要確認',
 }
 
 function summarizeAuditDetails(action: string, details: Record<string, unknown> | null) {
@@ -98,7 +101,7 @@ export async function GET() {
         targetType: item.target_type ?? null,
         result: item.action === 'account_invitation_revoked'
           ? 'warning'
-          : item.action === 'billing_collection_status_changed' && String((item.details as Record<string, unknown> | null)?.collection_status ?? '') === 'needs_attention'
+          : item.action === 'billing_collection_status_changed' && ['on_hold', 'needs_attention'].includes(String((item.details as Record<string, unknown> | null)?.collection_status ?? ''))
             ? 'warning'
             : 'success',
         scopeType: item.pharmacy_id ? 'pharmacy' : item.region_id ? 'region' : 'system',

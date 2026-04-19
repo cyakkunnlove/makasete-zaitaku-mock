@@ -4,24 +4,28 @@ import { getCurrentUser } from '@/lib/auth'
 import { writeAuditLog } from '@/lib/audit-log'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
+import { mapCollectionAppStatusToDb } from '@/lib/status-meta'
 
 function normalizeCollectionStatus(status: unknown) {
   switch (status) {
     case '未着手':
     case '請求準備OK':
+    case 'ready':
     case 'needs_billing':
-      return 'needs_billing'
+      return mapCollectionAppStatusToDb('ready')
     case '回収中':
+    case 'pending':
     case 'billed':
-      return 'billed'
+      return mapCollectionAppStatusToDb('pending')
     case '入金済':
     case 'paid':
-      return 'paid'
+      return mapCollectionAppStatusToDb('paid')
     case '要確認':
+    case 'on_hold':
     case 'needs_attention':
-      return 'needs_attention'
+      return mapCollectionAppStatusToDb('on_hold')
     default:
-      return 'needs_billing'
+      return mapCollectionAppStatusToDb('ready')
   }
 }
 

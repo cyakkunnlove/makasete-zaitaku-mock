@@ -32,7 +32,7 @@ import { CalendarDays, CheckCircle, FileText, Layers, Link2 } from 'lucide-react
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
 import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
 import { mergePatientSources } from '@/lib/patient-read-model'
-import { billingStatusMeta, collectionWorkflowStatusMeta, type CollectionWorkflowStatus } from '@/lib/status-meta'
+import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionAppStatusToDb, mapCollectionDbStatusToApp, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
 function getTodayJstDateKey() {
   const now = new Date()
@@ -61,11 +61,11 @@ type CalendarActionDraft = {
 
 function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayTaskItem['collectionStatus'] {
   switch (status) {
-    case 'needs_billing':
+    case 'ready':
       return '未着手'
-    case 'billed':
+    case 'pending':
       return '回収中'
-    case 'needs_attention':
+    case 'on_hold':
       return '要確認'
     case 'paid':
       return '入金済'
@@ -76,8 +76,8 @@ function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayT
 
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
-  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'billed' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
-  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'needs_attention' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
+  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'pending' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
+  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'on_hold' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
 ]
 
 function formatJstDateTime(value: string | null | undefined) {
@@ -175,7 +175,7 @@ export default function BillingPage() {
             handledAt: (task.handled_at as string | null) ?? null,
             completedAt: (task.completed_at as string | null) ?? null,
             billable: Boolean(task.billable),
-            collectionStatus: (task.collection_status as CollectionWorkflowStatus) ?? 'needs_billing',
+            collectionStatus: mapCollectionDbStatusToApp(task.collection_status as string | null | undefined),
             amount: Number(task.amount ?? 0),
             note: String(task.note ?? ''),
             updatedAt: (task.updated_at as string | null) ?? null,
@@ -246,10 +246,10 @@ export default function BillingPage() {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
       return {
-        needsBilling: source.filter((record) => record.status === 'needs_billing').length,
-        billed: source.filter((record) => record.status === 'billed').length,
+        needsBilling: source.filter((record) => record.status === 'ready').length,
+        billed: source.filter((record) => record.status === 'pending').length,
         paid: source.filter((record) => record.status === 'paid').length,
-        needsAttention: source.filter((record) => record.status === 'needs_attention').length,
+        needsAttention: source.filter((record) => record.status === 'on_hold').length,
       }
     }
 
@@ -329,7 +329,7 @@ export default function BillingPage() {
             body: JSON.stringify({
               task: {
                 ...dayTask,
-                collectionStatus: status,
+                collectionStatus: mapCollectionAppStatusToDb(status),
                 note: trimmedNote ? trimmedNote : dayTask.note,
               },
             }),
@@ -432,7 +432,7 @@ export default function BillingPage() {
         body: JSON.stringify({
           task: {
             ...dayTask,
-            collectionStatus: 'needs_billing',
+            collectionStatus: 'ready',
             note: nextNote,
           },
         }),
@@ -444,7 +444,7 @@ export default function BillingPage() {
 
       setSharedDayTasks((prev) => prev.map((task) => (
         task.id === dayTask.id
-          ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus('needs_billing'), note: nextNote }
+          ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus('ready'), note: nextNote }
           : task
       )))
       setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
@@ -489,9 +489,9 @@ export default function BillingPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   { key: 'all', label: '全て' },
-                  { key: 'needs_billing', label: '請求必要' },
-                  { key: 'billed', label: '未入金' },
-                  { key: 'needs_attention', label: '要注意' },
+                  { key: 'ready', label: '請求必要' },
+                  { key: 'pending', label: '未入金' },
+                  { key: 'on_hold', label: '要注意' },
                   { key: 'paid', label: '入金済み' },
                 ].map((option) => (
                   <Button
@@ -685,11 +685,11 @@ export default function BillingPage() {
                             {calendarActionDialog.status !== 'paid' ? (
                               <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
                             ) : null}
-                            {calendarActionDialog.status !== 'needs_attention' && calendarActionDialog.status !== 'paid' ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
+                            {calendarActionDialog.status !== 'on_hold' && calendarActionDialog.status !== 'paid' ? (
+                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
                             ) : null}
                             {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
-                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('needs_attention')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
+                              <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
                             ) : null}
                             <Button type="button" variant="ghost" onClick={() => { setCalendarActionDialog(null); setCalendarActionNote(''); setInlineActionPatientId(null) }}>閉じる</Button>
                           </div>
@@ -763,8 +763,8 @@ export default function BillingPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
-                          {record.billable && record.status !== 'needs_attention' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
-                          {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'needs_attention')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みを見直す'}</Button>}
+                          {record.billable && record.status !== 'on_hold' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
+                          {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みを見直す'}</Button>}
                         </div>
                       </TableCell>
                     </TableRow>
