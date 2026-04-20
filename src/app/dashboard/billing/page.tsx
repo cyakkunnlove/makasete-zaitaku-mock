@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
-import type { BillingStatus } from '@/types/database'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -118,7 +117,6 @@ export default function BillingPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const collectionRecords = useMemo<BillingCollectionRecord[]>(() => (
     role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
   ), [role])
@@ -220,6 +218,11 @@ export default function BillingPage() {
   }, [billingFlowDate])
 
   useEffect(() => {
+    if (!user || !ownPharmacyId || ownPharmacyId === 'PH-01') {
+      setDatabasePatients([])
+      return
+    }
+
     let cancelled = false
     async function fetchPatients() {
       try {
@@ -235,11 +238,11 @@ export default function BillingPage() {
       }
     }
 
-    fetchPatients()
+    void fetchPatients()
     return () => {
       cancelled = true
     }
-  }, [ownPharmacyId])
+  }, [ownPharmacyId, user])
 
   const patientMap = useMemo(() => new Map(ownPatients.map((patient) => [patient.id, patient])), [ownPatients])
 
@@ -406,7 +409,10 @@ export default function BillingPage() {
   }
 
   const handlePaymentConfirm = (recordId: string, pharmacyName: string) => {
-    setRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status: 'paid' as BillingStatus } : r)))
+    setAdminBillingRecords((prev) => prev.map((record) => (
+      record.id === recordId ? { ...record, status: 'paid' } : record
+    )))
+    setSelectedRecord((prev) => (prev?.id === recordId ? { ...prev, status: 'paid' } : prev))
     setToastMessage(`${pharmacyName} の入金を確認しました（モック）`)
     setTimeout(() => setToastMessage(''), 3000)
   }
@@ -1001,7 +1007,7 @@ export default function BillingPage() {
 
       {!isSystemAdmin && (
         <div className="space-y-3 lg:hidden">
-          {records.map((record) => (
+          {adminBillingRecords.map((record) => (
             <Card key={record.id} className={adminCardClass}>
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
