@@ -272,36 +272,52 @@ export default function BillingPage() {
   useEffect(() => {
     const collectionDate = searchParams.get('collectionDate')
     const recordId = searchParams.get('collectionRecord')
-    const patientName = searchParams.get('collectionPatientName')
-    const visitDate = searchParams.get('collectionVisitDate')
-    const amountParam = searchParams.get('collectionAmount')
-    const status = searchParams.get('collectionStatus') as CollectionWorkflowStatus | null
-    const note = searchParams.get('collectionNote') ?? ''
 
     if (collectionDate && collectionDate !== selectedCollectionDate) {
       setSelectedCollectionDate(collectionDate)
     }
 
-    if (recordId && patientName && visitDate && status) {
+    if (!recordId) {
+      setCalendarActionDialog(null)
+      return
+    }
+
+    const selectedItem = selectedDateSummary?.items.find((item) => (
+      (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) === recordId
+    ))
+
+    const fallbackRecord = mergedCollectionRecords.find((record) => record.id === recordId)
+
+    if (selectedItem) {
       const nextDraft: CalendarActionDraft = {
         recordId,
-        patientName,
-        visitDate,
-        amount: Number(amountParam ?? '0'),
-        status,
-        note,
+        patientName: selectedItem.patientName,
+        visitDate: selectedItem.visitDate,
+        amount: selectedItem.amount ?? 0,
+        status: selectedItem.status,
+        note: selectedItem.note ?? '',
       }
-      setCalendarActionDialog((current) => (
-        current && current.recordId === nextDraft.recordId && current.status === nextDraft.status && current.note === nextDraft.note
-          ? current
-          : nextDraft
-      ))
-      setCalendarActionNote(note)
+      setCalendarActionDialog(nextDraft)
+      setCalendarActionNote(nextDraft.note)
+      return
+    }
+
+    if (fallbackRecord) {
+      const nextDraft: CalendarActionDraft = {
+        recordId,
+        patientName: fallbackRecord.patientName,
+        visitDate: fallbackRecord.dueDate,
+        amount: fallbackRecord.amount,
+        status: fallbackRecord.status,
+        note: fallbackRecord.note ?? '',
+      }
+      setCalendarActionDialog(nextDraft)
+      setCalendarActionNote(nextDraft.note)
       return
     }
 
     setCalendarActionDialog(null)
-  }, [searchParams, selectedCollectionDate])
+  }, [mergedCollectionRecords, searchParams, selectedCollectionDate, selectedDateSummary])
 
   const summary = useMemo(() => {
     if (isPharmacyRole) {
@@ -502,11 +518,6 @@ export default function BillingPage() {
   const closeCalendarActionDialog = () => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete('collectionRecord')
-    params.delete('collectionPatientName')
-    params.delete('collectionVisitDate')
-    params.delete('collectionAmount')
-    params.delete('collectionStatus')
-    params.delete('collectionNote')
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false })
     setCalendarActionDialog(null)
     setCalendarActionNote('')
@@ -765,11 +776,6 @@ export default function BillingPage() {
                           href={`${pathname}?${new URLSearchParams({
                             collectionDate: selectedDateSummary.date,
                             collectionRecord: item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`,
-                            collectionPatientName: item.patientName,
-                            collectionVisitDate: item.visitDate,
-                            collectionAmount: String(item.amount ?? 0),
-                            collectionStatus: item.status,
-                            collectionNote: item.note ?? '',
                           }).toString()}`}
                           className="inline-flex h-8 items-center justify-center rounded-md bg-indigo-600 px-3 text-xs font-medium text-white shadow transition-colors hover:bg-indigo-600/90"
                         >
