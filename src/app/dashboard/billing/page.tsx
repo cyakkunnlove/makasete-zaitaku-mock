@@ -144,7 +144,7 @@ export default function BillingPage() {
   const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
   const [historyViewMode, setHistoryViewMode] = useState<'latest' | 'all'>('latest')
   const [historyStatusFocus, setHistoryStatusFocus] = useState<'all' | 'on_hold'>('all')
-  const ownPharmacyId = 'PH-01'
+  const ownPharmacyId = user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? 'PH-01'
   const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -223,7 +223,9 @@ export default function BillingPage() {
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
           setDatabasePatients(result.patients)
+          return
         }
+        if (!cancelled) setDatabasePatients([])
       } catch {
         if (!cancelled) setDatabasePatients([])
       }
