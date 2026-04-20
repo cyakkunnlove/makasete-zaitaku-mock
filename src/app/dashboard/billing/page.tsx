@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import type { BillingStatus } from '@/types/database'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
@@ -114,6 +115,9 @@ function formatJstDateTime(value: string | null | undefined) {
 
 export default function BillingPage() {
   const { role, user } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [records, setRecords] = useState<BillingRecord[]>(billingData)
   const collectionRecords = useMemo<BillingCollectionRecord[]>(() => (
     role === 'pharmacy_staff' || role === 'pharmacy_admin' ? [] : initialPatientCollectionRecords
@@ -261,6 +265,40 @@ export default function BillingPage() {
     if (!selectedCollectionDate) return null
     return dateCollectionSummaries.find((item) => item.date === selectedCollectionDate) ?? null
   }, [dateCollectionSummaries, selectedCollectionDate])
+
+  useEffect(() => {
+    const collectionDate = searchParams.get('collectionDate')
+    const recordId = searchParams.get('collectionRecord')
+    const patientName = searchParams.get('collectionPatientName')
+    const visitDate = searchParams.get('collectionVisitDate')
+    const amountParam = searchParams.get('collectionAmount')
+    const status = searchParams.get('collectionStatus') as CollectionWorkflowStatus | null
+    const note = searchParams.get('collectionNote') ?? ''
+
+    if (collectionDate && collectionDate !== selectedCollectionDate) {
+      setSelectedCollectionDate(collectionDate)
+    }
+
+    if (recordId && patientName && visitDate && status) {
+      const nextDraft: CalendarActionDraft = {
+        recordId,
+        patientName,
+        visitDate,
+        amount: Number(amountParam ?? '0'),
+        status,
+        note,
+      }
+      setCalendarActionDialog((current) => (
+        current && current.recordId === nextDraft.recordId && current.status === nextDraft.status && current.note === nextDraft.note
+          ? current
+          : nextDraft
+      ))
+      setCalendarActionNote(note)
+      return
+    }
+
+    setCalendarActionDialog(null)
+  }, [searchParams, selectedCollectionDate])
 
   const summary = useMemo(() => {
     if (isPharmacyRole) {
@@ -455,46 +493,23 @@ export default function BillingPage() {
     setStatusChangeNote((current) => appendReasonTag(current, tag))
   }
 
-  const openCalendarActionDialog = (draft: CalendarActionDraft) => {
-    setCalendarActionDialog(draft)
-    setCalendarActionNote(draft.note ?? '')
+  const closeCalendarActionDialog = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('collectionRecord')
+    params.delete('collectionPatientName')
+    params.delete('collectionVisitDate')
+    params.delete('collectionAmount')
+    params.delete('collectionStatus')
+    params.delete('collectionNote')
+    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false })
+    setCalendarActionDialog(null)
+    setCalendarActionNote('')
   }
-
-  useEffect(() => {
-    const handleDocumentClick = (event: MouseEvent) => {
-      const target = event.target
-      if (!(target instanceof Element)) return
-      const trigger = target.closest<HTMLElement>('[data-open-collection-record]')
-      if (!trigger) return
-
-      const recordId = trigger.dataset.openCollectionRecord
-      const patientName = trigger.dataset.openCollectionPatientName
-      const visitDate = trigger.dataset.openCollectionVisitDate
-      const amount = Number(trigger.dataset.openCollectionAmount ?? '0')
-      const status = trigger.dataset.openCollectionStatus as CollectionWorkflowStatus | undefined
-      const note = trigger.dataset.openCollectionNote ?? ''
-
-      if (!recordId || !patientName || !visitDate || !status) return
-
-      openCalendarActionDialog({
-        recordId,
-        patientName,
-        visitDate,
-        amount,
-        status,
-        note,
-      })
-    }
-
-    document.addEventListener('click', handleDocumentClick)
-    return () => document.removeEventListener('click', handleDocumentClick)
-  }, [])
 
   const submitCalendarAction = async (status: CollectionWorkflowStatus) => {
     if (!calendarActionDialog) return
     await updateCollectionStatus(calendarActionDialog.recordId, status, calendarActionNote)
-    setCalendarActionDialog(null)
-    setCalendarActionNote('')
+    closeCalendarActionDialog()
   }
 
   const applyCalendarReasonTag = (tag: string) => {
@@ -740,19 +755,20 @@ export default function BillingPage() {
                         <StatusBadge meta={collectionWorkflowStatusMeta[item.status]} />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          data-open-collection-record={item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`}
-                          data-open-collection-patient-name={item.patientName}
-                          data-open-collection-visit-date={item.visitDate}
-                          data-open-collection-amount={String(item.amount ?? 0)}
-                          data-open-collection-status={item.status}
-                          data-open-collection-note={item.note ?? ''}
-                          className="bg-indigo-600 text-white hover:bg-indigo-600/90"
+                        <a
+                          href={`${pathname}?${new URLSearchParams({
+                            collectionDate: selectedDateSummary.date,
+                            collectionRecord: item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`,
+                            collectionPatientName: item.patientName,
+                            collectionVisitDate: item.visitDate,
+                            collectionAmount: String(item.amount ?? 0),
+                            collectionStatus: item.status,
+                            collectionNote: item.note ?? '',
+                          }).toString()}`}
+                          className="inline-flex h-8 items-center justify-center rounded-md bg-indigo-600 px-3 text-xs font-medium text-white shadow transition-colors hover:bg-indigo-600/90"
                         >
                           {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
-                        </Button>
+                        </a>
                       </div>
                     </div>
                   ))}
@@ -1108,10 +1124,7 @@ export default function BillingPage() {
                     <h3 className="text-lg font-semibold text-slate-900">患者ごとの回収処理</h3>
                     <p className="text-sm text-slate-600">{calendarActionDialog.patientName} / {calendarActionDialog.visitDate}</p>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => {
-                    setCalendarActionDialog(null)
-                    setCalendarActionNote('')
-                  }}>閉じる</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={closeCalendarActionDialog}>閉じる</Button>
                 </div>
                 <div className="mt-4 space-y-3 text-sm text-slate-700">
                   <div className={`${adminPanelClass} p-4`}>
@@ -1144,10 +1157,7 @@ export default function BillingPage() {
                     />
                   </div>
                   <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button type="button" variant="ghost" onClick={() => {
-                      setCalendarActionDialog(null)
-                      setCalendarActionNote('')
-                    }}>閉じる</Button>
+                    <Button type="button" variant="ghost" onClick={closeCalendarActionDialog}>閉じる</Button>
                     {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
                       <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
                     ) : null}
