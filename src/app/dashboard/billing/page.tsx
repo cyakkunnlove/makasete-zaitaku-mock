@@ -515,6 +515,25 @@ export default function BillingPage() {
     setStatusChangeNote((current) => appendReasonTag(current, tag))
   }
 
+  const openCalendarActionDialog = (item: BillingDateCollectionSummary['items'][number], collectionDate: string) => {
+    const recordId = item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`
+    const nextDraft: CalendarActionDraft = {
+      recordId,
+      patientName: item.patientName,
+      visitDate: item.visitDate,
+      amount: item.amount ?? 0,
+      status: item.status,
+      note: item.note ?? '',
+    }
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('collectionDate', collectionDate)
+    params.set('collectionRecord', recordId)
+    setSelectedCollectionDate(collectionDate)
+    setCalendarActionDialog(nextDraft)
+    setCalendarActionNote(nextDraft.note)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
   const closeCalendarActionDialog = () => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete('collectionRecord')
@@ -772,15 +791,14 @@ export default function BillingPage() {
                         <StatusBadge meta={collectionWorkflowStatusMeta[item.status]} />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <a
-                          href={`${pathname}?${new URLSearchParams({
-                            collectionDate: selectedDateSummary.date,
-                            collectionRecord: item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`,
-                          }).toString()}`}
-                          className="inline-flex h-8 items-center justify-center rounded-md bg-indigo-600 px-3 text-xs font-medium text-white shadow transition-colors hover:bg-indigo-600/90"
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => openCalendarActionDialog(item, selectedDateSummary.date)}
+                          className="bg-indigo-600 text-white hover:bg-indigo-600/90"
                         >
                           {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
-                        </a>
+                        </Button>
                       </div>
                     </div>
                   ))}
