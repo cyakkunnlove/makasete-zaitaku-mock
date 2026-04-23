@@ -132,6 +132,27 @@ const valueColumns = [
   },
 ]
 
+const reasons = [
+  '夜間対応の一次受付から申し送りまでを一貫して支援できること',
+  '薬局ごとの運用に合わせて、標準化と柔軟性の両立を目指していること',
+  '薬剤師・薬局運営・在宅現場の視点を踏まえたサービス設計であること',
+]
+
+const faqs = [
+  {
+    question: 'どのような薬局が対象ですか？',
+    answer: '在宅医療に取り組んでいる薬局、またはこれから在宅体制を強化したい薬局を主な対象としています。',
+  },
+  {
+    question: '夜間はどこまで対応してもらえますか？',
+    answer: '一次受付、状況整理、必要な連携、対応記録、翌朝の申し送りまでを対象として設計しています。個別の運用範囲は導入時に調整します。',
+  },
+  {
+    question: '導入前に相談できますか？',
+    answer: 'はい。現在の夜間体制や在宅運用の課題を伺いながら、導入イメージをご案内します。',
+  },
+]
+
 export default function CorporateHomepage() {
   const router = useRouter()
 
@@ -151,7 +172,8 @@ export default function CorporateHomepage() {
           <div className="hidden items-center gap-7 md:flex">
             <a href="#services" className="text-sm text-slate-600 transition hover:text-slate-900">サービスの特徴</a>
             <a href="#flow" className="text-sm text-slate-600 transition hover:text-slate-900">ご利用の流れ</a>
-            <a href="#value" className="text-sm text-slate-600 transition hover:text-slate-900">よくあるご質問</a>
+            <a href="#value" className="text-sm text-slate-600 transition hover:text-slate-900">選ばれる理由</a>
+            <a href="#faq" className="text-sm text-slate-600 transition hover:text-slate-900">よくあるご質問</a>
             <a href="#company" className="text-sm text-slate-600 transition hover:text-slate-900">会社情報</a>
           </div>
 
@@ -159,6 +181,7 @@ export default function CorporateHomepage() {
             <Button
               variant="outline"
               className="hidden border-slate-300 bg-white text-slate-700 hover:bg-slate-50 sm:inline-flex"
+              onClick={() => router.push('/onboarding')}
             >
               資料ダウンロード
             </Button>
@@ -184,7 +207,7 @@ export default function CorporateHomepage() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button className="h-12 bg-blue-700 px-6 text-base text-white hover:bg-blue-600">
+              <Button className="h-12 bg-blue-700 px-6 text-base text-white hover:bg-blue-600" onClick={() => router.push('/onboarding')}>
                 資料をダウンロードする
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -311,6 +334,46 @@ export default function CorporateHomepage() {
             </div>
           ))}
         </div>
+
+        <div className="mt-12 rounded-3xl border border-slate-200 bg-slate-50 p-8 md:p-10">
+          <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-start">
+            <div>
+              <p className="text-sm font-semibold text-blue-700">選ばれる理由</p>
+              <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">夜間対応だけで終わらない、薬局運営の支援へ</h3>
+              <p className="mt-4 text-sm leading-7 text-slate-600">
+                任せて在宅は、単なる受電代行ではなく、在宅薬局の運用を継続可能にする仕組みづくりを重視しています。
+              </p>
+            </div>
+            <div className="space-y-4">
+              {reasons.map((reason, index) => (
+                <div key={reason} className="flex gap-4 rounded-2xl border border-white bg-white p-5 shadow-sm">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">
+                    {index + 1}
+                  </div>
+                  <p className="text-sm leading-7 text-slate-700">{reason}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="border-t border-slate-100 bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 md:py-16">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">よくあるご質問</h2>
+            <p className="mt-3 text-slate-600">導入検討時によくいただく内容をまとめています</p>
+          </div>
+
+          <div className="mt-10 space-y-4">
+            {faqs.map((faq) => (
+              <div key={faq.question} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
+                <h3 className="text-base font-semibold text-slate-900">{faq.question}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="border-t border-slate-100 bg-slate-50/80">
@@ -318,11 +381,11 @@ export default function CorporateHomepage() {
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">サービス資料のダウンロード・お問い合わせ</h2>
           <p className="mt-3 text-slate-600">サービスの詳細や導入事例をまとめた資料をご用意しています。お気軽にご連絡ください。</p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button className="h-12 bg-blue-700 px-8 text-base text-white hover:bg-blue-600">
+            <Button className="h-12 bg-blue-700 px-8 text-base text-white hover:bg-blue-600" onClick={() => router.push('/onboarding')}>
               資料をダウンロードする
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button variant="outline" className="h-12 border-slate-300 bg-white px-8 text-base text-slate-800 hover:bg-slate-50">
+            <Button variant="outline" className="h-12 border-slate-300 bg-white px-8 text-base text-slate-800 hover:bg-slate-50" onClick={() => router.push('/onboarding')}>
               お問い合わせはこちら
             </Button>
           </div>
