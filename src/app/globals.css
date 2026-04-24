@@ -47,6 +47,59 @@
     animation: fade-in-up 220ms ease-out both;
   }
 
+  .reveal-in {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 620ms ease,
+      transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+
+  .reveal-in.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hero-copy.reveal-in {
+    transform: translateY(12px);
+  }
+
+  .homepage-card {
+    transition:
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+    will-change: transform;
+  }
+
+  .homepage-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    border-color: rgb(191 219 254);
+  }
+
+  .cta-button {
+    transition:
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 160ms ease,
+      border-color 160ms ease,
+      opacity 160ms ease;
+    transform-origin: center;
+  }
+
+  .cta-button:hover {
+    transform: scale(1.03);
+  }
+
+  .cta-button:active {
+    transform: scale(0.99);
+  }
+
+  .flow-arrow {
+    animation: flow-arrow-nudge 1.8s ease-in-out infinite;
+  }
+
   .accordion-chevron {
     transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -150,6 +203,19 @@
   }
 }
 
+@keyframes flow-arrow-nudge {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: translate(-2px, -50%);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(3px, -50%);
+  }
+}
+
 @keyframes skeleton-shimmer {
   0% {
     background-position: 100% 0;
@@ -177,6 +243,7 @@
   .soft-pop,
   .soft-pop-sm,
   .fade-in-up,
+  .reveal-in,
   .accordion-chevron,
   .press-squish,
   .icon-nudge,
@@ -185,7 +252,10 @@
   .drag-surface,
   .skeleton-shimmer,
   .success-badge-pop,
-  .status-pulse-soft {
+  .status-pulse-soft,
+  .homepage-card,
+  .cta-button,
+  .flow-arrow {
     transition: none;
     will-change: auto;
     animation: none;
@@ -194,7 +264,15 @@
   .soft-pop:hover,
   .soft-pop:hover:active,
   .soft-pop-sm:hover,
-  .soft-pop-sm:hover:active {
+  .soft-pop-sm:hover:active,
+  .homepage-card:hover,
+  .cta-button:hover,
+  .cta-button:active {
+    transform: none;
+  }
+
+  .reveal-in {
+    opacity: 1;
     transform: none;
   }
 }

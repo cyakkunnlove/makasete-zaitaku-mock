@@ -2,6 +2,8 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   ArrowRight,
   Check,
@@ -46,6 +48,46 @@ type ValueCard = {
   image: string
   alt: string
   tone: string
+}
+
+function Reveal({
+  children,
+  className = '',
+  delay = 0,
+}: {
+  children: ReactNode
+  className?: string
+  delay?: number
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setIsVisible(true)
+        observer.unobserve(entry.target)
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      className={`reveal-in ${isVisible ? 'is-visible' : ''} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  )
 }
 
 const stats: StatCard[] = [
@@ -229,7 +271,7 @@ export default function HomePage() {
 
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:py-20">
-          <div>
+          <Reveal className="hero-copy">
             <p className="text-sm font-bold text-blue-900">夜間も、在宅医療を止めない。</p>
             <h1 className="mt-6 text-4xl font-bold leading-[1.35] tracking-wide text-blue-950 sm:text-5xl lg:text-6xl">
               夜間も、在宅医療を
@@ -242,7 +284,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
-                className="h-14 w-full rounded-md bg-blue-800 px-7 text-base font-bold text-white hover:bg-blue-700 sm:w-auto"
+                className="cta-button h-14 w-full rounded-md bg-blue-800 px-7 text-base font-bold text-white hover:bg-blue-700 sm:w-auto"
                 onClick={() => router.push('/contact')}
               >
                 <Download className="mr-2 h-5 w-5" />
@@ -250,45 +292,49 @@ export default function HomePage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-14 w-full rounded-md border-blue-900 !bg-white px-7 text-base font-bold !text-blue-950 hover:!bg-blue-50 sm:w-auto"
+                className="cta-button h-14 w-full rounded-md border-blue-900 !bg-white px-7 text-base font-bold !text-blue-950 hover:!bg-blue-50 sm:w-auto"
                 onClick={() => router.push('/contact')}
               >
                 <Mail className="mr-2 h-5 w-5" />
                 お問い合わせはこちら
               </Button>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="relative min-h-[340px] overflow-hidden rounded-lg bg-blue-50/40 p-6 sm:min-h-[430px]">
-            <video
-              className="h-full min-h-[292px] w-full rounded-md object-contain sm:min-h-[382px]"
-              src="/homepage-assets/from-reference/hero-pharmacy-team.mp4"
-              aria-label="薬剤師チームの紹介動画"
-              autoPlay
-              loop
-              muted
-              playsInline
-              poster="/homepage-assets/from-reference/hero-pharmacy-team.jpg"
-            />
-          </div>
+          <Reveal delay={120}>
+            <div className="relative min-h-[340px] overflow-hidden rounded-lg bg-blue-50/40 p-6 sm:min-h-[430px]">
+              <video
+                className="h-full min-h-[292px] w-full rounded-md object-contain sm:min-h-[382px]"
+                src="/homepage-assets/from-reference/hero-pharmacy-team.mp4"
+                aria-label="薬剤師チームの紹介動画"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster="/homepage-assets/from-reference/hero-pharmacy-team.jpg"
+              />
+            </div>
+          </Reveal>
         </div>
       </section>
 
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-4 px-4 pb-14 sm:px-6 md:grid-cols-4">
-          {stats.map((stat) => (
-            <article key={stat.label} className="rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <p className="text-sm font-bold text-blue-950">{stat.label}</p>
-              <div className="mt-3 text-3xl font-bold tracking-tight text-blue-950">{stat.value}</div>
-              <Image
-                src={stat.image}
-                alt={stat.alt}
-                width={160}
-                height={160}
-                className="mx-auto mt-5 h-32 w-32 object-contain"
-              />
-              <p className="mt-4 min-h-10 text-xs leading-5 text-slate-500">{stat.note}</p>
-            </article>
+          {stats.map((stat, index) => (
+            <Reveal key={stat.label} delay={index * 80}>
+              <article className="homepage-card rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+                <p className="text-sm font-bold text-blue-950">{stat.label}</p>
+                <div className="mt-3 text-3xl font-bold tracking-tight text-blue-950">{stat.value}</div>
+                <Image
+                  src={stat.image}
+                  alt={stat.alt}
+                  width={160}
+                  height={160}
+                  className="mx-auto mt-5 h-32 w-32 object-contain"
+                />
+                <p className="mt-4 min-h-10 text-xs leading-5 text-slate-500">{stat.note}</p>
+              </article>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -303,11 +349,13 @@ export default function HomePage() {
             </p>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {marketCards.map((card) => (
-              <article key={card.title} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-blue-950">{card.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
-              </article>
+            {marketCards.map((card, index) => (
+              <Reveal key={card.title} delay={index * 90}>
+                <article className="homepage-card h-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-blue-950">{card.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -321,21 +369,23 @@ export default function HomePage() {
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-4">
-            {services.map((service) => (
-              <article key={service.number} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-800 text-sm font-bold text-white">
-                  {service.number}
-                </div>
-                <Image
-                  src={service.image}
-                  alt={service.alt}
-                  width={260}
-                  height={210}
-                  className="mx-auto mt-5 h-44 w-full object-contain"
-                />
-                <h3 className="mt-5 min-h-14 text-lg font-bold leading-7 text-blue-950">{service.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{service.description}</p>
-              </article>
+            {services.map((service, index) => (
+              <Reveal key={service.number} delay={index * 90}>
+                <article className="homepage-card h-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-800 text-sm font-bold text-white">
+                    {service.number}
+                  </div>
+                  <Image
+                    src={service.image}
+                    alt={service.alt}
+                    width={260}
+                    height={210}
+                    className="mx-auto mt-5 h-44 w-full object-contain"
+                  />
+                  <h3 className="mt-5 min-h-14 text-lg font-bold leading-7 text-blue-950">{service.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{service.description}</p>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -350,34 +400,36 @@ export default function HomePage() {
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-4">
             {flows.map((flow, index) => (
-              <article key={flow.number} className="relative rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
-                {index < flows.length - 1 && (
-                  <ArrowRight className="absolute -right-4 top-1/2 hidden h-6 w-6 -translate-y-1/2 text-blue-700 md:block" />
-                )}
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-800 text-sm font-bold text-white">
-                  {flow.number}
-                </div>
-                <Image
-                  src={flow.image}
-                  alt={flow.alt}
-                  width={240}
-                  height={190}
-                  className="mx-auto mt-5 h-40 w-full object-contain"
-                />
-                <h3 className="mt-5 text-base font-bold text-blue-950">{flow.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{flow.description}</p>
-              </article>
+              <Reveal key={flow.number} delay={index * 110}>
+                <article className="homepage-card relative h-full rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+                  {index < flows.length - 1 && (
+                    <ArrowRight className="flow-arrow absolute -right-4 top-1/2 hidden h-6 w-6 -translate-y-1/2 text-blue-700 md:block" />
+                  )}
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-800 text-sm font-bold text-white">
+                    {flow.number}
+                  </div>
+                  <Image
+                    src={flow.image}
+                    alt={flow.alt}
+                    width={240}
+                    height={190}
+                    className="mx-auto mt-5 h-40 w-full object-contain"
+                  />
+                  <h3 className="mt-5 text-base font-bold text-blue-950">{flow.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{flow.description}</p>
+                </article>
+              </Reveal>
             ))}
           </div>
-          <div className="mt-8 text-center">
+          <Reveal className="mt-8 text-center" delay={160}>
             <Button
               variant="outline"
-              className="rounded-md border-blue-900 !bg-white px-6 !text-blue-950 hover:!bg-blue-50"
+              className="cta-button rounded-md border-blue-900 !bg-white px-6 !text-blue-950 hover:!bg-blue-50"
               onClick={() => router.push('/flow')}
             >
               導入への流れを詳しく見る
             </Button>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -389,32 +441,34 @@ export default function HomePage() {
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {values.map((value) => (
-              <article key={value.title} className={`rounded-lg border border-slate-200 p-7 shadow-sm ${value.tone}`}>
-                <h3 className="text-center text-xl font-bold text-blue-950">{value.title}</h3>
-                <Image
-                  src={value.image}
-                  alt={value.alt}
-                  width={320}
-                  height={220}
-                  className="mx-auto mt-5 h-44 w-full object-contain"
-                />
-                <ul className="mt-6 space-y-3">
-                  {value.points.map((point) => (
-                    <li key={point} className="flex items-start gap-3 text-sm font-medium leading-7 text-slate-700">
-                      <Check className="mt-1 h-4 w-4 shrink-0 text-blue-800" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
+            {values.map((value, index) => (
+              <Reveal key={value.title} delay={index * 90}>
+                <article className={`homepage-card h-full rounded-lg border border-slate-200 p-7 shadow-sm ${value.tone}`}>
+                  <h3 className="text-center text-xl font-bold text-blue-950">{value.title}</h3>
+                  <Image
+                    src={value.image}
+                    alt={value.alt}
+                    width={320}
+                    height={220}
+                    className="mx-auto mt-5 h-44 w-full object-contain"
+                  />
+                  <ul className="mt-6 space-y-3">
+                    {value.points.map((point) => (
+                      <li key={point} className="flex items-start gap-3 text-sm font-medium leading-7 text-slate-700">
+                        <Check className="mt-1 h-4 w-4 shrink-0 text-blue-800" />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       <section id="contact" className="bg-white px-4 pb-16 sm:px-6">
-        <div className="mx-auto grid max-w-7xl gap-8 rounded-lg bg-blue-50 p-8 md:grid-cols-[180px_1fr_360px] md:items-center">
+        <Reveal className="mx-auto grid max-w-7xl gap-8 rounded-lg bg-blue-50 p-8 md:grid-cols-[180px_1fr_360px] md:items-center">
           <Image
             src="/homepage-assets/icons-balanced/doctor-pointing.jpg"
             alt="案内する薬剤師のイラスト"
@@ -430,7 +484,7 @@ export default function HomePage() {
           </div>
           <div className="grid gap-3">
             <Button
-              className="h-12 rounded-md bg-blue-800 text-white hover:bg-blue-700"
+              className="cta-button h-12 rounded-md bg-blue-800 text-white hover:bg-blue-700"
               onClick={() => router.push('/contact')}
             >
               <Download className="mr-2 h-5 w-5" />
@@ -438,14 +492,14 @@ export default function HomePage() {
             </Button>
             <Button
               variant="outline"
-              className="h-12 rounded-md border-blue-900 !bg-white !text-blue-950 hover:!bg-blue-50"
+              className="cta-button h-12 rounded-md border-blue-900 !bg-white !text-blue-950 hover:!bg-blue-50"
               onClick={() => router.push('/contact')}
             >
               <Mail className="mr-2 h-5 w-5" />
               お問い合わせはこちら
             </Button>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <footer className="bg-blue-900 text-white">
