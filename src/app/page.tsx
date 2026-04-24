@@ -259,14 +259,16 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative min-h-[340px] rounded-lg bg-blue-50/40 p-6 sm:min-h-[430px]">
-            <Image
-              src="/homepage-assets/from-reference/hero-pharmacy-team.jpg"
-              alt="薬剤師チームのイラスト"
-              fill
-              priority
-              sizes="(min-width: 1024px) 55vw, 100vw"
-              className="object-contain p-5"
+          <div className="relative min-h-[340px] overflow-hidden rounded-lg bg-blue-50/40 p-6 sm:min-h-[430px]">
+            <video
+              className="h-full min-h-[292px] w-full rounded-md object-contain sm:min-h-[382px]"
+              src="/homepage-assets/from-reference/hero-pharmacy-team.mp4"
+              aria-label="薬剤師チームの紹介動画"
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster="/homepage-assets/from-reference/hero-pharmacy-team.jpg"
             />
           </div>
         </div>
