@@ -139,11 +139,11 @@ export default function PricingPage() {
             </h1>
             <div className="mt-5 h-1 w-14 rounded-full bg-blue-800" />
             <p className="mt-6 max-w-xl text-sm font-medium leading-8 text-slate-600">
-              任せて在宅は、田中社長が実務で培ってきた在宅調剤の進め方を、他薬局でも再現できるようにする伴走型サービスです。
+              任せて在宅は、1薬局あたり月1,000件超の在宅対応実績をもとに、田中社長が実務で培ってきた在宅調剤の進め方を、他薬局でも再現できるようにする伴走型サービスです。
               立ち上げだけで終わらせず、WEBアプリを日常業務に組み込み、継続的に使われる運用基盤まで整えます。
             </p>
             <div className="mt-7 inline-flex rounded-md bg-blue-50 px-4 py-2 text-xs font-bold text-blue-900">
-              コンサルティング + 教育 + WEBアプリ + 夜間連携を段階的に提供
+              月1,000件超の在宅対応実績 + 教育 + WEBアプリ + 夜間連携を段階的に提供
             </div>
           </div>
 

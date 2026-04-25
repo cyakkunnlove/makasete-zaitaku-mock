@@ -93,9 +93,9 @@ function Reveal({
 
 const stats: StatCard[] = [
   {
-    label: '在宅立ち上げ',
-    value: '伴走',
-    note: '初回患者受入までの進め方を一緒に整備',
+    label: '月間対応実績',
+    value: '1,000件超',
+    note: '1薬局あたり月1,000件超の在宅対応実績をもとに支援',
     image: '/homepage-assets/icons-balanced/pharmacy-storefront.jpg',
     alt: '薬局店舗のアイコン',
   },
@@ -360,7 +360,7 @@ export default function HomePage() {
               薬局の運用基盤へ。
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-700">
-              任せて在宅は、在宅調剤を多く扱ってきた現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
+              任せて在宅は、1薬局あたり月1,000件超の在宅対応実績から培った現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
               伴走だけで終わらせず、WEBアプリを日常業務に組み込み、継続して使われる仕組みまで整えます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
