@@ -18,7 +18,7 @@ const plans = [
     price: '100,000',
     note: '月額目安',
     description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。月1,000件超の在宅対応実績をもとに、初回患者受入までの型を作ります。',
-    image: '/homepage-assets/added/owner-concern.jpg',
+    image: '/homepage-assets/added/consultation-meeting.jpg',
     features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '営業導線と初回患者受入までの伴走'],
   },
   {
@@ -27,7 +27,7 @@ const plans = [
     price: '150,000',
     note: '月額目安',
     description: '在宅を一時的なコンサルで終わらせず、日々の業務・患者管理・タスク・記録をWEBアプリ上で回り、件数を継続して増やせる状態にします。',
-    image: '/homepage-assets/added/pharmacy-team.jpg',
+    image: '/homepage-assets/added/pc-operation.jpg',
     badge: '中心プラン',
     features: ['WEBアプリ利用と運用初期設定', '患者管理・日次対応・回収管理の運用化', '在宅件数と営業状況の見える化', '定例レビューと業務改善提案'],
   },
@@ -53,12 +53,12 @@ const steps = [
   {
     title: '診断',
     text: '在宅に取り組む意思、現場体制、患者受入準備、夜間方針を確認します。',
-    image: '/homepage-assets/added/owner-concern.jpg',
+    image: '/homepage-assets/added/consultation-meeting.jpg',
   },
   {
     title: '設計',
     text: '薬局ごとのロードマップ、営業導線、教育内容、役割、必要テンプレートを設計します。',
-    image: '/homepage-assets/added/medical-safety-shield.jpg',
+    image: '/homepage-assets/added/training-manual.jpg',
   },
   {
     title: '伴走',
@@ -68,7 +68,7 @@ const steps = [
   {
     title: '定着',
     text: 'WEBアプリ上で患者・タスク・記録・回収を回し、継続利用される基盤にします。',
-    image: '/homepage-assets/added/security-lock.jpg',
+    image: '/homepage-assets/added/phone-pc-work.jpg',
   },
 ]
 
@@ -244,7 +244,7 @@ export default function PricingPage() {
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div className="rounded-lg bg-blue-50 p-8">
-            <Image src="/homepage-assets/added/security-lock.jpg" alt="継続運用と情報管理を示す鍵のアイコン" width={360} height={260} className="mx-auto h-auto w-full max-w-xs object-contain" />
+            <Image src="/homepage-assets/added/pc-operation.jpg" alt="WEBアプリで運用するスタッフのイラスト" width={360} height={260} className="mx-auto h-auto w-full max-w-sm object-contain" />
           </div>
           <div>
             <p className="text-sm font-bold text-blue-800">WHY CONTINUE</p>

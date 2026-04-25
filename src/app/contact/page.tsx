@@ -29,11 +29,11 @@ export default function ContactPage() {
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
             <Image
-              src="/homepage-assets/added/profile-card.jpg"
-              alt="問い合わせ先情報を示すカードのイラスト"
+              src="/homepage-assets/added/consultation-meeting.jpg"
+              alt="相談内容を整理する面談のイラスト"
               width={260}
               height={150}
-              className="mx-auto mb-6 h-24 w-full object-contain"
+              className="mx-auto mb-6 h-32 w-full object-contain"
             />
             <h2 className="text-xl font-bold text-blue-950">連絡方法</h2>
             <div className="mt-5 space-y-4 text-sm text-slate-700">
