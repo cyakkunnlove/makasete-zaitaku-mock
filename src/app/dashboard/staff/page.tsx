@@ -1113,7 +1113,6 @@ export default function StaffPage() {
             description="検索・絞り込み後のアカウントを確認し、編集や停止・再開を行います。"
             countLabel={`${filteredStaff.length}名`}
             icon={Users}
-            defaultOpen
           >
             <div className="grid grid-cols-1 gap-3 lg:hidden">
               {isUserListLoading ? (
