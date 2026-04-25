@@ -34,11 +34,10 @@ import {
   Phone,
   ChevronDown,
 } from 'lucide-react'
-import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
+import { getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
-import { countVisitRuleTouches, formatVisitRuleSummary, loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
-import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 
 const mockPharmacyRequests = [
@@ -127,11 +126,6 @@ type GoogleMapsNamespace = {
   SymbolPath: { CIRCLE: unknown }
 }
 
-
-function isUuidLike(value: string | null | undefined) {
-  if (!value) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-}
 
 function toDateKey(date: Date) {
   const year = date.getFullYear()
@@ -741,6 +735,7 @@ function PharmacyDashboardRoutePlanner({
 
 function PharmacyDashboardMasterPatientSection({
   searchQuery,
+  onSearchChange,
   filteredMasterPatients,
   ownRequests,
   handoverData,
@@ -750,6 +745,7 @@ function PharmacyDashboardMasterPatientSection({
   onAddPatientToTodayFlow,
 }: {
   searchQuery: string
+  onSearchChange: (value: string) => void
   filteredMasterPatients: RegisteredPatientRecord[]
   ownRequests: Array<{ patientId: string | null }>
   handoverData: Array<{ patientId: string; pharmacyId: string; confirmed: boolean }>
@@ -765,6 +761,15 @@ function PharmacyDashboardMasterPatientSection({
         患者一覧（簡易）
         <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-normal text-slate-500 shadow-sm">昨日・今日・明日の対応候補を表示。その他は検索して探せます</span>
       </h2>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={searchQuery}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="患者名・住所で検索"
+          className="h-10 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400"
+        />
+      </div>
       <div className="space-y-2">
         {!searchQuery.trim() && filteredMasterPatients.length === 0 && (
           <Card className="border-slate-200 bg-white shadow-sm">
@@ -1632,7 +1637,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [isSavingOrder, setIsSavingOrder] = useState(false)
   const [lastOrderSavedAt, setLastOrderSavedAt] = useState<string | null>(null)
   const [lastOrderSavedBy, setLastOrderSavedBy] = useState<string | null>(null)
-  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [isPatientsLoading, setIsPatientsLoading] = useState(true)
   const [isDayFlowLoading, setIsDayFlowLoading] = useState(true)
@@ -1661,26 +1665,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [flowDate, routePlanResult, user?.email])
 
   const ownPharmacyId = getScopedPharmacyId(user)
-  const fallbackRegisteredPatients = useMemo(() => {
-    if (databasePatients.length === 0) return registeredPatients
-    return registeredPatients.filter((patient) => !isUuidLike(patient.id))
-  }, [databasePatients.length, registeredPatients])
-
   const ownPatients = useMemo(() => {
-    const merged = mergePatientSources({ databasePatients, registeredPatients: fallbackRegisteredPatients })
-    return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
-  }, [databasePatients, fallbackRegisteredPatients, ownPharmacyId])
-  const dayFlowPatients = useMemo(() => ownPatients.filter((patient) => isUuidLike(patient.id)), [ownPatients])
-
-  useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
-    syncPatients()
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
+    return databasePatients.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
+  }, [databasePatients, ownPharmacyId])
+  const dayFlowPatients = ownPatients
 
   useEffect(() => {
     if (!ownPharmacyId) return
@@ -1711,10 +1699,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   useEffect(() => { setFlowLoadKey((prev) => prev + 1) }, [flowDate])
 
   const scopedBaseDayTasks = useMemo(() => {
-    if (databasePatients.length > 0) return []
-    const ownPatientIds = new Set(dayFlowPatients.map((patient) => patient.id))
-    return dayTaskData.filter((task) => ownPatientIds.has(task.patientId))
-  }, [databasePatients.length, dayFlowPatients])
+    return []
+  }, [])
 
   useEffect(() => {
     const patients = dayFlowPatients
@@ -1779,17 +1765,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       cancelled = true
     }
   }, [dayFlowPatients, flowDate, flowLoadKey, scopedBaseDayTasks])
-
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === 'makasete-patient-master:v1') {
-        setRegisteredPatients(loadMockFallbackPatients())
-        setFlowLoadKey((prev) => prev + 1)
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
 
   useEffect(() => {
     if (!undoTarget) return
@@ -1963,10 +1938,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const helperCandidatePatientIds = useMemo(() => {
     const nearDates = [shiftDateKey(flowDate, -1), flowDate, shiftDateKey(flowDate, 1)]
     const idSet = new Set<string>()
-    const generationHistory = databasePatients.length > 0 ? draftDayTasks : [...dayTaskData, ...draftDayTasks]
 
     nearDates.forEach((dateKey) => {
-      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, generationHistory).forEach((task) => {
+      generateAutoDayTasksFromVisitRules(dayFlowPatients, dateKey, draftDayTasks).forEach((task) => {
         if (task.patientId) idSet.add(task.patientId)
       })
     })
@@ -1976,7 +1950,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
 
     return idSet
-  }, [databasePatients.length, dayFlowPatients, draftDayTasks, flowDate])
+  }, [dayFlowPatients, draftDayTasks, flowDate])
 
   const filteredMasterPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -2611,6 +2585,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               <TabsContent value="master" className="space-y-2">
                 <PharmacyDashboardMasterPatientSection
                   searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
                   filteredMasterPatients={filteredMasterPatients}
                   ownRequests={ownRequests}
                   handoverData={handoverData}
@@ -2671,6 +2646,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
               <TabsContent value="master" className="space-y-2">
                 <PharmacyDashboardMasterPatientSection
                   searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
                   filteredMasterPatients={filteredMasterPatients}
                   ownRequests={ownRequests}
                   handoverData={handoverData}
