@@ -67,7 +67,6 @@ export default function RequestsPage() {
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const isNightPharmacist = role === 'night_pharmacist'
-  const ownPharmacyId = 'PH-01'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -83,7 +82,7 @@ export default function RequestsPage() {
 
   const visibleRequests = useMemo(() => {
     if (isPharmacyAdmin) {
-      return requestData.filter((request) => request.pharmacyId === ownPharmacyId)
+      return []
     }
     if (isNightPharmacist) {
       return requestData.filter((request) => (request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一') && request.receivedDate === '2026-03-05')
@@ -133,7 +132,7 @@ export default function RequestsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">依頼管理</h1>
-          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '自局依頼の件数と進行状況を確認。薬局側では進行サマリーのみ表示し、起票や内部進行は regional_admin 側で扱います。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
+          <p className="text-xs text-slate-500">{isPharmacyAdmin ? '依頼管理は実装予定です。現在の対応準備中・対応中はダッシュボードとカレンダーで確認します。' : isNightPharmacist ? '当日分のみ表示します。依頼管理では受付概要だけを確認し、患者特定画面でFAX内容を見ながら患者を確定します。' : '夜間受電依頼の進行状況をリアルタイムで管理'}</p>
         </div>
 
         {canCreateRequest && (
@@ -148,11 +147,12 @@ export default function RequestsPage() {
       </div>
 
       {isPharmacyAdmin && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Card className="border-slate-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{visibleRequests.length}</p><p className="mt-1 text-[11px] text-slate-500">今夜の自局依頼</p></CardContent></Card>
-          <Card className="border-amber-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-amber-600">{visibleRequests.filter((request) => !['dispatched', 'arrived', 'in_progress', 'completed', 'cancelled'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応準備中</p></CardContent></Card>
-          <Card className="border-sky-200 bg-white shadow-sm"><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-sky-600">{visibleRequests.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length}</p><p className="mt-1 text-[11px] text-slate-500">対応中</p></CardContent></Card>
-        </div>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-slate-900">依頼管理は実装予定です</p>
+            <p className="mt-1 text-xs text-slate-500">支給依頼の受付・進行管理はまだDB運用に接続していません。今日の対応準備中・対応中は、実データの当日タスクとして管理します。</p>
+          </CardContent>
+        </Card>
       )}
 
 
@@ -192,8 +192,8 @@ export default function RequestsPage() {
       <div className="lg:hidden space-y-3">
         {filteredRequests.length === 0 ? (
           <EmptyState
-            title="条件に合う依頼はまだありません"
-            description="新しい依頼が入るとここに表示されます。"
+            title={isPharmacyAdmin ? '依頼管理は実装予定です' : '条件に合う依頼はまだありません'}
+            description={isPharmacyAdmin ? '支給依頼の受付一覧はDB接続後に表示します。' : '新しい依頼が入るとここに表示されます。'}
             className={adminCardClass}
           />
         ) : filteredRequests.map((request) => {
@@ -301,8 +301,8 @@ export default function RequestsPage() {
               <TableRow className="border-slate-200 hover:bg-slate-50">
                 <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-6">
                   <EmptyState
-                    title="条件に合う依頼はまだありません"
-                    description="新しい依頼が入るとここに表示されます。"
+                    title={isPharmacyAdmin ? '依頼管理は実装予定です' : '条件に合う依頼はまだありません'}
+                    description={isPharmacyAdmin ? '支給依頼の受付一覧はDB接続後に表示します。' : '新しい依頼が入るとここに表示されます。'}
                     className="border-0 bg-transparent px-0 py-2 shadow-none"
                   />
                 </TableCell>

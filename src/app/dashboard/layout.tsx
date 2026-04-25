@@ -131,6 +131,15 @@ function NightBadge({ role }: { role: string | null | undefined }) {
   )
 }
 
+function getTodayDateKey() {
+  const now = new Date()
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
+  const year = jst.getFullYear()
+  const month = String(jst.getMonth() + 1).padStart(2, '0')
+  const day = String(jst.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, role, loading, signOut, authMode, requiresReverification, activeRoleContext } = useAuth()
   const unreadFaxCount = 2
@@ -140,11 +149,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     completed: 5,
     inProgress: 2,
   }
-  const pharmacyAdminStats = {
-    requests: 6,
-    preparing: 3,
-    inProgress: 2,
-  }
+  const [pharmacyAdminStats, setPharmacyAdminStats] = useState({
+    preparing: 0,
+    inProgress: 0,
+  })
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -199,6 +207,32 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
     router.replace(`/dashboard/account-security?reauth=required&next=${encodeURIComponent(pathname)}`)
   }, [authMode, loading, pathname, requiresReverification, router])
+
+  useEffect(() => {
+    if (loading || role !== 'pharmacy_admin') return
+
+    let cancelled = false
+    async function fetchPharmacyAdminStats() {
+      try {
+        const response = await fetch(`/api/day-flow/${getTodayDateKey()}/tasks`, { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (cancelled || !response.ok || !result?.ok || !Array.isArray(result.tasks)) return
+
+        const tasks = result.tasks as Array<{ status?: string | null }>
+        setPharmacyAdminStats({
+          preparing: tasks.filter((task) => task.status !== 'completed' && task.status !== 'in_progress').length,
+          inProgress: tasks.filter((task) => task.status === 'in_progress').length,
+        })
+      } catch {
+        if (!cancelled) setPharmacyAdminStats({ preparing: 0, inProgress: 0 })
+      }
+    }
+
+    fetchPharmacyAdminStats()
+    return () => {
+      cancelled = true
+    }
+  }, [loading, role])
 
   if (loading) {
     return (
@@ -277,8 +311,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <div className="px-4 pt-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-slate-900">{pharmacyAdminStats.requests}</p>
-                <p className="text-[10px] font-medium text-slate-600">支給依頼</p>
+                <p className="text-base font-bold text-slate-400">予定</p>
+                <p className="text-[10px] font-medium text-slate-600">依頼管理</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
                 <p className="text-base font-bold text-indigo-600">{pharmacyAdminStats.preparing}</p>
