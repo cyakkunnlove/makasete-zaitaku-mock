@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
@@ -180,6 +180,45 @@ const weekDays = [
   { date: '2026-03-07', label: '土', full: '3/7(土)' },
   { date: '2026-03-08', label: '日', full: '3/8(日)' },
 ]
+
+function StaffManagementCollapsibleSection({
+  title,
+  description,
+  countLabel,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  description?: string
+  countLabel?: string
+  icon: ComponentType<{ className?: string }>
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details open={defaultOpen} className="group rounded-xl border border-slate-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:hidden">
+        <span className="flex min-w-0 items-start gap-2">
+          <Icon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+              <span>{title}</span>
+              {countLabel ? (
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-normal text-slate-500">{countLabel}</span>
+              ) : null}
+            </span>
+            {description ? <span className="mt-0.5 block text-xs font-normal text-slate-500">{description}</span> : null}
+          </span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-t border-slate-100 p-4">
+        {children}
+      </div>
+    </details>
+  )
+}
 
 export default function StaffPage() {
   const { role, user } = useAuth()
@@ -978,13 +1017,14 @@ export default function StaffPage() {
             </CardContent>
           </Card>
 
-          <Card className={adminCardClass}>
-            <CardHeader className="pb-2">
+          <StaffManagementCollapsibleSection
+            title="スタッフ活動量の詳細"
+            description="直近 7日 / 30日 の実績を、持ち越しと未完了を優先して見やすくまとめます。"
+            countLabel={`${staffActivitySummaries.length}名`}
+            icon={Users}
+          >
+            <div className="space-y-3">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <CardTitle className="text-base text-slate-900">スタッフ活動量の詳細</CardTitle>
-                  <CardDescription className="text-slate-600">直近 7日 / 30日 の実績を、持ち越しと未完了を優先して見やすくまとめます。</CardDescription>
-                </div>
                 <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
                   <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
                     <TabsTrigger value="7d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
@@ -992,8 +1032,6 @@ export default function StaffPage() {
                   </TabsList>
                 </Tabs>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
               {isActivityLoading ? (
                 <LoadingState message="活動量データを読み込み中です。" />
               ) : staffActivitySummaries.length === 0 ? (
@@ -1067,69 +1105,76 @@ export default function StaffPage() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </StaffManagementCollapsibleSection>
 
-          <div className="grid grid-cols-1 gap-3 lg:hidden">
-            {isUserListLoading ? (
-              <Card className={adminCardClass}>
-                <CardContent className="p-4">
-                  <LoadingState message="アカウント一覧を読み込み中です。" />
-                </CardContent>
-              </Card>
-            ) : filteredStaff.length === 0 ? (
-              <EmptyState
-                title="表示できるアカウントはまだありません"
-                description="条件に合うアカウントが入るとここに表示されます。"
-                className={adminCardClass}
-              />
-            ) : filteredStaff.map((member) => (
-              <Card key={member.id} className={adminCardClass}>
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-base font-semibold text-slate-900">{member.name}</p>
-                    <Badge variant="outline" className={cn('border text-xs', roleClass[member.role])}>
-                      {roleLabel[member.role]}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <p>電話: {member.phone}</p>
-                    <p>メール: {member.email}</p>
-                    {member.regionName && <p>リージョン: {member.regionName}</p>}
-                    {member.pharmacyName && <p>薬局: {member.pharmacyName}</p>}
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
-                      {statusLabel[member.status]}
-                    </Badge>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-                        disabled={userActionId === member.id}
-                        onClick={() => openEditDialog(member)}
-                      >
-                        編集
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-                        onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
-                        disabled={userActionId === member.id || member.status === 'invited'}
-                      >
-                        {member.status === 'active' ? '停止' : '再開'}
-                      </Button>
+          <StaffManagementCollapsibleSection
+            title="スタッフ一覧"
+            description="検索・絞り込み後のアカウントを確認し、編集や停止・再開を行います。"
+            countLabel={`${filteredStaff.length}名`}
+            icon={Users}
+            defaultOpen
+          >
+            <div className="grid grid-cols-1 gap-3 lg:hidden">
+              {isUserListLoading ? (
+                <Card className={adminCardClass}>
+                  <CardContent className="p-4">
+                    <LoadingState message="アカウント一覧を読み込み中です。" />
+                  </CardContent>
+                </Card>
+              ) : filteredStaff.length === 0 ? (
+                <EmptyState
+                  title="表示できるアカウントはまだありません"
+                  description="条件に合うアカウントが入るとここに表示されます。"
+                  className={adminCardClass}
+                />
+              ) : filteredStaff.map((member) => (
+                <Card key={member.id} className={adminCardClass}>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-base font-semibold text-slate-900">{member.name}</p>
+                      <Badge variant="outline" className={cn('border text-xs', roleClass[member.role])}>
+                        {roleLabel[member.role]}
+                      </Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="space-y-1 text-xs text-slate-600">
+                      <p>電話: {member.phone}</p>
+                      <p>メール: {member.email}</p>
+                      {member.regionName && <p>リージョン: {member.regionName}</p>}
+                      {member.pharmacyName && <p>薬局: {member.pharmacyName}</p>}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline" className={cn('border text-xs', statusClass[member.status])}>
+                        {statusLabel[member.status]}
+                      </Badge>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                          disabled={userActionId === member.id}
+                          onClick={() => openEditDialog(member)}
+                        >
+                          編集
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                          onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
+                          disabled={userActionId === member.id || member.status === 'invited'}
+                        >
+                          {member.status === 'active' ? '停止' : '再開'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-          <Card className={`hidden lg:block ${adminTableClass}`}>
-            <Table>
+            <Card className={`hidden lg:block ${adminTableClass}`}>
+              <Table>
               <TableHeader>
                 <TableRow className="border-slate-200 hover:bg-slate-50">
                   <TableHead className="text-slate-500">氏名</TableHead>
@@ -1223,15 +1268,17 @@ export default function StaffPage() {
                   </TableRow>
                 )})}
               </TableBody>
-            </Table>
-          </Card>
+              </Table>
+            </Card>
+          </StaffManagementCollapsibleSection>
 
-          <Card className={adminCardClass}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-900">招待中アカウント</CardTitle>
-              <CardDescription className="text-slate-600">未受諾の招待は再送または取消できます。</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <StaffManagementCollapsibleSection
+            title="招待中アカウント"
+            description="未受諾の招待は再送または取消できます。"
+            countLabel={`${pendingInvitationCount}件`}
+            icon={Plus}
+          >
+            <div className="space-y-3">
               <Input
                 value={invitationSearch}
                 onChange={(event) => setInvitationSearch(event.target.value)}
@@ -1288,8 +1335,8 @@ export default function StaffPage() {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </StaffManagementCollapsibleSection>
         </>
       )}
 
