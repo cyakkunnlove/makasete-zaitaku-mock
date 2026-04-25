@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { Badge } from '@/components/ui/badge'
@@ -108,6 +108,45 @@ function formatJstDateTime(value: string | null | undefined) {
     minute: '2-digit',
     hour12: false,
   }).format(date)
+}
+
+function BillingCollapsibleSection({
+  title,
+  description,
+  countLabel,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  description?: string
+  countLabel?: string
+  icon: ComponentType<{ className?: string }>
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details open={defaultOpen} className="group rounded-xl border border-slate-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 marker:hidden">
+        <span className="flex min-w-0 items-start gap-2">
+          <Icon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+              <span>{title}</span>
+              {countLabel ? (
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-normal text-slate-500">{countLabel}</span>
+              ) : null}
+            </span>
+            {description ? <span className="mt-0.5 block text-xs font-normal text-slate-500">{description}</span> : null}
+          </span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-t border-slate-100 p-4">
+        {children}
+      </div>
+    </details>
+  )
 }
 
 export default function BillingPage() {
@@ -603,12 +642,14 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <Card className={adminCardClass}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-900">回収管理へ追加する訪問一覧</CardTitle>
-            <CardDescription className="text-slate-600">対応完了した訪問のうち、請求対象だけをここから回収管理へ載せます</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <BillingCollapsibleSection
+          title="回収管理へ追加する訪問一覧"
+          description="対応完了した訪問のうち、請求対象だけをここから回収管理へ載せます。"
+          countLabel={`${unbilledVisitRecords.length}件`}
+          icon={FileText}
+          defaultOpen={unbilledVisitRecords.length > 0}
+        >
+          <div className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                 <p className="text-2xl font-bold text-slate-900">{unbilledVisitRecords.length}</p>
@@ -657,15 +698,16 @@ export default function BillingPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </BillingCollapsibleSection>
 
-        <Card className={adminCardClass}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><CalendarDays className="h-4 w-4 text-indigo-500" />日付から回収状況を見る</CardTitle>
-            <CardDescription className="text-slate-600">まず日付を選び、その日の対象患者だけを確認します</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <BillingCollapsibleSection
+          title="日付から回収状況を見る"
+          description="まず日付を選び、その日の対象患者だけを確認します。"
+          countLabel={`${dateCollectionSummaries.length}日`}
+          icon={CalendarDays}
+        >
+          <div className="space-y-3">
             {dateCollectionSummaries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 条件に合う日付はありません。検索語かステータスを見直してください。
@@ -744,16 +786,17 @@ export default function BillingPage() {
                 </div>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </BillingCollapsibleSection>
 
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
+        <BillingCollapsibleSection
+          title="患者ごとの回収履歴"
+          description="誰がいつ何に変えたかを、患者ごとにまとめて見返せます。"
+          countLabel={`${filteredPatientCollectionHistories.length}名`}
+          icon={Layers}
+        >
+          <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-sm text-slate-900">患者ごとの回収履歴</CardTitle>
-                <CardDescription className="text-slate-600">誰がいつ何に変えたかを、患者ごとにまとめて見返せます。</CardDescription>
-              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -793,8 +836,6 @@ export default function BillingPage() {
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
             {filteredPatientCollectionHistories.length === 0 ? (
               <p className="py-4 text-center text-xs text-slate-500">条件に合う回収履歴はありません。</p>
             ) : (
@@ -851,8 +892,8 @@ export default function BillingPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </BillingCollapsibleSection>
 
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
