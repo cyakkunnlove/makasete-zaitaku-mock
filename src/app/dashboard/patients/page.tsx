@@ -78,7 +78,10 @@ export default function PatientsPage() {
   }, [])
 
   useEffect(() => {
-    if (!isDayContext || !ownPharmacyId || searchQuery.trim()) return
+    if (!isDayContext || !ownPharmacyId || searchQuery.trim()) {
+      setIsInitialLoading(false)
+      return
+    }
 
     let cancelled = false
     async function fetchTodayPatients() {
@@ -117,6 +120,7 @@ export default function PatientsPage() {
     fetchTodayPatients()
     return () => {
       cancelled = true
+      setIsInitialLoading(false)
     }
   }, [isDayContext, ownPharmacyId, searchQuery, todayDateKey])
 
@@ -124,6 +128,7 @@ export default function PatientsPage() {
     const query = searchQuery.trim()
     if ((!isRegionalAdmin && !isDayContext) || !query) {
       if (isRegionalAdmin) setDatabasePatients([])
+      setIsSearchLoading(false)
       return
     }
 
@@ -149,6 +154,7 @@ export default function PatientsPage() {
     return () => {
       cancelled = true
       window.clearTimeout(timer)
+      setIsSearchLoading(false)
     }
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
