@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Check,
   Download,
+  LogIn,
   Mail,
   Phone,
 } from 'lucide-react'
@@ -253,6 +254,14 @@ export default function HomePage() {
 
           <div className="hidden items-center gap-3 sm:flex">
             <Button
+              variant="ghost"
+              className="h-11 rounded-md px-4 font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
+              onClick={() => router.push('/login')}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              ログイン
+            </Button>
+            <Button
               variant="outline"
               className="h-11 rounded-md border-blue-900 !bg-white px-5 font-semibold !text-blue-950 hover:!bg-blue-50"
               onClick={() => router.push('/contact')}
@@ -297,6 +306,14 @@ export default function HomePage() {
               >
                 <Mail className="mr-2 h-5 w-5" />
                 お問い合わせはこちら
+              </Button>
+              <Button
+                variant="ghost"
+                className="cta-button h-14 w-full rounded-md px-7 text-base font-bold text-blue-950 hover:bg-blue-50 hover:text-blue-800 sm:hidden"
+                onClick={() => router.push('/login')}
+              >
+                <LogIn className="mr-2 h-5 w-5" />
+                ログイン
               </Button>
             </div>
           </Reveal>
@@ -533,6 +550,7 @@ export default function HomePage() {
               <li><a href="/faq">よくあるご質問</a></li>
               <li><a href="/contact">資料ダウンロード</a></li>
               <li><a href="/contact">お問い合わせ</a></li>
+              <li><a href="/login">ログイン</a></li>
             </ul>
           </div>
           <div className="rounded-lg border border-white/30 p-5">
