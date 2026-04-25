@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
+import { listPatientsByIdsForPharmacy, listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function GET(_request: Request, { params }: { params: { pharmacyId: string } }) {
+export async function GET(request: Request, { params }: { params: { pharmacyId: string } }) {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -22,7 +22,15 @@ export async function GET(_request: Request, { params }: { params: { pharmacyId:
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
-  const patients = await listPatientsByPharmacy(scopedPharmacyId)
+  const url = new URL(request.url)
+  const patientIds = (url.searchParams.get('ids') ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+
+  const patients = patientIds.length > 0
+    ? await listPatientsByIdsForPharmacy(scopedPharmacyId, patientIds)
+    : await listPatientsByPharmacy(scopedPharmacyId)
   let pharmacyName: string | null = null
   const supabase = createServerSupabaseClient()
   const pharmacyResponse = await supabase.from('pharmacies').select('name').eq('id', scopedPharmacyId).maybeSingle()

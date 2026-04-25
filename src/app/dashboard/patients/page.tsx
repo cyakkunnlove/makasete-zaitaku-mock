@@ -26,7 +26,34 @@ import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permission
 import type { DayTaskItem } from '@/lib/mock-data'
 
 import { mergePatientSources } from '@/lib/patient-read-model'
-import { isPatientInPharmacyScope } from '@/lib/patient-scope'
+
+function mapDayTask(task: Record<string, unknown>): DayTaskItem {
+  return {
+    id: String(task.id),
+    patientId: String(task.patient_id ?? ''),
+    pharmacyId: String(task.pharmacy_id ?? ''),
+    flowDate: String(task.flow_date),
+    sortOrder: Number(task.sort_order ?? 1),
+    scheduledTime: String(task.scheduled_time ?? '10:00'),
+    visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
+    source: (task.source as DayTaskItem['source']) ?? '自動生成',
+    status: (task.status as DayTaskItem['status']) ?? 'scheduled',
+    planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
+    plannedBy: (task.planned_by as string | null) ?? null,
+    plannedById: (task.planned_by_id as string | null) ?? null,
+    plannedAt: (task.planned_at as string | null) ?? null,
+    handledBy: (task.handled_by as string | null) ?? null,
+    handledById: (task.handled_by_id as string | null) ?? null,
+    handledAt: (task.handled_at as string | null) ?? null,
+    completedAt: (task.completed_at as string | null) ?? null,
+    billable: Boolean(task.billable),
+    collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
+    amount: Number(task.amount ?? 0),
+    note: String(task.note ?? ''),
+    updatedAt: (task.updated_at as string | null) ?? null,
+    updatedById: (task.updated_by_id as string | null) ?? null,
+  }
+}
 
 export default function PatientsPage() {
   const { role, user, authMode } = useAuth()
@@ -34,6 +61,7 @@ export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [todayTasks, setTodayTasks] = useState<DayTaskItem[]>([])
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [isSearchLoading, setIsSearchLoading] = useState(false)
 
   const isNightPharmacist = role === 'night_pharmacist'
@@ -53,65 +81,40 @@ export default function PatientsPage() {
     if (!isDayContext || !ownPharmacyId || searchQuery.trim()) return
 
     let cancelled = false
-    async function fetchPatients() {
+    async function fetchTodayPatients() {
+      setIsInitialLoading(true)
       try {
-        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
-        const result = await response.json()
-        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
-          setDatabasePatients(result.patients)
+        const taskResponse = await fetch(`/api/day-flow/${todayDateKey}/tasks`, { cache: 'no-store' })
+        const taskResult = await taskResponse.json()
+        if (cancelled) return
+
+        const tasks: DayTaskItem[] = taskResponse.ok && taskResult?.ok && Array.isArray(taskResult.tasks)
+          ? taskResult.tasks.map((task: Record<string, unknown>) => mapDayTask(task))
+          : []
+        setTodayTasks(tasks)
+
+        const patientIds = Array.from(new Set(tasks.map((task) => task.patientId).filter(Boolean)))
+        if (patientIds.length === 0) {
+          setDatabasePatients([])
+          return
+        }
+
+        const patientResponse = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}?ids=${encodeURIComponent(patientIds.join(','))}`, { cache: 'no-store' })
+        const patientResult = await patientResponse.json()
+        if (!cancelled && patientResponse.ok && patientResult?.ok && Array.isArray(patientResult.patients)) {
+          setDatabasePatients(patientResult.patients)
         }
       } catch {
-        if (!cancelled) setDatabasePatients([])
+        if (!cancelled) {
+          setTodayTasks([])
+          setDatabasePatients([])
+        }
+      } finally {
+        if (!cancelled) setIsInitialLoading(false)
       }
     }
 
-    fetchPatients()
-    return () => {
-      cancelled = true
-    }
-  }, [isDayContext, ownPharmacyId, searchQuery])
-
-  useEffect(() => {
-    if (!isDayContext || !ownPharmacyId || searchQuery.trim()) return
-
-    let cancelled = false
-    async function fetchTodayTasks() {
-      try {
-        const response = await fetch(`/api/day-flow/${todayDateKey}/tasks`, { cache: 'no-store' })
-        const result = await response.json()
-        if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
-          setTodayTasks(result.tasks.map((task: Record<string, unknown>) => ({
-            id: String(task.id),
-            patientId: String(task.patient_id ?? ''),
-            pharmacyId: String(task.pharmacy_id ?? ''),
-            flowDate: String(task.flow_date),
-            sortOrder: Number(task.sort_order ?? 1),
-            scheduledTime: String(task.scheduled_time ?? '10:00'),
-            visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
-            source: (task.source as DayTaskItem['source']) ?? '自動生成',
-            status: (task.status as DayTaskItem['status']) ?? 'scheduled',
-            planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
-            plannedBy: (task.planned_by as string | null) ?? null,
-            plannedById: (task.planned_by_id as string | null) ?? null,
-            plannedAt: (task.planned_at as string | null) ?? null,
-            handledBy: (task.handled_by as string | null) ?? null,
-            handledById: (task.handled_by_id as string | null) ?? null,
-            handledAt: (task.handled_at as string | null) ?? null,
-            completedAt: (task.completed_at as string | null) ?? null,
-            billable: Boolean(task.billable),
-            collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
-            amount: Number(task.amount ?? 0),
-            note: String(task.note ?? ''),
-            updatedAt: (task.updated_at as string | null) ?? null,
-            updatedById: (task.updated_by_id as string | null) ?? null,
-          })))
-        }
-      } catch {
-        if (!cancelled) setTodayTasks([])
-      }
-    }
-
-    fetchTodayTasks()
+    fetchTodayPatients()
     return () => {
       cancelled = true
     }
@@ -126,23 +129,26 @@ export default function PatientsPage() {
 
     let cancelled = false
     setIsSearchLoading(true)
-    fetch(`/api/patients/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json()
-        if (!response.ok || !data.ok) throw new Error(data.error ?? 'patient_search_failed')
-        if (cancelled) return
-        setDatabasePatients(Array.isArray(data.patients) ? data.patients : [])
-      })
-      .catch(() => {
-        if (cancelled) return
-        setDatabasePatients([])
-      })
-      .finally(() => {
-        if (!cancelled) setIsSearchLoading(false)
-      })
+    const timer = window.setTimeout(() => {
+      fetch(`/api/patients/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
+        .then(async (response) => {
+          const data = await response.json()
+          if (!response.ok || !data.ok) throw new Error(data.error ?? 'patient_search_failed')
+          if (cancelled) return
+          setDatabasePatients(Array.isArray(data.patients) ? data.patients : [])
+        })
+        .catch(() => {
+          if (cancelled) return
+          setDatabasePatients([])
+        })
+        .finally(() => {
+          if (!cancelled) setIsSearchLoading(false)
+        })
+    }, 250)
 
     return () => {
       cancelled = true
+      window.clearTimeout(timer)
     }
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
@@ -164,10 +170,10 @@ export default function PatientsPage() {
     }
     if (isDayContext) {
       const todayPatientIds = new Set(todayTasks.map((task) => task.patientId).filter(Boolean))
-      return patientMaster.filter((patient) => todayPatientIds.has(patient.id) && isPatientInPharmacyScope(patient, ownPharmacyId))
+      return patientMaster.filter((patient) => todayPatientIds.has(patient.id))
     }
     return patientMaster
-  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster, searchQuery, todayTasks])
+  }, [databasePatients, isDayContext, isRegionalAdmin, patientMaster, searchQuery, todayTasks])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -204,6 +210,7 @@ export default function PatientsPage() {
       return a.name.localeCompare(b.name, 'ja')
     })
   }, [filteredPatients, isDayContext, ownPharmacyId, todayTasks])
+  const isPatientListLoading = isInitialLoading || isSearchLoading
 
   if (isNightPharmacist) {
     return (
@@ -254,15 +261,15 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {isRegionalAdmin && isSearchLoading && (
+      {isPatientListLoading && (
         <Card className={adminCardClass}>
           <CardContent className="p-6">
-            <LoadingState message="患者候補を検索中です。" />
+            <LoadingState message={searchQuery.trim() ? '患者候補を検索中です。' : '今日の対応患者を読み込んでいます。'} />
           </CardContent>
         </Card>
       )}
 
-      {filteredPatients.length === 0 && !isSearchLoading && (
+      {filteredPatients.length === 0 && !isPatientListLoading && (
         <EmptyState
           title={isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません' : isDayContext && !searchQuery.trim() ? '今日の対応患者はいません' : '該当する患者が見つかりません'}
           description={isRegionalAdmin && !searchQuery.trim() ? '検索すると候補が表示されます。' : isDayContext && !searchQuery.trim() ? '検索すると自局の患者だけが表示されます。' : '検索条件を変えると見つかる場合があります。'}

@@ -22,6 +22,29 @@ export async function listPatientsByPharmacy(pharmacyId: string): Promise<Patien
   return []
 }
 
+export async function listPatientsByIdsForPharmacy(pharmacyId: string, patientIds: string[]): Promise<Patient[]> {
+  const ids = Array.from(new Set(patientIds.map((id) => id.trim()).filter(Boolean)))
+  if (ids.length === 0) return []
+
+  const mode = getRepositoryMode()
+
+  if (mode.provider === 'supabase') {
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('pharmacy_id', pharmacyId)
+      .eq('status', 'active')
+      .in('id', ids)
+      .order('full_name', { ascending: true })
+
+    if (error) throw error
+    return data ?? []
+  }
+
+  return []
+}
+
 export async function getPatientById(patientId: string): Promise<Patient | null> {
   const mode = getRepositoryMode()
 
