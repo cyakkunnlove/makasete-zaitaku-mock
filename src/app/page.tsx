@@ -93,107 +93,107 @@ function Reveal({
 
 const stats: StatCard[] = [
   {
-    label: '夜間相談の体制',
-    value: '24時間',
-    note: '夜間・休日も相談を受けられる体制づくり',
-    image: '/homepage-assets/icons-balanced/clock-24h.jpg',
-    alt: '24時間対応の時計アイコン',
+    label: '在宅立ち上げ',
+    value: '伴走',
+    note: '初回患者受入までの進め方を一緒に整備',
+    image: '/homepage-assets/icons-balanced/pharmacy-storefront.jpg',
+    alt: '薬局店舗のアイコン',
   },
   {
-    label: '初動の標準化',
-    value: '一次受付',
-    note: '症状・服薬状況・緊急度を同じ型で確認',
-    image: '/homepage-assets/icons-balanced/headset-simple.jpg',
-    alt: 'ヘッドセットのアイコン',
-  },
-  {
-    label: '記録と申し送り',
-    value: '共有',
-    note: '翌朝の薬局へ対応内容をわかりやすく共有',
+    label: '教育と標準化',
+    value: '型化',
+    note: 'スタッフ教育、役割分担、必要書類を整理',
     image: '/homepage-assets/icons-balanced/document-check.jpg',
     alt: '記録書類のアイコン',
   },
   {
-    label: '対象薬局',
-    value: '在宅薬局',
-    note: '在宅患者を支える薬局の継続運用を支援',
-    image: '/homepage-assets/icons-balanced/pharmacy-storefront.jpg',
-    alt: '薬局店舗のアイコン',
+    label: '運用DX',
+    value: '定着',
+    note: '患者管理、日次対応、回収管理をアプリで継続',
+    image: '/homepage-assets/icons-balanced/operator-laptop.jpg',
+    alt: 'PCで業務する薬剤師のイラスト',
+  },
+  {
+    label: '夜間連携',
+    value: '拡張',
+    note: '日中運用が整った先で夜間対応へ接続',
+    image: '/homepage-assets/icons-balanced/clock-24h.jpg',
+    alt: '24時間対応の時計アイコン',
   },
 ]
 
 const marketCards: MarketCard[] = [
   {
-    title: '在宅医療ニーズの増加',
-    description: '高齢化と地域包括ケアの流れにより、薬局にも在宅患者を継続的に支える役割が求められています。',
+    title: '在宅に取り組む必要性の増加',
+    description: '外来調剤だけでは薬局経営が厳しくなる中、在宅対応は地域貢献だけでなく経営維持の柱としても重要になっています。',
   },
   {
-    title: '夜間・休日対応の負担',
-    description: '24時間対応を掲げるほど、受電、判断、薬の手配、翌朝の申し送りが薬局現場の大きな負担になります。',
+    title: '自力で立ち上げにくい現場',
+    description: '在宅は営業、患者受入、スタッフ教育、医師・ケアマネ連携、記録、請求まで必要で、ノウハウがない薬局ほど止まりやすい領域です。',
   },
   {
-    title: '属人化しやすい運用',
-    description: '担当者の経験に依存すると、確認漏れ、記録漏れ、引き継ぎ不足が起きやすく、拡大時の障害になります。',
+    title: 'コンサルだけでは継続しにくい',
+    description: '助言だけで終わると、現場に定着せず契約も切れやすい。日々使うWEBアプリまで含めて運用に組み込む必要があります。',
   },
 ]
 
 const services: ServiceCard[] = [
   {
     number: '01',
-    title: '24時間365日の相談受付',
-    description: '夜間・休日の連絡を受け、症状や服薬状況を整理します。',
-    image: '/homepage-assets/icons-balanced/support-24h-phone.jpg',
-    alt: '24時間電話相談のイラスト',
-  },
-  {
-    number: '02',
-    title: '薬剤師による安心対応',
-    description: '経験豊富な薬剤師が状況を確認し、必要な助言や処方提案につなげます。',
+    title: '在宅立ち上げの伴走',
+    description: '田中社長側の在宅調剤ノウハウをもとに、薬局ごとの受入準備、役割、営業導線を整えます。',
     image: '/homepage-assets/icons-balanced/pharmacist-consultation.jpg',
     alt: '薬剤師が相談対応しているイラスト',
   },
   {
+    number: '02',
+    title: '教育・テンプレート整備',
+    description: 'スタッフ教育、必要備品、患者受入基準、医療機関連携、記録の型を現場で使える形にします。',
+    image: '/homepage-assets/icons-balanced/document-check.jpg',
+    alt: '書類チェックのイラスト',
+  },
+  {
     number: '03',
-    title: '薬の手配・配送まで接続',
-    description: '必要な薬の手配から患者さま宅への配送まで、運用導線として整理します。',
-    image: '/homepage-assets/icons-balanced/delivery-truck.jpg',
-    alt: '薬の配送車のイラスト',
+    title: 'WEBアプリで運用定着',
+    description: '患者管理、日次タスク、申し送り、回収状況をアプリで回し、コンサル後も継続利用される基盤にします。',
+    image: '/homepage-assets/icons-balanced/operator-laptop.jpg',
+    alt: 'PCで運用するイラスト',
   },
   {
     number: '04',
-    title: '薬局の負担を大幅に軽減',
-    description: '夜間対応の体制構築や人員確保の負担を抑え、本業に集中できる環境を支援します。',
-    image: '/homepage-assets/icons-balanced/pharmacist-workstation.jpg',
-    alt: '薬局業務を支える薬剤師のイラスト',
+    title: '夜間対応への段階接続',
+    description: '日中運用と患者情報が整った薬局から、夜間受付、申し送り、緊急時連携へ段階的につなぎます。',
+    image: '/homepage-assets/icons-balanced/support-24h-phone.jpg',
+    alt: '24時間電話相談のイラスト',
   },
 ]
 
 const flows: FlowCard[] = [
   {
     number: '01',
-    title: '患者さまからの連絡',
-    description: '患者さまやご家族から薬局へご連絡',
+    title: '現状診断',
+    description: '在宅に取り組む意思、体制、課題を確認',
     image: '/homepage-assets/icons-balanced/patient-phone.jpg',
-    alt: '患者が電話しているイラスト',
+    alt: '電話相談のイラスト',
   },
   {
     number: '02',
-    title: '薬剤師が状況を確認',
-    description: '症状・服薬状況・緊急度を確認',
+    title: 'ロードマップ作成',
+    description: '初回患者受入までの手順を設計',
     image: '/homepage-assets/icons-balanced/operator-laptop.jpg',
     alt: '電話を受けながら確認するイラスト',
   },
   {
     number: '03',
-    title: '適切な対応を実施',
-    description: '助言・処方提案・医師連携などを実施',
+    title: '現場に伴走',
+    description: '教育、営業、運用開始を支援',
     image: '/homepage-assets/icons-balanced/pharmacist-pointing.jpg',
     alt: '薬剤師が説明しているイラスト',
   },
   {
     number: '04',
-    title: '薬の手配・配送',
-    description: '必要な薬を手配し、ご自宅へお届け',
+    title: 'アプリで定着',
+    description: '日常業務として継続利用される状態へ',
     image: '/homepage-assets/icons-balanced/handover-medicine.jpg',
     alt: '薬を受け渡しているイラスト',
   },
@@ -201,22 +201,22 @@ const flows: FlowCard[] = [
 
 const values: ValueCard[] = [
   {
-    title: '患者さまにとって',
-    points: ['夜間や休日も安心して相談できる', '自宅で必要な薬を受け取れる', '切れ目のない在宅医療を実現'],
+    title: '薬局現場にとって',
+    points: ['在宅の始め方が明確になる', 'スタッフ教育と役割分担が進む', '患者対応を日々の業務として回せる'],
     image: '/homepage-assets/icons-balanced/patients-family.jpg',
     alt: '患者と家族のイラスト',
     tone: 'bg-sky-50',
   },
   {
-    title: '薬局にとって',
-    points: ['夜間対応の負担を大幅に軽減', '薬剤師不足の解消に貢献', '本業に集中でき、収益性も向上'],
+    title: '薬局経営にとって',
+    points: ['在宅を新しい収益柱に育てられる', '地域連携と紹介獲得につながる', 'コンサル後もアプリ利用が継続する'],
     image: '/homepage-assets/icons-balanced/two-pharmacists-waving.jpg',
     alt: '薬剤師チームのイラスト',
     tone: 'bg-emerald-50',
   },
   {
-    title: '経営にとって',
-    points: ['地域で選ばれる薬局に', '安定した運営体制を構築', '在宅医療の強化で差別化を実現'],
+    title: '地域医療にとって',
+    points: ['在宅対応できる薬局を増やす', '患者を断らない体制に近づく', '必要に応じて夜間連携へ広げられる'],
     image: '/homepage-assets/icons-balanced/doctor-arms-crossed.jpg',
     alt: '医療従事者のイラスト',
     tone: 'bg-indigo-50',
@@ -258,7 +258,7 @@ export default function HomePage() {
               className="h-10 w-10 object-contain"
             />
             <span>
-              <span className="block text-xs font-semibold text-slate-600">在宅薬局の夜間対応パートナー</span>
+              <span className="block text-xs font-semibold text-slate-600">在宅薬局の立ち上げ・運用支援</span>
               <span className="block text-2xl font-bold tracking-wide text-blue-950">任せて在宅</span>
             </span>
           </button>
@@ -353,15 +353,15 @@ export default function HomePage() {
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:py-20">
           <Reveal className="hero-copy">
-            <p className="text-sm font-bold text-blue-900">夜間も、在宅医療を止めない。</p>
+            <p className="text-sm font-bold text-blue-900">在宅を始めたい薬局を、持てる薬局へ。</p>
             <h1 className="mt-6 text-4xl font-bold leading-[1.35] tracking-wide text-blue-950 sm:text-5xl lg:text-6xl">
-              夜間も、在宅医療を
+              在宅調剤の実務を
               <br />
-              止めない安心を。
+              薬局の運用基盤へ。
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-700">
-              任せて在宅は、24時間365日体制で薬剤師対応を支える運用支援サービスです。
-              薬局の負担を軽減し、患者さまと地域に安心を届けます。
+              任せて在宅は、在宅調剤を多く扱ってきた現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
+              伴走だけで終わらせず、WEBアプリを日常業務に組み込み、継続して使われる仕組みまで整えます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -432,9 +432,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-bold text-blue-800">MARKET BACKGROUND</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-wide text-blue-950">在宅薬局の夜間対応は、仕組み化が必要な段階へ</h2>
+            <h2 className="mt-3 text-3xl font-bold tracking-wide text-blue-950">在宅薬局の立ち上げは、仕組み化が必要な段階へ</h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              在宅医療の需要が高まる一方で、薬局現場では夜間・休日対応、薬剤師の負担、申し送りの属人化が大きな課題になっています。
+              在宅医療の需要が高まる一方で、薬局現場ではノウハウ不足、スタッフ教育、患者受入準備、日々の運用定着が大きな課題になっています。
             </p>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -484,7 +484,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="flex items-center justify-center gap-5">
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
-            <h2 className="text-center text-3xl font-bold tracking-wide text-blue-950">夜間対応の流れ</h2>
+            <h2 className="text-center text-3xl font-bold tracking-wide text-blue-950">在宅導入から定着までの流れ</h2>
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-4">
@@ -526,7 +526,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="flex items-center justify-center gap-5">
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
-            <h2 className="text-center text-3xl font-bold tracking-wide text-blue-950">患者さま・薬局・経営それぞれに価値を提供</h2>
+            <h2 className="text-center text-3xl font-bold tracking-wide text-blue-950">薬局・経営・地域医療それぞれに価値を提供</h2>
             <span className="hidden h-px w-28 bg-slate-300 sm:block" />
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -566,9 +566,9 @@ export default function HomePage() {
             className="hidden h-36 w-full object-contain md:block"
           />
           <div>
-            <h2 className="text-2xl font-bold text-blue-950">詳しいサービス資料をご用意しています</h2>
+            <h2 className="text-2xl font-bold text-blue-950">在宅化の進め方を資料で確認できます</h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              サービスの詳細や導入時の確認事項をまとめた資料をご用意しています。お気軽にご請求・お問い合わせください。
+              在宅立ち上げ、運用定着、WEBアプリ活用、夜間連携までの考え方をまとめています。まずは現状診断からご相談ください。
             </p>
           </div>
           <div className="grid gap-3">
@@ -605,7 +605,7 @@ export default function HomePage() {
               <div className="text-2xl font-bold">任せて在宅</div>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-7 text-blue-100">
-              在宅薬局の夜間対応パートナーとして、24時間体制の薬剤師対応で、在宅医療を支える薬局の負担を軽減します。
+              在宅薬局の立ち上げ、教育、運用定着、夜間連携までを支える薬局DXサービスです。
             </p>
           </div>
           <div>
