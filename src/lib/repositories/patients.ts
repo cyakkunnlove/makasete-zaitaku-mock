@@ -12,6 +12,7 @@ export async function listPatientsByPharmacy(pharmacyId: string): Promise<Patien
       .from('patients')
       .select('*')
       .eq('pharmacy_id', pharmacyId)
+      .eq('status', 'active')
       .order('full_name', { ascending: true })
 
     if (error) throw error

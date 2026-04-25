@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
-import { formatVisitRuleSummary, loadMockFallbackPatients, upsertRegisteredPatient, updateRegisteredPatient, type PatientVisitRule, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { formatVisitRuleSummary, type PatientVisitRule } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
 import type { Patient, PatientHomePhoto } from '@/types/database'
@@ -89,11 +89,6 @@ function formatPhone(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
-function isUuidLike(value: string | null | undefined) {
-  if (!value) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-}
-
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
   const today = new Date()
@@ -110,37 +105,12 @@ export default function PatientDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const id = params.id as string
-  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatient, setDatabasePatient] = useState<Patient | null>(null)
   const [detailLoadState, setDetailLoadState] = useState<'loading' | 'ready' | 'not_found'>('loading')
 
   useEffect(() => {
-    if (isUuidLike(id)) {
-      setRegisteredPatients([])
-      return
-    }
-
-    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
-    syncPatients()
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === 'makasete-patient-master:v1') {
-        syncPatients()
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [id])
-
-  useEffect(() => {
     let cancelled = false
     async function fetchPatientDetail() {
-      const localPatient = isUuidLike(id) ? null : registeredPatients.find((item) => item.id === id)
-      if (localPatient) {
-        setDatabasePatient(null)
-        setDetailLoadState('ready')
-        return
-      }
-
       setDetailLoadState('loading')
       try {
         const response = await fetch(`/api/patients/${id}/detail`, { cache: 'no-store' })
@@ -168,17 +138,16 @@ export default function PatientDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [id, registeredPatients])
+  }, [id])
 
   const patient = useMemo(() => {
     if (detailLoadState === 'not_found') return null
     return mergeSinglePatient({
       databasePatient,
-      registeredPatients: isUuidLike(id) ? [] : registeredPatients,
       patientId: id,
       includeMockPatients: false,
     })
-  }, [databasePatient, detailLoadState, id, registeredPatients])
+  }, [databasePatient, detailLoadState, id])
 
   useEffect(() => {
     if (!patient) return
@@ -306,34 +275,12 @@ export default function PatientDetailPage() {
 
   const age = calculateAge(patient.dob)
   const isRegionalAdmin = role === 'regional_admin'
-  const isPharmacyAdmin = role === 'pharmacy_admin'
   const canEditThisPatient = canEditPatientRecord({ role, user, patient })
   const hasAllergies = patient.allergies !== 'なし'
   const attentionFlags = getPatientAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
-  const isLocalOnlyPatient = authMode !== 'cognito' && !databasePatient
   const handleSaveVisitRules = async (nextVisitRules: PatientVisitRule[]) => {
     if (!patient) return
-
-    if (isLocalOnlyPatient) {
-      upsertRegisteredPatient({
-        ...patient,
-        visitRules: nextVisitRules,
-        registrationMeta: patient.registrationMeta
-          ? {
-              ...patient.registrationMeta,
-              updatedAt: new Date().toISOString(),
-              updatedById: user?.id ?? null,
-              updatedByName: user?.full_name ?? 'Pharmacy Staff',
-              version: patient.registrationMeta.version + 1,
-            }
-          : undefined,
-      })
-      setRegisteredPatients(loadMockFallbackPatients())
-      setEditSavedNotice('訪問スケジュールを保存しました')
-      setTimeout(() => setEditSavedNotice(null), 2500)
-      return
-    }
 
     const response = await fetch(`/api/patients/${patient.id}/visit-rules`, {
       method: 'PATCH',
@@ -610,24 +557,6 @@ export default function PatientDetailPage() {
       }
     }
 
-    if (!databasePatient) {
-      upsertRegisteredPatient({
-        ...patient,
-        address: editForm.address || patient.address,
-        phone: editForm.phone || null,
-        visitNotes: editForm.visitNotes || '未設定',
-        currentMeds: editForm.currentMeds || '未設定',
-        medicalHistory: editForm.medicalHistory || '未設定',
-        allergies: editForm.allergies || 'なし',
-        insuranceInfo: editForm.insuranceInfo || '未設定',
-      })
-      setGeocodeConfirmOpen(false)
-      setEditDialogOpen(false)
-      setEditSavedNotice('患者情報を保存しました')
-      setTimeout(() => setEditSavedNotice(null), 2500)
-      return
-    }
-
     const response = await fetch(`/api/patients/${patient.id}`, {
       method: 'PATCH',
       headers: {
@@ -662,34 +591,6 @@ export default function PatientDetailPage() {
       setDatabasePatient(result.patient)
     }
 
-    const localPatientExists = isLocalOnlyPatient && registeredPatients.some((current) => current.id === patient.id)
-    if (localPatientExists) {
-      updateRegisteredPatient(patient.id, (current) => ({
-        ...current,
-        address: editForm.address || current.address,
-        phone: editForm.phone || null,
-        visitNotes: editForm.visitNotes,
-        currentMeds: editForm.currentMeds,
-        medicalHistory: editForm.medicalHistory,
-        allergies: editForm.allergies,
-        insuranceInfo: editForm.insuranceInfo,
-        isBillable: editForm.isBillable,
-        billingExclusionReason: editForm.isBillable ? '' : editForm.billingExclusionReason,
-        doctorClinic: editForm.doctorClinic,
-        doctorName: editForm.doctorName,
-        doctorPhone: editForm.doctorPhone || null,
-        registrationMeta: current.registrationMeta
-          ? {
-              ...current.registrationMeta,
-              updatedAt: new Date().toISOString(),
-              updatedById: user?.id ?? null,
-              updatedByName: user?.full_name ?? (isPharmacyAdmin ? 'Pharmacy Admin' : 'Pharmacy Staff'),
-              version: current.registrationMeta.version + 1,
-            }
-          : current.registrationMeta,
-      }))
-      setRegisteredPatients(loadMockFallbackPatients())
-    }
     setGeocodeConfirmOpen(false)
     setGeocodePreview(null)
     setEditDialogOpen(false)

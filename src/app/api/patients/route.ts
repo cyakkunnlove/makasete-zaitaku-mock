@@ -79,6 +79,25 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerSupabaseClient()
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  const duplicateResponse = await supabase
+    .from('patients')
+    .select('id')
+    .eq('organization_id', user.organization_id)
+    .eq('pharmacy_id', scopedPharmacyId)
+    .eq('date_of_birth', birthDate)
+    .neq('status', 'inactive')
+    .ilike('full_name', fullName)
+    .limit(1)
+
+  if (duplicateResponse.error) {
+    return NextResponse.json({ ok: false, error: 'duplicate_check_failed', details: duplicateResponse.error.message }, { status: 500 })
+  }
+
+  if ((duplicateResponse.data ?? []).length > 0) {
+    return NextResponse.json({ ok: false, error: 'duplicate_patient' }, { status: 409 })
+  }
+
   let geocodePayload: Record<string, unknown> = {
     geocode_status: 'pending',
     geocode_input_address: addressLine1,
@@ -156,7 +175,7 @@ export async function POST(request: Request) {
 
   const payload = {
     organization_id: user.organization_id,
-    pharmacy_id: getScopedPharmacyId(user),
+    pharmacy_id: scopedPharmacyId,
     medical_institution_id: medicalInstitutionId,
     doctor_master_id: doctorMasterId,
     full_name: fullName,

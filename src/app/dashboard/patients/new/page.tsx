@@ -11,15 +11,9 @@ import { Label } from '@/components/ui/label'
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { patientTagOptions, visitWeekdayOptions } from '@/lib/patient-registration-spec'
-import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
+import { canManagePatients } from '@/lib/patient-permissions'
 import { MOCK_FLOW_DATE } from '@/lib/day-flow'
-import {
-  buildRegisteredPatientRecord,
-  loadMockFallbackPatients,
-  upsertRegisteredPatient,
-  type PatientVisitRule,
-  type VisitRulePattern,
-} from '@/lib/patient-master'
+import { type PatientVisitRule, type VisitRulePattern } from '@/lib/patient-master'
 import {
   collectVisitRuleDates,
   formatVisitCalendarDateKey,
@@ -148,7 +142,6 @@ export default function NewPatientPage() {
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
   const [institutionForm, setInstitutionForm] = useState({ name: '', phone: '', address: '' })
   const [doctorForm, setDoctorForm] = useState({ fullName: '', phone: '', department: '' })
-  const ownPharmacyId = getScopedPharmacyId(user)
   const [form, setForm] = useState({
     name: '',
     dob: '',
@@ -594,7 +587,6 @@ export default function NewPatientPage() {
       return
     }
 
-    const visitRules = previewVisitRules
     const requestPayload = {
       basic: {
         fullName: form.name,
@@ -658,54 +650,17 @@ export default function NewPatientPage() {
 
       const createResult = await createResponse.json().catch(() => null)
       if (!createResponse.ok || !createResult?.ok) {
-        setErrorMessage(createResult?.error === 'forbidden' ? 'このロールでは患者登録できません。' : '患者登録に失敗しました。')
+        setErrorMessage(
+          createResult?.error === 'forbidden'
+            ? 'このロールでは患者登録できません。'
+            : createResult?.error === 'duplicate_patient'
+              ? '同じ薬局に同一氏名・同一生年月日の患者が既に登録されています。既存患者を確認してください。'
+              : '患者登録に失敗しました。',
+        )
         return
       }
 
       const createdPatientId = typeof createResult?.patient?.id === 'string' ? createResult.patient.id : null
-      let fallbackPatientId: string | null = null
-      const shouldPersistLocal = createResult?.mode === 'mock'
-
-      if (shouldPersistLocal) {
-        const existing = loadMockFallbackPatients()
-        const patient = buildRegisteredPatientRecord(
-          {
-            name: form.name,
-            dob: normalizedDob,
-            phone: form.phone,
-            pharmacyId: ownPharmacyId,
-            address: `${form.postalCode ? `〒${form.postalCode} ` : ''}${form.address}`.trim(),
-            startedAt: form.startedAt,
-            status: 'active',
-            manualTags: selectedTags,
-            emergencyContactName: form.emergencyContactName,
-            emergencyContactRelation: form.emergencyContactRelation,
-            emergencyContactPhone: form.emergencyContactPhone,
-            doctorName: form.doctorName,
-            doctorClinic: form.doctorClinic,
-            doctorPhone: form.doctorPhone,
-            currentMeds: form.currentMeds,
-            medicalHistory: form.medicalHistory,
-            allergies: form.allergies,
-            diseaseName: form.diseaseName,
-            visitNotes: form.visitNotes,
-            insuranceInfo: form.insuranceInfo,
-            preferredTime: form.preferredTime,
-            visitCount: Math.max(1, Number(visitCount) || 4),
-            visitRules,
-            manualSyncAt: null,
-            isBillable: true,
-            billingExclusionReason: '',
-          },
-          {
-            id: user?.id ?? null,
-            name: user?.full_name ?? 'Pharmacy Staff',
-          },
-          existing,
-        )
-        upsertRegisteredPatient(patient)
-        fallbackPatientId = patient.id
-      }
 
       const apiWarnings = Array.isArray(createResult?.warnings) ? createResult.warnings : []
       if (apiWarnings.length > 0) {
@@ -714,16 +669,14 @@ export default function NewPatientPage() {
         setWarningMessage('連絡先電話が未設定のため、患者詳細で警告表示されます。')
       }
 
-      const destinationPatientId = createdPatientId ?? fallbackPatientId
-      if (!destinationPatientId) {
-        setErrorMessage('登録後の画面遷移に失敗しました。患者一覧から確認してください。')
-        router.push('/dashboard/patients')
+      if (!createdPatientId) {
+        setErrorMessage('患者登録はDB保存が完了した場合だけ成立します。登録結果を確認できませんでした。')
         return
       }
 
       setGeocodeConfirmOpen(false)
       setGeocodePreview(null)
-      router.push(`/dashboard/patients/${destinationPatientId}?created=1`)
+      router.push(`/dashboard/patients/${createdPatientId}?created=1`)
     } finally {
       setIsSubmitting(false)
     }

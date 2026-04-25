@@ -21,13 +21,10 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
-import { countVisitRuleTouches, formatVisitRuleSummary, loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
+import type { DayTaskItem } from '@/lib/mock-data'
 
-function isUuidLike(value: string | null | undefined) {
-  if (!value) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-}
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 
@@ -35,29 +32,25 @@ export default function PatientsPage() {
   const { role, user, authMode } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
+  const [todayTasks, setTodayTasks] = useState<DayTaskItem[]>([])
   const [isSearchLoading, setIsSearchLoading] = useState(false)
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isRegionalAdmin = role === 'regional_admin'
   const isDayContext = canManagePatients(role)
   const ownPharmacyId = getScopedPharmacyId(user)
-
-  useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients().filter((patient) => !isUuidLike(patient.id)))
-    syncPatients()
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === 'makasete-patient-master:v1') {
-        syncPatients()
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+  const todayDateKey = useMemo(() => {
+    const now = new Date()
+    const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
+    const year = jst.getFullYear()
+    const month = String(jst.getMonth() + 1).padStart(2, '0')
+    const day = String(jst.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }, [])
 
   useEffect(() => {
-    if (!isDayContext || !ownPharmacyId) return
+    if (!isDayContext || !ownPharmacyId || searchQuery.trim()) return
 
     let cancelled = false
     async function fetchPatients() {
@@ -76,7 +69,53 @@ export default function PatientsPage() {
     return () => {
       cancelled = true
     }
-  }, [isDayContext, ownPharmacyId])
+  }, [isDayContext, ownPharmacyId, searchQuery])
+
+  useEffect(() => {
+    if (!isDayContext || !ownPharmacyId || searchQuery.trim()) return
+
+    let cancelled = false
+    async function fetchTodayTasks() {
+      try {
+        const response = await fetch(`/api/day-flow/${todayDateKey}/tasks`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
+          setTodayTasks(result.tasks.map((task: Record<string, unknown>) => ({
+            id: String(task.id),
+            patientId: String(task.patient_id ?? ''),
+            pharmacyId: String(task.pharmacy_id ?? ''),
+            flowDate: String(task.flow_date),
+            sortOrder: Number(task.sort_order ?? 1),
+            scheduledTime: String(task.scheduled_time ?? '10:00'),
+            visitType: (task.visit_type as DayTaskItem['visitType']) ?? '定期',
+            source: (task.source as DayTaskItem['source']) ?? '自動生成',
+            status: (task.status as DayTaskItem['status']) ?? 'scheduled',
+            planningStatus: (task.planning_status as DayTaskItem['planningStatus']) ?? 'unplanned',
+            plannedBy: (task.planned_by as string | null) ?? null,
+            plannedById: (task.planned_by_id as string | null) ?? null,
+            plannedAt: (task.planned_at as string | null) ?? null,
+            handledBy: (task.handled_by as string | null) ?? null,
+            handledById: (task.handled_by_id as string | null) ?? null,
+            handledAt: (task.handled_at as string | null) ?? null,
+            completedAt: (task.completed_at as string | null) ?? null,
+            billable: Boolean(task.billable),
+            collectionStatus: (task.collection_status as DayTaskItem['collectionStatus']) ?? '未着手',
+            amount: Number(task.amount ?? 0),
+            note: String(task.note ?? ''),
+            updatedAt: (task.updated_at as string | null) ?? null,
+            updatedById: (task.updated_by_id as string | null) ?? null,
+          })))
+        }
+      } catch {
+        if (!cancelled) setTodayTasks([])
+      }
+    }
+
+    fetchTodayTasks()
+    return () => {
+      cancelled = true
+    }
+  }, [isDayContext, ownPharmacyId, searchQuery, todayDateKey])
 
   useEffect(() => {
     const query = searchQuery.trim()
@@ -107,19 +146,13 @@ export default function PatientsPage() {
     }
   }, [isDayContext, isRegionalAdmin, searchQuery])
 
-  const fallbackRegisteredPatients = useMemo(() => {
-    if (!isDayContext || databasePatients.length === 0 || searchQuery.trim()) return registeredPatients
-    return registeredPatients
-  }, [databasePatients.length, isDayContext, registeredPatients, searchQuery])
-
   const patientMaster = useMemo(
     () =>
       mergePatientSources({
         databasePatients,
-        registeredPatients: isRegionalAdmin ? [] : fallbackRegisteredPatients,
         includeMockPatients: false,
       }),
-    [databasePatients, fallbackRegisteredPatients, isRegionalAdmin],
+    [databasePatients],
   )
 
   const visiblePatients = useMemo(() => {
@@ -130,10 +163,11 @@ export default function PatientsPage() {
       return databasePatients
     }
     if (isDayContext) {
-      return patientMaster.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
+      const todayPatientIds = new Set(todayTasks.map((task) => task.patientId).filter(Boolean))
+      return patientMaster.filter((patient) => todayPatientIds.has(patient.id) && isPatientInPharmacyScope(patient, ownPharmacyId))
     }
     return patientMaster
-  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster, searchQuery])
+  }, [databasePatients, isDayContext, isRegionalAdmin, ownPharmacyId, patientMaster, searchQuery, todayTasks])
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -158,14 +192,18 @@ export default function PatientsPage() {
 
   const orderedPatients = useMemo(() => {
     if (!isDayContext) return filteredPatients
+    const taskOrder = new Map(todayTasks.map((task) => [task.patientId, task.sortOrder]))
 
     return [...filteredPatients].sort((a, b) => {
+      const aOrder = taskOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER
+      const bOrder = taskOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER
+      if (aOrder !== bOrder) return aOrder - bOrder
       const aIndex = a.pharmacyId === ownPharmacyId ? 0 : 1
       const bIndex = b.pharmacyId === ownPharmacyId ? 0 : 1
       if (aIndex !== bIndex) return aIndex - bIndex
       return a.name.localeCompare(b.name, 'ja')
     })
-  }, [filteredPatients, isDayContext, ownPharmacyId])
+  }, [filteredPatients, isDayContext, ownPharmacyId, todayTasks])
 
   if (isNightPharmacist) {
     return (
@@ -202,7 +240,7 @@ export default function PatientsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">患者情報</h1>
-          <p className="text-xs text-slate-500">{isDayContext ? '日中運用で使う患者一覧。電話・地図導線と並び替えを優先。' : isRegionalAdmin ? '最初から全件は出さず、必要な患者だけ検索して確認します。' : '在宅患者の基本情報・注意事項を確認'}</p>
+          <p className="text-xs text-slate-500">{isDayContext ? '初期表示は今日の対応患者だけです。検索すると自局患者の検索結果を表示します。' : isRegionalAdmin ? '最初から全件は出さず、必要な患者だけ検索して確認します。' : '在宅患者の基本情報・注意事項を確認'}</p>
         </div>
 
         <div className="relative w-full sm:max-w-xs">
@@ -226,8 +264,8 @@ export default function PatientsPage() {
 
       {filteredPatients.length === 0 && !isSearchLoading && (
         <EmptyState
-          title={isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません' : '該当する患者が見つかりません'}
-          description={isRegionalAdmin && !searchQuery.trim() ? '検索すると候補が表示されます。' : '検索条件を変えると見つかる場合があります。'}
+          title={isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません' : isDayContext && !searchQuery.trim() ? '今日の対応患者はいません' : '該当する患者が見つかりません'}
+          description={isRegionalAdmin && !searchQuery.trim() ? '検索すると候補が表示されます。' : isDayContext && !searchQuery.trim() ? '検索すると自局の患者だけが表示されます。' : '検索条件を変えると見つかる場合があります。'}
           className={adminCardClass}
         />
       )}
