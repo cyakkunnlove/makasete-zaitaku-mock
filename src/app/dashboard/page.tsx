@@ -808,81 +808,121 @@ function PharmacyDashboardMasterPatientSection({
   )
 }
 
-function PharmacyDashboardAdminQuickSummary({
+function PharmacyDashboardPriorityBrief({
+  flowDateLabel,
   ownUnconfirmedHandovers,
   ownOvernightPatients,
   ownActiveRequests,
-  ownConfigStatus,
+  scheduledCount,
+  inProgressCount,
+  completedCount,
+  billableReadyCount,
+  hasOrderDraft,
 }: {
+  flowDateLabel: string
   ownUnconfirmedHandovers: Array<unknown>
   ownOvernightPatients: number
   ownActiveRequests: number
-  ownConfigStatus: { nightDelegation: string; regionLabel: string; emergencyRoute: string }
+  scheduledCount: number
+  inProgressCount: number
+  completedCount: number
+  billableReadyCount: number
+  hasOrderDraft: boolean
 }) {
+  const nextAction = ownUnconfirmedHandovers.length > 0
+    ? {
+      label: 'まず引き継ぎを確認',
+      detail: `${ownUnconfirmedHandovers.length}件の申し送りを見て、今日の訪問順や注意点へ反映します。`,
+      tone: 'amber' as const,
+    }
+    : inProgressCount > 0
+      ? {
+        label: '対応中の進捗を確認',
+        detail: `${inProgressCount}件が対応中です。完了記録と請求連携まで見ます。`,
+        tone: 'sky' as const,
+      }
+      : scheduledCount > 0
+        ? {
+          label: '今日の訪問予定を確認',
+          detail: `${scheduledCount}件の予定があります。必要なら巡回順を作ってスタッフへ共有します。`,
+          tone: 'indigo' as const,
+        }
+        : billableReadyCount > 0
+          ? {
+            label: '回収管理へつなぐ',
+            detail: `${billableReadyCount}件が請求連携候補です。回収管理で状態を確認します。`,
+            tone: 'emerald' as const,
+          }
+          : {
+            label: '今日は落ち着いています',
+            detail: '未確認の引き継ぎや進行中タスクはありません。患者検索や設定確認に進めます。',
+            tone: 'slate' as const,
+          }
+
+  const toneClass = {
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
+    sky: 'border-sky-200 bg-sky-50 text-sky-800',
+    indigo: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    slate: 'border-slate-200 bg-slate-50 text-slate-800',
+  }[nextAction.tone]
+
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-      <Card className="border-amber-200 bg-white text-slate-900 shadow-sm">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <FileClock className="h-4 w-4 shrink-0 text-amber-600" />
-              <p className="truncate text-[11px] text-slate-500">引き継ぎ確認待ち</p>
-            </div>
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-700">最優先</Badge>
+    <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
+      <CardContent className="space-y-4 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium text-slate-500">{flowDateLabel} の薬局管理ダッシュボード</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">今日まず見ること</h2>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-2xl font-bold leading-none text-slate-900">{ownUnconfirmedHandovers.length}</p>
-            <p className="text-[11px] text-slate-500">件</p>
+          {hasOrderDraft ? (
+            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">未保存の並び替えあり</Badge>
+          ) : (
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">最新状態</Badge>
+          )}
+        </div>
+
+        <div className={`rounded-lg border p-3 ${toneClass}`}>
+          <p className="text-base font-semibold">{nextAction.label}</p>
+          <p className="mt-1 text-sm leading-5">{nextAction.detail}</p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800"><FileClock className="h-3.5 w-3.5" /> 引き継ぎ</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{ownUnconfirmedHandovers.length}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+            <p className="mt-1 text-[11px] text-amber-700">未確認の申し送り</p>
           </div>
-        </CardContent>
-      </Card>
-      <Card className="border-indigo-200 bg-white text-slate-900 shadow-sm">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <Moon className="h-4 w-4 shrink-0 text-indigo-600" />
-              <p className="truncate text-[11px] text-slate-500">昨夜対応あり患者</p>
-            </div>
-            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 px-1.5 py-0 text-[10px] text-indigo-700">昨夜</Badge>
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-indigo-800"><Building2 className="h-3.5 w-3.5" /> 今日の予定</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{scheduledCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+            <p className="mt-1 text-[11px] text-indigo-700">未着手の訪問予定</p>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-2xl font-bold leading-none text-slate-900">{ownOvernightPatients}</p>
-            <p className="text-[11px] text-slate-500">人</p>
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-sky-800"><Activity className="h-3.5 w-3.5" /> 進行中</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{inProgressCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+            <p className="mt-1 text-[11px] text-sky-700">関連依頼 {ownActiveRequests}件 / 昨夜対応 {ownOvernightPatients}人</p>
           </div>
-        </CardContent>
-      </Card>
-      <Card className="border-sky-200 bg-white text-slate-900 shadow-sm">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <ClipboardList className="h-4 w-4 shrink-0 text-sky-600" />
-              <p className="truncate text-[11px] text-slate-500">進行中の関連依頼</p>
-            </div>
-            <Badge variant="outline" className="border-sky-200 bg-sky-50 px-1.5 py-0 text-[10px] text-sky-700">自局</Badge>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-800"><Receipt className="h-3.5 w-3.5" /> 完了・請求</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{completedCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+            <p className="mt-1 text-[11px] text-emerald-700">請求候補 {billableReadyCount}件</p>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-2xl font-bold leading-none text-slate-900">{ownActiveRequests}</p>
-            <p className="text-[11px] text-slate-500">件</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card className="border-emerald-200 bg-white text-slate-900 shadow-sm">
-        <CardContent className="space-y-1.5 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <Settings2 className="h-4 w-4 shrink-0 text-emerald-600" />
-              <p className="text-[11px] text-slate-500">連携設定</p>
-            </div>
-            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[10px] text-emerald-700">{ownConfigStatus.nightDelegation}</Badge>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-medium leading-tight text-slate-900">{ownConfigStatus.regionLabel}</p>
-            <Link href="/dashboard/settings/pharmacy" className="inline-flex shrink-0 text-[11px] text-indigo-600 hover:text-indigo-700">設定</Link>
-          </div>
-          <p className="truncate text-[11px] text-slate-500">{ownConfigStatus.emergencyRoute}</p>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500">
+            <Link href="/dashboard/patients">患者情報を開く</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+            <Link href="/dashboard/billing">回収管理を見る</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+            <Link href="/dashboard/settings/pharmacy">薬局設定</Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -1063,11 +1103,11 @@ function PharmacyDashboardTransientNotices({
 }
 
 function PharmacyDashboardUnconfirmedHandoverAlert({
-  handoverData,
+  handovers,
 }: {
-  handoverData: Array<{ id: string; patientId: string; patientName: string; pharmacistName: string; situation: string; recommendation: string; confirmed: boolean }>
+  handovers: Array<{ id: string; patientId: string; patientName: string; pharmacistName: string; situation: string; recommendation: string; confirmed: boolean }>
 }) {
-  const unconfirmed = handoverData.filter((ho) => !ho.confirmed)
+  const unconfirmed = handovers.filter((ho) => !ho.confirmed)
   if (unconfirmed.length === 0) return null
 
   return (
@@ -1907,14 +1947,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
   const ownRequests = requestData.filter((request) => request.pharmacyId === ownPharmacyId)
-  const ownUnconfirmedHandovers = handoverData.filter((handover) => handover.pharmacyId === ownPharmacyId && !handover.confirmed)
+  const ownUnconfirmedHandovers = handoverData.filter((handover) => {
+    if (handover.confirmed) return false
+    if (isPatientInPharmacyScope({ pharmacyId: handover.pharmacyId }, ownPharmacyId)) return true
+    return ownPatients.some((patient) => patient.id === handover.patientId)
+  })
   const ownOvernightPatients = new Set(ownRequests.filter((request) => request.receivedDate === '2026-03-05' || request.receivedDate === '2026-03-06').map((request) => request.patientId).filter(Boolean)).size
   const ownActiveRequests = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist', 'dispatched', 'arrived', 'in_progress'].includes(request.status)).length
-  const ownConfigStatus = {
-    nightDelegation: '有効',
-    regionLabel: '世田谷・城南リージョン',
-    emergencyRoute: 'Regional Admin 受付',
-  }
+  const scheduledTaskCount = draftDayTasks.filter((task) => task.status === 'scheduled').length
+  const inProgressTaskCount = draftDayTasks.filter((task) => task.status === 'in_progress').length
+  const completedTaskCount = draftDayTasks.filter((task) => task.status === 'completed').length
   const flowDescription = isPharmacyStaff
     ? `今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 ${UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。`
     : '自局の日中対応フローを確認します。Pharmacy Admin は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
@@ -2357,7 +2399,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   return (
     <div className="space-y-4">
-      <PharmacyDashboardUnconfirmedHandoverAlert handoverData={handoverData} />
+      <PharmacyDashboardUnconfirmedHandoverAlert handovers={ownUnconfirmedHandovers} />
+
+      {isPharmacyAdmin && (
+        <PharmacyDashboardPriorityBrief
+          flowDateLabel={flowDateLabel}
+          ownUnconfirmedHandovers={ownUnconfirmedHandovers}
+          ownOvernightPatients={ownOvernightPatients}
+          ownActiveRequests={ownActiveRequests}
+          scheduledCount={scheduledTaskCount}
+          inProgressCount={inProgressTaskCount}
+          completedCount={completedTaskCount}
+          billableReadyCount={billableReadyCount}
+          hasOrderDraft={hasOrderDraft}
+        />
+      )}
 
       <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
@@ -2368,15 +2424,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       />
 
       <>
-        {isPharmacyAdmin && (
-          <PharmacyDashboardAdminQuickSummary
-            ownUnconfirmedHandovers={ownUnconfirmedHandovers}
-            ownOvernightPatients={ownOvernightPatients}
-            ownActiveRequests={ownActiveRequests}
-            ownConfigStatus={ownConfigStatus}
-          />
-        )}
-
         <PharmacyDashboardHeaderCard
           flowDescription={flowDescription}
           billableReadyCount={billableReadyCount}
