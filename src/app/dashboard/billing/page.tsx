@@ -593,7 +593,7 @@ export default function BillingPage() {
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className={adminPageClass}>
-        <AdminPageHeader title="回収管理" description="対応完了後の請求対象、未入金、入金済み、要確認を追います。" />
+        <AdminPageHeader title="回収管理" description="対応完了した訪問タスクに紐づく回収状況を管理します。" />
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <AdminStatCard label="請求対象" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
           <AdminStatCard label="未入金" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
@@ -604,8 +604,8 @@ export default function BillingPage() {
         <Card className={adminCardClass}>
           <CardContent className="space-y-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-              <span>対応完了した訪問のうち、請求対象だけを回収管理で追います。</span>
-              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">回収進捗管理</Badge>
+              <span>現在使える範囲は、訪問タスクの回収ステータス更新です。独立した請求書発行・入金消込台帳は未実装です。</span>
+              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">タスク連動</Badge>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Input
@@ -644,7 +644,7 @@ export default function BillingPage() {
 
         <BillingCollapsibleSection
           title="回収管理へ追加する訪問一覧"
-          description="対応完了した訪問のうち、請求対象だけをここから回収管理へ載せます。"
+          description="対応完了した訪問タスクのうち、請求対象だけを回収管理対象にします。"
           countLabel={`${unbilledVisitRecords.length}件`}
           icon={FileText}
           defaultOpen={unbilledVisitRecords.length > 0}
@@ -690,8 +690,6 @@ export default function BillingPage() {
                     <p className="mt-2 text-xs text-slate-500">{record.note}</p>
                     {failedCollectionRecordId === record.id ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">内容確認</Button>
-                      <Button size="sm" variant="outline" className="soft-pop-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50">要確認メモ</Button>
                       <Button size="sm" onClick={() => sendUnbilledToCollections(record)} disabled={savingCollectionRecordId === record.id} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === record.id ? '保存中...' : '回収管理に追加'}</Button>
                     </div>
                   </div>
@@ -790,8 +788,8 @@ export default function BillingPage() {
         </BillingCollapsibleSection>
 
         <BillingCollapsibleSection
-          title="患者ごとの回収履歴"
-          description="誰がいつ何に変えたかを、患者ごとにまとめて見返せます。"
+          title="患者ごとの回収状況"
+          description="訪問タスクに紐づく現在の回収状況を、患者ごとに確認します。"
           countLabel={`${filteredPatientCollectionHistories.length}名`}
           icon={Layers}
         >
@@ -823,7 +821,7 @@ export default function BillingPage() {
                   onClick={() => setHistoryViewMode('latest')}
                   className={cn(historyViewMode === 'latest' ? 'bg-indigo-600 text-white hover:bg-indigo-600/90' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
                 >
-                  最新だけ
+                  最新訪問だけ
                 </Button>
                 <Button
                   type="button"
@@ -832,7 +830,7 @@ export default function BillingPage() {
                   onClick={() => setHistoryViewMode('all')}
                   className={cn(historyViewMode === 'all' ? 'bg-indigo-600 text-white hover:bg-indigo-600/90' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}
                 >
-                  全履歴
+                  全訪問
                 </Button>
               </div>
             </div>
@@ -854,7 +852,7 @@ export default function BillingPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {patientHistory.latestStatus ? <StatusBadge meta={collectionWorkflowStatusMeta[patientHistory.latestStatus]} /> : null}
-                          <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">履歴 {patientHistory.records.length}件</Badge>
+                          <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">訪問 {patientHistory.records.length}件</Badge>
                         </div>
                       </button>
                       {expanded ? (
@@ -879,8 +877,8 @@ export default function BillingPage() {
                                   </div>
                                   <span className="text-slate-500">{record.linkedTaskId}</span>
                                 </div>
-                                {isLatestOnly && previousRecord ? <p className="mt-2 text-[11px] text-slate-500">直前の状態: {collectionWorkflowStatusMeta[previousRecord.status].label}</p> : null}
-                                {previousRecord && previousRecord.note && previousRecord.note !== record.note ? <p className="mt-2 text-[11px] text-slate-500">前回メモ: {previousRecord.note}</p> : null}
+                                {isLatestOnly && previousRecord ? <p className="mt-2 text-[11px] text-slate-500">前回訪問の状態: {collectionWorkflowStatusMeta[previousRecord.status].label}</p> : null}
+                                {previousRecord && previousRecord.note && previousRecord.note !== record.note ? <p className="mt-2 text-[11px] text-slate-500">前回訪問メモ: {previousRecord.note}</p> : null}
                                 <p className="mt-2 text-slate-600">{record.note || 'メモなし'}</p>
                               </div>
                             )
@@ -900,7 +898,7 @@ export default function BillingPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-sm text-slate-900">一覧で確認する</CardTitle>
-                <CardDescription className="text-slate-600">下の一覧は補助用です。日付から確認しづらいときだけ使えます。</CardDescription>
+                <CardDescription className="text-slate-600">訪問タスクごとの現在状態を一覧で確認します。日付から確認しづらいときだけ使えます。</CardDescription>
               </div>
               <Button type="button" size="sm" variant="outline" onClick={() => setShowCollectionTable((prev) => !prev)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 {showCollectionTable ? '一覧を閉じる' : '一覧を開く'}
