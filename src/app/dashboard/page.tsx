@@ -32,6 +32,7 @@ import {
   FileClock,
   UserCog,
   Phone,
+  ChevronDown,
 } from 'lucide-react'
 import { dayTaskData, getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
@@ -1186,6 +1187,38 @@ function PharmacyDashboardTabs({ children }: { children: React.ReactNode }) {
       </TabsList>
       {children}
     </Tabs>
+  )
+}
+
+function PharmacyDashboardCollapsibleSection({
+  title,
+  countLabel,
+  icon: Icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  countLabel?: string
+  icon: React.ComponentType<{ className?: string }>
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <details open={defaultOpen} className="group rounded-xl border border-slate-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-slate-900 marker:hidden">
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon className="h-4 w-4 shrink-0 text-indigo-500" />
+          <span className="truncate">{title}</span>
+          {countLabel ? (
+            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-normal text-slate-500">{countLabel}</span>
+          ) : null}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-t border-slate-100 p-3">
+        {children}
+      </div>
+    </details>
   )
 }
 
@@ -2485,15 +2518,31 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           />
         )}
 
-        <PharmacyDashboardSummaryCard
-          summaryTitle={summaryTitle}
-          pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
-          summarySupportText={summarySupportText}
-          saveStateBadge={saveStateBadge}
-          adminWarningText={adminWarningText}
-          showDetailLink={isPharmacyAdmin}
-          compact={isPharmacyAdmin}
-        />
+        {isPharmacyAdmin ? (
+          <PharmacyDashboardCollapsibleSection
+            title={summaryTitle}
+            countLabel={`${pharmacyStaffHandledCounts.length}名`}
+            icon={Users}
+          >
+            <PharmacyDashboardSummaryCard
+              summaryTitle={summaryTitle}
+              pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+              summarySupportText={summarySupportText}
+              saveStateBadge={saveStateBadge}
+              adminWarningText={adminWarningText}
+              showDetailLink
+              compact
+            />
+          </PharmacyDashboardCollapsibleSection>
+        ) : (
+          <PharmacyDashboardSummaryCard
+            summaryTitle={summaryTitle}
+            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+            summarySupportText={summarySupportText}
+            saveStateBadge={saveStateBadge}
+            adminWarningText={adminWarningText}
+          />
+        )}
 
         <PharmacyDashboardLoadingBanner
           isPatientsLoading={isPatientsLoading}
@@ -2506,82 +2555,146 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           undoTarget={undoTarget}
         />
 
-        <PharmacyDashboardTabs>
-          <TabsContent value="today" className="space-y-2">
-            <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / ${isPharmacyStaff ? '自動生成 + 手動追加' : '本日の訪問予定ベース'}`} />
-            <PharmacyDashboardRoutePlanner
-              routePlanLoading={routePlanLoading}
-              selectedRoutePatientIds={selectedRoutePatientIds}
-              onSuggestRoute={() => void handleSuggestRoute()}
-              routePlanResult={routePlanResult}
-              routeEmailHref={routeEmailHref}
-              onApplySuggestedOrder={handleApplySuggestedOrder}
-              routeMapRef={routeMapRef}
-            />
-            <PharmacyDashboardTodayTaskList
-              draggingTaskId={draggingTaskId}
-              orderedVisits={orderedVisits}
-              selectedRoutePatientIds={selectedRoutePatientIds}
-              handleToggleRoutePatient={handleToggleRoutePatient}
-              dragOverTaskId={dragOverTaskId}
-              dragEnabledTaskId={dragEnabledTaskId}
-              dragHandleActiveTaskId={dragHandleActiveTaskId}
-              setDraggingTaskId={setDraggingTaskId}
-              setDragOverTaskId={setDragOverTaskId}
-              setDragEnabledTaskId={setDragEnabledTaskId}
-              setDragHandleActiveTaskId={setDragHandleActiveTaskId}
-              reorderTaskByDrag={reorderTaskByDrag}
-              taskCardRefs={taskCardRefs}
-              handlePlanTask={handlePlanTask}
-              moveTask={moveTask}
-              handleStartTask={handleStartTask}
-              handleCompleteTask={handleCompleteTask}
-              completionHelpText={completionHelpText}
-              pendingTaskIds={pendingTaskIds}
-              recentlySavedTaskIds={recentlySavedTaskIds}
-              failedTaskId={failedTaskId}
-              plannedLabelPrefix={plannedLabelPrefix}
-              updatedLabelPrefix={updatedLabelPrefix}
-              reorderHintText={reorderHintText}
-            />
-          </TabsContent>
+        {isPharmacyAdmin ? (
+          <PharmacyDashboardCollapsibleSection
+            title="今日の対応予定・患者一覧"
+            countLabel={`${orderedVisits.length}件`}
+            icon={Building2}
+          >
+            <PharmacyDashboardTabs>
+              <TabsContent value="today" className="space-y-2">
+                <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / 本日の訪問予定ベース`} />
+                <PharmacyDashboardRoutePlanner
+                  routePlanLoading={routePlanLoading}
+                  selectedRoutePatientIds={selectedRoutePatientIds}
+                  onSuggestRoute={() => void handleSuggestRoute()}
+                  routePlanResult={routePlanResult}
+                  routeEmailHref={routeEmailHref}
+                  onApplySuggestedOrder={handleApplySuggestedOrder}
+                  routeMapRef={routeMapRef}
+                />
+                <PharmacyDashboardTodayTaskList
+                  draggingTaskId={draggingTaskId}
+                  orderedVisits={orderedVisits}
+                  selectedRoutePatientIds={selectedRoutePatientIds}
+                  handleToggleRoutePatient={handleToggleRoutePatient}
+                  dragOverTaskId={dragOverTaskId}
+                  dragEnabledTaskId={dragEnabledTaskId}
+                  dragHandleActiveTaskId={dragHandleActiveTaskId}
+                  setDraggingTaskId={setDraggingTaskId}
+                  setDragOverTaskId={setDragOverTaskId}
+                  setDragEnabledTaskId={setDragEnabledTaskId}
+                  setDragHandleActiveTaskId={setDragHandleActiveTaskId}
+                  reorderTaskByDrag={reorderTaskByDrag}
+                  taskCardRefs={taskCardRefs}
+                  handlePlanTask={handlePlanTask}
+                  moveTask={moveTask}
+                  handleStartTask={handleStartTask}
+                  handleCompleteTask={handleCompleteTask}
+                  completionHelpText={completionHelpText}
+                  pendingTaskIds={pendingTaskIds}
+                  recentlySavedTaskIds={recentlySavedTaskIds}
+                  failedTaskId={failedTaskId}
+                  plannedLabelPrefix={plannedLabelPrefix}
+                  updatedLabelPrefix={updatedLabelPrefix}
+                  reorderHintText={reorderHintText}
+                />
+              </TabsContent>
 
-          <TabsContent value="master" className="space-y-2">
-            <PharmacyDashboardMasterPatientSection
-              searchQuery={searchQuery}
-              filteredMasterPatients={filteredMasterPatients}
-              ownRequests={ownRequests}
-              handoverData={handoverData}
-              ownPharmacyId={ownPharmacyId}
-              draftDayTasks={draftDayTasks}
-              flowDate={flowDate}
-              onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
-            />
-          </TabsContent>
-        </PharmacyDashboardTabs>
+              <TabsContent value="master" className="space-y-2">
+                <PharmacyDashboardMasterPatientSection
+                  searchQuery={searchQuery}
+                  filteredMasterPatients={filteredMasterPatients}
+                  ownRequests={ownRequests}
+                  handoverData={handoverData}
+                  ownPharmacyId={ownPharmacyId}
+                  draftDayTasks={draftDayTasks}
+                  flowDate={flowDate}
+                  onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
+                />
+              </TabsContent>
+            </PharmacyDashboardTabs>
+          </PharmacyDashboardCollapsibleSection>
+        ) : (
+          <PharmacyDashboardTabs>
+            <TabsContent value="today" className="space-y-2">
+              <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / 自動生成 + 手動追加`} />
+              <PharmacyDashboardRoutePlanner
+                routePlanLoading={routePlanLoading}
+                selectedRoutePatientIds={selectedRoutePatientIds}
+                onSuggestRoute={() => void handleSuggestRoute()}
+                routePlanResult={routePlanResult}
+                routeEmailHref={routeEmailHref}
+                onApplySuggestedOrder={handleApplySuggestedOrder}
+                routeMapRef={routeMapRef}
+              />
+              <PharmacyDashboardTodayTaskList
+                draggingTaskId={draggingTaskId}
+                orderedVisits={orderedVisits}
+                selectedRoutePatientIds={selectedRoutePatientIds}
+                handleToggleRoutePatient={handleToggleRoutePatient}
+                dragOverTaskId={dragOverTaskId}
+                dragEnabledTaskId={dragEnabledTaskId}
+                dragHandleActiveTaskId={dragHandleActiveTaskId}
+                setDraggingTaskId={setDraggingTaskId}
+                setDragOverTaskId={setDragOverTaskId}
+                setDragEnabledTaskId={setDragEnabledTaskId}
+                setDragHandleActiveTaskId={setDragHandleActiveTaskId}
+                reorderTaskByDrag={reorderTaskByDrag}
+                taskCardRefs={taskCardRefs}
+                handlePlanTask={handlePlanTask}
+                moveTask={moveTask}
+                handleStartTask={handleStartTask}
+                handleCompleteTask={handleCompleteTask}
+                completionHelpText={completionHelpText}
+                pendingTaskIds={pendingTaskIds}
+                recentlySavedTaskIds={recentlySavedTaskIds}
+                failedTaskId={failedTaskId}
+                plannedLabelPrefix={plannedLabelPrefix}
+                updatedLabelPrefix={updatedLabelPrefix}
+                reorderHintText={reorderHintText}
+              />
+            </TabsContent>
+
+            <TabsContent value="master" className="space-y-2">
+              <PharmacyDashboardMasterPatientSection
+                searchQuery={searchQuery}
+                filteredMasterPatients={filteredMasterPatients}
+                ownRequests={ownRequests}
+                handoverData={handoverData}
+                ownPharmacyId={ownPharmacyId}
+                draftDayTasks={draftDayTasks}
+                flowDate={flowDate}
+                onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
+              />
+            </TabsContent>
+          </PharmacyDashboardTabs>
+        )}
       </>
       {!isPharmacyStaff && (
-        <div className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <FileImage className="h-4 w-4 text-indigo-500" />
-            送信済みFAX
-          </h2>
-          {mockPharmacyRequests.map((req) => (
-            <Card key={req.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{req.patientName}</p>
-                    <p className="text-xs text-slate-500">{req.id} • {req.time}</p>
+        <PharmacyDashboardCollapsibleSection
+          title="送信済みFAX"
+          countLabel={`${mockPharmacyRequests.length}件`}
+          icon={FileImage}
+        >
+          <div className="space-y-2">
+            {mockPharmacyRequests.map((req) => (
+              <Card key={req.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{req.patientName}</p>
+                      <p className="text-xs text-slate-500">{req.id} • {req.time}</p>
+                    </div>
+                    <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : req.status === '対応中' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')}>
+                      {req.status}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : req.status === '対応中' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')}>
-                    {req.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </PharmacyDashboardCollapsibleSection>
       )}
 
       {isPharmacyStaff && (
