@@ -307,7 +307,7 @@ export default function HomePage() {
           </button>
         </div>
         <div className={`homepage-mobile-menu lg:hidden ${mobileMenuOpen ? 'is-open' : ''}`}>
-          <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+          <div className="homepage-mobile-menu-panel">
             <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg shadow-slate-900/10">
               <div className="grid gap-1">
                 {homepageNavItems.map((item) => (
@@ -321,7 +321,7 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-              <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-3">
+              <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
                 <Button
                   variant="ghost"
                   className="h-11 justify-center rounded-md font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
