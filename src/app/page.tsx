@@ -228,6 +228,7 @@ const homepageNavItems = [
   { label: '市場背景', href: '#market' },
   { label: '導入への流れ', href: '/flow' },
   { label: 'よくあるご質問', href: '/faq' },
+  { label: '料金', href: '/pricing' },
   { label: '会社概要', href: '/company' },
 ]
 
@@ -612,6 +613,7 @@ export default function HomePage() {
             <ul className="mt-4 space-y-2 text-sm text-blue-100">
               <li><a href="#features">サービスの特徴</a></li>
               <li><a href="/flow">導入への流れ</a></li>
+              <li><a href="/pricing">料金</a></li>
               <li><a href="/company">会社概要</a></li>
             </ul>
           </div>
