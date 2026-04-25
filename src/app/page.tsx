@@ -25,6 +25,8 @@ type StatCard = {
 type MarketCard = {
   title: string
   description: string
+  image: string
+  alt: string
 }
 
 type ServiceCard = {
@@ -110,8 +112,8 @@ const stats: StatCard[] = [
     label: '教育と標準化',
     value: '手技まで',
     note: '無菌調剤など高度な手技も動画講義・実地講義で支援',
-    image: '/homepage-assets/icons-balanced/document-check.jpg',
-    alt: '記録書類のアイコン',
+    image: '/homepage-assets/added/medical-safety-shield.jpg',
+    alt: '医療安全を示す盾のアイコン',
   },
   {
     label: '運用DX',
@@ -124,8 +126,8 @@ const stats: StatCard[] = [
     label: '夜間連携',
     value: '拡張',
     note: '日中運用が整った先で夜間対応へ接続',
-    image: '/homepage-assets/icons-balanced/clock-24h.jpg',
-    alt: '24時間対応の時計アイコン',
+    image: '/homepage-assets/added/night-phone-support.jpg',
+    alt: '夜間に電話対応するスタッフのイラスト',
   },
 ]
 
@@ -133,14 +135,20 @@ const marketCards: MarketCard[] = [
   {
     title: '在宅に取り組む必要性の増加',
     description: '国の方針としても、薬局が在宅対応できることは特別な取り組みではなく、地域医療を担う上で当たり前に求められる流れになっています。',
+    image: '/homepage-assets/added/community-town.jpg',
+    alt: '地域の街並みのイラスト',
   },
   {
     title: '自力で立ち上げにくい現場',
     description: '在宅は営業、患者受入、スタッフ教育、医師・ケアマネ連携、記録、請求まで必要で、ノウハウがない薬局ほど止まりやすい領域です。',
+    image: '/homepage-assets/added/owner-concern.jpg',
+    alt: '課題に悩む薬局経営者のイラスト',
   },
   {
     title: 'コンサルだけでは継続しにくい',
     description: '助言だけ、特定の道具だけでは現場に残りにくい。営業、教育、運用、WEBアプリまで含めて薬局の日常に組み込む必要があります。',
+    image: '/homepage-assets/added/security-lock.jpg',
+    alt: '継続利用と安全管理を示す鍵のアイコン',
   },
 ]
 
@@ -154,8 +162,8 @@ const proofCards: ProofCard[] = [
   {
     title: '無菌調剤など高度な手技まで学べる',
     description: '在宅で必要になる知識だけでなく、無菌調剤など他では学びにくい手技も動画講義や実地講義で習得できるようにします。',
-    image: '/homepage-assets/icons-balanced/doctor-pointing.jpg',
-    alt: '講義を行う薬剤師のイラスト',
+    image: '/homepage-assets/added/medical-safety-shield.jpg',
+    alt: '高度な医療手技と安全性を示す盾のアイコン',
   },
   {
     title: '特定機材に依存しない汎用的な在宅運用',
@@ -177,8 +185,8 @@ const services: ServiceCard[] = [
     number: '02',
     title: '教育・手技講義まで整備',
     description: '基礎教育、必要備品、患者受入基準に加え、無菌調剤など高度な手技も動画講義・実地講義で支援します。',
-    image: '/homepage-assets/icons-balanced/document-check.jpg',
-    alt: '書類チェックのイラスト',
+    image: '/homepage-assets/added/medical-safety-shield.jpg',
+    alt: '医療安全を示す盾のアイコン',
   },
   {
     number: '03',
@@ -191,8 +199,8 @@ const services: ServiceCard[] = [
     number: '04',
     title: '夜間対応への段階接続',
     description: '日中運用と患者情報が整った薬局から、夜間受付、申し送り、緊急時連携へ段階的につなぎます。',
-    image: '/homepage-assets/icons-balanced/support-24h-phone.jpg',
-    alt: '24時間電話相談のイラスト',
+    image: '/homepage-assets/added/night-phone-support.jpg',
+    alt: '夜間に電話対応するスタッフのイラスト',
   },
 ]
 
@@ -201,8 +209,8 @@ const flows: FlowCard[] = [
     number: '01',
     title: '現状診断',
     description: '在宅に取り組む意思、体制、課題を確認',
-    image: '/homepage-assets/icons-balanced/patient-phone.jpg',
-    alt: '電話相談のイラスト',
+    image: '/homepage-assets/added/owner-concern.jpg',
+    alt: '課題に悩む薬局経営者のイラスト',
   },
   {
     number: '02',
@@ -215,8 +223,8 @@ const flows: FlowCard[] = [
     number: '03',
     title: '現場に伴走',
     description: '教育、営業、運用開始を支援',
-    image: '/homepage-assets/icons-balanced/pharmacist-pointing.jpg',
-    alt: '薬剤師が説明しているイラスト',
+    image: '/homepage-assets/added/pharmacy-team.jpg',
+    alt: '薬局スタッフチームのイラスト',
   },
   {
     number: '04',
@@ -231,22 +239,22 @@ const values: ValueCard[] = [
   {
     title: '薬局現場にとって',
     points: ['在宅の始め方が明確になる', '無菌調剤など高度な手技も学べる', '患者対応を日々の業務として回せる'],
-    image: '/homepage-assets/icons-balanced/patients-family.jpg',
-    alt: '患者と家族のイラスト',
+    image: '/homepage-assets/added/family-home-care.jpg',
+    alt: '在宅患者を支える家族のイラスト',
     tone: 'bg-sky-50',
   },
   {
     title: '薬局経営にとって',
     points: ['在宅件数を継続して増やす導線を作れる', '地域連携と紹介獲得につながる', 'コンサル後もアプリ利用が継続する'],
-    image: '/homepage-assets/icons-balanced/two-pharmacists-waving.jpg',
-    alt: '薬剤師チームのイラスト',
+    image: '/homepage-assets/added/pharmacy-team.jpg',
+    alt: '薬局スタッフチームのイラスト',
     tone: 'bg-emerald-50',
   },
   {
     title: '地域医療にとって',
     points: ['在宅対応できる薬局を増やす', 'どのような在宅にも対応できる体制に近づく', '必要に応じて夜間連携へ広げられる'],
-    image: '/homepage-assets/icons-balanced/doctor-arms-crossed.jpg',
-    alt: '医療従事者のイラスト',
+    image: '/homepage-assets/added/community-town.jpg',
+    alt: '地域の街並みのイラスト',
     tone: 'bg-indigo-50',
   },
 ]
@@ -469,6 +477,13 @@ export default function HomePage() {
             {marketCards.map((card, index) => (
               <Reveal key={card.title} delay={index * 90}>
                 <article className="homepage-card h-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <Image
+                    src={card.image}
+                    alt={card.alt}
+                    width={220}
+                    height={150}
+                    className="mx-auto mb-5 h-32 w-full object-contain"
+                  />
                   <h3 className="text-lg font-bold text-blue-950">{card.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
                 </article>
@@ -616,8 +631,8 @@ export default function HomePage() {
       <section id="contact" className="bg-white px-4 pb-16 sm:px-6">
         <Reveal className="mx-auto grid max-w-7xl gap-8 rounded-lg bg-blue-50 p-8 md:grid-cols-[180px_1fr_360px] md:items-center">
           <Image
-            src="/homepage-assets/icons-balanced/doctor-pointing.jpg"
-            alt="案内する薬剤師のイラスト"
+            src="/homepage-assets/added/greeting-consultant.jpg"
+            alt="丁寧に案内するスタッフのイラスト"
             width={180}
             height={150}
             className="hidden h-36 w-full object-contain md:block"

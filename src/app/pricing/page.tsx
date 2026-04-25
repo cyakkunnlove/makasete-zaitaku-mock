@@ -18,7 +18,7 @@ const plans = [
     price: '100,000',
     note: '月額目安',
     description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。月1,000件超の在宅対応実績をもとに、初回患者受入までの型を作ります。',
-    image: '/homepage-assets/from-reference/value-pharmacy.jpg',
+    image: '/homepage-assets/added/owner-concern.jpg',
     features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '営業導線と初回患者受入までの伴走'],
   },
   {
@@ -27,7 +27,7 @@ const plans = [
     price: '150,000',
     note: '月額目安',
     description: '在宅を一時的なコンサルで終わらせず、日々の業務・患者管理・タスク・記録をWEBアプリ上で回り、件数を継続して増やせる状態にします。',
-    image: '/homepage-assets/from-reference/value-business-growth.jpg',
+    image: '/homepage-assets/added/pharmacy-team.jpg',
     badge: '中心プラン',
     features: ['WEBアプリ利用と運用初期設定', '患者管理・日次対応・回収管理の運用化', '在宅件数と営業状況の見える化', '定例レビューと業務改善提案'],
   },
@@ -37,7 +37,7 @@ const plans = [
     price: '個別設計',
     note: '体制・地域に応じて見積',
     description: '日中運用が整った薬局が、無菌調剤など高度な在宅や夜間・緊急対応へ進むための拡張プランです。',
-    image: '/homepage-assets/from-reference/service-phone-consult.jpg',
+    image: '/homepage-assets/added/night-phone-support.jpg',
     features: ['無菌調剤など高度な手技教育', '夜間接続前チェックと患者情報整備', '薬剤師・地域責任者との運用分担整理', '夜間対応実績の確認と改善'],
   },
 ]
@@ -53,22 +53,22 @@ const steps = [
   {
     title: '診断',
     text: '在宅に取り組む意思、現場体制、患者受入準備、夜間方針を確認します。',
-    image: '/homepage-assets/from-reference/flow-phone.jpg',
+    image: '/homepage-assets/added/owner-concern.jpg',
   },
   {
     title: '設計',
     text: '薬局ごとのロードマップ、営業導線、教育内容、役割、必要テンプレートを設計します。',
-    image: '/homepage-assets/from-reference/flow-clipboard.jpg',
+    image: '/homepage-assets/added/medical-safety-shield.jpg',
   },
   {
     title: '伴走',
     text: '初回患者受入、スタッフ定着、件数増加に向けた営業と日次運用を一緒に進めます。',
-    image: '/homepage-assets/from-reference/flow-pharmacist.jpg',
+    image: '/homepage-assets/added/pharmacy-team.jpg',
   },
   {
     title: '定着',
     text: 'WEBアプリ上で患者・タスク・記録・回収を回し、継続利用される基盤にします。',
-    image: '/homepage-assets/from-reference/flow-home-delivery.jpg',
+    image: '/homepage-assets/added/security-lock.jpg',
   },
 ]
 
@@ -149,11 +149,11 @@ export default function PricingPage() {
 
           <div className="rounded-lg bg-blue-50/40 px-6 py-8">
             <Image
-              src="/homepage-assets/from-reference/hero-pharmacy-team.jpg"
-              alt="薬局で在宅支援について相談する薬剤師"
+              src="/homepage-assets/added/pharmacy-team.jpg"
+              alt="在宅薬局を支える薬局スタッフチーム"
               width={920}
               height={560}
-              className="mx-auto h-auto w-full max-w-2xl object-contain"
+              className="mx-auto h-auto w-full max-w-xl object-contain"
               priority
             />
           </div>
@@ -244,7 +244,7 @@ export default function PricingPage() {
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div className="rounded-lg bg-blue-50 p-8">
-            <Image src="/homepage-assets/from-reference/service-report-share.jpg" alt="運用記録を共有するイラスト" width={360} height={260} className="mx-auto h-auto w-full max-w-sm object-contain" />
+            <Image src="/homepage-assets/added/security-lock.jpg" alt="継続運用と情報管理を示す鍵のアイコン" width={360} height={260} className="mx-auto h-auto w-full max-w-xs object-contain" />
           </div>
           <div>
             <p className="text-sm font-bold text-blue-800">WHY CONTINUE</p>
@@ -282,7 +282,7 @@ export default function PricingPage() {
 
       <section className="bg-white px-4 py-16 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-6 rounded-lg bg-blue-50 p-6 sm:grid-cols-[0.7fr_1.2fr_1fr] sm:items-center">
-          <Image src="/homepage-assets/from-reference/cta-man-left.jpg" alt="" width={180} height={140} className="hidden h-28 w-full object-contain sm:block" />
+          <Image src="/homepage-assets/added/greeting-consultant.jpg" alt="" width={180} height={140} className="hidden h-28 w-full object-contain sm:block" />
           <div>
             <h2 className="text-xl font-bold text-blue-950">まずは在宅化の現状診断から</h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">料金だけで判断するのではなく、薬局がどの段階にあり、どこまで伴走が必要かを一緒に整理します。</p>
