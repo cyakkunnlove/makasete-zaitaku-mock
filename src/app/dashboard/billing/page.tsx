@@ -175,13 +175,13 @@ export default function BillingPage() {
   const [calendarActionNote, setCalendarActionNote] = useState('')
   const [patientSearch, setPatientSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | CollectionWorkflowStatus>('all')
+  const [billingFlowDate, setBillingFlowDate] = useState(getTodayJstDateKey)
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
   const [showCollectionTable, setShowCollectionTable] = useState(false)
   const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
   const [historyViewMode, setHistoryViewMode] = useState<'latest' | 'all'>('latest')
   const [historyStatusFocus, setHistoryStatusFocus] = useState<'all' | 'on_hold'>('all')
   const ownPharmacyId = user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? 'PH-01'
-  const billingFlowDate = getTodayJstDateKey()
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
@@ -299,9 +299,8 @@ export default function BillingPage() {
   const dateCollectionSummaries = apiDateCollectionSummaries
 
   const selectedDateSummary = useMemo(() => {
-    if (!selectedCollectionDate) return null
-    return dateCollectionSummaries.find((item) => item.date === selectedCollectionDate) ?? null
-  }, [dateCollectionSummaries, selectedCollectionDate])
+    return dateCollectionSummaries.find((item) => item.date === (selectedCollectionDate ?? billingFlowDate)) ?? null
+  }, [billingFlowDate, dateCollectionSummaries, selectedCollectionDate])
 
 
   const summary = useMemo(() => {
@@ -375,6 +374,7 @@ export default function BillingPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             collectionRecords: mergedCollectionRecords,
+            flowDate: billingFlowDate,
             pharmacyId: ownPharmacyId,
             pharmacyName: 'マカセテ在宅テスト薬局',
             patientSearch,
@@ -402,7 +402,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter])
+  }, [billingFlowDate, mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
@@ -701,14 +701,31 @@ export default function BillingPage() {
 
         <BillingCollapsibleSection
           title="日付から回収状況を見る"
-          description="まず日付を選び、その日の対象患者だけを確認します。"
+          description="対象日を選び、その日の対象患者だけを確認します。"
           countLabel={`${dateCollectionSummaries.length}日`}
           icon={CalendarDays}
         >
           <div className="space-y-3">
+            <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[220px_1fr] sm:items-center">
+              <div>
+                <p className="text-xs font-semibold text-slate-900">対象日</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">選択した日の訪問タスクから回収状況を読み込みます。</p>
+              </div>
+              <Input
+                type="date"
+                value={billingFlowDate}
+                onChange={(event) => {
+                  setBillingFlowDate(event.target.value || getTodayJstDateKey())
+                  setSelectedCollectionDate(null)
+                  setCalendarActionDialog(null)
+                }}
+                className={adminInputClass}
+              />
+            </div>
+
             {dateCollectionSummaries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                条件に合う日付はありません。検索語かステータスを見直してください。
+                この日付に表示できる回収対象はありません。別の日付を選ぶか、検索語・ステータスを見直してください。
               </div>
             ) : (
               <div className="space-y-2">
