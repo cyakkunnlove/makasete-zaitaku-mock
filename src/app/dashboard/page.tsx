@@ -416,6 +416,7 @@ function PharmacyDashboardHeaderCard({
   resetOrderButtonText,
   undoTarget,
   handleUndo,
+  compact = false,
 }: {
   flowDescription: string
   billableReadyCount: number
@@ -429,13 +430,14 @@ function PharmacyDashboardHeaderCard({
   resetOrderButtonText: string
   undoTarget: { taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null
   handleUndo: () => void
+  compact?: boolean
 }) {
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+      <CardContent className={`flex flex-wrap items-center justify-between gap-3 ${compact ? 'p-3' : 'p-4'}`}>
         <div>
-          <p className="text-base font-semibold text-slate-900">日中対応フロー</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">{flowDescription}</p>
+          <p className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-slate-900`}>日中対応フロー</p>
+          <p className={`${compact ? 'mt-0.5 line-clamp-2' : 'mt-1'} text-xs leading-5 text-slate-500`}>{flowDescription}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">請求連携候補 {billableReadyCount}件</Badge>
@@ -468,6 +470,7 @@ function PharmacyDashboardSummaryCard({
   saveStateBadge,
   adminWarningText,
   showDetailLink = false,
+  compact = false,
 }: {
   summaryTitle: string
   pharmacyStaffHandledCounts: { name: string; completedCount: number; inProgressCount: number; plannedCount: number; firstVisitCount: number; estimatedDistanceKm: number | null; workloadScore: number; workloadTone: 'light' | 'medium' | 'heavy'; activePatients: { patientName: string; stageLabel: string }[] }[]
@@ -475,14 +478,15 @@ function PharmacyDashboardSummaryCard({
   saveStateBadge: string | null
   adminWarningText?: string | null
   showDetailLink?: boolean
+  compact?: boolean
 }) {
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base text-slate-900">{summaryTitle}</CardTitle>
+      <CardHeader className={compact ? 'pb-1 pt-3 px-3' : 'pb-2'}>
+        <CardTitle className={`${compact ? 'text-sm' : 'text-base'} text-slate-900`}>{summaryTitle}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+      <CardContent className={compact ? 'space-y-2 p-3 pt-0' : 'space-y-3'}>
+        <div className={`grid grid-cols-1 gap-2 ${compact ? 'lg:grid-cols-3' : 'lg:grid-cols-2 2xl:grid-cols-3'}`}>
           {pharmacyStaffHandledCounts.length === 0 ? (
             <div className={`${adminPanelClass} p-3 text-sm text-slate-500`}>まだ本日の担当実績はありません。</div>
           ) : (
@@ -567,20 +571,22 @@ function PharmacyDashboardNoticeCard({
 function PharmacyDashboardSearchCard({
   searchQuery,
   onSearchChange,
+  compact = false,
 }: {
   searchQuery: string
   onSearchChange: (value: string) => void
+  compact?: boolean
 }) {
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
-      <CardContent className="space-y-3 p-4">
+      <CardContent className={compact ? 'space-y-2 p-3' : 'space-y-3 p-4'}>
         <div>
           <p className="text-sm font-semibold text-slate-900">患者検索</p>
-          <p className="text-xs text-slate-500">名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。</p>
+          <p className="text-xs text-slate-500">{compact ? '名前や住所で絞り込みます。' : '名前や住所で探せます。下の対応予定と簡易一覧にそのまま反映されます。'}</p>
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} placeholder="患者名で検索" className="h-11 border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400" />
+          <Input value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} placeholder="患者名で検索" className={`${compact ? 'h-10' : 'h-11'} border-slate-200 bg-slate-50 pl-9 text-sm text-slate-900 placeholder:text-slate-400`} />
         </div>
       </CardContent>
     </Card>
@@ -869,11 +875,11 @@ function PharmacyDashboardPriorityBrief({
 
   return (
     <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
-      <CardContent className="space-y-4 p-4">
+      <CardContent className="space-y-3 p-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-slate-500">{flowDateLabel} の薬局管理ダッシュボード</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">今日まず見ること</h2>
+            <h2 className="mt-0.5 text-lg font-semibold text-slate-900">今日まず見ること</h2>
           </div>
           {hasOrderDraft ? (
             <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">未保存の並び替えあり</Badge>
@@ -882,31 +888,33 @@ function PharmacyDashboardPriorityBrief({
           )}
         </div>
 
-        <div className={`rounded-lg border p-3 ${toneClass}`}>
-          <p className="text-base font-semibold">{nextAction.label}</p>
-          <p className="mt-1 text-sm leading-5">{nextAction.detail}</p>
-        </div>
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,2fr)]">
+          <div className={`rounded-lg border p-3 ${toneClass}`}>
+            <p className="text-base font-semibold">{nextAction.label}</p>
+            <p className="mt-1 text-sm leading-5">{nextAction.detail}</p>
+          </div>
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800"><FileClock className="h-3.5 w-3.5" /> 引き継ぎ</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{ownUnconfirmedHandovers.length}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
-            <p className="mt-1 text-[11px] text-amber-700">未確認の申し送り</p>
-          </div>
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-indigo-800"><Building2 className="h-3.5 w-3.5" /> 今日の予定</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{scheduledCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
-            <p className="mt-1 text-[11px] text-indigo-700">未着手の訪問予定</p>
-          </div>
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-sky-800"><Activity className="h-3.5 w-3.5" /> 進行中</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{inProgressCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
-            <p className="mt-1 text-[11px] text-sky-700">関連依頼 {ownActiveRequests}件 / 昨夜対応 {ownOvernightPatients}人</p>
-          </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-800"><Receipt className="h-3.5 w-3.5" /> 完了・請求</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{completedCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
-            <p className="mt-1 text-[11px] text-emerald-700">請求候補 {billableReadyCount}件</p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800"><FileClock className="h-3.5 w-3.5" /> 引き継ぎ</p>
+              <p className="mt-1.5 text-2xl font-semibold text-slate-900">{ownUnconfirmedHandovers.length}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+              <p className="mt-1 text-[11px] text-amber-700">未確認の申し送り</p>
+            </div>
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-indigo-800"><Building2 className="h-3.5 w-3.5" /> 今日の予定</p>
+              <p className="mt-1.5 text-2xl font-semibold text-slate-900">{scheduledCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+              <p className="mt-1 text-[11px] text-indigo-700">未着手の訪問予定</p>
+            </div>
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-sky-800"><Activity className="h-3.5 w-3.5" /> 進行中</p>
+              <p className="mt-1.5 text-2xl font-semibold text-slate-900">{inProgressCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+              <p className="mt-1 text-[11px] text-sky-700">関連依頼 {ownActiveRequests}件 / 昨夜対応 {ownOvernightPatients}人</p>
+            </div>
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-800"><Receipt className="h-3.5 w-3.5" /> 完了・請求</p>
+              <p className="mt-1.5 text-2xl font-semibold text-slate-900">{completedCount}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
+              <p className="mt-1 text-[11px] text-emerald-700">請求候補 {billableReadyCount}件</p>
+            </div>
           </div>
         </div>
 
@@ -2415,33 +2423,65 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         />
       )}
 
-      <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      {isPharmacyAdmin ? (
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div className="space-y-3">
+            <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} compact />
+            <PharmacyDashboardFlowDateNavigator
+              flowDateLabel={flowDateLabel}
+              onPrevious={() => shiftFlowDate(-1)}
+              onNext={() => shiftFlowDate(1)}
+            />
+          </div>
+          <div className="space-y-3">
+            <PharmacyDashboardHeaderCard
+              flowDescription={flowDescription}
+              billableReadyCount={billableReadyCount}
+              primarySummaryBadge={primarySummaryBadge}
+              hasOrderDraft={hasOrderDraft}
+              isSavingOrder={isSavingOrder}
+              handleSaveOrder={handleSaveOrder}
+              handleResetOrderDraft={handleResetOrderDraft}
+              orderDraftBadgeText={orderDraftBadgeText}
+              orderSavedButtonText={orderSavedButtonText}
+              resetOrderButtonText={resetOrderButtonText}
+              undoTarget={undoTarget}
+              handleUndo={handleUndo}
+              compact
+            />
 
-      <PharmacyDashboardFlowDateNavigator
-        flowDateLabel={flowDateLabel}
-        onPrevious={() => shiftFlowDate(-1)}
-        onNext={() => shiftFlowDate(1)}
-      />
+            <PharmacyDashboardAdminHandoverConfirmation
+              ownUnconfirmedHandovers={ownUnconfirmedHandovers}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+          <PharmacyDashboardFlowDateNavigator
+            flowDateLabel={flowDateLabel}
+            onPrevious={() => shiftFlowDate(-1)}
+            onNext={() => shiftFlowDate(1)}
+          />
+        </>
+      )}
 
       <>
-        <PharmacyDashboardHeaderCard
-          flowDescription={flowDescription}
-          billableReadyCount={billableReadyCount}
-          primarySummaryBadge={primarySummaryBadge}
-          hasOrderDraft={hasOrderDraft}
-          isSavingOrder={isSavingOrder}
-          handleSaveOrder={handleSaveOrder}
-          handleResetOrderDraft={handleResetOrderDraft}
-          orderDraftBadgeText={orderDraftBadgeText}
-          orderSavedButtonText={orderSavedButtonText}
-          resetOrderButtonText={resetOrderButtonText}
-          undoTarget={undoTarget}
-          handleUndo={handleUndo}
-        />
-
-        {isPharmacyAdmin && (
-          <PharmacyDashboardAdminHandoverConfirmation
-            ownUnconfirmedHandovers={ownUnconfirmedHandovers}
+        {!isPharmacyAdmin && (
+          <PharmacyDashboardHeaderCard
+            flowDescription={flowDescription}
+            billableReadyCount={billableReadyCount}
+            primarySummaryBadge={primarySummaryBadge}
+            hasOrderDraft={hasOrderDraft}
+            isSavingOrder={isSavingOrder}
+            handleSaveOrder={handleSaveOrder}
+            handleResetOrderDraft={handleResetOrderDraft}
+            orderDraftBadgeText={orderDraftBadgeText}
+            orderSavedButtonText={orderSavedButtonText}
+            resetOrderButtonText={resetOrderButtonText}
+            undoTarget={undoTarget}
+            handleUndo={handleUndo}
           />
         )}
 
@@ -2452,6 +2492,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           saveStateBadge={saveStateBadge}
           adminWarningText={adminWarningText}
           showDetailLink={isPharmacyAdmin}
+          compact={isPharmacyAdmin}
         />
 
         <PharmacyDashboardLoadingBanner
