@@ -51,6 +51,13 @@ type ValueCard = {
   tone: string
 }
 
+type ProofCard = {
+  title: string
+  description: string
+  image: string
+  alt: string
+}
+
 function Reveal({
   children,
   className = '',
@@ -101,15 +108,15 @@ const stats: StatCard[] = [
   },
   {
     label: '教育と標準化',
-    value: '型化',
-    note: 'スタッフ教育、役割分担、必要書類を整理',
+    value: '手技まで',
+    note: '無菌調剤など高度な手技も動画講義・実地講義で支援',
     image: '/homepage-assets/icons-balanced/document-check.jpg',
     alt: '記録書類のアイコン',
   },
   {
     label: '運用DX',
-    value: '定着',
-    note: '患者管理、日次対応、回収管理をアプリで継続',
+    value: '件数増',
+    note: '導入先で在宅件数を継続して増やせる運用を支援',
     image: '/homepage-assets/icons-balanced/operator-laptop.jpg',
     alt: 'PCで業務する薬剤師のイラスト',
   },
@@ -125,7 +132,7 @@ const stats: StatCard[] = [
 const marketCards: MarketCard[] = [
   {
     title: '在宅に取り組む必要性の増加',
-    description: '外来調剤だけでは薬局経営が厳しくなる中、在宅対応は地域貢献だけでなく経営維持の柱としても重要になっています。',
+    description: '国の方針としても、薬局が在宅対応できることは特別な取り組みではなく、地域医療を担う上で当たり前に求められる流れになっています。',
   },
   {
     title: '自力で立ち上げにくい現場',
@@ -133,7 +140,28 @@ const marketCards: MarketCard[] = [
   },
   {
     title: 'コンサルだけでは継続しにくい',
-    description: '助言だけで終わると、現場に定着せず契約も切れやすい。日々使うWEBアプリまで含めて運用に組み込む必要があります。',
+    description: '助言だけ、特定の道具だけでは現場に残りにくい。営業、教育、運用、WEBアプリまで含めて薬局の日常に組み込む必要があります。',
+  },
+]
+
+const proofCards: ProofCard[] = [
+  {
+    title: '在宅件数を増やしてきた実績',
+    description: '実際に支援している薬局では、在宅件数を継続して増やせている実績があります。営業の考え方から受入後の運用まで、数字につながる動き方を一緒に作ります。',
+    image: '/homepage-assets/from-reference/value-business-growth.jpg',
+    alt: '在宅件数の成長を示すイラスト',
+  },
+  {
+    title: '無菌調剤など高度な手技まで学べる',
+    description: '在宅で必要になる知識だけでなく、無菌調剤など他では学びにくい手技も動画講義や実地講義で習得できるようにします。',
+    image: '/homepage-assets/icons-balanced/doctor-pointing.jpg',
+    alt: '講義を行う薬剤師のイラスト',
+  },
+  {
+    title: '特定機材に依存しない汎用的な在宅運用',
+    description: '特定の道具や一部のやり方に寄せすぎず、薬局の規模や地域性に合わせて、どのような在宅にも対応できる薬局づくりを支援します。',
+    image: '/homepage-assets/from-reference/service-report-share.jpg',
+    alt: '運用資料を共有するイラスト',
   },
 ]
 
@@ -147,8 +175,8 @@ const services: ServiceCard[] = [
   },
   {
     number: '02',
-    title: '教育・テンプレート整備',
-    description: 'スタッフ教育、必要備品、患者受入基準、医療機関連携、記録の型を現場で使える形にします。',
+    title: '教育・手技講義まで整備',
+    description: '基礎教育、必要備品、患者受入基準に加え、無菌調剤など高度な手技も動画講義・実地講義で支援します。',
     image: '/homepage-assets/icons-balanced/document-check.jpg',
     alt: '書類チェックのイラスト',
   },
@@ -202,21 +230,21 @@ const flows: FlowCard[] = [
 const values: ValueCard[] = [
   {
     title: '薬局現場にとって',
-    points: ['在宅の始め方が明確になる', 'スタッフ教育と役割分担が進む', '患者対応を日々の業務として回せる'],
+    points: ['在宅の始め方が明確になる', '無菌調剤など高度な手技も学べる', '患者対応を日々の業務として回せる'],
     image: '/homepage-assets/icons-balanced/patients-family.jpg',
     alt: '患者と家族のイラスト',
     tone: 'bg-sky-50',
   },
   {
     title: '薬局経営にとって',
-    points: ['在宅を新しい収益柱に育てられる', '地域連携と紹介獲得につながる', 'コンサル後もアプリ利用が継続する'],
+    points: ['在宅件数を継続して増やす導線を作れる', '地域連携と紹介獲得につながる', 'コンサル後もアプリ利用が継続する'],
     image: '/homepage-assets/icons-balanced/two-pharmacists-waving.jpg',
     alt: '薬剤師チームのイラスト',
     tone: 'bg-emerald-50',
   },
   {
     title: '地域医療にとって',
-    points: ['在宅対応できる薬局を増やす', '患者を断らない体制に近づく', '必要に応じて夜間連携へ広げられる'],
+    points: ['在宅対応できる薬局を増やす', 'どのような在宅にも対応できる体制に近づく', '必要に応じて夜間連携へ広げられる'],
     image: '/homepage-assets/icons-balanced/doctor-arms-crossed.jpg',
     alt: '医療従事者のイラスト',
     tone: 'bg-indigo-50',
@@ -361,7 +389,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-700">
               任せて在宅は、1薬局あたり月1,000件超の在宅対応実績から培った現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
-              伴走だけで終わらせず、WEBアプリを日常業務に組み込み、継続して使われる仕組みまで整えます。
+              無菌調剤などの手技教育からWEBアプリでの運用定着まで、どのような在宅にも対応できる薬局づくりを支えます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -473,6 +501,35 @@ export default function HomePage() {
                   />
                   <h3 className="mt-5 min-h-14 text-lg font-bold leading-7 text-blue-950">{service.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-slate-600">{service.description}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold text-blue-800">WHY MAKASETE</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-wide text-blue-950">実績・教育・営業まで含めて、在宅薬局を育てる</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600">
+              任せて在宅は、知識だけを渡す教育サービスではありません。現場で件数を増やし、どのような在宅にも対応できる薬局へ育てるために、営業、教育、運用、アプリ定着まで一体で支援します。
+            </p>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {proofCards.map((card, index) => (
+              <Reveal key={card.title} delay={index * 90}>
+                <article className="homepage-card h-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <Image
+                    src={card.image}
+                    alt={card.alt}
+                    width={280}
+                    height={190}
+                    className="mx-auto h-36 w-full object-contain"
+                  />
+                  <h3 className="mt-5 text-lg font-bold text-blue-950">{card.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
                 </article>
               </Reveal>
             ))}

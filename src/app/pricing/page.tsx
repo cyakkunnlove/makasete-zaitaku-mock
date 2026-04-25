@@ -17,36 +17,36 @@ const plans = [
     label: 'ENTRY',
     price: '100,000',
     note: '月額目安',
-    description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。田中社長側の実務ノウハウをもとに、初回患者受入までの型を作ります。',
+    description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。月1,000件超の在宅対応実績をもとに、初回患者受入までの型を作ります。',
     image: '/homepage-assets/from-reference/value-pharmacy.jpg',
-    features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '初回患者受入までの伴走ミーティング'],
+    features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '営業導線と初回患者受入までの伴走'],
   },
   {
     name: '運用定着DX',
     label: 'CORE',
     price: '150,000',
     note: '月額目安',
-    description: '在宅を一時的なコンサルで終わらせず、日々の業務・患者管理・タスク・記録をWEBアプリ上で回る状態にします。',
+    description: '在宅を一時的なコンサルで終わらせず、日々の業務・患者管理・タスク・記録をWEBアプリ上で回り、件数を継続して増やせる状態にします。',
     image: '/homepage-assets/from-reference/value-business-growth.jpg',
     badge: '中心プラン',
-    features: ['WEBアプリ利用と運用初期設定', '患者管理・日次対応・回収管理の運用化', 'KPIと対応状況の見える化', '定例レビューと業務改善提案'],
+    features: ['WEBアプリ利用と運用初期設定', '患者管理・日次対応・回収管理の運用化', '在宅件数と営業状況の見える化', '定例レビューと業務改善提案'],
   },
   {
     name: '夜間連携・拡張',
     label: 'EXPAND',
     price: '個別設計',
     note: '体制・地域に応じて見積',
-    description: '日中運用が整った薬局が、夜間・緊急対応へ進むための拡張プラン。患者情報、申し送り、責任範囲を整理して接続します。',
+    description: '日中運用が整った薬局が、無菌調剤など高度な在宅や夜間・緊急対応へ進むための拡張プランです。',
     image: '/homepage-assets/from-reference/service-phone-consult.jpg',
-    features: ['夜間接続前チェックと患者情報整備', '夜間受付・申し送りフローの設計', '薬剤師・地域責任者との運用分担整理', '夜間対応実績の確認と改善'],
+    features: ['無菌調剤など高度な手技教育', '夜間接続前チェックと患者情報整備', '薬剤師・地域責任者との運用分担整理', '夜間対応実績の確認と改善'],
   },
 ]
 
 const included = [
-  { icon: Users, title: '実務ノウハウの移植', text: '在宅調剤を多く扱ってきた現場知見を、他薬局でも再現できる形へ整理します。' },
-  { icon: FileText, title: '教育・テンプレート', text: 'スタッフ教育、役割分担、受入基準、必要書類を薬局ごとに整えます。' },
-  { icon: TrendingUp, title: '経営としての在宅化', text: '地域支援、在宅患者数、収益性を見ながら継続できる運用へ寄せます。' },
-  { icon: ShieldCheck, title: 'アプリで定着', text: 'コンサル終了で離脱されないよう、日々の業務基盤として使い続ける状態を作ります。' },
+  { icon: Users, title: '月1,000件超の実務知見', text: '在宅調剤を多く扱ってきた現場知見を、他薬局でも再現できる形へ整理します。' },
+  { icon: FileText, title: '高度な教育・手技講義', text: '無菌調剤など、他では得にくい手技も動画講義や実地講義で支援します。' },
+  { icon: TrendingUp, title: '営業と件数増まで伴走', text: '導入先で在宅件数を継続して増やせるよう、営業と運用改善まで見ます。' },
+  { icon: ShieldCheck, title: '特定機材に依存しない', text: '薬局の状況に合わせ、どのような在宅にも対応できる体制づくりを支援します。' },
 ]
 
 const steps = [
@@ -57,12 +57,12 @@ const steps = [
   },
   {
     title: '設計',
-    text: '薬局ごとのロードマップ、教育内容、役割、必要テンプレートを設計します。',
+    text: '薬局ごとのロードマップ、営業導線、教育内容、役割、必要テンプレートを設計します。',
     image: '/homepage-assets/from-reference/flow-clipboard.jpg',
   },
   {
     title: '伴走',
-    text: '初回患者受入、スタッフ定着、日次運用の立ち上げを一緒に進めます。',
+    text: '初回患者受入、スタッフ定着、件数増加に向けた営業と日次運用を一緒に進めます。',
     image: '/homepage-assets/from-reference/flow-pharmacist.jpg',
   },
   {
@@ -75,7 +75,7 @@ const steps = [
 const faqs = [
   {
     question: '単発コンサルとの違いは何ですか？',
-    answer: '資料を渡して終わりではなく、教育、運用設計、WEBアプリでの日常運用までつなげます。ノウハウを現場に残し、継続的に使われる状態を作る点が違います。',
+    answer: '資料を渡して終わりではなく、教育、営業、運用設計、WEBアプリでの日常運用までつなげます。ノウハウを現場に残し、継続的に使われる状態を作る点が違います。',
   },
   {
     question: '夜間対応だけを依頼できますか？',
@@ -87,7 +87,7 @@ const faqs = [
   },
   {
     question: 'どんな薬局が対象ですか？',
-    answer: '在宅を始めたい薬局、在宅患者数を増やしたい薬局、在宅をやっているが属人化している薬局が主な対象です。',
+    answer: '在宅を始めたい薬局、在宅患者数を増やしたい薬局、無菌調剤など高度な在宅にも対応したい薬局、在宅をやっているが属人化している薬局が主な対象です。',
   },
 ]
 
@@ -140,10 +140,10 @@ export default function PricingPage() {
             <div className="mt-5 h-1 w-14 rounded-full bg-blue-800" />
             <p className="mt-6 max-w-xl text-sm font-medium leading-8 text-slate-600">
               任せて在宅は、1薬局あたり月1,000件超の在宅対応実績をもとに、田中社長が実務で培ってきた在宅調剤の進め方を、他薬局でも再現できるようにする伴走型サービスです。
-              立ち上げだけで終わらせず、WEBアプリを日常業務に組み込み、継続的に使われる運用基盤まで整えます。
+              営業、教育、無菌調剤などの手技講義、WEBアプリ運用まで組み込み、どのような在宅にも対応できる薬局づくりを支えます。
             </p>
             <div className="mt-7 inline-flex rounded-md bg-blue-50 px-4 py-2 text-xs font-bold text-blue-900">
-              月1,000件超の在宅対応実績 + 教育 + WEBアプリ + 夜間連携を段階的に提供
+              月1,000件超の在宅対応実績 + 営業伴走 + 高度な教育 + WEBアプリを段階的に提供
             </div>
           </div>
 
@@ -164,7 +164,7 @@ export default function PricingPage() {
         <div className="text-center">
           <p className="text-sm font-bold text-blue-800">PLAN</p>
           <h2 className="mt-2 text-2xl font-bold text-blue-950">薬局の成熟度に合わせた提供プラン</h2>
-          <p className="mt-3 text-sm text-slate-600">安価な単機能サービスではなく、在宅事業を立ち上げて定着させるための料金設計です。</p>
+          <p className="mt-3 text-sm text-slate-600">特定の道具だけに依存する単機能サービスではなく、在宅事業を立ち上げて定着させるための料金設計です。</p>
         </div>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
@@ -223,7 +223,7 @@ export default function PricingPage() {
           <div className="text-center">
             <p className="text-sm font-bold text-blue-800">PROCESS</p>
             <h2 className="mt-2 text-2xl font-bold text-blue-950">導入から継続利用まで</h2>
-            <p className="mt-3 text-sm text-slate-600">在宅を始めるだけでなく、現場で回り続ける状態まで一緒に作ります。</p>
+            <p className="mt-3 text-sm text-slate-600">在宅を始めるだけでなく、営業で件数を増やし、現場で回り続ける状態まで一緒に作ります。</p>
           </div>
           <div className="mt-8 grid gap-4 lg:grid-cols-4">
             {steps.map((step, index) => (
@@ -250,10 +250,10 @@ export default function PricingPage() {
             <p className="text-sm font-bold text-blue-800">WHY CONTINUE</p>
             <h2 className="mt-3 text-3xl font-bold leading-tight text-blue-950">満足したら終わり、にしないためのWEBアプリ</h2>
             <p className="mt-5 text-sm leading-8 text-slate-600">
-              従来の在宅コンサルは、ノウハウが伝わると契約が終わりやすい構造があります。任せて在宅では、患者管理、日次対応、教育、記録、回収管理、夜間連携をアプリ上の運用に組み込み、薬局の日常業務そのものを支える形にします。
+              従来の在宅コンサルは、ノウハウが伝わると契約が終わりやすい構造があります。任せて在宅では、患者管理、日次対応、教育、記録、回収管理、営業状況、夜間連携をアプリ上の運用に組み込み、薬局の日常業務そのものを支える形にします。
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {['患者・訪問予定が日々の業務で使われる', 'スタッフ教育とタスクが残り続ける', '対応履歴と回収状況が経営判断につながる', '夜間連携の前提情報として必要になる'].map((item) => (
+              {['患者・訪問予定が日々の業務で使われる', '無菌調剤などの教育とタスクが残り続ける', '在宅件数と営業状況が経営判断につながる', '夜間連携の前提情報として必要になる'].map((item) => (
                 <div key={item} className="rounded-md border border-slate-200 bg-white p-4 text-sm font-semibold leading-6 text-slate-700 shadow-sm">
                   {item}
                 </div>
