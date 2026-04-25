@@ -116,7 +116,7 @@ const stats: StatCard[] = [
   {
     label: '月間対応実績',
     value: '1,000件超',
-    note: '1薬局あたり月1,000件超の在宅対応実績をもとに支援',
+    note: '田中平が運営する薬局1店舗あたり月間訪問件数1,000件超',
     image: '/homepage-assets/icons-balanced/pharmacy-storefront.jpg',
     alt: '薬局店舗のアイコン',
   },
@@ -146,7 +146,7 @@ const stats: StatCard[] = [
 const marketCards: MarketCard[] = [
   {
     title: '在宅に取り組む必要性の増加',
-    description: '国の方針としても、薬局が在宅対応できることは特別な取り組みではなく、地域医療を担う上で当たり前に求められる流れになっています。',
+    description: '令和6年度診療報酬改定の議論でも、薬局機能の強化、医療・介護連携、在宅訪問対応、医療DXの推進が重視されています。',
     image: '/homepage-assets/added/community-town.jpg',
     alt: '地域の街並みのイラスト',
   },
@@ -167,13 +167,13 @@ const marketCards: MarketCard[] = [
 const proofCards: ProofCard[] = [
   {
     title: '在宅件数を増やしてきた実績',
-    description: '実際に支援している薬局では、在宅件数を継続して増やせている実績があります。営業の考え方から受入後の運用まで、数字につながる動き方を一緒に作ります。',
+    description: '医師との話し合いにも入り、信頼関係づくりや手技説明まで支援して、在宅件数を伸ばす動き方を一緒に作ります。',
     image: '/homepage-assets/added/start-action.jpg',
     alt: '在宅対応を始める前向きなスタッフのイラスト',
   },
   {
     title: '無菌調剤など高度な手技まで学べる',
-    description: '在宅で必要になる知識だけでなく、無菌調剤など他では学びにくい手技も動画講義や実地講義で習得できるようにします。',
+    description: '田中平および一部の技術者が、無菌調剤など他では学びにくい手技を動画講義や実地講義で支援します。',
     image: '/homepage-assets/added/training-manual.jpg',
     alt: '研修とマニュアルで説明する講師のイラスト',
   },
@@ -210,14 +210,14 @@ const services: ServiceCard[] = [
   {
     number: '01',
     title: '在宅立ち上げの伴走',
-    description: '田中社長側の在宅調剤ノウハウをもとに、薬局ごとの受入準備、役割、営業導線を整えます。',
+    description: '田中平の在宅調剤ノウハウをもとに、薬局ごとの受入準備、役割、同行営業、ケアマネ営業まで整えます。',
     image: '/homepage-assets/added/consultation-meeting.jpg',
     alt: '相談しながら導入内容を整理するイラスト',
   },
   {
     number: '02',
     title: '教育・手技講義まで整備',
-    description: '基礎教育、必要備品、患者受入基準に加え、無菌調剤など高度な手技も動画講義・実地講義で支援します。',
+    description: '東京を中心に、基礎教育、患者受入基準、無菌調剤など高度な手技を動画講義・実地講義で支援します。',
     image: '/homepage-assets/added/training-manual.jpg',
     alt: '研修とマニュアルで説明する講師のイラスト',
   },
@@ -303,7 +303,7 @@ const homepageFaqs: FaqItem[] = [
   },
   {
     question: '無菌調剤など高度な内容も扱えますか？',
-    answer: 'はい。無菌調剤など、通常の研修だけでは学びにくい手技についても、動画講義や実地講義を組み合わせて習得できる体制を想定しています。',
+    answer: 'はい。田中平および一部の技術者が、無菌調剤など通常の研修だけでは学びにくい手技についても、動画講義や実地講義を組み合わせて支援します。',
   },
   {
     question: '特定の機材や方法に縛られますか？',
@@ -315,7 +315,7 @@ const homepageFaqs: FaqItem[] = [
   },
   {
     question: '夜間対応だけ依頼できますか？',
-    answer: '夜間対応は、日中の患者情報や申し送りが整っていることが前提です。まずは日中運用の状態を確認し、必要な準備を整えてから段階的に接続します。',
+    answer: '夜間対応はオプションとして追加可能です。日中の患者情報や申し送りが整っていることを確認し、必要な準備を整えてから段階的に接続します。',
   },
 ]
 
@@ -336,7 +336,7 @@ export default function HomePage() {
               薬局の運用基盤へ。
             </h1>
             <p className="mt-6 max-w-xl break-words text-base font-medium leading-8 text-slate-700">
-              任せて在宅は、1薬局あたり月1,000件超の在宅対応実績から培った現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
+              任せて在宅は、田中平が運営する薬局1店舗あたり月間訪問件数1,000件超の現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
               無菌調剤などの手技教育からWEBアプリでの運用定着まで、どのような在宅にも対応できる薬局づくりを支えます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -700,10 +700,10 @@ export default function HomePage() {
             </ul>
           </div>
           <div className="rounded-lg border border-white/30 p-5">
-            <p className="text-sm text-blue-100">お電話でのお問い合わせ（平日 9:00〜18:00）</p>
-            <p className="mt-3 flex items-center gap-3 text-2xl font-bold">
+            <p className="text-sm text-blue-100">お問い合わせ窓口</p>
+            <p className="mt-3 flex items-center gap-3 text-base font-bold">
               <Phone className="h-6 w-6" />
-              03-1234-5678
+              電話番号は正式確定後に掲載
             </p>
           </div>
         </div>

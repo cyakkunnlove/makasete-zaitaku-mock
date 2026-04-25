@@ -14,13 +14,13 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "マカセテ在宅 | 夜間薬局コーディネーション",
-  description: "夜間在宅薬局の受電・アサイン・申し送りをワンストップで管理するSaaS",
-  icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>" },
+  title: "任せて在宅 | 在宅薬局の立ち上げ・教育・運用支援",
+  description: "マカセテ在宅株式会社が提供する、在宅薬局の立ち上げ、教育、営業、薬局運用DX、夜間連携までを支えるサービス",
+  icons: { icon: "/homepage-assets/from-reference/logo-mark.jpg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0e1a",
+  themeColor: "#1e40af",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -10,9 +10,9 @@ const plans = [
     label: 'ENTRY',
     price: '100,000',
     note: '月額目安',
-    description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。月1,000件超の在宅対応実績をもとに、初回患者受入までの型を作ります。',
+    description: '在宅に取り組みたいが、何から整えるべきか分からない薬局向け。月間訪問件数1,000件超の実績をもとに、初回患者受入までの型を作ります。',
     image: '/homepage-assets/added/consultation-meeting.jpg',
-    features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '営業導線と初回患者受入までの伴走'],
+    features: ['現状診断と在宅ロードマップ作成', 'オーナー・現場向けの教育設計', '必要備品・役割分担・受入基準の整理', '同行営業・ケアマネ営業と初回患者受入までの伴走'],
   },
   {
     name: '運用定着DX',
@@ -36,9 +36,9 @@ const plans = [
 ]
 
 const included = [
-  { icon: Users, title: '月1,000件超の実務知見', text: '在宅調剤を多く扱ってきた現場知見を、他薬局でも再現できる形へ整理します。' },
-  { icon: FileText, title: '高度な教育・手技講義', text: '無菌調剤など、他では得にくい手技も動画講義や実地講義で支援します。' },
-  { icon: TrendingUp, title: '営業と件数増まで伴走', text: '導入先で在宅件数を継続して増やせるよう、営業と運用改善まで見ます。' },
+  { icon: Users, title: '月間訪問1,000件超の知見', text: '田中平が運営する薬局1店舗あたりの実務知見を、他薬局でも再現できる形へ整理します。' },
+  { icon: FileText, title: '高度な教育・手技講義', text: '無菌調剤など、他では得にくい手技も料金範囲内で動画講義や実地講義により支援します。' },
+  { icon: TrendingUp, title: '営業と件数増まで伴走', text: '医師との話し合いへの参加、信頼関係づくり、ケアマネ営業まで支援します。' },
   { icon: ShieldCheck, title: '特定機材に依存しない', text: '薬局の状況に合わせ、どのような在宅にも対応できる体制づくりを支援します。' },
 ]
 
@@ -50,7 +50,7 @@ const steps = [
   },
   {
     title: '設計',
-    text: '薬局ごとのロードマップ、営業導線、教育内容、役割、必要テンプレートを設計します。',
+    text: '薬局ごとのロードマップ、同行営業、ケアマネ営業、教育内容、役割、必要テンプレートを設計します。',
     image: '/homepage-assets/added/training-manual.jpg',
   },
   {
@@ -72,11 +72,11 @@ const faqs = [
   },
   {
     question: '夜間対応だけを依頼できますか？',
-    answer: '夜間対応は、日中の患者情報や申し送りが整っていることが前提です。まずは在宅運用の状態を確認し、必要な準備を整えてから接続します。',
+    answer: '夜間対応はオプションとして追加可能です。日中の患者情報や申し送りが整っていることを確認し、必要な準備を整えてから接続します。',
   },
   {
     question: '料金は固定ですか？',
-    answer: '表示金額は目安です。薬局数、在宅患者数、伴走範囲、夜間連携の有無により調整します。正式な料金はヒアリング後に提示します。',
+    answer: '表示金額は月額目安です。初期費用や正式な条件は資料にて整理し、薬局数、在宅患者数、伴走範囲、夜間連携の有無により調整します。',
   },
   {
     question: 'どんな薬局が対象ですか？',
@@ -105,11 +105,11 @@ export default function PricingPage() {
             </h1>
             <div className="mt-5 h-1 w-14 rounded-full bg-blue-800" />
             <p className="mt-6 max-w-xl text-sm font-medium leading-8 text-slate-600">
-              任せて在宅は、1薬局あたり月1,000件超の在宅対応実績をもとに、田中社長が実務で培ってきた在宅調剤の進め方を、他薬局でも再現できるようにする伴走型サービスです。
+              任せて在宅は、田中平が運営する薬局1店舗あたり月間訪問件数1,000件超の実績をもとに、在宅調剤の進め方を他薬局でも再現できるようにする伴走型サービスです。
               営業、教育、無菌調剤などの手技講義、WEBアプリ運用まで組み込み、どのような在宅にも対応できる薬局づくりを支えます。
             </p>
             <div className="mt-7 inline-flex rounded-md bg-blue-50 px-4 py-2 text-xs font-bold text-blue-900">
-              月1,000件超の在宅対応実績 + 営業伴走 + 高度な教育 + WEBアプリを段階的に提供
+              月間訪問件数1,000件超の実績 + 営業伴走 + 高度な教育 + WEBアプリを段階的に提供
             </div>
           </div>
 
@@ -181,7 +181,7 @@ export default function PricingPage() {
             )
           })}
         </div>
-        <p className="mt-3 text-center text-xs text-slate-500">表示料金は提案用の目安です。薬局数、対象患者数、支援範囲、夜間連携の有無により最終調整します。</p>
+        <p className="mt-3 text-center text-xs text-slate-500">表示料金は月額目安です。初期費用や正式条件は資料にて提示し、薬局数、対象患者数、支援範囲、夜間連携の有無により最終調整します。</p>
       </section>
 
       <section className="border-y border-slate-100 bg-slate-50">
@@ -291,8 +291,8 @@ export default function PricingPage() {
             </ul>
           </div>
           <div className="rounded-lg border border-white/30 p-5">
-            <p className="text-sm text-blue-100">お電話でのお問い合わせ（平日 9:00〜18:00）</p>
-            <p className="mt-3 flex items-center gap-3 text-2xl font-bold"><Phone className="h-6 w-6" />03-1234-5678</p>
+            <p className="text-sm text-blue-100">お問い合わせ窓口</p>
+            <p className="mt-3 flex items-center gap-3 text-base font-bold"><Phone className="h-6 w-6" />電話番号は正式確定後に掲載</p>
           </div>
         </div>
         <div className="border-t border-white/15 py-4 text-center text-xs text-blue-100">© 2026 任せて在宅</div>

@@ -2,9 +2,11 @@ import Image from 'next/image'
 import { PublicSiteHeader } from '@/components/public-site-header'
 
 const companyItems = [
-  { label: '会社名', value: '任せて在宅株式会社（予定）' },
+  { label: '会社名', value: 'マカセテ在宅株式会社' },
+  { label: '代表者', value: '田中 平' },
+  { label: '設立', value: '2026年4月20日（確認中）' },
   { label: '事業内容', value: '在宅薬局の立ち上げ支援 / 教育・手技講義 / 薬局運用DX / 地域連携・夜間対応支援' },
-  { label: '所在地', value: '東京都内（詳細確認中）' },
+  { label: '所在地', value: '東京都江東区古石場2-11-10 大忠ビル3階' },
   { label: 'お問い合わせ', value: 'お問い合わせページよりご連絡ください。' },
 ]
 
@@ -44,7 +46,7 @@ export default function CompanyPage() {
             className="mx-auto h-auto w-full max-w-sm object-contain"
           />
           <p className="mt-6 text-sm leading-7 text-slate-600">
-            会社情報は正式確定に合わせて順次更新します。現時点では、在宅対応を増やしたい薬局向けのサービス内容を先行して整備しています。
+            在宅調剤の現場で培った知見をもとに、在宅対応を増やしたい薬局の立ち上げ、教育、営業、運用定着を支援します。
           </p>
         </div>
       </section>

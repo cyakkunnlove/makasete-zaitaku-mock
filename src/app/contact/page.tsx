@@ -45,7 +45,7 @@ export default function ContactPage() {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-blue-800" />
-                <span>03-1234-5678（仮）</span>
+                <span>電話番号は正式確定後に掲載</span>
               </div>
             </div>
             <p className="mt-6 text-sm leading-7 text-slate-600">
