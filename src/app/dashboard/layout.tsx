@@ -144,12 +144,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, role, loading, signOut, authMode, requiresReverification, activeRoleContext } = useAuth()
   const unreadFaxCount = 2
   const candidateCount = 3
-  const pharmacyStaffStats = {
-    total: 8,
-    completed: 5,
-    inProgress: 2,
-  }
-  const [pharmacyAdminStats, setPharmacyAdminStats] = useState({
+  const [pharmacyTaskStats, setPharmacyTaskStats] = useState({
+    total: 0,
+    completed: 0,
     preparing: 0,
     inProgress: 0,
   })
@@ -209,26 +206,28 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [authMode, loading, pathname, requiresReverification, router])
 
   useEffect(() => {
-    if (loading || role !== 'pharmacy_admin') return
+    if (loading || (role !== 'pharmacy_admin' && role !== 'pharmacy_staff')) return
 
     let cancelled = false
-    async function fetchPharmacyAdminStats() {
+    async function fetchPharmacyTaskStats() {
       try {
         const response = await fetch(`/api/day-flow/${getTodayDateKey()}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (cancelled || !response.ok || !result?.ok || !Array.isArray(result.tasks)) return
 
         const tasks = result.tasks as Array<{ status?: string | null }>
-        setPharmacyAdminStats({
+        setPharmacyTaskStats({
+          total: tasks.length,
+          completed: tasks.filter((task) => task.status === 'completed').length,
           preparing: tasks.filter((task) => task.status !== 'completed' && task.status !== 'in_progress').length,
           inProgress: tasks.filter((task) => task.status === 'in_progress').length,
         })
       } catch {
-        if (!cancelled) setPharmacyAdminStats({ preparing: 0, inProgress: 0 })
+        if (!cancelled) setPharmacyTaskStats({ total: 0, completed: 0, preparing: 0, inProgress: 0 })
       }
     }
 
-    fetchPharmacyAdminStats()
+    fetchPharmacyTaskStats()
     return () => {
       cancelled = true
     }
@@ -292,15 +291,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <div className="px-4 pt-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-slate-900">{pharmacyStaffStats.total}</p>
+                <p className="text-base font-bold text-slate-900">{pharmacyTaskStats.total}</p>
                 <p className="text-[10px] font-medium text-slate-600">本日合計</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-emerald-600">{pharmacyStaffStats.completed}</p>
+                <p className="text-base font-bold text-emerald-600">{pharmacyTaskStats.completed}</p>
                 <p className="text-[10px] font-medium text-slate-600">訪問済</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-amber-600">{pharmacyStaffStats.inProgress}</p>
+                <p className="text-base font-bold text-amber-600">{pharmacyTaskStats.inProgress}</p>
                 <p className="text-[10px] font-medium text-slate-600">対応中</p>
               </div>
             </div>
@@ -315,11 +314,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 <p className="text-[10px] font-medium text-slate-600">依頼管理</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-indigo-600">{pharmacyAdminStats.preparing}</p>
+                <p className="text-base font-bold text-indigo-600">{pharmacyTaskStats.preparing}</p>
                 <p className="text-[10px] font-medium text-slate-600">対応準備中</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center shadow-sm">
-                <p className="text-base font-bold text-amber-600">{pharmacyAdminStats.inProgress}</p>
+                <p className="text-base font-bold text-amber-600">{pharmacyTaskStats.inProgress}</p>
                 <p className="text-[10px] font-medium text-slate-600">対応中</p>
               </div>
             </div>

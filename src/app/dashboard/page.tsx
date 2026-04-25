@@ -2535,13 +2535,20 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             />
           </PharmacyDashboardCollapsibleSection>
         ) : (
-          <PharmacyDashboardSummaryCard
-            summaryTitle={summaryTitle}
-            pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
-            summarySupportText={summarySupportText}
-            saveStateBadge={saveStateBadge}
-            adminWarningText={adminWarningText}
-          />
+          <PharmacyDashboardCollapsibleSection
+            title={summaryTitle}
+            countLabel={`${pharmacyStaffHandledCounts.length}名`}
+            icon={Users}
+          >
+            <PharmacyDashboardSummaryCard
+              summaryTitle={summaryTitle}
+              pharmacyStaffHandledCounts={pharmacyStaffHandledCounts}
+              summarySupportText={summarySupportText}
+              saveStateBadge={saveStateBadge}
+              adminWarningText={adminWarningText}
+              compact
+            />
+          </PharmacyDashboardCollapsibleSection>
         )}
 
         <PharmacyDashboardLoadingBanner
@@ -2616,59 +2623,65 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             </PharmacyDashboardTabs>
           </PharmacyDashboardCollapsibleSection>
         ) : (
-          <PharmacyDashboardTabs>
-            <TabsContent value="today" className="space-y-2">
-              <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / 自動生成 + 手動追加`} />
-              <PharmacyDashboardRoutePlanner
-                routePlanLoading={routePlanLoading}
-                selectedRoutePatientIds={selectedRoutePatientIds}
-                onSuggestRoute={() => void handleSuggestRoute()}
-                routePlanResult={routePlanResult}
-                routeEmailHref={routeEmailHref}
-                onApplySuggestedOrder={handleApplySuggestedOrder}
-                routeMapRef={routeMapRef}
-              />
-              <PharmacyDashboardTodayTaskList
-                draggingTaskId={draggingTaskId}
-                orderedVisits={orderedVisits}
-                selectedRoutePatientIds={selectedRoutePatientIds}
-                handleToggleRoutePatient={handleToggleRoutePatient}
-                dragOverTaskId={dragOverTaskId}
-                dragEnabledTaskId={dragEnabledTaskId}
-                dragHandleActiveTaskId={dragHandleActiveTaskId}
-                setDraggingTaskId={setDraggingTaskId}
-                setDragOverTaskId={setDragOverTaskId}
-                setDragEnabledTaskId={setDragEnabledTaskId}
-                setDragHandleActiveTaskId={setDragHandleActiveTaskId}
-                reorderTaskByDrag={reorderTaskByDrag}
-                taskCardRefs={taskCardRefs}
-                handlePlanTask={handlePlanTask}
-                moveTask={moveTask}
-                handleStartTask={handleStartTask}
-                handleCompleteTask={handleCompleteTask}
-                completionHelpText={completionHelpText}
-                pendingTaskIds={pendingTaskIds}
-                recentlySavedTaskIds={recentlySavedTaskIds}
-                failedTaskId={failedTaskId}
-                plannedLabelPrefix={plannedLabelPrefix}
-                updatedLabelPrefix={updatedLabelPrefix}
-                reorderHintText={reorderHintText}
-              />
-            </TabsContent>
+          <PharmacyDashboardCollapsibleSection
+            title="今日の対応予定・患者一覧"
+            countLabel={`${orderedVisits.length}件`}
+            icon={Building2}
+          >
+            <PharmacyDashboardTabs>
+              <TabsContent value="today" className="space-y-2">
+                <PharmacyTodaySectionHeading countLabel={`${flowDateLabel} / 自動生成 + 手動追加`} />
+                <PharmacyDashboardRoutePlanner
+                  routePlanLoading={routePlanLoading}
+                  selectedRoutePatientIds={selectedRoutePatientIds}
+                  onSuggestRoute={() => void handleSuggestRoute()}
+                  routePlanResult={routePlanResult}
+                  routeEmailHref={routeEmailHref}
+                  onApplySuggestedOrder={handleApplySuggestedOrder}
+                  routeMapRef={routeMapRef}
+                />
+                <PharmacyDashboardTodayTaskList
+                  draggingTaskId={draggingTaskId}
+                  orderedVisits={orderedVisits}
+                  selectedRoutePatientIds={selectedRoutePatientIds}
+                  handleToggleRoutePatient={handleToggleRoutePatient}
+                  dragOverTaskId={dragOverTaskId}
+                  dragEnabledTaskId={dragEnabledTaskId}
+                  dragHandleActiveTaskId={dragHandleActiveTaskId}
+                  setDraggingTaskId={setDraggingTaskId}
+                  setDragOverTaskId={setDragOverTaskId}
+                  setDragEnabledTaskId={setDragEnabledTaskId}
+                  setDragHandleActiveTaskId={setDragHandleActiveTaskId}
+                  reorderTaskByDrag={reorderTaskByDrag}
+                  taskCardRefs={taskCardRefs}
+                  handlePlanTask={handlePlanTask}
+                  moveTask={moveTask}
+                  handleStartTask={handleStartTask}
+                  handleCompleteTask={handleCompleteTask}
+                  completionHelpText={completionHelpText}
+                  pendingTaskIds={pendingTaskIds}
+                  recentlySavedTaskIds={recentlySavedTaskIds}
+                  failedTaskId={failedTaskId}
+                  plannedLabelPrefix={plannedLabelPrefix}
+                  updatedLabelPrefix={updatedLabelPrefix}
+                  reorderHintText={reorderHintText}
+                />
+              </TabsContent>
 
-            <TabsContent value="master" className="space-y-2">
-              <PharmacyDashboardMasterPatientSection
-                searchQuery={searchQuery}
-                filteredMasterPatients={filteredMasterPatients}
-                ownRequests={ownRequests}
-                handoverData={handoverData}
-                ownPharmacyId={ownPharmacyId}
-                draftDayTasks={draftDayTasks}
-                flowDate={flowDate}
-                onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
-              />
-            </TabsContent>
-          </PharmacyDashboardTabs>
+              <TabsContent value="master" className="space-y-2">
+                <PharmacyDashboardMasterPatientSection
+                  searchQuery={searchQuery}
+                  filteredMasterPatients={filteredMasterPatients}
+                  ownRequests={ownRequests}
+                  handoverData={handoverData}
+                  ownPharmacyId={ownPharmacyId}
+                  draftDayTasks={draftDayTasks}
+                  flowDate={flowDate}
+                  onAddPatientToTodayFlow={handleAddPatientToTodayFlow}
+                />
+              </TabsContent>
+            </PharmacyDashboardTabs>
+          </PharmacyDashboardCollapsibleSection>
         )}
       </>
       {!isPharmacyStaff && (
@@ -2698,14 +2711,12 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       )}
 
       {isPharmacyStaff && (
-        <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-              <Receipt className="h-4 w-4 text-indigo-500" />
-              回収管理への引き渡しメモ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs text-slate-600">
+        <PharmacyDashboardCollapsibleSection
+          title="回収管理への引き渡しメモ"
+          countLabel={`${dayTasks.filter((task) => task.billable).length}件`}
+          icon={Receipt}
+        >
+          <div className="space-y-2 text-xs text-slate-600">
             {dayTasks.filter((task) => task.billable).map((task) => {
               const patient = ownPatients.find((item) => item.id === task.patientId)
               return (
@@ -2716,8 +2727,8 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </PharmacyDashboardCollapsibleSection>
       )}
     </div>
   )
