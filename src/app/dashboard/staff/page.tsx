@@ -1590,7 +1590,7 @@ export default function StaffPage() {
                 value={newRegionName}
                 onChange={(event) => setNewRegionName(event.target.value)}
                 required
-                className="border-[#2a3553] bg-[#1a2035]"
+                className={adminInputClass}
                 placeholder="例: 北海道リージョン"
               />
             </div>
@@ -1616,19 +1616,19 @@ export default function StaffPage() {
 
           <form onSubmit={handleAddStaff} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300">氏名</Label>
+              <Label htmlFor="name" className="text-slate-700">氏名</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))}
                 required
-                className="border-[#2a3553] bg-[#1a2035]"
+                className={adminInputClass}
               />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-gray-300">役割</Label>
+                <Label className="text-slate-700">役割</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value) =>
@@ -1636,10 +1636,10 @@ export default function StaffPage() {
                   }
                   disabled={isSystemAdmin}
                 >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                  <SelectTrigger className={adminInputClass}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     {isSystemAdmin && <SelectItem value="regional_admin">リージョン管理者</SelectItem>}
                     {isRegionalAdmin && <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>}
                     {isRegionalAdmin && <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>}
@@ -1649,8 +1649,8 @@ export default function StaffPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-300">招待後の扱い</Label>
-                <div className="rounded-md border border-[#2a3553] bg-[#1a2035] px-3 py-2 text-sm text-gray-300">
+                <Label className="text-slate-700">招待後の扱い</Label>
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                   招待メールを送信し、受諾後に利用開始します。
                 </div>
               </div>
@@ -1659,12 +1659,12 @@ export default function StaffPage() {
             {isSystemAdmin && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="text-gray-300">所属リージョン</Label>
-                  <Button type="button" variant="outline" size="sm" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#24304d]" onClick={() => setRegionDialogOpen(true)}>
+                  <Label className="text-slate-700">所属リージョン</Label>
+                  <Button type="button" variant="outline" size="sm" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setRegionDialogOpen(true)}>
                     新しいリージョンを追加
                   </Button>
                 </div>
-                <div className="rounded-md border border-[#2a3553] bg-[#1a2035] p-3">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div className="flex flex-wrap gap-2">
                     {regions.map((region) => {
                       const selected = formData.regionIds.includes(region.id)
@@ -1687,8 +1687,8 @@ export default function StaffPage() {
                           className={cn(
                             'rounded-full border px-3 py-1.5 text-sm transition-colors',
                             selected
-                              ? 'border-cyan-300 bg-cyan-400/25 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.35)]'
-                              : 'border-[#2a3553] bg-[#11182c] text-gray-300 hover:border-indigo-500/30',
+                              ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                              : 'border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50',
                           )}
                         >
                           {region.name}
@@ -1697,51 +1697,51 @@ export default function StaffPage() {
                     })}
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-500">複数選択できます。最初に選ばれたリージョンを初期所属として扱います。</p>
+                <p className="text-[11px] text-slate-500">複数選択できます。最初に選ばれたリージョンを初期所属として扱います。</p>
               </div>
             )}
 
             {isRegionalAdmin && (
               <div className="space-y-2">
-                <Label className="text-gray-300">対象薬局</Label>
+                <Label className="text-slate-700">対象薬局</Label>
                 <Select
                   value={formData.pharmacyId}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, pharmacyId: value }))}
                   disabled={false}
                 >
-                  <SelectTrigger className="border-[#2a3553] bg-[#1a2035]">
+                  <SelectTrigger className={adminInputClass}>
                     <SelectValue placeholder="薬局を選択" />
                   </SelectTrigger>
-                  <SelectContent className="border-[#2a3553] bg-[#11182c] text-gray-100">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900">
                     {pharmacies.map((pharmacy) => (
                       <SelectItem key={pharmacy.id} value={pharmacy.id}>{pharmacy.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-gray-500">薬局管理者と夜間薬剤師には対象薬局が必要です。加盟店詳細から来た場合は自動で選択されます。</p>
+                <p className="text-[11px] text-slate-500">薬局管理者と夜間薬剤師には対象薬局が必要です。加盟店詳細から来た場合は自動で選択されます。</p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-300">電話</Label>
+              <Label htmlFor="phone" className="text-slate-700">電話</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
                 required
-                className="border-[#2a3553] bg-[#1a2035]"
+                className={adminInputClass}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">メール</Label>
+              <Label htmlFor="email" className="text-slate-700">メール</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
                 required
-                className="border-[#2a3553] bg-[#1a2035]"
+                className={adminInputClass}
               />
             </div>
 
