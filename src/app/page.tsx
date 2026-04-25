@@ -223,8 +223,26 @@ const values: ValueCard[] = [
   },
 ]
 
+const homepageNavItems = [
+  { label: 'サービスの特徴', href: '#features' },
+  { label: '市場背景', href: '#market' },
+  { label: '導入への流れ', href: '/flow' },
+  { label: 'よくあるご質問', href: '/faq' },
+  { label: '会社概要', href: '/company' },
+]
+
 export default function HomePage() {
   const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const handleNavigate = (href: string) => {
+    setMobileMenuOpen(false)
+    if (href.startsWith('#')) {
+      window.location.hash = href
+      return
+    }
+    router.push(href)
+  }
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950">
@@ -245,14 +263,14 @@ export default function HomePage() {
           </button>
 
           <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-800 lg:flex">
-            <a href="#features" className="hover:text-blue-700">サービスの特徴</a>
-            <a href="#market" className="hover:text-blue-700">市場背景</a>
-            <a href="/flow" className="hover:text-blue-700">導入への流れ</a>
-            <a href="/faq" className="hover:text-blue-700">よくあるご質問</a>
-            <a href="/company" className="hover:text-blue-700">会社概要</a>
+            {homepageNavItems.map((item) => (
+              <a key={item.href} href={item.href} className="homepage-nav-link hover:text-blue-700">
+                {item.label}
+              </a>
+            ))}
           </nav>
 
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden items-center gap-3 lg:flex">
             <Button
               variant="ghost"
               className="h-11 rounded-md px-4 font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
@@ -274,6 +292,59 @@ export default function HomePage() {
             >
               お問い合わせ
             </Button>
+          </div>
+
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
+            aria-expanded={mobileMenuOpen}
+            className={`hamburger-button inline-flex lg:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
+            onClick={() => setMobileMenuOpen((current) => !current)}
+          >
+            <span className="hamburger-bar" />
+            <span className="hamburger-bar" />
+            <span className="hamburger-bar" />
+          </button>
+        </div>
+        <div className={`homepage-mobile-menu lg:hidden ${mobileMenuOpen ? 'is-open' : ''}`}>
+          <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg shadow-slate-900/10">
+              <div className="grid gap-1">
+                {homepageNavItems.map((item) => (
+                  <button
+                    key={item.href}
+                    type="button"
+                    className="homepage-mobile-link rounded-md px-3 py-3 text-left text-sm font-bold text-slate-800 hover:bg-blue-50 hover:text-blue-800"
+                    onClick={() => handleNavigate(item.href)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-3">
+                <Button
+                  variant="ghost"
+                  className="h-11 justify-center rounded-md font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
+                  onClick={() => handleNavigate('/login')}
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  ログイン
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 rounded-md border-blue-900 !bg-white font-semibold !text-blue-950 hover:!bg-blue-50"
+                  onClick={() => handleNavigate('/contact')}
+                >
+                  資料ダウンロード
+                </Button>
+                <Button
+                  className="h-11 rounded-md bg-blue-800 font-semibold text-white hover:bg-blue-700"
+                  onClick={() => handleNavigate('/contact')}
+                >
+                  お問い合わせ
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
