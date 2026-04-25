@@ -894,7 +894,7 @@ function PharmacyDashboardPriorityBrief({
             <p className="mt-1 text-sm leading-5">{nextAction.detail}</p>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-amber-800"><FileClock className="h-3.5 w-3.5" /> 引き継ぎ</p>
               <p className="mt-1.5 text-2xl font-semibold text-slate-900">{ownUnconfirmedHandovers.length}<span className="ml-1 text-xs font-normal text-slate-500">件</span></p>
@@ -2424,7 +2424,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       )}
 
       {isPharmacyAdmin ? (
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div className="space-y-3">
             <PharmacyDashboardSearchCard searchQuery={searchQuery} onSearchChange={setSearchQuery} compact />
             <PharmacyDashboardFlowDateNavigator
