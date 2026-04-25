@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

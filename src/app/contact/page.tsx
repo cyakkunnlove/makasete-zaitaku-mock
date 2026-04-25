@@ -1,9 +1,11 @@
 import Image from 'next/image'
 import { Mail, Phone } from 'lucide-react'
+import { PublicSiteHeader } from '@/components/public-site-header'
 
 export default function ContactPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <PublicSiteHeader />
       <section className="border-b border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
           <p className="text-sm font-bold text-blue-800">CONTACT</p>

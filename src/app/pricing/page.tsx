@@ -2,14 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Check, Download, FileText, Mail, Phone, ShieldCheck, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-const navItems = [
-  { label: 'サービスの特徴', href: '/#features' },
-  { label: '導入事例', href: '/#market' },
-  { label: 'ご利用の流れ', href: '/flow' },
-  { label: 'よくあるご質問', href: '/faq' },
-  { label: '料金', href: '/pricing' },
-]
+import { PublicSiteHeader } from '@/components/public-site-header'
 
 const plans = [
   {
@@ -94,34 +87,7 @@ const faqs = [
 export default function PricingPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
-      <header className="border-b border-slate-100 bg-white">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/homepage-assets/from-reference/logo-mark.jpg" alt="任せて在宅ロゴ" width={40} height={40} className="h-10 w-10 object-contain" />
-            <span>
-              <span className="block text-xs font-semibold text-slate-600">在宅薬局の立ち上げ・運用支援</span>
-              <span className="block text-2xl font-bold tracking-wide text-blue-950">任せて在宅</span>
-            </span>
-          </Link>
-
-          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-800 lg:flex">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className={item.href === '/pricing' ? 'border-b-2 border-blue-800 pb-2 text-blue-900' : 'homepage-nav-link hover:text-blue-700'}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden items-center gap-3 md:flex">
-            <Button asChild variant="outline" className="h-11 rounded-md border-blue-900 !bg-white px-5 font-semibold !text-blue-950 hover:!bg-blue-50">
-              <Link href="/contact">資料ダウンロード</Link>
-            </Button>
-            <Button asChild className="h-11 rounded-md bg-blue-800 px-5 font-semibold text-white hover:bg-blue-700">
-              <Link href="/contact">お問い合わせ</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <PublicSiteHeader activeHref="/pricing" />
 
       <section className="border-b border-slate-100 bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-16">

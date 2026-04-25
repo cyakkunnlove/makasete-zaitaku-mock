@@ -8,11 +8,11 @@ import {
   ArrowRight,
   Check,
   Download,
-  LogIn,
   Mail,
   Phone,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PublicSiteHeader } from '@/components/public-site-header'
 
 type StatCard = {
   label: string
@@ -58,6 +58,18 @@ type ProofCard = {
   description: string
   image: string
   alt: string
+}
+
+type SupportCard = {
+  title: string
+  description: string
+  image: string
+  alt: string
+}
+
+type FaqItem = {
+  question: string
+  answer: string
 }
 
 function Reveal({
@@ -173,6 +185,27 @@ const proofCards: ProofCard[] = [
   },
 ]
 
+const supportCards: SupportCard[] = [
+  {
+    title: 'これから在宅を始めたい薬局',
+    description: '何から整えるべきか分からない段階から、受入基準、営業導線、スタッフ教育、初回患者対応まで順に整えます。',
+    image: '/homepage-assets/added/owner-concern.jpg',
+    alt: '在宅開始に悩む薬局経営者のイラスト',
+  },
+  {
+    title: '在宅件数を増やしたい薬局',
+    description: '医療機関・ケアマネとの関係づくり、紹介獲得後の対応、日次運用の見える化まで、件数増につながる動きを支援します。',
+    image: '/homepage-assets/added/start-action.jpg',
+    alt: '在宅対応を前向きに始めるスタッフのイラスト',
+  },
+  {
+    title: '高度な在宅にも対応したい薬局',
+    description: '無菌調剤などの手技教育、申し送り、記録、緊急時連携まで、対応できる在宅の幅を広げる体制づくりを行います。',
+    image: '/homepage-assets/added/training-manual.jpg',
+    alt: '高度な手技教育を説明するイラスト',
+  },
+]
+
 const services: ServiceCard[] = [
   {
     number: '01',
@@ -259,143 +292,50 @@ const values: ValueCard[] = [
   },
 ]
 
-const homepageNavItems = [
-  { label: 'サービスの特徴', href: '#features' },
-  { label: '市場背景', href: '#market' },
-  { label: '導入への流れ', href: '/flow' },
-  { label: 'よくあるご質問', href: '/faq' },
-  { label: '料金', href: '/pricing' },
-  { label: '会社概要', href: '/company' },
+const homepageFaqs: FaqItem[] = [
+  {
+    question: '在宅をまだ始めていない薬局でも相談できますか？',
+    answer: '相談できます。現状診断から始め、必要備品、役割分担、患者受入基準、営業導線を整理して、初回患者受入までの流れを作ります。',
+  },
+  {
+    question: '教育だけのサービスと何が違いますか？',
+    answer: '知識提供だけではなく、営業、患者受入、日次運用、WEBアプリでの定着まで含めて支援します。現場で在宅件数を増やし続けることを重視しています。',
+  },
+  {
+    question: '無菌調剤など高度な内容も扱えますか？',
+    answer: 'はい。無菌調剤など、通常の研修だけでは学びにくい手技についても、動画講義や実地講義を組み合わせて習得できる体制を想定しています。',
+  },
+  {
+    question: '特定の機材や方法に縛られますか？',
+    answer: '特定の道具だけに依存する設計ではなく、薬局の規模、地域性、スタッフ体制に合わせて、汎用的に回る在宅運用を整えます。',
+  },
+  {
+    question: 'WEBアプリはなぜ必要ですか？',
+    answer: '患者情報、訪問予定、タスク、申し送り、回収状況、営業状況を日々の業務に組み込むためです。単発コンサルで終わらせず、継続利用される基盤にします。',
+  },
+  {
+    question: '夜間対応だけ依頼できますか？',
+    answer: '夜間対応は、日中の患者情報や申し送りが整っていることが前提です。まずは日中運用の状態を確認し、必要な準備を整えてから段階的に接続します。',
+  },
 ]
 
 export default function HomePage() {
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const handleNavigate = (href: string) => {
-    setMobileMenuOpen(false)
-    if (href.startsWith('#')) {
-      window.location.hash = href
-      return
-    }
-    router.push(href)
-  }
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <button className="flex items-center gap-3 text-left" onClick={() => router.push('/')} aria-label="任せて在宅ホーム">
-            <Image
-              src="/homepage-assets/from-reference/logo-mark.jpg"
-              alt="任せて在宅ロゴ"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
-            />
-            <span>
-              <span className="block text-xs font-semibold text-slate-600">在宅薬局の立ち上げ・運用支援</span>
-              <span className="block text-2xl font-bold tracking-wide text-blue-950">任せて在宅</span>
-            </span>
-          </button>
-
-          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-800 lg:flex">
-            {homepageNavItems.map((item) => (
-              <a key={item.href} href={item.href} className="homepage-nav-link hover:text-blue-700">
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="hidden items-center gap-3 lg:flex">
-            <Button
-              variant="ghost"
-              className="h-11 rounded-md px-4 font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
-              onClick={() => router.push('/login')}
-            >
-              <LogIn className="mr-2 h-4 w-4" />
-              ログイン
-            </Button>
-            <Button
-              variant="outline"
-              className="h-11 rounded-md border-blue-900 !bg-white px-5 font-semibold !text-blue-950 hover:!bg-blue-50"
-              onClick={() => router.push('/contact')}
-            >
-              資料ダウンロード
-            </Button>
-            <Button
-              className="h-11 rounded-md bg-blue-800 px-5 font-semibold text-white hover:bg-blue-700"
-              onClick={() => router.push('/contact')}
-            >
-              お問い合わせ
-            </Button>
-          </div>
-
-          <button
-            type="button"
-            aria-label={mobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'}
-            aria-expanded={mobileMenuOpen}
-            className={`hamburger-button inline-flex lg:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
-            onClick={() => setMobileMenuOpen((current) => !current)}
-          >
-            <span className="hamburger-bar" />
-            <span className="hamburger-bar" />
-            <span className="hamburger-bar" />
-          </button>
-        </div>
-        <div className={`homepage-mobile-menu lg:hidden ${mobileMenuOpen ? 'is-open' : ''}`}>
-          <div className="homepage-mobile-menu-panel">
-            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg shadow-slate-900/10">
-              <div className="grid gap-1">
-                {homepageNavItems.map((item) => (
-                  <button
-                    key={item.href}
-                    type="button"
-                    className="homepage-mobile-link rounded-md px-3 py-3 text-left text-sm font-bold text-slate-800 hover:bg-blue-50 hover:text-blue-800"
-                    onClick={() => handleNavigate(item.href)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3">
-                <Button
-                  variant="ghost"
-                  className="h-11 justify-center rounded-md font-semibold text-blue-950 hover:bg-blue-50 hover:text-blue-800"
-                  onClick={() => handleNavigate('/login')}
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  ログイン
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11 rounded-md border-blue-900 !bg-white font-semibold !text-blue-950 hover:!bg-blue-50"
-                  onClick={() => handleNavigate('/contact')}
-                >
-                  資料ダウンロード
-                </Button>
-                <Button
-                  className="h-11 rounded-md bg-blue-800 font-semibold text-white hover:bg-blue-700"
-                  onClick={() => handleNavigate('/contact')}
-                >
-                  お問い合わせ
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicSiteHeader />
 
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:py-20">
           <Reveal className="hero-copy">
             <p className="text-sm font-bold text-blue-900">在宅を始めたい薬局を、持てる薬局へ。</p>
-            <h1 className="mt-6 text-4xl font-bold leading-[1.35] tracking-wide text-blue-950 sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 max-w-full break-words text-3xl font-bold leading-[1.35] tracking-wide text-blue-950 sm:text-5xl lg:text-6xl">
               在宅調剤の実務を
               <br />
               薬局の運用基盤へ。
             </h1>
-            <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-700">
+            <p className="mt-6 max-w-xl break-words text-base font-medium leading-8 text-slate-700">
               任せて在宅は、1薬局あたり月1,000件超の在宅対応実績から培った現場ノウハウをもとに、他薬局の在宅立ち上げ、教育、営業、日次運用を支援する薬局DXサービスです。
               無菌調剤などの手技教育からWEBアプリでの運用定着まで、どのような在宅にも対応できる薬局づくりを支えます。
             </p>
@@ -414,14 +354,6 @@ export default function HomePage() {
               >
                 <Mail className="mr-2 h-5 w-5" />
                 お問い合わせはこちら
-              </Button>
-              <Button
-                variant="ghost"
-                className="cta-button h-14 w-full rounded-md px-7 text-base font-bold text-blue-950 hover:bg-blue-50 hover:text-blue-800 sm:hidden"
-                onClick={() => router.push('/login')}
-              >
-                <LogIn className="mr-2 h-5 w-5" />
-                ログイン
               </Button>
             </div>
           </Reveal>
@@ -519,6 +451,44 @@ export default function HomePage() {
                 </article>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="support" className="border-y border-slate-100 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+            <div>
+              <p className="text-sm font-bold text-blue-800">WHO WE SUPPORT</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight tracking-wide text-blue-950">在宅に強い薬局へ、段階に合わせて支援します</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">
+                立ち上げ前、件数拡大、高度在宅への対応など、薬局ごとに課題は違います。任せて在宅では、現場の成熟度に合わせて支援内容を組み替えます。
+              </p>
+              <Button
+                variant="outline"
+                className="cta-button mt-6 rounded-md border-blue-900 !bg-white px-6 !text-blue-950 hover:!bg-blue-50"
+                onClick={() => router.push('/contact')}
+              >
+                自局の段階を相談する
+              </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {supportCards.map((card, index) => (
+                <Reveal key={card.title} delay={index * 80}>
+                  <article className="homepage-card h-full rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                    <Image
+                      src={card.image}
+                      alt={card.alt}
+                      width={240}
+                      height={170}
+                      className="mx-auto h-32 w-full object-contain"
+                    />
+                    <h3 className="mt-4 text-base font-bold leading-7 text-blue-950">{card.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -624,6 +594,37 @@ export default function HomePage() {
                 </article>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="border-y border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold text-blue-800">FAQ</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-wide text-blue-950">導入前によくある不安</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600">
+              在宅化は、教育だけでも、アプリだけでも、営業だけでも定着しにくい領域です。導入前に確認されやすい論点を整理しています。
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {homepageFaqs.map((faq, index) => (
+              <Reveal key={faq.question} delay={index * 45}>
+                <article className="homepage-card h-full rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-base font-bold leading-7 text-blue-950">Q. {faq.question}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">A. {faq.answer}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              className="cta-button rounded-md border-blue-900 !bg-white px-6 !text-blue-950 hover:!bg-blue-50"
+              onClick={() => router.push('/faq')}
+            >
+              すべてのFAQを見る
+            </Button>
           </div>
         </div>
       </section>

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { PublicSiteHeader } from '@/components/public-site-header'
 
 const companyItems = [
   { label: '会社名', value: '任せて在宅株式会社（予定）' },
@@ -10,6 +11,7 @@ const companyItems = [
 export default function CompanyPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <PublicSiteHeader activeHref="/company" />
       <section className="border-b border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
           <p className="text-sm font-bold text-blue-800">COMPANY</p>
