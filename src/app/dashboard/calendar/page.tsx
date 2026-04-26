@@ -486,9 +486,9 @@ export default function CalendarPage() {
                         <p className="font-medium text-slate-900">{staff.staffName}</p>
                         <Badge className={cn(
                           'border text-xs',
-                          staff.loadTone === 'heavy' && 'border-rose-500/40 bg-rose-500/20 text-rose-200',
-                          staff.loadTone === 'medium' && 'border-amber-500/40 bg-amber-500/20 text-amber-200',
-                          staff.loadTone === 'light' && 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200',
+                          staff.loadTone === 'heavy' && 'border-rose-200 bg-rose-50 text-rose-700',
+                          staff.loadTone === 'medium' && 'border-amber-200 bg-amber-50 text-amber-700',
+                          staff.loadTone === 'light' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
                         )}>
                           {staff.loadTone === 'heavy' ? '負荷高め' : staff.loadTone === 'medium' ? '負荷中' : '負荷軽め'}
                         </Badge>
