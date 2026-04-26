@@ -15,8 +15,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow, Gauge } from 'lucide-react'
 
-const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
-
 const emergencyRouteOptions = ['Regional Admin 受付', '自局電話で受付', '転送電話で受付', 'LINE通知中心', 'その他']
 type SettingsErrorKey = 'forwardingPhone' | 'patientEditWindowMinutes' | 'billingPaidCancelWindowMinutes' | 'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight'
 type SettingsErrors = Partial<Record<SettingsErrorKey, string>>
@@ -62,6 +60,7 @@ export default function PharmacySettingsPage() {
   const canViewPage = role === 'pharmacy_admin' || role === 'regional_admin'
   const [toast, setToast] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<SettingsErrors>({})
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [settings, setSettings] = useState({
     pharmacyName: '城南みらい薬局',
     emergencyRoute: 'Regional Admin 受付',
@@ -109,13 +108,45 @@ export default function PharmacySettingsPage() {
   })
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as Partial<typeof workloadSettings>
-      setWorkloadSettings((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)])) }))
-    } catch {}
-  }, [])
+    if (!canViewPage || role === 'regional_admin') {
+      setIsLoadingSettings(false)
+      return
+    }
+    let active = true
+    setIsLoadingSettings(true)
+    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'pharmacy_settings_fetch_failed')
+        if (!active) return
+        setSettings({
+          pharmacyName: data.settings.pharmacyName ?? '',
+          emergencyRoute: data.settings.emergencyRoute ?? 'Regional Admin 受付',
+          nightDelegationEnabled: data.settings.nightDelegationEnabled ?? 'off',
+          forwardingPhone: normalizePhone(data.settings.forwardingPhone ?? ''),
+          defaultMorningNote: data.settings.defaultMorningNote ?? '',
+          contractPlan: data.settings.contractPlan ?? '',
+          adminOwner: data.settings.adminOwner ?? '',
+        })
+        setWorkloadSettings({
+          lightMax: String(data.settings.workload?.lightMax ?? '4'),
+          mediumMax: String(data.settings.workload?.mediumMax ?? '8'),
+          firstVisitWeight: String(data.settings.workload?.firstVisitWeight ?? '1.5'),
+          inProgressWeight: String(data.settings.workload?.inProgressWeight ?? '1.2'),
+          distanceWeight: String(data.settings.workload?.distanceWeight ?? '0.3'),
+        })
+      })
+      .catch(() => {
+        if (active) setToast('薬局マスタ設定の取得に失敗しました')
+      })
+      .finally(() => {
+        if (active) setIsLoadingSettings(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [canViewPage, role])
 
   useEffect(() => {
     if (!canViewPage) return
@@ -149,16 +180,23 @@ export default function PharmacySettingsPage() {
       return
     }
     try {
-      window.localStorage.setItem(PHARMACY_WORKLOAD_SETTINGS_KEY, JSON.stringify({
-        lightMax: Number(workloadSettings.lightMax || 4),
-        mediumMax: Number(workloadSettings.mediumMax || 8),
-        firstVisitWeight: Number(workloadSettings.firstVisitWeight || 1.5),
-        inProgressWeight: Number(workloadSettings.inProgressWeight || 1.2),
-        distanceWeight: Number(workloadSettings.distanceWeight || 0.3),
-      }))
-    } catch {}
-    try {
-      const response = await fetch('/api/pharmacy-operation-settings', {
+      const [masterResponse, operationResponse] = await Promise.all([
+        fetch('/api/pharmacy-master-settings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...settings,
+            forwardingPhone: normalizePhone(settings.forwardingPhone),
+            workload: {
+              lightMax: Number(workloadSettings.lightMax || 4),
+              mediumMax: Number(workloadSettings.mediumMax || 8),
+              firstVisitWeight: Number(workloadSettings.firstVisitWeight || 1.5),
+              inProgressWeight: Number(workloadSettings.inProgressWeight || 1.2),
+              distanceWeight: Number(workloadSettings.distanceWeight || 0.3),
+            },
+          }),
+        }),
+        fetch('/api/pharmacy-operation-settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -166,12 +204,15 @@ export default function PharmacySettingsPage() {
           billingPaidCancelWindowMinutes: Number(correctionSettings.billingPaidCancelWindowMinutes || DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
           correctionReasonRequired: correctionSettings.correctionReasonRequired,
         }),
-      })
-      const data = await response.json().catch(() => null)
-      if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'operation_settings_save_failed')
+        }),
+      ])
+      const masterData = await masterResponse.json().catch(() => null)
+      const operationData = await operationResponse.json().catch(() => null)
+      if (!masterResponse.ok || !masterData?.ok) throw new Error(masterData?.error ?? 'pharmacy_settings_save_failed')
+      if (!operationResponse.ok || !operationData?.ok) throw new Error(operationData?.error ?? 'operation_settings_save_failed')
       setToast('薬局設定を保存しました')
     } catch {
-      setToast('修正設定の保存に失敗しました')
+      setToast('薬局設定の保存に失敗しました')
     }
     setTimeout(() => setToast(null), 2500)
   }
@@ -215,6 +256,13 @@ export default function PharmacySettingsPage() {
         </div>
       )}
 
+      {isLoadingSettings && (
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+          薬局マスタ設定を読み込み中です
+        </div>
+      )}
+
       {!isPharmacyAdmin && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
@@ -226,7 +274,7 @@ export default function PharmacySettingsPage() {
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Building2 className="h-4 w-4 text-indigo-500" />所属・責任者情報</CardTitle>
-            <CardDescription className="text-slate-500">Supabase 移行時は pharmacy / owner カラムを中心に対応</CardDescription>
+            <CardDescription className="text-slate-500">薬局マスタDBの所属情報として保存します</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -247,7 +295,7 @@ export default function PharmacySettingsPage() {
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Workflow className="h-4 w-4 text-emerald-500" />夜間受託設定</CardTitle>
-            <CardDescription className="text-slate-500">regional_admin との接続先や受け渡しルールを管理</CardDescription>
+            <CardDescription className="text-slate-500">薬局マスタDBの夜間受託設定として保存します</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -313,7 +361,7 @@ export default function PharmacySettingsPage() {
         <Card className="border-slate-200 bg-white shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Gauge className="h-4 w-4 text-rose-500" />スタッフ負荷の判定</CardTitle>
-            <CardDescription className="text-slate-500">件数だけでなく、初回件数・対応中件数・距離目安を含めた総合負荷の基準です</CardDescription>
+            <CardDescription className="text-slate-500">薬局マスタDBに保存し、スタッフ負荷判定の基準として使います</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div>
@@ -373,12 +421,11 @@ export default function PharmacySettingsPage() {
             <CardTitle className="flex items-center gap-2 text-sm text-slate-900"><FileText className="h-4 w-4 text-violet-500" />Supabase移行メモ</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs text-slate-600">
-            <p>想定カラム:</p>
-            <p>・pharmacies.region_id</p>
-            <p>・pharmacies.night_operation_unit_id</p>
-            <p>・pharmacies.night_delegation_enabled</p>
-            <p>・pharmacies.default_morning_note</p>
-            <p>・users.role / pharmacy_id / region_id</p>
+            <p>薬局マスタDBへ保存済み:</p>
+            <p>・pharmacies.admin_owner_name / contract_plan</p>
+            <p>・pharmacies.emergency_route / night_delegation_enabled</p>
+            <p>・pharmacies.default_morning_note / workload_* </p>
+            <p>・修正ロック設定は pharmacy_operation_settings に保存</p>
           </CardContent>
         </Card>
       </div>

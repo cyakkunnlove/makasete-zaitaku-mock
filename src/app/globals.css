@@ -8,6 +8,26 @@
     max-width: 100%;
     overflow-x: hidden;
   }
+
+  a,
+  button,
+  summary,
+  select,
+  label:has(input[type='checkbox']),
+  label:has(input[type='radio']),
+  [role='button'],
+  [onclick],
+  [data-clickable='true'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  textarea:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {

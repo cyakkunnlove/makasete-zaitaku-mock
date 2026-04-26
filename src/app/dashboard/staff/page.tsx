@@ -132,8 +132,6 @@ const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
 
 type WorkloadTone = 'light' | 'medium' | 'heavy'
 
-const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
-
 const defaultWorkloadSettings = {
   lightMax: 4,
   mediumMax: 8,
@@ -451,11 +449,24 @@ export default function StaffPage() {
   }, [])
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
-      if (!raw) return
-      setWorkloadSettings({ ...defaultWorkloadSettings, ...JSON.parse(raw) })
-    } catch {}
+    let active = true
+    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data?.ok) return
+        if (!active) return
+        setWorkloadSettings({
+          lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
+          mediumMax: Number(data.settings.workload?.mediumMax ?? defaultWorkloadSettings.mediumMax),
+          firstVisitWeight: Number(data.settings.workload?.firstVisitWeight ?? defaultWorkloadSettings.firstVisitWeight),
+          inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
+          distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
+        })
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
 
   useEffect(() => {

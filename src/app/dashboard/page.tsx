@@ -55,7 +55,6 @@ const staffStatusClass: Record<string, string> = {
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
-const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
 
 type PharmacyWorkloadSettings = {
   lightMax: number
@@ -2043,12 +2042,24 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [draftDayTasks, flowDate, ownPatients, routePlanResult?.totalDistanceMeters, selectedRoutePatientIds.length, workloadSettings])
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(PHARMACY_WORKLOAD_SETTINGS_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as Partial<PharmacyWorkloadSettings>
-      setWorkloadSettings({ ...defaultWorkloadSettings, ...parsed })
-    } catch {}
+    let active = true
+    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data?.ok) return
+        if (!active) return
+        setWorkloadSettings({
+          lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
+          mediumMax: Number(data.settings.workload?.mediumMax ?? defaultWorkloadSettings.mediumMax),
+          firstVisitWeight: Number(data.settings.workload?.firstVisitWeight ?? defaultWorkloadSettings.firstVisitWeight),
+          inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
+          distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
+        })
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
 
   const upsertTask = async (task: DayTaskItem) => {
