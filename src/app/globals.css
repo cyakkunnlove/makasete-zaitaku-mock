@@ -9,29 +9,6 @@
     overflow-x: hidden;
   }
 
-  a,
-  button:not(:disabled),
-  summary,
-  select:not(:disabled),
-  label:has(input[type='checkbox']),
-  label:has(input[type='radio']),
-  [role='button'],
-  [role='menuitem'],
-  [role='option'],
-  [role='tab'],
-  [onclick],
-  [data-clickable='true'] {
-    cursor: pointer !important;
-  }
-
-  button:disabled,
-  select:disabled,
-  input:disabled,
-  textarea:disabled,
-  [data-disabled],
-  [aria-disabled='true'] {
-    cursor: not-allowed !important;
-  }
 }
 
 @layer utilities {

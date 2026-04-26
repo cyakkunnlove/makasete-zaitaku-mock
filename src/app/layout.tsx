@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { CursorIntent } from "@/components/cursor-intent";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -37,7 +36,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0e1a]`}
       >
-        <CursorIntent />
         {children}
       </body>
     </html>
