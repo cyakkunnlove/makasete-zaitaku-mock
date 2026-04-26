@@ -39,6 +39,7 @@ import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks }
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
+import { fetchJsonWithClientCache } from '@/lib/client-cache'
 
 const mockPharmacyRequests = [
   { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
@@ -55,6 +56,7 @@ const staffStatusClass: Record<string, string> = {
 const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
+const STABLE_DATA_CACHE_MS = 5 * 60 * 1000
 
 type PharmacyWorkloadSettings = {
   lightMax: number
@@ -85,6 +87,18 @@ type RoutePlanResult = {
   origin?: { name: string; address: string; geocodeInputAddress?: string | null; latitude?: number | null; longitude?: number | null; geocodeWarnings?: Array<{ code: string; message: string }> }
   debug?: { selectedPatients: RoutePlanPatient[] }
   message: string
+}
+
+type PharmacyMasterSettingsResponse = {
+  ok: boolean
+  settings: {
+    workload?: Partial<Record<'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight', string | number>>
+  }
+}
+
+type PatientsByPharmacyResponse = {
+  ok: boolean
+  patients?: RegisteredPatientRecord[]
 }
 
 const defaultWorkloadSettings: PharmacyWorkloadSettings = {
@@ -1676,9 +1690,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     async function fetchPatients() {
       if (!cancelled) setIsPatientsLoading(true)
       try {
-        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
-        const result = await response.json()
-        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+        const result = await fetchJsonWithClientCache<PatientsByPharmacyResponse>({
+          key: `makasete:patients-by-pharmacy:${ownPharmacyId}:v1`,
+          url: `/api/patients/by-pharmacy/${ownPharmacyId}`,
+          maxAgeMs: STABLE_DATA_CACHE_MS,
+          onCached: (cached) => {
+            if (!cancelled && cached?.ok && Array.isArray(cached.patients)) {
+              setDatabasePatients(cached.patients)
+              setIsPatientsLoading(false)
+            }
+          },
+          init: { cache: 'no-store' },
+        })
+        if (!cancelled && result?.ok && Array.isArray(result.patients)) {
           setDatabasePatients(result.patients)
         }
       } catch {
@@ -2043,10 +2067,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   useEffect(() => {
     let active = true
-    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json().catch(() => null)
-        if (!response.ok || !data?.ok) return
+    fetchJsonWithClientCache<PharmacyMasterSettingsResponse>({
+      key: 'makasete:pharmacy-master-settings:v1',
+      url: '/api/pharmacy-master-settings',
+      maxAgeMs: STABLE_DATA_CACHE_MS,
+      onCached: (data) => {
+        if (!active || !data?.ok) return
+        setWorkloadSettings({
+          lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
+          mediumMax: Number(data.settings.workload?.mediumMax ?? defaultWorkloadSettings.mediumMax),
+          firstVisitWeight: Number(data.settings.workload?.firstVisitWeight ?? defaultWorkloadSettings.firstVisitWeight),
+          inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
+          distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
+        })
+      },
+      onFresh: (data) => {
         if (!active) return
         setWorkloadSettings({
           lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
@@ -2055,7 +2090,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
           distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
         })
-      })
+      },
+      init: { cache: 'no-store' },
+    })
       .catch(() => {})
     return () => {
       active = false

@@ -34,6 +34,14 @@ import { DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES, correctionReasonCategories,
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionStatusToLegacy, normalizeCollectionStatusToDb, type CollectionWorkflowStatus } from '@/lib/status-meta'
+import { fetchJsonWithClientCache } from '@/lib/client-cache'
+
+const STABLE_PATIENT_CACHE_MS = 5 * 60 * 1000
+
+type PatientsByPharmacyResponse = {
+  ok: boolean
+  patients?: RegisteredPatientRecord[]
+}
 
 function getTodayJstDateKey() {
   const now = new Date()
@@ -249,9 +257,16 @@ export default function BillingPage() {
     let cancelled = false
     async function fetchPatients() {
       try {
-        const response = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
-        const result = await response.json().catch(() => null)
-        if (!cancelled && response.ok && result?.ok && Array.isArray(result.patients)) {
+        const result = await fetchJsonWithClientCache<PatientsByPharmacyResponse>({
+          key: `makasete:patients-by-pharmacy:${ownPharmacyId}:v1`,
+          url: `/api/patients/by-pharmacy/${ownPharmacyId}`,
+          maxAgeMs: STABLE_PATIENT_CACHE_MS,
+          onCached: (cached) => {
+            if (!cancelled && cached?.ok && Array.isArray(cached.patients)) setDatabasePatients(cached.patients)
+          },
+          init: { cache: 'no-store' },
+        })
+        if (!cancelled && result?.ok && Array.isArray(result.patients)) {
           setDatabasePatients(result.patients)
           return
         }

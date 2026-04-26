@@ -24,8 +24,16 @@ import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/pa
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import type { DayTaskItem } from '@/lib/mock-data'
+import { fetchJsonWithClientCache } from '@/lib/client-cache'
 
 import { mergePatientSources } from '@/lib/patient-read-model'
+
+const STABLE_PATIENT_CACHE_MS = 5 * 60 * 1000
+
+type PatientsByPharmacyResponse = {
+  ok: boolean
+  patients?: RegisteredPatientRecord[]
+}
 
 function mapDayTask(task: Record<string, unknown>): DayTaskItem {
   return {
@@ -102,9 +110,20 @@ export default function PatientsPage() {
           return
         }
 
-        const patientResponse = await fetch(`/api/patients/by-pharmacy/${ownPharmacyId}?ids=${encodeURIComponent(patientIds.join(','))}`, { cache: 'no-store' })
-        const patientResult = await patientResponse.json()
-        if (!cancelled && patientResponse.ok && patientResult?.ok && Array.isArray(patientResult.patients)) {
+        const idsKey = patientIds.sort().join(',')
+        const patientResult = await fetchJsonWithClientCache<PatientsByPharmacyResponse>({
+          key: `makasete:patients-by-pharmacy:${ownPharmacyId}:ids:${idsKey}:v1`,
+          url: `/api/patients/by-pharmacy/${ownPharmacyId}?ids=${encodeURIComponent(idsKey)}`,
+          maxAgeMs: STABLE_PATIENT_CACHE_MS,
+          onCached: (cached) => {
+            if (!cancelled && cached?.ok && Array.isArray(cached.patients)) {
+              setDatabasePatients(cached.patients)
+              setIsInitialLoading(false)
+            }
+          },
+          init: { cache: 'no-store' },
+        })
+        if (!cancelled && patientResult?.ok && Array.isArray(patientResult.patients)) {
           setDatabasePatients(patientResult.patients)
         }
       } catch {

@@ -31,6 +31,7 @@ import { adminCardClass } from '@/components/admin-ui'
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { cn } from '@/lib/utils'
+import { fetchJsonWithClientCache, writeClientCache } from '@/lib/client-cache'
 import {
   ArrowLeft,
   User,
@@ -50,6 +51,13 @@ import {
   Upload,
 } from 'lucide-react'
 import { VisitSchedule } from '@/components/visit-schedule'
+
+const STABLE_PATIENT_DETAIL_CACHE_MS = 5 * 60 * 1000
+
+type PatientDetailResponse = {
+  ok: boolean
+  patient?: Patient
+}
 
 type PatientPhotoView = PatientHomePhoto & {
   thumbnail_url: string | null
@@ -117,12 +125,21 @@ export default function PatientDetailPage() {
     async function fetchPatientDetail() {
       setDetailLoadState('loading')
       try {
-        const response = await fetch(`/api/patients/${id}/detail`, { cache: 'no-store' })
-        const result = await response.json().catch(() => null)
+        const result = await fetchJsonWithClientCache<PatientDetailResponse>({
+          key: `makasete:patient-detail:${id}:v1`,
+          url: `/api/patients/${id}/detail`,
+          maxAgeMs: STABLE_PATIENT_DETAIL_CACHE_MS,
+          onCached: (cached) => {
+            if (cancelled || !cached?.ok || !cached.patient) return
+            setDatabasePatient(cached.patient)
+            setDetailLoadState('ready')
+          },
+          init: { cache: 'no-store' },
+        })
 
         if (cancelled) return
 
-        if (response.ok && result?.ok && result.patient) {
+        if (result?.ok && result.patient) {
           setDatabasePatient(result.patient)
           setDetailLoadState('ready')
           return
@@ -326,6 +343,7 @@ export default function PatientDetailPage() {
     const refreshedResult = await refreshed.json().catch(() => null)
     if (refreshed.ok && refreshedResult?.ok && refreshedResult.patient) {
       setDatabasePatient(refreshedResult.patient)
+      writeClientCache(`makasete:patient-detail:${patient.id}:v1`, refreshedResult)
     }
     setEditSavedNotice('訪問スケジュールを保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
@@ -663,6 +681,7 @@ export default function PatientDetailPage() {
 
     if (result?.patient) {
       setDatabasePatient(result.patient)
+      writeClientCache(`makasete:patient-detail:${patient.id}:v1`, { ok: true, patient: result.patient })
     }
 
     setGeocodeConfirmOpen(false)

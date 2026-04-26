@@ -51,6 +51,7 @@ import { loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/pa
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
+import { fetchJsonWithClientCache } from '@/lib/client-cache'
 
 type StaffStatus = 'invited' | 'active' | 'suspended'
 type ManagedStaffItem = {
@@ -131,6 +132,7 @@ const pharmacyFilterItems: Array<{ key: RoleFilter; label: string }> = [
 ]
 
 type WorkloadTone = 'light' | 'medium' | 'heavy'
+const STABLE_DATA_CACHE_MS = 5 * 60 * 1000
 
 const defaultWorkloadSettings = {
   lightMax: 4,
@@ -138,6 +140,18 @@ const defaultWorkloadSettings = {
   firstVisitWeight: 1.5,
   inProgressWeight: 1.2,
   distanceWeight: 0.3,
+}
+
+type PharmacyMasterSettingsResponse = {
+  ok: boolean
+  settings: {
+    workload?: Partial<Record<'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight', string | number>>
+  }
+}
+
+type PatientsByPharmacyResponse = {
+  ok: boolean
+  patients?: RegisteredPatientRecord[]
 }
 
 function getWorkloadTone(score: number, settings: typeof defaultWorkloadSettings) {
@@ -450,19 +464,24 @@ export default function StaffPage() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json().catch(() => null)
-        if (!response.ok || !data?.ok) return
-        if (!active) return
-        setWorkloadSettings({
-          lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
-          mediumMax: Number(data.settings.workload?.mediumMax ?? defaultWorkloadSettings.mediumMax),
-          firstVisitWeight: Number(data.settings.workload?.firstVisitWeight ?? defaultWorkloadSettings.firstVisitWeight),
-          inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
-          distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
-        })
+    const applySettings = (data: PharmacyMasterSettingsResponse) => {
+      if (!active || !data?.ok) return
+      setWorkloadSettings({
+        lightMax: Number(data.settings.workload?.lightMax ?? defaultWorkloadSettings.lightMax),
+        mediumMax: Number(data.settings.workload?.mediumMax ?? defaultWorkloadSettings.mediumMax),
+        firstVisitWeight: Number(data.settings.workload?.firstVisitWeight ?? defaultWorkloadSettings.firstVisitWeight),
+        inProgressWeight: Number(data.settings.workload?.inProgressWeight ?? defaultWorkloadSettings.inProgressWeight),
+        distanceWeight: Number(data.settings.workload?.distanceWeight ?? defaultWorkloadSettings.distanceWeight),
       })
+    }
+    fetchJsonWithClientCache<PharmacyMasterSettingsResponse>({
+      key: 'makasete:pharmacy-master-settings:v1',
+      url: '/api/pharmacy-master-settings',
+      maxAgeMs: STABLE_DATA_CACHE_MS,
+      onCached: applySettings,
+      onFresh: applySettings,
+      init: { cache: 'no-store' },
+    })
       .catch(() => {})
     return () => {
       active = false
@@ -472,13 +491,20 @@ export default function StaffPage() {
   useEffect(() => {
     if (!ownPharmacyId) return
     let cancelled = false
-    fetch(`/api/patients/by-pharmacy/${ownPharmacyId}`, { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json()
-        if (!response.ok || !data.ok) throw new Error('patients_fetch_failed')
-        if (cancelled) return
+    fetchJsonWithClientCache<PatientsByPharmacyResponse>({
+      key: `makasete:patients-by-pharmacy:${ownPharmacyId}:v1`,
+      url: `/api/patients/by-pharmacy/${ownPharmacyId}`,
+      maxAgeMs: STABLE_DATA_CACHE_MS,
+      onCached: (data) => {
+        if (cancelled || !data?.ok) return
         setDatabasePatients(data.patients ?? [])
-      })
+      },
+      onFresh: (data) => {
+        if (cancelled || !data?.ok) return
+        setDatabasePatients(data.patients ?? [])
+      },
+      init: { cache: 'no-store' },
+    })
       .catch(() => {
         if (cancelled) return
         setDatabasePatients([])

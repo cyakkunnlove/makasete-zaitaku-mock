@@ -14,8 +14,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow, Gauge } from 'lucide-react'
+import { fetchJsonWithClientCache, writeClientCache } from '@/lib/client-cache'
 
 const emergencyRouteOptions = ['Regional Admin 受付', '自局電話で受付', '転送電話で受付', 'LINE通知中心', 'その他']
+const PHARMACY_MASTER_SETTINGS_CACHE_KEY = 'makasete:pharmacy-master-settings:v1'
+const PHARMACY_OPERATION_SETTINGS_CACHE_KEY = 'makasete:pharmacy-operation-settings:v1'
+const STABLE_SETTINGS_CACHE_MS = 5 * 60 * 1000
 type SettingsErrorKey = 'forwardingPhone' | 'patientEditWindowMinutes' | 'billingPaidCancelWindowMinutes' | 'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight'
 type SettingsErrors = Partial<Record<SettingsErrorKey, string>>
 
@@ -51,6 +55,29 @@ function isValidPhone(value: string) {
 function FieldErrorText({ message }: { message?: string }) {
   if (!message) return null
   return <p className="mt-1 text-[11px] font-medium text-rose-600">{message}</p>
+}
+
+type PharmacyMasterSettingsResponse = {
+  ok: boolean
+  settings: {
+    pharmacyName?: string
+    emergencyRoute?: string
+    nightDelegationEnabled?: string
+    forwardingPhone?: string
+    defaultMorningNote?: string
+    contractPlan?: string
+    adminOwner?: string
+    workload?: Partial<Record<'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight', string | number>>
+  }
+}
+
+type PharmacyOperationSettingsResponse = {
+  ok: boolean
+  settings: {
+    patient_edit_window_minutes?: number | null
+    billing_paid_cancel_window_minutes?: number | null
+    correction_reason_required?: boolean | null
+  }
 }
 
 export default function PharmacySettingsPage() {
@@ -107,6 +134,35 @@ export default function PharmacySettingsPage() {
     correctionReasonRequired: true,
   })
 
+  const applyMasterSettings = (data: PharmacyMasterSettingsResponse) => {
+    if (!data.ok || !data.settings) return
+    setSettings({
+      pharmacyName: data.settings.pharmacyName ?? '',
+      emergencyRoute: data.settings.emergencyRoute ?? 'Regional Admin 受付',
+      nightDelegationEnabled: data.settings.nightDelegationEnabled ?? 'off',
+      forwardingPhone: normalizePhone(data.settings.forwardingPhone ?? ''),
+      defaultMorningNote: data.settings.defaultMorningNote ?? '',
+      contractPlan: data.settings.contractPlan ?? '',
+      adminOwner: data.settings.adminOwner ?? '',
+    })
+    setWorkloadSettings({
+      lightMax: String(data.settings.workload?.lightMax ?? '4'),
+      mediumMax: String(data.settings.workload?.mediumMax ?? '8'),
+      firstVisitWeight: String(data.settings.workload?.firstVisitWeight ?? '1.5'),
+      inProgressWeight: String(data.settings.workload?.inProgressWeight ?? '1.2'),
+      distanceWeight: String(data.settings.workload?.distanceWeight ?? '0.3'),
+    })
+  }
+
+  const applyOperationSettings = (data: PharmacyOperationSettingsResponse) => {
+    if (!data.ok || !data.settings) return
+    setCorrectionSettings({
+      patientEditWindowMinutes: String(data.settings.patient_edit_window_minutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES),
+      billingPaidCancelWindowMinutes: String(data.settings.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
+      correctionReasonRequired: data.settings.correction_reason_required !== false,
+    })
+  }
+
   useEffect(() => {
     if (!canViewPage || role === 'regional_admin') {
       setIsLoadingSettings(false)
@@ -114,27 +170,20 @@ export default function PharmacySettingsPage() {
     }
     let active = true
     setIsLoadingSettings(true)
-    fetch('/api/pharmacy-master-settings', { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json().catch(() => null)
-        if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'pharmacy_settings_fetch_failed')
+    fetchJsonWithClientCache<PharmacyMasterSettingsResponse>({
+      key: PHARMACY_MASTER_SETTINGS_CACHE_KEY,
+      url: '/api/pharmacy-master-settings',
+      maxAgeMs: STABLE_SETTINGS_CACHE_MS,
+      onCached: (data) => {
         if (!active) return
-        setSettings({
-          pharmacyName: data.settings.pharmacyName ?? '',
-          emergencyRoute: data.settings.emergencyRoute ?? 'Regional Admin 受付',
-          nightDelegationEnabled: data.settings.nightDelegationEnabled ?? 'off',
-          forwardingPhone: normalizePhone(data.settings.forwardingPhone ?? ''),
-          defaultMorningNote: data.settings.defaultMorningNote ?? '',
-          contractPlan: data.settings.contractPlan ?? '',
-          adminOwner: data.settings.adminOwner ?? '',
-        })
-        setWorkloadSettings({
-          lightMax: String(data.settings.workload?.lightMax ?? '4'),
-          mediumMax: String(data.settings.workload?.mediumMax ?? '8'),
-          firstVisitWeight: String(data.settings.workload?.firstVisitWeight ?? '1.5'),
-          inProgressWeight: String(data.settings.workload?.inProgressWeight ?? '1.2'),
-          distanceWeight: String(data.settings.workload?.distanceWeight ?? '0.3'),
-        })
+        applyMasterSettings(data)
+        setIsLoadingSettings(false)
+      },
+      onFresh: (data) => {
+        if (!active) return
+        applyMasterSettings(data)
+      },
+      init: { cache: 'no-store' },
       })
       .catch(() => {
         if (active) setToast('薬局マスタ設定の取得に失敗しました')
@@ -151,16 +200,19 @@ export default function PharmacySettingsPage() {
   useEffect(() => {
     if (!canViewPage) return
     let active = true
-    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json().catch(() => null)
-        if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'operation_settings_fetch_failed')
+    fetchJsonWithClientCache<PharmacyOperationSettingsResponse>({
+      key: PHARMACY_OPERATION_SETTINGS_CACHE_KEY,
+      url: '/api/pharmacy-operation-settings',
+      maxAgeMs: STABLE_SETTINGS_CACHE_MS,
+      onCached: (data) => {
         if (!active) return
-        setCorrectionSettings({
-          patientEditWindowMinutes: String(data.settings.patient_edit_window_minutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES),
-          billingPaidCancelWindowMinutes: String(data.settings.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
-          correctionReasonRequired: data.settings.correction_reason_required !== false,
-        })
+        applyOperationSettings(data)
+      },
+      onFresh: (data) => {
+        if (!active) return
+        applyOperationSettings(data)
+      },
+      init: { cache: 'no-store' },
       })
       .catch(() => {})
 
@@ -210,6 +262,8 @@ export default function PharmacySettingsPage() {
       const operationData = await operationResponse.json().catch(() => null)
       if (!masterResponse.ok || !masterData?.ok) throw new Error(masterData?.error ?? 'pharmacy_settings_save_failed')
       if (!operationResponse.ok || !operationData?.ok) throw new Error(operationData?.error ?? 'operation_settings_save_failed')
+      writeClientCache(PHARMACY_MASTER_SETTINGS_CACHE_KEY, masterData)
+      writeClientCache(PHARMACY_OPERATION_SETTINGS_CACHE_KEY, operationData)
       setToast('薬局設定を保存しました')
     } catch {
       setToast('薬局設定の保存に失敗しました')
