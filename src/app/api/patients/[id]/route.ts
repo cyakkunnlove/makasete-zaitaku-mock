@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
+import { getCurrentActorRole } from '@/lib/active-role'
+import {
+  DEFAULT_PATIENT_EDIT_WINDOW_MINUTES,
+  getPatientEditCorrectionAction,
+} from '@/lib/correction-policy'
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
@@ -19,16 +24,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
-  const reauthResponse = await ensureRecentReverification(user, {
-    reason: 'patient_update',
-    nextPath: `/dashboard/patients/${params.id}`,
-  })
-  if (reauthResponse) return reauthResponse
-
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ ok: false, error: 'invalid_payload' }, { status: 400 })
   }
+  const patch = body as Record<string, unknown>
 
   const mode = getRepositoryMode()
   if (mode.provider !== 'supabase') {
@@ -38,9 +38,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const supabase = createServerSupabaseClient()
   const { data: existingPatient, error: fetchError } = await supabase
     .from('patients')
-    .select('id, pharmacy_id, address')
+    .select('id, pharmacy_id, address, updated_at, updated_by')
     .eq('id', params.id)
-    .maybeSingle() as unknown as { data: { id: string; pharmacy_id: string | null; address: string } | null; error: { message: string } | null }
+    .maybeSingle() as unknown as { data: { id: string; pharmacy_id: string | null; address: string; updated_at: string | null; updated_by: string | null } | null; error: { message: string } | null }
 
   if (fetchError) {
     return NextResponse.json({ ok: false, error: 'patient_lookup_failed', details: fetchError.message }, { status: 500 })
@@ -55,7 +55,47 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
-  const patch = body as Record<string, unknown>
+  const settingsResponse = await supabase
+    .from('pharmacy_operation_settings')
+    .select('patient_edit_window_minutes')
+    .eq('pharmacy_id', scopedPharmacyId)
+    .maybeSingle()
+
+  const settings = settingsResponse.data as { patient_edit_window_minutes?: number | null } | null
+  const patientEditWindowMinutes = settings?.patient_edit_window_minutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES
+  const actorRole = getCurrentActorRole(user)
+  const correctionRequestId = typeof patch.correctionRequestId === 'string' ? patch.correctionRequestId.trim() : ''
+  const adminOverrideConfirmed = patch.adminOverrideConfirmed === true
+  const adminPasswordConfirmed = patch.adminPasswordConfirmed === true
+  const adminPasskeyConfirmed = patch.adminPasskeyConfirmed === true
+  const correctionAction = getPatientEditCorrectionAction({
+    updatedAt: existingPatient.updated_at,
+    windowMinutes: patientEditWindowMinutes,
+    hasCorrectionRequest: Boolean(correctionRequestId),
+    isPharmacyAdmin: actorRole === 'pharmacy_admin',
+    adminOverrideConfirmed,
+  })
+
+  if (correctionAction === 'request') {
+    return NextResponse.json({
+      ok: false,
+      error: 'correction_request_required',
+      reason: 'patient_edit_locked',
+      patientEditWindowMinutes,
+    }, { status: 423 })
+  }
+
+  if (correctionAction === 'admin_override') {
+    if (actorRole !== 'pharmacy_admin' || !adminPasswordConfirmed || !adminPasskeyConfirmed) {
+      return NextResponse.json({ ok: false, error: 'admin_override_confirmation_required' }, { status: 403 })
+    }
+    const reauthResponse = await ensureRecentReverification(user, {
+      reason: 'patient_admin_override',
+      nextPath: `/dashboard/patients/${params.id}`,
+    })
+    if (reauthResponse) return reauthResponse
+  }
+
   const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
     updated_by: user.id,
@@ -178,7 +218,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       targetId: params.id,
       details: {
         updated_fields: Object.keys(payload).filter((key) => !['updated_at', 'updated_by'].includes(key)),
-        role: user.role,
+        role: actorRole ?? user.role,
+        correction_action: correctionAction,
+        correction_request_id: correctionRequestId || null,
         geocode_status: payload.geocode_status ?? null,
       },
     })

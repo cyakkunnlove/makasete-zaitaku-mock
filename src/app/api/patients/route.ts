@@ -80,6 +80,10 @@ export async function POST(request: Request) {
 
   const supabase = createServerSupabaseClient()
   const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!scopedPharmacyId) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
   const duplicateResponse = await supabase
     .from('patients')
     .select('id')

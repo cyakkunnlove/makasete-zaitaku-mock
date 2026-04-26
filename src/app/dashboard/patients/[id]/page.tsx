@@ -22,6 +22,10 @@ import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/pa
 import { formatVisitRuleSummary, type PatientVisitRule } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
+import {
+  DEFAULT_PATIENT_EDIT_WINDOW_MINUTES,
+  correctionReasonCategories,
+} from '@/lib/correction-policy'
 import type { Patient, PatientHomePhoto } from '@/types/database'
 import { adminCardClass } from '@/components/admin-ui'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -176,6 +180,24 @@ export default function PatientDetailPage() {
   }, [searchParams])
 
   useEffect(() => {
+    if (!user || !(role === 'pharmacy_admin' || role === 'pharmacy_staff')) return
+    let cancelled = false
+    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const result = await response.json().catch(() => null)
+        if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'operation_settings_fetch_failed')
+        const minutes = Number(result.settings?.patient_edit_window_minutes)
+        if (!cancelled && Number.isFinite(minutes)) setPatientEditWindowMinutes(Math.max(1, minutes))
+      })
+      .catch(() => {
+        if (!cancelled) setPatientEditWindowMinutes(DEFAULT_PATIENT_EDIT_WINDOW_MINUTES)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [role, user])
+
+  useEffect(() => {
     const patientId = patient?.id
     if (!databasePatient || !patientId) {
       setPatientPhotos([])
@@ -240,6 +262,12 @@ export default function PatientDetailPage() {
     isBillable: true,
     billingExclusionReason: '',
   })
+  const [patientEditWindowMinutes, setPatientEditWindowMinutes] = useState(DEFAULT_PATIENT_EDIT_WINDOW_MINUTES)
+  const [correctionReasonCategory, setCorrectionReasonCategory] = useState<(typeof correctionReasonCategories)[number]>('患者情報の訂正')
+  const [correctionReasonText, setCorrectionReasonText] = useState('')
+  const [adminOverrideConfirmed, setAdminOverrideConfirmed] = useState(false)
+  const [adminPasswordConfirmed, setAdminPasswordConfirmed] = useState(false)
+  const [adminPasskeyConfirmed, setAdminPasskeyConfirmed] = useState(false)
 
   if (detailLoadState === 'loading' && !patient) {
     return (
@@ -539,6 +567,51 @@ export default function PatientDetailPage() {
     }
   }
 
+  const buildPatientEditPayload = () => ({
+    address: editForm.address,
+    phone: editForm.phone || null,
+    visitNotes: editForm.visitNotes,
+    currentMeds: editForm.currentMeds,
+    medicalHistory: editForm.medicalHistory,
+    allergies: editForm.allergies,
+    insuranceInfo: editForm.insuranceInfo,
+    isBillable: editForm.isBillable,
+    billingExclusionReason: editForm.isBillable ? null : editForm.billingExclusionReason,
+    medicalInstitutionId: selectedMedicalInstitutionId,
+    doctorMasterId: selectedDoctorMasterId,
+    doctorClinic: editForm.doctorClinic,
+    doctorName: editForm.doctorName,
+    doctorPhone: editForm.doctorPhone || null,
+  })
+
+  const createPatientCorrectionRequest = async () => {
+    if (!patient) return
+
+    const response = await fetch('/api/correction-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetType: 'patient',
+        targetId: patient.id,
+        patientId: patient.id,
+        reasonCategory: correctionReasonCategory,
+        reasonText: correctionReasonText.trim() || '患者情報の編集ロックにより修正依頼',
+        requestedChanges: buildPatientEditPayload(),
+      }),
+    })
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.ok) {
+      setEditSavedNotice('修正依頼の送信に失敗しました')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    setEditDialogOpen(false)
+    setGeocodeConfirmOpen(false)
+    setEditSavedNotice('管理者へ修正依頼を送信しました')
+    setTimeout(() => setEditSavedNotice(null), 2500)
+  }
+
   const handleSavePatientEdit = async (skipGeocodeConfirmation = false) => {
     if (!canEditThisPatient) return
 
@@ -563,26 +636,27 @@ export default function PatientDetailPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        address: editForm.address,
-        phone: editForm.phone || null,
-        visitNotes: editForm.visitNotes,
-        currentMeds: editForm.currentMeds,
-        medicalHistory: editForm.medicalHistory,
-        allergies: editForm.allergies,
-        insuranceInfo: editForm.insuranceInfo,
-        isBillable: editForm.isBillable,
-        billingExclusionReason: editForm.isBillable ? null : editForm.billingExclusionReason,
-        medicalInstitutionId: selectedMedicalInstitutionId,
-        doctorMasterId: selectedDoctorMasterId,
-        doctorClinic: editForm.doctorClinic,
-        doctorName: editForm.doctorName,
-        doctorPhone: editForm.doctorPhone || null,
+        ...buildPatientEditPayload(),
+        correctionRequestId: searchParams.get('correctionRequestId') ?? undefined,
+        adminOverrideConfirmed,
+        adminPasswordConfirmed,
+        adminPasskeyConfirmed,
       }),
     })
 
     const result = await response.json().catch(() => null)
     if (!response.ok || !result?.ok) {
-      setEditSavedNotice('患者情報の保存に失敗しました')
+      if (response.status === 423 && result?.error === 'correction_request_required') {
+        await createPatientCorrectionRequest()
+        return
+      }
+      if (result?.error === 'admin_override_confirmation_required') {
+        setEditSavedNotice('管理者単独修正には確認・パスワード・パスキー確認が必要です')
+      } else if (result?.error === 'reauth_required') {
+        setEditSavedNotice('再認証が必要です。アカウントセキュリティで確認してください')
+      } else {
+        setEditSavedNotice('患者情報の保存に失敗しました')
+      }
       setTimeout(() => setEditSavedNotice(null), 2500)
       return
     }
@@ -594,6 +668,9 @@ export default function PatientDetailPage() {
     setGeocodeConfirmOpen(false)
     setGeocodePreview(null)
     setEditDialogOpen(false)
+    setAdminOverrideConfirmed(false)
+    setAdminPasswordConfirmed(false)
+    setAdminPasskeyConfirmed(false)
     const apiWarnings = Array.isArray(result?.warnings) ? result.warnings : []
     setEditSavedNotice(apiWarnings.length > 0 ? apiWarnings.map((warning: { message: string }) => warning.message).join(' / ') : '患者情報を保存しました')
     setTimeout(() => setEditSavedNotice(null), 2500)
@@ -1184,7 +1261,49 @@ export default function PatientDetailPage() {
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-medium text-slate-900">現在の権限</p>
               <p className="mt-1 inline-flex items-center gap-1 text-amber-700"><ShieldCheck className="h-3.5 w-3.5" />薬局管理者・薬局スタッフは、患者基本情報と医療情報を編集できます。</p>
+              <p className="mt-1">最終更新から{patientEditWindowMinutes}分を過ぎた編集は、保存ではなく修正依頼として管理者画面に送られます。</p>
+              {searchParams.get('correctionRequestId') ? (
+                <p className="mt-1 text-indigo-700">修正依頼から開いているため、この保存は依頼対応として記録されます。</p>
+              ) : null}
             </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <p className="font-medium text-amber-900">修正理由</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {correctionReasonCategories.map((category) => (
+                  <Button
+                    key={category}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCorrectionReasonCategory(category)}
+                    className={correctionReasonCategory === category ? 'border-amber-400 bg-white text-amber-800' : 'border-amber-200 bg-white text-amber-700 hover:bg-amber-100'}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+              <Input value={correctionReasonText} onChange={(e) => setCorrectionReasonText(e.target.value)} className="mt-2 border-amber-200 bg-white text-slate-900" placeholder="必要に応じて自由記入" />
+            </div>
+            {role === 'pharmacy_admin' && !searchParams.get('correctionRequestId') ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
+                <p className="font-medium text-rose-900">管理者単独修正</p>
+                <p className="mt-1">修正依頼がない状態でロック後の患者情報を上書きする場合だけ確認してください。保存時に再認証も求められます。</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  <label className="flex items-center gap-2 rounded-md border border-rose-200 bg-white p-2">
+                    <input type="checkbox" checked={adminOverrideConfirmed} onChange={(e) => setAdminOverrideConfirmed(e.target.checked)} />
+                    本当に修正する
+                  </label>
+                  <label className="flex items-center gap-2 rounded-md border border-rose-200 bg-white p-2">
+                    <input type="checkbox" checked={adminPasswordConfirmed} onChange={(e) => setAdminPasswordConfirmed(e.target.checked)} />
+                    パスワード確認済み
+                  </label>
+                  <label className="flex items-center gap-2 rounded-md border border-rose-200 bg-white p-2">
+                    <input type="checkbox" checked={adminPasskeyConfirmed} onChange={(e) => setAdminPasskeyConfirmed(e.target.checked)} />
+                    パスキー確認済み
+                  </label>
+                </div>
+              </div>
+            ) : null}
             <div>
               <p className="mb-2 text-xs text-slate-600">編集項目</p>
               <div className="space-y-3">

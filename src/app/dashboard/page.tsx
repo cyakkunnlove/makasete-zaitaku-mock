@@ -749,7 +749,7 @@ function PharmacyDashboardMasterPatientSection({
   filteredMasterPatients: RegisteredPatientRecord[]
   ownRequests: Array<{ patientId: string | null }>
   handoverData: Array<{ patientId: string; pharmacyId: string; confirmed: boolean }>
-  ownPharmacyId: string
+  ownPharmacyId: string | null
   draftDayTasks: DayTaskItem[]
   flowDate: string
   onAddPatientToTodayFlow: (patient: RegisteredPatientRecord) => void

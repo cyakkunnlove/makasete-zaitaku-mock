@@ -23,5 +23,5 @@ export function canEditPatientRecord(input: {
 }
 
 export function getScopedPharmacyId(user: Pick<RoleAwareUser, 'pharmacy_id' | 'region_id' | 'operation_unit_id' | 'activeRoleContext'> | null) {
-  return getCurrentScope(user).pharmacyId ?? 'PH-01'
+  return getCurrentScope(user).pharmacyId ?? null
 }

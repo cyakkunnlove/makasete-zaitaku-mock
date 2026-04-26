@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route, AlertTriangle } from 'lucide-react'
 
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { LoadingState } from '@/components/common/LoadingState'
 import { cn } from '@/lib/utils'
 
 function getMonthLabel(year: number, month: number) {
@@ -62,6 +63,20 @@ type CalendarDayDetail = {
 }
 
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const
+
+function getTaskPriority(task: CalendarDayDetail['tasks'][number]) {
+  if (!task.handledBy && task.status !== 'completed') return 0
+  if (task.hasNightHandover) return 1
+  if (task.status === 'in_progress') return 2
+  if (task.status === 'scheduled') return 3
+  return 4
+}
+
+function getTaskStatusLabel(status: CalendarDayDetail['tasks'][number]['status']) {
+  if (status === 'completed') return '完了'
+  if (status === 'in_progress') return '対応中'
+  return '予定'
+}
 
 export default function CalendarPage() {
   const today = new Date()
@@ -145,6 +160,15 @@ export default function CalendarPage() {
   const futureSelectedCount = selectedRouteCandidateIds.length
   const selectedSummary = selectedDate ? summaryByDate.get(selectedDate) ?? null : null
   const monthGrid = getMonthGrid(viewYear, viewMonth)
+  const sortedDetailTasks = useMemo(() => {
+    if (!detail?.tasks?.length) return []
+    return [...detail.tasks].sort((a, b) => {
+      const priorityDiff = getTaskPriority(a) - getTaskPriority(b)
+      if (priorityDiff !== 0) return priorityDiff
+      return a.scheduledTime.localeCompare(b.scheduledTime)
+    })
+  }, [detail])
+  const needsAttentionCount = sortedDetailTasks.filter((task) => (!task.handledBy && task.status !== 'completed') || task.hasNightHandover).length
 
   const prevMonth = () => {
     if (viewMonth === 1) {
@@ -255,7 +279,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.9fr)]">
-        <Card className="border-slate-200 bg-white shadow-sm">
+        <Card className="border-slate-200 bg-white shadow-sm xl:sticky xl:top-4 xl:self-start">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-base text-slate-900">
@@ -341,7 +365,11 @@ export default function CalendarPage() {
                 )
               })}
             </div>
-            {loadingMonth && <p className="text-sm text-slate-500">月カレンダーを読み込み中です...</p>}
+            {loadingMonth && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <LoadingState message="月カレンダーを読み込み中です。" />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -358,6 +386,7 @@ export default function CalendarPage() {
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">対応中 {selectedSummary.inProgressCount}</Badge>
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">完了 {selectedSummary.completedCount}</Badge>
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">初回 {selectedSummary.firstVisitCount}</Badge>
+                  {needsAttentionCount > 0 && <Badge className="border-amber-200 bg-amber-50 text-amber-700">要確認 {needsAttentionCount}</Badge>}
                 </div>
                 {canBuildRouteForSelectedDate && (
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
@@ -370,6 +399,7 @@ export default function CalendarPage() {
                         {routeShareLoading ? '送信中...' : 'このルートをメール送信'}
                       </Button>
                     )}
+                    {routePlanLoading && <LoadingState message="ルート候補を並べ替えています。" className="text-indigo-700" />}
                   </div>
                 )}
                 {routePlanResult && (
@@ -422,13 +452,13 @@ export default function CalendarPage() {
               </div>
             )}
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="max-h-[calc(100vh-210px)] space-y-4 overflow-y-auto pr-2">
             {selectedSummary?.staffSummaries?.length ? (
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">スタッフ別の状況</p>
-                <div className="space-y-2">
+                <p className="text-xs text-slate-500">スタッフ別</p>
+                <div className="grid gap-2 sm:grid-cols-2">
                   {selectedSummary.staffSummaries.map((staff) => (
-                    <div key={staff.staffId} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <div key={staff.staffId} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium text-slate-900">{staff.staffName}</p>
                         <Badge className={cn(
@@ -440,7 +470,7 @@ export default function CalendarPage() {
                           {staff.loadTone === 'heavy' ? '負荷高め' : staff.loadTone === 'medium' ? '負荷中' : '負荷軽め'}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">完了 {staff.completedCount} / 初回 {staff.firstVisitCount} / 距離 {staff.totalDistanceKm ?? '未集計'}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">予定 {staff.plannedCount} / 完了 {staff.completedCount} / 初回 {staff.firstVisitCount}</p>
                     </div>
                   ))}
                 </div>
@@ -448,14 +478,41 @@ export default function CalendarPage() {
             ) : null}
 
             {loadingDetail ? (
-              <p className="text-sm text-slate-500">日別詳細を読み込み中です...</p>
-            ) : detail?.tasks?.length ? (
-              <div className="space-y-3">
-                {detail.tasks.map((task) => (
-                  <div key={task.taskId} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-slate-900">{task.patientName}</p>
-                      <Badge className="border-slate-200 bg-slate-50 text-slate-700">{task.status === 'completed' ? '完了' : task.status === 'in_progress' ? '対応中' : '予定'}</Badge>
+              <div className="space-y-2">
+                <LoadingState message="日別詳細を読み込み中です。" />
+                {[0, 1, 2].map((item) => (
+                  <div key={item} className="animate-pulse rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="h-4 w-32 rounded bg-slate-200" />
+                    <div className="mt-2 h-3 w-48 rounded bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            ) : sortedDetailTasks.length ? (
+              <div className="space-y-2">
+                {sortedDetailTasks.map((task, index) => {
+                  const isAttention = (!task.handledBy && task.status !== 'completed') || task.hasNightHandover
+                  const defaultOpen = index === 0 && isAttention
+
+                  return (
+                  <details key={task.taskId} open={defaultOpen} className={cn('group rounded-lg border bg-white shadow-sm', isAttention ? 'border-amber-200' : 'border-slate-200')}>
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-slate-900">{task.patientName}</p>
+                          <Badge className="border-slate-200 bg-slate-50 text-slate-700">{getTaskStatusLabel(task.status)}</Badge>
+                          {isAttention && <Badge className="border-amber-200 bg-amber-50 text-amber-700"><AlertTriangle className="mr-1 h-3 w-3" />確認</Badge>}
+                          {task.isFirstVisit && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                          <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{task.scheduledTime}</span>
+                          <span className="inline-flex items-center gap-1"><UserRound className="h-3 w-3" />{task.handledBy ?? '未担当'}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-indigo-600 group-open:hidden">開く</span>
+                      <span className="text-xs text-slate-500 hidden group-open:inline">閉じる</span>
+                    </summary>
+                    <div className="border-t border-slate-100 px-3 pb-3 pt-2">
+                      <div className="flex flex-wrap items-center gap-2">
                       {task.isFirstVisit && <Badge className="border-sky-500/40 bg-sky-500/20 text-sky-200">初回</Badge>}
                       {task.isLongGapVisit && <Badge className="border-violet-500/40 bg-violet-500/20 text-violet-200">久しぶり</Badge>}
                       {task.hasNightHandover && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">夜間申し送りあり</Badge>}
@@ -502,8 +559,10 @@ export default function CalendarPage() {
                         )
                       ) : null}
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  </details>
+                  )
+                })}
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
@@ -511,15 +570,15 @@ export default function CalendarPage() {
               </div>
             )}
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-              <p className="font-medium text-slate-900">この画面の前提</p>
+            <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+              <summary className="cursor-pointer font-medium text-slate-900">この画面の前提</summary>
               <ul className="mt-2 space-y-1">
                 <li>・過去は確定実績ベースで見ます</li>
                 <li>・未来は予定なので変更される前提です</li>
                 <li>・地図/ルートは必要時だけ使う導線にします</li>
                 <li>・過去修正は Pharmacy Admin のみを想定しています</li>
               </ul>
-            </div>
+            </details>
           </CardContent>
         </Card>
       </div>

@@ -8,6 +8,7 @@ import { buildCalendarMonthSummary } from '@/lib/calendar-read-model'
 import { generateAutoDayTasksFromVisitRules } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
+import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 function parseYearMonth(searchParams: URLSearchParams) {
   const year = Number(searchParams.get('year'))
@@ -43,7 +44,7 @@ function mapGeneratedTaskToCalendarTask(task: ReturnType<typeof generateAutoDayT
     handled_at: task.handledAt,
     completed_at: task.completedAt,
     billable: task.billable,
-    collection_status: task.collectionStatus,
+    collection_status: normalizeCollectionStatusToDb(task.collectionStatus),
     amount: task.amount,
     note: task.note,
     updated_by_id: task.updatedById,

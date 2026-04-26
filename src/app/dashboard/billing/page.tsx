@@ -30,8 +30,10 @@ import { CalendarDays, CheckCircle, ChevronDown, ChevronRight, FileText, Layers,
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
 import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
+import { DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES, correctionReasonCategories, getBillingPaidCorrectionAction } from '@/lib/correction-policy'
+import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mergePatientSources } from '@/lib/patient-read-model'
-import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionAppStatusToDb, mapCollectionDbStatusToApp, type CollectionWorkflowStatus } from '@/lib/status-meta'
+import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionStatusToLegacy, normalizeCollectionStatusToDb, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
 function getTodayJstDateKey() {
   const now = new Date()
@@ -59,27 +61,10 @@ type CalendarActionDraft = {
 }
 
 function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayTaskItem['collectionStatus'] {
-  switch (status) {
-    case 'ready':
-      return '未着手'
-    case 'pending':
-      return '回収中'
-    case 'on_hold':
-      return '要確認'
-    case 'paid':
-      return '入金済'
-    default:
-      return '未着手'
-  }
+  return mapCollectionStatusToLegacy(status)
 }
 
-const onHoldReasonTags = [
-  '連絡待ち',
-  '再確認必要',
-  '金額確認',
-  '書類待ち',
-  '再請求待ち',
-] as const
+const onHoldReasonTags = correctionReasonCategories
 
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
@@ -181,12 +166,15 @@ export default function BillingPage() {
   const [expandedHistoryPatients, setExpandedHistoryPatients] = useState<string[]>([])
   const [historyViewMode, setHistoryViewMode] = useState<'latest' | 'all'>('latest')
   const [historyStatusFocus, setHistoryStatusFocus] = useState<'all' | 'on_hold'>('all')
-  const ownPharmacyId = user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? 'PH-01'
+  const [billingPaidCancelWindowMinutes, setBillingPaidCancelWindowMinutes] = useState(DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES)
+  const ownPharmacyId = user?.activeRoleContext?.pharmacyId ?? user?.pharmacy_id ?? null
   const isSystemAdmin = role === 'system_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const isPharmacyStaff = role === 'pharmacy_staff'
   const isPharmacyRole = role === 'pharmacy_staff' || role === 'pharmacy_admin'
 
   const ownPatients = useMemo(() => {
+    if (!ownPharmacyId) return []
     const source = mergePatientSources({ databasePatients, includeMockPatients: false })
     return source.filter((patient) => patient.pharmacyId === ownPharmacyId)
   }, [databasePatients, ownPharmacyId])
@@ -203,6 +191,31 @@ export default function BillingPage() {
   const ownPatientNames = useMemo(() => new Set(ownPatients.map((patient) => patient.name)), [ownPatients])
 
   useEffect(() => {
+    if (!ownPharmacyId || !isPharmacyRole) {
+      setBillingPaidCancelWindowMinutes(DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES)
+      return
+    }
+
+    let cancelled = false
+    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const result = await response.json().catch(() => null)
+        if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'operation_settings_fetch_failed')
+        const minutes = Number(result.settings?.billing_paid_cancel_window_minutes)
+        if (!cancelled && Number.isFinite(minutes)) {
+          setBillingPaidCancelWindowMinutes(Math.max(1, minutes))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBillingPaidCancelWindowMinutes(DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isPharmacyRole, ownPharmacyId])
+
+  useEffect(() => {
     let cancelled = false
 
     async function fetchDayTasks() {
@@ -210,31 +223,7 @@ export default function BillingPage() {
         const response = await fetch(`/api/day-flow/${billingFlowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
-          const mapped = result.tasks.map((task: Record<string, unknown>) => ({
-            id: String(task.id),
-            patientId: String(task.patient_id ?? ''),
-            pharmacyId: String(task.pharmacy_id ?? ''),
-            flowDate: String(task.flow_date),
-            sortOrder: Number(task.sort_order ?? 1),
-            scheduledTime: String(task.scheduled_time ?? '10:00'),
-            visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
-            source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
-            status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
-            planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
-            plannedBy: (task.planned_by as string | null) ?? null,
-            plannedById: (task.planned_by_id as string | null) ?? null,
-            plannedAt: (task.planned_at as string | null) ?? null,
-            handledBy: (task.handled_by as string | null) ?? null,
-            handledById: (task.handled_by_id as string | null) ?? null,
-            handledAt: (task.handled_at as string | null) ?? null,
-            completedAt: (task.completed_at as string | null) ?? null,
-            billable: Boolean(task.billable),
-            collectionStatus: mapCollectionDbStatusToApp(task.collection_status as string | null | undefined),
-            amount: Number(task.amount ?? 0),
-            note: String(task.note ?? ''),
-            updatedAt: (task.updated_at as string | null) ?? null,
-            updatedById: (task.updated_by_id as string | null) ?? null,
-          }))
+          const mapped = result.tasks.map((task: Record<string, unknown>) => mapPatientDayTaskRowToDayTaskItem(task, billingFlowDate))
           setSharedDayTasks(mapped)
           return
         }
@@ -252,7 +241,7 @@ export default function BillingPage() {
   }, [billingFlowDate])
 
   useEffect(() => {
-    if (!user || !ownPharmacyId || ownPharmacyId === 'PH-01') {
+    if (!user || !ownPharmacyId) {
       setDatabasePatients([])
       return
     }
@@ -280,14 +269,14 @@ export default function BillingPage() {
 
   const patientMap = useMemo(() => new Map(ownPatients.map((patient) => [patient.id, patient])), [ownPatients])
 
-  const dayTaskCollectionRecords = useMemo(() => buildDayTaskCollectionRecords({
-    sharedDayTasks,
-    ownPharmacyId,
+	  const dayTaskCollectionRecords = useMemo(() => buildDayTaskCollectionRecords({
+	    sharedDayTasks,
+	    ownPharmacyId: ownPharmacyId ?? '',
     ownPatientNames,
     patientMap,
     patientBillingSettings,
     collectionRecords,
-  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
+	  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
@@ -367,8 +356,15 @@ export default function BillingPage() {
   useEffect(() => {
     let cancelled = false
 
-    async function fetchAdminBillingReadModel() {
-      try {
+	    async function fetchAdminBillingReadModel() {
+	      if (!user || !ownPharmacyId) {
+	        setAdminBillingRecords([])
+	        setApiDateCollectionSummaries([])
+	        setApiUnbilledVisitRecords([])
+	        return
+	      }
+
+	      try {
         const response = await fetch('/api/billing/read-model', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -402,7 +398,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [billingFlowDate, mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter])
+  }, [billingFlowDate, mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter, user])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
@@ -437,7 +433,7 @@ export default function BillingPage() {
             body: JSON.stringify({
               task: {
                 ...dayTask,
-                collectionStatus: mapCollectionAppStatusToDb(status),
+	                collectionStatus: normalizeCollectionStatusToDb(status),
                 note: trimmedNote ? trimmedNote : dayTask.note,
               },
             }),
@@ -552,15 +548,15 @@ export default function BillingPage() {
 
     try {
       setSavingCollectionRecordId(record.id)
-    setFailedCollectionRecordId(null)
-    setCollectionErrorMessage('')
+      setFailedCollectionRecordId(null)
+      setCollectionErrorMessage('')
       const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           task: {
             ...dayTask,
-            collectionStatus: 'ready',
+            collectionStatus: 'needs_billing',
             note: nextNote,
           },
         }),
@@ -589,6 +585,51 @@ export default function BillingPage() {
       setSavingCollectionRecordId(null)
     }
   }
+
+  const createPaidCorrectionRequest = async (record: BillingCollectionRecord) => {
+    try {
+      setSavingCollectionRecordId(record.id)
+      setFailedCollectionRecordId(null)
+      setCollectionErrorMessage('')
+      const response = await fetch('/api/correction-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetType: 'billing_collection',
+          targetId: record.id,
+          patientDayTaskId: record.linkedTaskId,
+          reasonCategory: '入金確認の誤り',
+          reasonText: '入金済み確定後のロックにより修正依頼',
+          requestedChanges: {
+            from: 'paid',
+            to: 'billed',
+            note: record.note,
+          },
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'correction_request_failed')
+      setToastMessage('管理者へ修正依頼を送信しました')
+      setTimeout(() => setToastMessage(''), 3000)
+      setRecentlySavedCollectionRecordId(record.id)
+      setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === record.id ? null : current), 1500)
+    } catch {
+      setToastMessage('修正依頼の送信に失敗しました')
+      setTimeout(() => setToastMessage(''), 3000)
+      setFailedCollectionRecordId(record.id)
+      setCollectionErrorMessage('修正依頼がまだ送信できていません。もう一度お試しください。')
+    } finally {
+      setSavingCollectionRecordId(null)
+    }
+  }
+
+  const getPaidActionForRecord = (record: Pick<BillingCollectionRecord, 'status' | 'handledAt'>) => getBillingPaidCorrectionAction({
+    status: record.status,
+    handledAt: record.handledAt,
+    windowMinutes: billingPaidCancelWindowMinutes,
+    isPharmacyAdmin,
+    isPharmacyStaff,
+  })
 
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
@@ -937,8 +978,10 @@ export default function BillingPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mergedCollectionRecords.map((record) => (
-                    <TableRow key={record.id} className={cn('border-slate-200 transition hover:bg-slate-50', savingCollectionRecordId === record.id ? 'bg-indigo-50/70' : null, recentlySavedCollectionRecordId === record.id ? 'bg-emerald-50/70' : null, failedCollectionRecordId === record.id ? 'bg-rose-50/80' : null)}>
+	                  {mergedCollectionRecords.map((record) => {
+	                    const paidAction = getPaidActionForRecord(record)
+	                    return (
+	                    <TableRow key={record.id} className={cn('border-slate-200 transition hover:bg-slate-50', savingCollectionRecordId === record.id ? 'bg-indigo-50/70' : null, recentlySavedCollectionRecordId === record.id ? 'bg-emerald-50/70' : null, failedCollectionRecordId === record.id ? 'bg-rose-50/80' : null)}>
                       <TableCell className="font-medium text-slate-900">{record.patientName}</TableCell>
                       <TableCell className="text-xs text-slate-700">
                         <div className="flex items-center gap-1">
@@ -969,13 +1012,15 @@ export default function BillingPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
-                          {record.billable && record.status !== 'on_hold' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
-                          {record.billable && record.status === 'paid' && isPharmacyAdmin && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みを見直す'}</Button>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+	                          {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
+	                          {record.billable && record.status !== 'on_hold' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
+	                          {record.billable && paidAction === 'cancel' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'pending')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みをキャンセル'}</Button>}
+	                          {record.billable && paidAction === 'request' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => void createPaidCorrectionRequest(record)} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '送信中...' : '修正依頼'}</Button>}
+	                        </div>
+	                      </TableCell>
+	                    </TableRow>
+	                    )
+	                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -1117,7 +1162,7 @@ export default function BillingPage() {
             <div className={`${adminPanelClass} p-4`}>
               <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.from].label : '—'}</span></p>
               <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.to].label : '—'}</span></p>
-              {statusDialog?.from === 'paid' ? <p className="mt-2 text-xs text-amber-700">入金済みからの見直しは管理者向けの慎重操作です。</p> : null}
+	              {statusDialog?.from === 'paid' ? <p className="mt-2 text-xs text-amber-700">入金済みからのキャンセルは短時間内のみ可能です。ロック後は修正依頼に切り替わります。</p> : null}
             </div>
             <div className="space-y-2">
               <p className="text-xs text-slate-500">メモ（任意）</p>
@@ -1181,9 +1226,17 @@ export default function BillingPage() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={closeCalendarActionDialog}>閉じる</Button>
-                {calendarActionDialog.status === 'paid' && isPharmacyAdmin ? (
-                  <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みを見直す'}</Button>
-                ) : null}
+	                {(() => {
+	                  const record = mergedCollectionRecords.find((item) => item.id === calendarActionDialog.recordId)
+	                  const paidAction = record ? getPaidActionForRecord(record) : 'none'
+	                  if (record && paidAction === 'cancel') {
+	                    return <Button type="button" variant="outline" onClick={() => void submitCalendarAction('pending')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みをキャンセル'}</Button>
+	                  }
+	                  if (record && paidAction === 'request') {
+	                    return <Button type="button" variant="outline" onClick={() => void createPaidCorrectionRequest(record)} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '送信中...' : '修正依頼'}</Button>
+	                  }
+	                  return null
+	                })()}
                 {calendarActionDialog.status !== 'on_hold' && calendarActionDialog.status !== 'paid' ? (
                   <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
                 ) : null}

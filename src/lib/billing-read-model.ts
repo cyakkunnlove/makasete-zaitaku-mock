@@ -1,7 +1,7 @@
 import type { BillingStatus } from '@/types/database'
 import type { BillingRecord, DayTaskItem } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
-import type { CollectionWorkflowStatus } from '@/lib/status-meta'
+import { mapCollectionDbStatusToApp, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
 export type BillingCollectionRecord = {
   id: string
@@ -140,7 +140,7 @@ export function buildDayTaskCollectionRecords({
       const patient = patientMap.get(task.patientId)
       const existing = collectionRecords.find((record) => record.linkedTaskId === task.id)
       const patientBilling = patientBillingSettings.get(task.patientId)
-      const status = existing?.status ?? mapLegacyCollectionStatus(task.collectionStatus)
+      const status = existing?.status ?? mapCollectionDbStatusToApp(task.collectionStatus)
       return {
         id: existing?.id ?? `COL-${task.id}`,
         patientName: patient?.name ?? task.patientId,
@@ -293,26 +293,10 @@ export function buildUnbilledVisitRecords({
         visitType: task.visitType,
         staffName: task.handledBy ?? '未設定',
         amount: task.amount,
-        status: (mapLegacyCollectionStatus(task.collectionStatus) === 'ready' ? 'ready' : 'review') as 'ready' | 'review',
+        status: (mapCollectionDbStatusToApp(task.collectionStatus) === 'ready' ? 'ready' : 'review') as 'ready' | 'review',
         note: task.note,
       }
     })
     .filter((record) => !mergedCollectionRecords.some((item) => item.linkedTaskId === record.linkedTaskId && item.billable))
     .filter((record) => !processedUnbilledIds.has(record.id))
-}
-
-function mapLegacyCollectionStatus(status: DayTaskItem['collectionStatus']): CollectionWorkflowStatus {
-  switch (status) {
-    case '入金済':
-      return 'paid'
-    case '回収中':
-      return 'pending'
-    case '要確認':
-      return 'on_hold'
-    case '請求準備OK':
-      return 'ready'
-    case '未着手':
-    default:
-      return 'ready'
-  }
 }

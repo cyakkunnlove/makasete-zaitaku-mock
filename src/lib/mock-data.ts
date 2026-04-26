@@ -258,6 +258,8 @@ export function getPatientsByPharmacy(pharmacyId: string) {
 
 export type DayTaskStatus = 'scheduled' | 'in_progress' | 'completed'
 
+export type DayTaskCollectionStatus = '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済' | 'needs_billing' | 'billed' | 'paid' | 'needs_attention' | 'ready' | 'pending' | 'on_hold'
+
 export interface DayTaskItem {
   id: string
   patientId: string
@@ -277,7 +279,7 @@ export interface DayTaskItem {
   handledAt: string | null
   completedAt: string | null
   billable: boolean
-  collectionStatus: '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済'
+  collectionStatus: DayTaskCollectionStatus
   amount: number
   note: string
   updatedAt: string | null
@@ -718,6 +720,7 @@ export type AuditActionType =
   | 'account_user_updated'
   | 'account_user_status_changed'
   | 'billing_collection_status_changed'
+  | 'correction_request_created'
 
 export interface AuditEntry {
   id: string
@@ -786,6 +789,7 @@ export const auditActionLabel: Record<AuditActionType, string> = {
   account_user_updated: 'アカウント更新',
   account_user_status_changed: '利用状態変更',
   billing_collection_status_changed: '回収状況更新',
+  correction_request_created: '修正依頼',
 }
 
 export const auditActionClass: Record<AuditActionType, string> = {
@@ -809,6 +813,7 @@ export const auditActionClass: Record<AuditActionType, string> = {
   account_user_updated: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
   account_user_status_changed: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300',
   billing_collection_status_changed: 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300',
+  correction_request_created: 'border-amber-500/40 bg-amber-500/20 text-amber-300',
 }
 
 // Unique users from audit logs for user filter

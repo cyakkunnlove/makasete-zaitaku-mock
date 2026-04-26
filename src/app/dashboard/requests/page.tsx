@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -47,6 +47,18 @@ import { getRequestDisplayStatus } from '@/lib/status-meta'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
 
+type CorrectionRequestRow = {
+  id: string
+  target_type: string
+  target_id: string
+  patient_id: string | null
+  patient_day_task_id: string | null
+  reason_category: string | null
+  reason_text: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | string
+  created_at: string
+}
+
 function getNightNextAction(request: (typeof requestData)[number]) {
   if (request.status === 'fax_pending') {
     return { label: 'FAX受信待ち', href: `/dashboard/requests/${request.id}`, tone: 'muted' as const }
@@ -60,15 +72,41 @@ function getNightNextAction(request: (typeof requestData)[number]) {
   return { label: '依頼詳細を開く', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
 }
 
+function getCorrectionRequestHref(request: CorrectionRequestRow) {
+  if (request.target_type === 'patient' && request.patient_id) return `/dashboard/patients/${request.patient_id}?correctionRequestId=${request.id}`
+  if (request.target_type === 'billing_collection') return `/dashboard/billing?correctionRequestId=${request.id}&recordId=${request.target_id}`
+  if (request.patient_day_task_id) return `/dashboard/billing?correctionRequestId=${request.id}&taskId=${request.patient_day_task_id}`
+  return '/dashboard/requests'
+}
+
+function getCorrectionTargetLabel(targetType: string) {
+  switch (targetType) {
+    case 'patient':
+      return '患者情報'
+    case 'patient_day_task':
+      return '訪問タスク'
+    case 'billing_collection':
+      return '回収・入金'
+    case 'medical_institution':
+      return '医療機関'
+    case 'doctor_master':
+      return '医師マスタ'
+    default:
+      return '修正対象'
+  }
+}
+
 
 export default function RequestsPage() {
   const router = useRouter()
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const canViewCorrectionRequests = role === 'pharmacy_admin' || role === 'pharmacy_staff' || role === 'regional_admin'
   const isNightPharmacist = role === 'night_pharmacist'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
+  const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequestRow[]>([])
   const [formData, setFormData] = useState({
     pharmacy: '',
     patientName: '',
@@ -79,6 +117,33 @@ export default function RequestsPage() {
   })
 
   const canCreateRequest = role === 'regional_admin'
+
+  useEffect(() => {
+    if (!canViewCorrectionRequests) {
+      setCorrectionRequests([])
+      return
+    }
+
+    let active = true
+    fetch('/api/correction-requests', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'correction_requests_fetch_failed')
+        if (active) setCorrectionRequests(data.correctionRequests ?? [])
+      })
+      .catch(() => {
+        if (active) setCorrectionRequests([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [canViewCorrectionRequests])
+
+  const pendingCorrectionRequests = useMemo(
+    () => correctionRequests.filter((request) => request.status === 'pending'),
+    [correctionRequests],
+  )
 
   const visibleRequests = useMemo(() => {
     if (isPharmacyAdmin) {
@@ -145,6 +210,42 @@ export default function RequestsPage() {
           </Button>
         )}
       </div>
+
+      {canViewCorrectionRequests && (
+        <Card className={cn(adminCardClass, pendingCorrectionRequests.length > 0 ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-white')}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between gap-3 text-base text-slate-900">
+              <span>修正依頼</span>
+              <Badge variant="outline" className={pendingCorrectionRequests.length > 0 ? 'border-amber-300 bg-white text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-500'}>
+                未対応 {pendingCorrectionRequests.length}件
+              </Badge>
+            </CardTitle>
+            <p className="text-xs text-slate-500">スタッフの修正依頼はここから対象画面へ移動して確認します。</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pendingCorrectionRequests.length === 0 ? (
+              <p className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">未対応の修正依頼はありません。</p>
+            ) : pendingCorrectionRequests.slice(0, 5).map((request) => (
+              <Link
+                key={request.id}
+                href={getCorrectionRequestHref(request)}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white p-3 text-sm transition hover:border-amber-300 hover:bg-amber-50"
+              >
+                <div>
+                  <p className="font-medium text-slate-900">{getCorrectionTargetLabel(request.target_type)}の修正依頼</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {request.reason_category ?? '理由未選択'}{request.reason_text ? ` / ${request.reason_text}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {new Date(request.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {isPharmacyAdmin && (
         <Card className="border-slate-200 bg-white shadow-sm">

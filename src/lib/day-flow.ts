@@ -1,5 +1,6 @@
 import { type DayTaskItem, type PatientRecord } from '@/lib/mock-data'
 import type { PatientVisitRule, RegisteredPatientRecord } from '@/lib/patient-master'
+import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 export const MOCK_FLOW_DATE = '2026-03-28'
 
@@ -156,11 +157,39 @@ function buildAutoTaskFromPatient(
     handledAt: null,
     completedAt: null,
     billable: false,
-    collectionStatus: '未着手',
+    collectionStatus: 'needs_billing',
     amount: formatCurrencyRiskAmount(patient),
     note: noteParts.join('。'),
     updatedAt: patient.registrationMeta?.updatedAt ?? null,
     updatedById: patient.registrationMeta?.updatedById ?? null,
+  }
+}
+
+export function mapPatientDayTaskRowToDayTaskItem(task: Record<string, unknown>, fallbackFlowDate?: string): DayTaskItem {
+  return {
+    id: String(task.id),
+    patientId: String(task.patient_id ?? ''),
+    pharmacyId: String(task.pharmacy_id ?? ''),
+    flowDate: String(task.flow_date ?? fallbackFlowDate ?? ''),
+    sortOrder: Number(task.sort_order ?? 1),
+    scheduledTime: String(task.scheduled_time ?? '10:00'),
+    visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
+    source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
+    status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
+    planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
+    plannedBy: (task.planned_by as string | null) ?? null,
+    plannedById: (task.planned_by_id as string | null) ?? null,
+    plannedAt: (task.planned_at as string | null) ?? null,
+    handledBy: (task.handled_by as string | null) ?? null,
+    handledById: (task.handled_by_id as string | null) ?? null,
+    handledAt: (task.handled_at as string | null) ?? null,
+    completedAt: (task.completed_at as string | null) ?? null,
+    billable: Boolean(task.billable),
+    collectionStatus: normalizeCollectionStatusToDb(task.collection_status as string | null | undefined),
+    amount: Number(task.amount ?? 0),
+    note: String(task.note ?? ''),
+    updatedAt: (task.updated_at as string | null) ?? null,
+    updatedById: (task.updated_by_id as string | null) ?? null,
   }
 }
 

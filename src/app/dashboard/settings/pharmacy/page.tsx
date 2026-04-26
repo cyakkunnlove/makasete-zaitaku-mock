@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useReauthGuard } from '@/hooks/use-reauth-guard'
+import {
+  DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES,
+  DEFAULT_PATIENT_EDIT_WINDOW_MINUTES,
+} from '@/lib/correction-policy'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +39,11 @@ export default function PharmacySettingsPage() {
     inProgressWeight: '1.2',
     distanceWeight: '0.3',
   })
+  const [correctionSettings, setCorrectionSettings] = useState({
+    patientEditWindowMinutes: String(DEFAULT_PATIENT_EDIT_WINDOW_MINUTES),
+    billingPaidCancelWindowMinutes: String(DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
+    correctionReasonRequired: true,
+  })
 
   useEffect(() => {
     try {
@@ -45,7 +54,28 @@ export default function PharmacySettingsPage() {
     } catch {}
   }, [])
 
-  const save = () => {
+  useEffect(() => {
+    if (!canViewPage) return
+    let active = true
+    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'operation_settings_fetch_failed')
+        if (!active) return
+        setCorrectionSettings({
+          patientEditWindowMinutes: String(data.settings.patient_edit_window_minutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES),
+          billingPaidCancelWindowMinutes: String(data.settings.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
+          correctionReasonRequired: data.settings.correction_reason_required !== false,
+        })
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [canViewPage])
+
+  const save = async () => {
     if (guard()) return
     try {
       window.localStorage.setItem(PHARMACY_WORKLOAD_SETTINGS_KEY, JSON.stringify({
@@ -56,7 +86,22 @@ export default function PharmacySettingsPage() {
         distanceWeight: Number(workloadSettings.distanceWeight || 0.3),
       }))
     } catch {}
-    setToast('薬局設定を保存しました（モック）')
+    try {
+      const response = await fetch('/api/pharmacy-operation-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientEditWindowMinutes: Number(correctionSettings.patientEditWindowMinutes || DEFAULT_PATIENT_EDIT_WINDOW_MINUTES),
+          billingPaidCancelWindowMinutes: Number(correctionSettings.billingPaidCancelWindowMinutes || DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES),
+          correctionReasonRequired: correctionSettings.correctionReasonRequired,
+        }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data?.ok) throw new Error(data?.error ?? 'operation_settings_save_failed')
+      setToast('薬局設定を保存しました')
+    } catch {
+      setToast('修正設定の保存に失敗しました')
+    }
     setTimeout(() => setToast(null), 2500)
   }
 
@@ -160,6 +205,27 @@ export default function PharmacySettingsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-slate-200 bg-white shadow-sm lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Shield className="h-4 w-4 text-amber-500" />修正・ロック設定</CardTitle>
+            <CardDescription className="text-slate-500">スタッフが短時間内に自己修正できる時間と、ロック後の修正依頼ルールです</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <div>
+              <Label className="text-slate-600">患者編集の自己修正時間（分）</Label>
+              <Input type="number" min={1} max={1440} value={correctionSettings.patientEditWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, patientEditWindowMinutes: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <div>
+              <Label className="text-slate-600">入金済みキャンセル可能時間（分）</Label>
+              <Input type="number" min={1} max={1440} value={correctionSettings.billingPaidCancelWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, billingPaidCancelWindowMinutes: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+            </div>
+            <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <input type="checkbox" checked={correctionSettings.correctionReasonRequired} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, correctionReasonRequired: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
+              修正依頼に理由入力を求める
+            </label>
+          </CardContent>
+        </Card>
+
         <Card className="border-slate-200 bg-white shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Gauge className="h-4 w-4 text-rose-500" />スタッフ負荷の判定</CardTitle>

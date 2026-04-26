@@ -4,30 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { writeAuditLog } from '@/lib/audit-log'
-import { mapCollectionAppStatusToDb } from '@/lib/status-meta'
-
-function normalizeCollectionStatus(status: unknown) {
-  switch (status) {
-    case '未着手':
-    case '請求準備OK':
-    case 'ready':
-    case 'needs_billing':
-      return mapCollectionAppStatusToDb('ready')
-    case '回収中':
-    case 'pending':
-    case 'billed':
-      return mapCollectionAppStatusToDb('pending')
-    case '入金済':
-    case 'paid':
-      return mapCollectionAppStatusToDb('paid')
-    case '要確認':
-    case 'on_hold':
-    case 'needs_attention':
-      return mapCollectionAppStatusToDb('on_hold')
-    default:
-      return mapCollectionAppStatusToDb('ready')
-  }
-}
+import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 export async function PATCH(request: Request, { params }: { params: { taskId: string } }) {
   const user = await getCurrentUser()
@@ -100,7 +77,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     handled_at: typeof task.handledAt === 'string' ? task.handledAt : null,
     completed_at: typeof task.completedAt === 'string' ? task.completedAt : null,
     billable: Boolean(task.billable),
-    collection_status: normalizeCollectionStatus(task.collectionStatus),
+    collection_status: normalizeCollectionStatusToDb(task.collectionStatus as string | null | undefined),
     amount: typeof task.amount === 'number' ? task.amount : 0,
     note: typeof task.note === 'string' ? task.note : '',
     updated_by_id: user.id,

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { buildAdminBillingRecords, buildDateCollectionSummaries, buildDayTaskCollectionRecords, buildPatientVisitHistory, buildUnbilledVisitRecords, type BillingCollectionRecord } from '@/lib/billing-read-model'
 import { billingData } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
+import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
@@ -84,32 +85,10 @@ export async function POST(request: Request) {
     ]),
   )
 
+  const sharedDayTasks = ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => mapPatientDayTaskRowToDayTaskItem(task, flowDate))
+
   const dayTaskCollectionRecords = buildDayTaskCollectionRecords({
-    sharedDayTasks: ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => ({
-      id: String(task.id),
-      patientId: String(task.patient_id ?? ''),
-      pharmacyId: String(task.pharmacy_id ?? ''),
-      flowDate: String(task.flow_date ?? flowDate),
-      sortOrder: Number(task.sort_order ?? 1),
-      scheduledTime: String(task.scheduled_time ?? '10:00'),
-      visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
-      source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
-      status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
-      planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
-      plannedBy: (task.planned_by as string | null) ?? null,
-      plannedById: (task.planned_by_id as string | null) ?? null,
-      plannedAt: (task.planned_at as string | null) ?? null,
-      handledBy: (task.handled_by as string | null) ?? null,
-      handledById: (task.handled_by_id as string | null) ?? null,
-      handledAt: (task.handled_at as string | null) ?? null,
-      completedAt: (task.completed_at as string | null) ?? null,
-      billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
-      amount: Number(task.amount ?? 0),
-      note: String(task.note ?? ''),
-      updatedAt: (task.updated_at as string | null) ?? null,
-      updatedById: (task.updated_by_id as string | null) ?? null,
-    })),
+    sharedDayTasks,
     ownPharmacyId: scopedPharmacyId,
     ownPatientNames,
     patientMap,
@@ -124,31 +103,7 @@ export async function POST(request: Request) {
 
   const patientVisitHistory = buildPatientVisitHistory({
     ownPatients,
-    sharedDayTasks: ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => ({
-      id: String(task.id),
-      patientId: String(task.patient_id ?? ''),
-      pharmacyId: String(task.pharmacy_id ?? ''),
-      flowDate: String(task.flow_date ?? flowDate),
-      sortOrder: Number(task.sort_order ?? 1),
-      scheduledTime: String(task.scheduled_time ?? '10:00'),
-      visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
-      source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
-      status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
-      planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
-      plannedBy: (task.planned_by as string | null) ?? null,
-      plannedById: (task.planned_by_id as string | null) ?? null,
-      plannedAt: (task.planned_at as string | null) ?? null,
-      handledBy: (task.handled_by as string | null) ?? null,
-      handledById: (task.handled_by_id as string | null) ?? null,
-      handledAt: (task.handled_at as string | null) ?? null,
-      completedAt: (task.completed_at as string | null) ?? null,
-      billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
-      amount: Number(task.amount ?? 0),
-      note: String(task.note ?? ''),
-      updatedAt: (task.updated_at as string | null) ?? null,
-      updatedById: (task.updated_by_id as string | null) ?? null,
-    })),
+    sharedDayTasks,
     mergedCollectionRecords,
   })
 
@@ -159,31 +114,7 @@ export async function POST(request: Request) {
   })
 
   const unbilledVisitRecords = buildUnbilledVisitRecords({
-    sharedDayTasks: ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => ({
-      id: String(task.id),
-      patientId: String(task.patient_id ?? ''),
-      pharmacyId: String(task.pharmacy_id ?? ''),
-      flowDate: String(task.flow_date ?? flowDate),
-      sortOrder: Number(task.sort_order ?? 1),
-      scheduledTime: String(task.scheduled_time ?? '10:00'),
-      visitType: (task.visit_type as '定期' | '臨時' | '要確認') ?? '定期',
-      source: (task.source as '自動生成' | '手動追加') ?? '自動生成',
-      status: (task.status as 'scheduled' | 'in_progress' | 'completed') ?? 'scheduled',
-      planningStatus: (task.planning_status as 'unplanned' | 'planned') ?? 'unplanned',
-      plannedBy: (task.planned_by as string | null) ?? null,
-      plannedById: (task.planned_by_id as string | null) ?? null,
-      plannedAt: (task.planned_at as string | null) ?? null,
-      handledBy: (task.handled_by as string | null) ?? null,
-      handledById: (task.handled_by_id as string | null) ?? null,
-      handledAt: (task.handled_at as string | null) ?? null,
-      completedAt: (task.completed_at as string | null) ?? null,
-      billable: Boolean(task.billable),
-      collectionStatus: (task.collection_status as '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済') ?? '未着手',
-      amount: Number(task.amount ?? 0),
-      note: String(task.note ?? ''),
-      updatedAt: (task.updated_at as string | null) ?? null,
-      updatedById: (task.updated_by_id as string | null) ?? null,
-    })),
+    sharedDayTasks,
     ownPharmacyId: scopedPharmacyId,
     patientMap,
     mergedCollectionRecords,

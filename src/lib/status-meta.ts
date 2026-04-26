@@ -3,6 +3,7 @@ import type { PharmacyStatus } from '@/lib/mock-data'
 
 export type CollectionWorkflowStatus = 'ready' | 'pending' | 'paid' | 'on_hold'
 export type CollectionWorkflowDbStatus = 'needs_billing' | 'billed' | 'paid' | 'needs_attention'
+export type CollectionWorkflowLegacyStatus = '未着手' | '請求準備OK' | '回収中' | '要確認' | '入金済'
 export type RequestStatusRole = 'admin' | 'night_pharmacist' | 'pharmacy'
 
 export type StatusMeta = {
@@ -56,6 +57,43 @@ export function mapCollectionAppStatusToDb(status: CollectionWorkflowStatus | st
       return 'paid'
     default:
       return 'needs_billing'
+  }
+}
+
+export function normalizeCollectionStatusToDb(status: CollectionWorkflowStatus | CollectionWorkflowDbStatus | CollectionWorkflowLegacyStatus | string | null | undefined): CollectionWorkflowDbStatus {
+  switch (status) {
+    case '未着手':
+    case '請求準備OK':
+    case 'ready':
+    case 'needs_billing':
+      return 'needs_billing'
+    case '回収中':
+    case 'pending':
+    case 'billed':
+      return 'billed'
+    case '入金済':
+    case 'paid':
+      return 'paid'
+    case '要確認':
+    case 'on_hold':
+    case 'needs_attention':
+      return 'needs_attention'
+    default:
+      return 'needs_billing'
+  }
+}
+
+export function mapCollectionStatusToLegacy(status: CollectionWorkflowStatus | CollectionWorkflowDbStatus | CollectionWorkflowLegacyStatus | string | null | undefined): CollectionWorkflowLegacyStatus {
+  switch (normalizeCollectionStatusToDb(status)) {
+    case 'billed':
+      return '回収中'
+    case 'paid':
+      return '入金済'
+    case 'needs_attention':
+      return '要確認'
+    case 'needs_billing':
+    default:
+      return '未着手'
   }
 }
 
