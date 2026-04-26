@@ -494,8 +494,8 @@ export default function CalendarPage() {
                   const defaultOpen = index === 0 && isAttention
 
                   return (
-                  <details key={task.taskId} open={defaultOpen} className={cn('group rounded-lg border bg-white shadow-sm', isAttention ? 'border-amber-200' : 'border-slate-200')}>
-                    <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+                  <details key={task.taskId} open={defaultOpen} className={cn('action-disclosure group rounded-lg border bg-white shadow-sm', isAttention ? 'border-amber-200' : 'border-slate-200')}>
+                    <summary className="action-summary flex list-none flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2.5">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium text-slate-900">{task.patientName}</p>
@@ -508,8 +508,8 @@ export default function CalendarPage() {
                           <span className="inline-flex items-center gap-1"><UserRound className="h-3 w-3" />{task.handledBy ?? '未担当'}</span>
                         </div>
                       </div>
-                      <span className="text-xs text-indigo-600 group-open:hidden">開く</span>
-                      <span className="text-xs text-slate-500 hidden group-open:inline">閉じる</span>
+                      <span className="action-summary-label rounded-full px-2 py-0.5 text-[11px] font-medium group-open:hidden">開く</span>
+                      <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500 group-open:inline">閉じる</span>
                     </summary>
                     <div className="border-t border-slate-100 px-3 pb-3 pt-2">
                       <div className="flex flex-wrap items-center gap-2">

@@ -477,3 +477,49 @@ button,
 .cursor-pointer {
   cursor: auto;
 }
+
+.action-disclosure {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.action-disclosure:hover {
+  border-color: rgb(165 180 252);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 0.08);
+}
+
+.action-summary {
+  position: relative;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.action-summary:hover {
+  background-color: rgb(248 250 252);
+  box-shadow: inset 3px 0 0 rgb(99 102 241 / 0.5);
+}
+
+.action-summary:focus-visible {
+  outline: 2px solid rgb(99 102 241 / 0.45);
+  outline-offset: 2px;
+}
+
+.action-summary-label {
+  border: 1px solid rgb(199 210 254);
+  background: rgb(238 242 255);
+  color: rgb(79 70 229);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.action-summary:hover .action-summary-label {
+  border-color: rgb(165 180 252);
+  background: rgb(224 231 255);
+  color: rgb(67 56 202);
+}

@@ -1222,8 +1222,8 @@ function PharmacyDashboardCollapsibleSection({
   children: React.ReactNode
 }) {
   return (
-    <details open={defaultOpen} className="group rounded-xl border border-slate-200 bg-white shadow-sm">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-slate-900 marker:hidden">
+    <details open={defaultOpen} className="action-disclosure group rounded-xl border border-slate-200 bg-white shadow-sm">
+      <summary className="action-summary flex list-none items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-900 marker:hidden">
         <span className="flex min-w-0 items-center gap-2">
           <Icon className="h-4 w-4 shrink-0 text-indigo-500" />
           <span className="truncate">{title}</span>
@@ -1231,7 +1231,11 @@ function PharmacyDashboardCollapsibleSection({
             <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-normal text-slate-500">{countLabel}</span>
           ) : null}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="action-summary-label rounded-full px-2 py-0.5 text-[11px] font-medium group-open:hidden">開く</span>
+          <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500 group-open:inline">閉じる</span>
+          <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+        </span>
       </summary>
       <div className="border-t border-slate-100 p-3">
         {children}
