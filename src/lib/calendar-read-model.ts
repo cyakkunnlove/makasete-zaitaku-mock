@@ -1,4 +1,5 @@
 import type { PatientDayTask, Patient } from '@/types/database'
+import { mapCollectionDbStatusToApp } from '@/lib/status-meta'
 
 type StaffSummary = {
   staffId: string
@@ -14,9 +15,15 @@ export type CalendarDaySummary = {
   date: string
   isPast: boolean
   isToday: boolean
+  totalCount: number
   plannedCount: number
   inProgressCount: number
   completedCount: number
+  completedBillableCount: number
+  collectedCount: number
+  uncollectedCompletedCount: number
+  allCompleted: boolean
+  allCollected: boolean
   firstVisitCount: number
   nightHandoverCount: number
   staffSummaries: StaffSummary[]
@@ -131,17 +138,33 @@ export function buildCalendarMonthSummary(input: {
       date,
       isPast: date < today,
       isToday: date === today,
+      totalCount: 0,
       plannedCount: 0,
       inProgressCount: 0,
       completedCount: 0,
+      completedBillableCount: 0,
+      collectedCount: 0,
+      uncollectedCompletedCount: 0,
+      allCompleted: false,
+      allCollected: false,
       firstVisitCount: 0,
       nightHandoverCount: 0,
       staffSummaries: [],
     }
 
+    existing.totalCount += 1
     if (task.status === 'completed') existing.completedCount += 1
     else if (task.status === 'in_progress') existing.inProgressCount += 1
     else existing.plannedCount += 1
+
+    if (task.status === 'completed' && task.billable) {
+      existing.completedBillableCount += 1
+      if (mapCollectionDbStatusToApp(task.collection_status) === 'paid') {
+        existing.collectedCount += 1
+      } else {
+        existing.uncollectedCompletedCount += 1
+      }
+    }
 
     if (firstVisitTaskIds.has(task.id)) existing.firstVisitCount += 1
     if (isNightHandoverTask(task)) existing.nightHandoverCount += 1
@@ -176,6 +199,8 @@ export function buildCalendarMonthSummary(input: {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((summary) => ({
       ...summary,
+      allCompleted: summary.totalCount > 0 && summary.completedCount === summary.totalCount,
+      allCollected: summary.completedBillableCount > 0 && summary.collectedCount === summary.completedBillableCount,
       staffSummaries: [...summary.staffSummaries].sort((a, b) => {
         const aScore = a.completedCount + a.firstVisitCount
         const bScore = b.completedCount + b.firstVisitCount

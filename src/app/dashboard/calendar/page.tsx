@@ -35,9 +35,15 @@ type CalendarDaySummary = {
   date: string
   isPast: boolean
   isToday: boolean
+  totalCount: number
   plannedCount: number
   inProgressCount: number
   completedCount: number
+  completedBillableCount: number
+  collectedCount: number
+  uncollectedCompletedCount: number
+  allCompleted: boolean
+  allCollected: boolean
   firstVisitCount: number
   nightHandoverCount: number
   staffSummaries: StaffSummary[]
@@ -275,6 +281,9 @@ export default function CalendarPage() {
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /> 完了中心
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" /> 対応中あり
           <span className="inline-flex h-2.5 w-2.5 rounded-full bg-indigo-400" /> 予定あり
+          <span className="hidden h-4 w-px bg-slate-200 sm:inline-flex" />
+          <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 sm:inline-flex">完了+回収済</span>
+          <span className="hidden rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-700 sm:inline-flex">完了後未回収</span>
         </div>
       </div>
 
@@ -324,6 +333,8 @@ export default function CalendarPage() {
                 const isSelected = selectedDate === dateKey
                 const weekDayIndex = new Date(`${dateKey}T00:00:00`).getDay()
                 const mobilePatientCount = (summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)
+                const isFullyDoneAndCollected = Boolean(summary?.allCompleted && summary.allCollected)
+                const hasCompletedUncollected = (summary?.uncollectedCompletedCount ?? 0) > 0
                 const toneClass = summary?.completedCount
                   ? 'border-emerald-500/40 bg-emerald-500/10'
                   : summary?.inProgressCount
@@ -338,8 +349,10 @@ export default function CalendarPage() {
                     type="button"
                     onClick={() => setSelectedDate(dateKey)}
                     className={cn(
-                      'h-20 sm:h-28 rounded-lg border p-1.5 sm:p-2 text-left transition hover:border-indigo-300 hover:bg-slate-50 overflow-hidden',
+                      'h-20 sm:h-32 rounded-lg border p-1.5 sm:p-2 text-left transition hover:border-indigo-300 hover:bg-slate-50 overflow-hidden',
                       toneClass,
+                      isFullyDoneAndCollected && 'border-emerald-300 bg-emerald-50',
+                      hasCompletedUncollected && 'border-rose-300 bg-rose-50',
                       isSelected && 'ring-2 ring-indigo-400/60',
                     )}
                   >
@@ -355,11 +368,15 @@ export default function CalendarPage() {
                     <div className="mt-1 hidden space-y-1 text-[11px] text-slate-600 sm:block">
                       <p>予定 {summary?.plannedCount ?? 0}</p>
                       <p>完了 {summary?.completedCount ?? 0}</p>
+                      {isFullyDoneAndCollected ? <p className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">完了+回収済</p> : null}
+                      {hasCompletedUncollected ? <p className="rounded bg-rose-100 px-1.5 py-0.5 font-medium text-rose-700">未回収 {summary?.uncollectedCompletedCount ?? 0}</p> : null}
                       <p>初回 {summary?.firstVisitCount ?? 0}</p>
                       {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
                     </div>
                     <div className="mt-2 sm:hidden">
                       {mobilePatientCount > 0 ? <p className="text-xs font-semibold text-slate-700">{mobilePatientCount}人</p> : null}
+                      {isFullyDoneAndCollected ? <p className="mt-1 text-[10px] font-medium text-emerald-700">回収済</p> : null}
+                      {hasCompletedUncollected ? <p className="mt-1 text-[10px] font-medium text-rose-700">未回収 {summary?.uncollectedCompletedCount ?? 0}</p> : null}
                     </div>
                   </button>
                 )
@@ -385,6 +402,12 @@ export default function CalendarPage() {
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">予定 {selectedSummary.plannedCount}</Badge>
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">対応中 {selectedSummary.inProgressCount}</Badge>
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">完了 {selectedSummary.completedCount}</Badge>
+                  {selectedSummary.allCompleted && selectedSummary.allCollected ? (
+                    <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">全完了・全回収済</Badge>
+                  ) : null}
+                  {selectedSummary.uncollectedCompletedCount > 0 ? (
+                    <Badge className="border-rose-200 bg-rose-50 text-rose-700">完了後未回収 {selectedSummary.uncollectedCompletedCount}</Badge>
+                  ) : null}
                   <Badge className="border-slate-200 bg-slate-50 text-slate-700">初回 {selectedSummary.firstVisitCount}</Badge>
                   {needsAttentionCount > 0 && <Badge className="border-amber-200 bg-amber-50 text-amber-700">要確認 {needsAttentionCount}</Badge>}
                 </div>
