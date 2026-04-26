@@ -37,8 +37,28 @@ const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
   { value: 'biweekly', label: '隔週' },
 ]
 
+type FormFieldKey =
+  | 'name'
+  | 'dob'
+  | 'postalCode'
+  | 'phone'
+  | 'address'
+  | 'startedAt'
+  | 'firstVisitDate'
+  | 'visitPlan'
+  | 'preferredTime'
+  | 'emergencyContactPhone'
+  | 'doctorPhone'
+  | 'billingExclusionReason'
+
+type FormFieldErrors = Partial<Record<FormFieldKey, string>>
+
+function normalizeFullWidthAscii(value: string) {
+  return value.replace(/[！-～]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ')
+}
+
 function normalizeDateInput(value: string) {
-  const trimmed = value.trim()
+  const trimmed = normalizeFullWidthAscii(value).trim()
   if (!trimmed) return ''
   const digits = trimmed.replace(/[^0-9]/g, '')
   if (digits.length === 8) {
@@ -49,8 +69,15 @@ function normalizeDateInput(value: string) {
   return trimmed
 }
 
+function isValidDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
 function normalizePostalCode(value: string) {
-  return value.replace(/[^0-9]/g, '').slice(0, 7)
+  return normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 7)
 }
 
 function formatPostalCode(value: string) {
@@ -60,7 +87,7 @@ function formatPostalCode(value: string) {
 }
 
 function normalizePhone(value: string) {
-  return value.replace(/[^0-9]/g, '').slice(0, 11)
+  return normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 11)
 }
 
 function formatPhone(value: string) {
@@ -72,18 +99,28 @@ function formatPhone(value: string) {
 }
 
 function normalizeVisitCount(value: string) {
-  const digits = value.replace(/[^0-9]/g, '').slice(0, 2)
+  const digits = normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 2)
   if (!digits) return ''
   return String(Math.max(1, Number(digits)))
 }
 
+function isValidPhone(value: string) {
+  const digits = normalizePhone(value)
+  return !digits || digits.length === 10 || digits.length === 11
+}
+
 function RequiredLabel({ children }: { children: ReactNode }) {
   return (
-    <Label className="text-gray-300">
+    <Label className="text-slate-700">
       {children}
       <span className="ml-1 text-rose-300">*</span>
     </Label>
   )
+}
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="mt-1 text-[11px] font-medium text-rose-600">{message}</p>
 }
 
 type GeocodePreview = {
@@ -119,6 +156,7 @@ export default function NewPatientPage() {
   const [visitPattern, setVisitPattern] = useState<VisitRulePattern>('weekly')
   const [biweeklyAnchorWeek, setBiweeklyAnchorWeek] = useState<1 | 2>(1)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FormFieldErrors>({})
   const [warningMessage, setWarningMessage] = useState<string | null>(null)
   const [showOptional, setShowOptional] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -172,6 +210,7 @@ export default function NewPatientPage() {
   const previewBaseDate = useMemo(() => new Date(`${form.startedAt || MOCK_FLOW_DATE}T00:00:00`), [form.startedAt])
   const [previewYear, setPreviewYear] = useState(previewBaseDate.getFullYear())
   const [previewMonth, setPreviewMonth] = useState(previewBaseDate.getMonth())
+  const inputClass = (field: FormFieldKey, extra = '') => `mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 ${fieldErrors[field] ? 'border-rose-300 bg-rose-50 ring-1 ring-rose-100' : ''} ${extra}`
 
   const effectiveCustomDates = useMemo(() => {
     const merged = new Set(customDates)
@@ -185,6 +224,11 @@ export default function NewPatientPage() {
   }
 
   const toggleDay = (day: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next.visitPlan
+      return next
+    })
     setSelectedDays((prev) => prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day])
   }
 
@@ -236,6 +280,13 @@ export default function NewPatientPage() {
   }, [previewMonth, previewVisitRules, previewYear])
 
   const handleChange = (key: keyof typeof form, value: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next[key as FormFieldKey]
+      if (key === 'firstVisitDate') delete next.visitPlan
+      return next
+    })
+
     if (key === 'isBillable') {
       setForm((prev) => ({
         ...prev,
@@ -247,7 +298,7 @@ export default function NewPatientPage() {
 
     let nextValue = value
 
-    if (key === 'dob' || key === 'firstVisitDate') {
+    if (key === 'dob' || key === 'firstVisitDate' || key === 'startedAt') {
       nextValue = normalizeDateInput(value)
     }
 
@@ -261,7 +312,7 @@ export default function NewPatientPage() {
     }
 
     if (key === 'preferredTime') {
-      nextValue = value.slice(0, 5)
+      nextValue = normalizeFullWidthAscii(value).replace(/[^\d:]/g, '').slice(0, 5)
     }
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -555,53 +606,79 @@ export default function NewPatientPage() {
     return preview.warnings.length > 0 || (normalized && normalized !== input)
   }
 
+  const validateForm = () => {
+    const errors: FormFieldErrors = {}
+    const normalizedDob = normalizeDateInput(form.dob)
+    const normalizedStartedAt = normalizeDateInput(form.startedAt)
+    const normalizedFirstVisitDate = normalizeDateInput(form.firstVisitDate)
+    const postalCode = normalizePostalCode(form.postalCode)
+
+    if (!form.name.trim()) errors.name = '氏名は必須です。患者を識別できる姓名を入力してください。'
+    if (!normalizedDob) {
+      errors.dob = '生年月日は必須です。カレンダーで選ぶか、8桁で入力してください。'
+    } else if (!isValidDateInput(normalizedDob)) {
+      errors.dob = '存在する日付を入力してください。例: 1950-04-12'
+    }
+    if (postalCode && postalCode.length !== 7) errors.postalCode = '郵便番号は7桁で入力してください。全角数字やハイフン付きでも構いません。'
+    if (!isValidPhone(form.phone)) errors.phone = '電話番号は10桁または11桁で入力してください。全角数字やハイフン付きでも構いません。'
+    if (!form.address.trim()) errors.address = '住所は必須です。郵便番号補完後、番地・建物名まで確認してください。'
+    if (normalizedStartedAt && !isValidDateInput(normalizedStartedAt)) errors.startedAt = '利用開始日は存在する日付を選んでください。'
+    if (normalizedFirstVisitDate && !isValidDateInput(normalizedFirstVisitDate)) errors.firstVisitDate = '初回訪問予定日は存在する日付を選んでください。'
+    if (!normalizedFirstVisitDate && selectedDays.length === 0) errors.visitPlan = '初回訪問予定日または訪問曜日のどちらかを入力してください。'
+    if (form.preferredTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(form.preferredTime)) errors.preferredTime = '希望時間は 10:00 のように24時間表記で入力してください。'
+    if (!isValidPhone(form.emergencyContactPhone)) errors.emergencyContactPhone = '緊急連絡先電話は10桁または11桁で入力してください。'
+    if (!isValidPhone(form.doctorPhone)) errors.doctorPhone = '医師電話は10桁または11桁で入力してください。'
+    if (!form.isBillable && !form.billingExclusionReason.trim()) errors.billingExclusionReason = '請求対象外にする場合は理由を入力してください。'
+
+    return errors
+  }
+
+  const focusFirstError = (errors: FormFieldErrors) => {
+    const firstKey = Object.keys(errors)[0]
+    if (!firstKey) return
+    window.setTimeout(() => {
+      document.querySelector(`[data-field="${firstKey}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
+  }
+
   const handleSave = async (skipGeocodeConfirmation = false) => {
     if (isSubmitting) return
 
     setErrorMessage(null)
     setWarningMessage(null)
+    setFieldErrors({})
 
     if (!canEditPatients) {
       setErrorMessage('このロールでは患者登録はできません。')
       return
     }
 
-    if (!form.name.trim()) {
-      setErrorMessage('氏名を入力してください。')
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
+      setErrorMessage('未入力または形式が正しくない項目があります。赤く表示された項目を確認してください。')
+      focusFirstError(validationErrors)
       return
     }
-
     const normalizedDob = normalizeDateInput(form.dob)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDob)) {
-      setErrorMessage('生年月日を入力してください。')
-      return
-    }
-
-    if (!form.address.trim()) {
-      setErrorMessage('住所を入力してください。')
-      return
-    }
-
-    if (!normalizeDateInput(form.firstVisitDate) && selectedDays.length === 0) {
-      setErrorMessage('初回訪問予定日または訪問曜日を入力してください。')
-      return
-    }
+    const normalizedStartedAt = normalizeDateInput(form.startedAt)
+    const normalizedFirstVisitDate = normalizeDateInput(form.firstVisitDate)
 
     const requestPayload = {
       basic: {
         fullName: form.name,
         birthDate: normalizedDob,
-        postalCode: form.postalCode,
+        postalCode: normalizePostalCode(form.postalCode),
         addressLine1: form.address,
         phone: form.phone,
-        serviceStartDate: form.startedAt,
+        serviceStartDate: normalizedStartedAt,
         visitNotes: form.visitNotes,
         emergencyContactName: form.emergencyContactName,
         emergencyContactRelation: form.emergencyContactRelation,
         emergencyContactPhone: form.emergencyContactPhone,
       },
       visitPlan: {
-        firstVisitDate: normalizeDateInput(form.firstVisitDate),
+        firstVisitDate: normalizedFirstVisitDate,
         monthlyVisitCount: Math.max(1, Number(visitCount) || 4),
         visitWeekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
       },
@@ -650,6 +727,22 @@ export default function NewPatientPage() {
 
       const createResult = await createResponse.json().catch(() => null)
       if (!createResponse.ok || !createResult?.ok) {
+        if (createResult?.error === 'duplicate_patient') {
+          setFieldErrors({
+            name: '同じ薬局に同一氏名・同一生年月日の患者が既に登録されています。',
+            dob: '既存患者と同じ生年月日です。患者一覧で既存登録を確認してください。',
+          })
+        }
+        if (createResult?.error === 'missing_required_fields') {
+          setFieldErrors({
+            name: '氏名・生年月日・住所のいずれかが不足しています。',
+            dob: '生年月日を確認してください。',
+            address: '住所を確認してください。',
+          })
+        }
+        if (createResult?.error === 'visit_plan_required') {
+          setFieldErrors({ visitPlan: '初回訪問予定日または訪問曜日のどちらかが必要です。' })
+        }
         setErrorMessage(
           createResult?.error === 'forbidden'
             ? 'このロールでは患者登録できません。'
@@ -729,35 +822,41 @@ export default function NewPatientPage() {
         <CardContent className="grid gap-3 md:grid-cols-2">
           <div>
             <RequiredLabel>氏名</RequiredLabel>
-            <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="山田 花子" />
+            <Input data-field="name" value={form.name} onChange={(e) => handleChange('name', e.target.value)} className={inputClass('name')} placeholder="山田 花子" />
+            <FieldErrorText message={fieldErrors.name} />
           </div>
           <div>
             <RequiredLabel>生年月日</RequiredLabel>
-            <Input value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="19500412 / 1950-04-12" inputMode="numeric" />
-            <p className="mt-1 text-[11px] text-slate-500">8桁でも入力できます。自動で日付の形に整えます。</p>
+            <Input data-field="dob" type="date" value={form.dob} onChange={(e) => handleChange('dob', e.target.value)} className={inputClass('dob')} />
+            <p className="mt-1 text-[11px] text-slate-500">カレンダーで選べます。直接入力する場合は 1950-04-12 の形式です。</p>
+            <FieldErrorText message={fieldErrors.dob} />
           </div>
           <div>
             <Label className="text-slate-600">郵便番号</Label>
             <div className="mt-1 flex gap-2">
-              <Input value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="192-0012" />
+              <Input data-field="postalCode" value={formatPostalCode(form.postalCode)} onChange={(e) => handleChange('postalCode', e.target.value)} onBlur={() => { if (normalizePostalCode(form.postalCode).length === 7) void lookupPostalCode(form.postalCode) }} className={inputClass('postalCode', 'mt-0')} placeholder="192-0012" inputMode="numeric" />
               <Button type="button" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" disabled={postalLookupLoading || normalizePostalCode(form.postalCode).length !== 7} onClick={() => void lookupPostalCode(form.postalCode)}>
                 再取得
               </Button>
             </div>
             <p className="mt-1 text-[11px] text-slate-500">{postalLookupLoading ? '郵便番号から住所を確認中です...' : postalLookupMessage ?? '7桁入力すると住所を補完します。番地以降は必要に応じて追記してください。'}</p>
+            <FieldErrorText message={fieldErrors.postalCode} />
           </div>
           <div>
             <Label className="text-slate-600">連絡先電話</Label>
-            <Input value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="090-1234-5678" inputMode="tel" />
-            <p className="mt-1 text-[11px] text-slate-500">数字だけでも入力できます。</p>
+            <Input data-field="phone" value={formatPhone(form.phone)} onChange={(e) => handleChange('phone', e.target.value)} className={inputClass('phone')} placeholder="090-1234-5678" inputMode="tel" />
+            <p className="mt-1 text-[11px] text-slate-500">全角数字・ハイフン付きでも自動で整えます。</p>
+            <FieldErrorText message={fieldErrors.phone} />
           </div>
           <div className="md:col-span-2">
             <RequiredLabel>住所</RequiredLabel>
-            <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="東京都八王子市..." />
+            <Input data-field="address" value={form.address} onChange={(e) => handleChange('address', e.target.value)} className={inputClass('address')} placeholder="東京都八王子市..." />
+            <FieldErrorText message={fieldErrors.address} />
           </div>
           <div>
             <Label className="text-slate-600">利用開始日</Label>
-            <Input value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" placeholder="2026-04-11" inputMode="numeric" />
+            <Input data-field="startedAt" type="date" value={form.startedAt} onChange={(e) => handleChange('startedAt', e.target.value)} className={inputClass('startedAt')} />
+            <FieldErrorText message={fieldErrors.startedAt} />
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
             <p className="font-medium text-slate-900">登録ルール</p>
@@ -786,11 +885,13 @@ export default function NewPatientPage() {
               <div className="mt-3">
                 <Label className="text-slate-700">対象外理由</Label>
                 <Input
+                  data-field="billingExclusionReason"
                   value={form.billingExclusionReason}
                   onChange={(e) => handleChange('billingExclusionReason', e.target.value)}
                   placeholder="保険上対象外、施設契約内など"
-                  className="mt-1 border-slate-200 bg-white text-slate-900"
+                  className={inputClass('billingExclusionReason')}
                 />
+                <FieldErrorText message={fieldErrors.billingExclusionReason} />
               </div>
             ) : null}
           </div>
@@ -803,7 +904,8 @@ export default function NewPatientPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <Label className="text-slate-700">初回訪問予定日</Label>
-              <Input value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="2026-04-14" inputMode="numeric" />
+              <Input data-field="firstVisitDate" type="date" value={form.firstVisitDate} onChange={(e) => handleChange('firstVisitDate', e.target.value)} className={inputClass('firstVisitDate')} />
+              <FieldErrorText message={fieldErrors.firstVisitDate} />
             </div>
             <div>
               <Label className="text-slate-700">訪問パターン</Label>
@@ -828,7 +930,7 @@ export default function NewPatientPage() {
 
           <div>
             <Label className="text-slate-700">訪問曜日</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div data-field="visitPlan" className={`mt-2 flex flex-wrap gap-2 rounded-lg ${fieldErrors.visitPlan ? 'border border-rose-200 bg-rose-50 p-2' : ''}`}>
               {visitWeekdayOptions.map((day) => {
                 const active = selectedDays.includes(day)
                 return (
@@ -839,11 +941,13 @@ export default function NewPatientPage() {
               })}
             </div>
             <p className="mt-2 text-xs text-slate-500">初回訪問予定日または訪問曜日のどちらかを入力してください。</p>
+            <FieldErrorText message={fieldErrors.visitPlan} />
           </div>
 
           <div>
             <Label className="text-slate-700">希望時間</Label>
-            <Input value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className="mt-1 max-w-xs border-slate-200 bg-white text-slate-900" placeholder="10:00" inputMode="numeric" />
+            <Input data-field="preferredTime" type="time" value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className={inputClass('preferredTime', 'max-w-xs')} />
+            <FieldErrorText message={fieldErrors.preferredTime} />
           </div>
 
           {isExceeded && (
@@ -938,7 +1042,11 @@ export default function NewPatientPage() {
               <div className="space-y-3">
                 <div><Label className="text-slate-700">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="山田 一郎" /></div>
                 <div><Label className="text-slate-700">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="長男" /></div>
-                <div><Label className="text-slate-700">緊急連絡先電話</Label><Input value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="090-1234-5678" inputMode="tel" /></div>
+                <div>
+                  <Label className="text-slate-700">緊急連絡先電話</Label>
+                  <Input data-field="emergencyContactPhone" value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className={inputClass('emergencyContactPhone')} placeholder="090-1234-5678" inputMode="tel" />
+                  <FieldErrorText message={fieldErrors.emergencyContactPhone} />
+                </div>
               </div>
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-slate-700">病院・クリニック</Label>
@@ -1099,7 +1207,11 @@ export default function NewPatientPage() {
                   )}
                 </div>
               </div>
-              <div><Label className="text-slate-700">医師電話</Label><Input value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="03-1234-5678" inputMode="tel" /></div>
+              <div>
+                <Label className="text-slate-700">医師電話</Label>
+                <Input data-field="doctorPhone" value={formatPhone(form.doctorPhone)} onChange={(e) => handleChange('doctorPhone', e.target.value)} className={inputClass('doctorPhone')} placeholder="03-1234-5678" inputMode="tel" />
+                <FieldErrorText message={fieldErrors.doctorPhone} />
+              </div>
               <div><Label className="text-slate-700">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="ラシックス など" /></div>
               <div><Label className="text-slate-700">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="心不全 など" /></div>
               <div className="md:col-span-2"><Label className="text-slate-700">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="既往歴を入力" /></div>

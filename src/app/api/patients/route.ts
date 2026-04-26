@@ -8,9 +8,13 @@ import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-per
 import { writeAuditLog } from '@/lib/audit-log'
 import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
+function normalizeFullWidthAscii(value: string) {
+  return value.replace(/[！-～]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ')
+}
+
 function normalizeDateInput(value: unknown) {
   if (typeof value !== 'string') return null
-  const trimmed = value.trim()
+  const trimmed = normalizeFullWidthAscii(value).trim()
   if (!trimmed) return null
   const digits = trimmed.replace(/[^0-9]/g, '')
   if (digits.length === 8) {
@@ -19,6 +23,12 @@ function normalizeDateInput(value: unknown) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
   if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) return trimmed.replace(/\//g, '-')
   return null
+}
+
+function normalizePhoneInput(value: unknown) {
+  if (typeof value !== 'string') return null
+  const digits = normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 11)
+  return digits || null
 }
 
 export async function POST(request: Request) {
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
   const fullName = typeof basic?.fullName === 'string' ? basic.fullName.trim() : ''
   const birthDate = normalizeDateInput(basic?.birthDate)
   const addressLine1 = typeof basic?.addressLine1 === 'string' ? basic.addressLine1.trim() : ''
-  const phone = typeof basic?.phone === 'string' ? basic.phone.trim() : null
+  const phone = normalizePhoneInput(basic?.phone)
   const firstVisitDate = normalizeDateInput(visitPlan?.firstVisitDate)
   const visitWeekdays = Array.isArray(visitPlan?.visitWeekdays)
     ? visitPlan?.visitWeekdays.filter((item): item is number => typeof item === 'number')
@@ -137,7 +147,7 @@ export async function POST(request: Request) {
 
   let doctorClinic = typeof medical?.doctorClinic === 'string' ? medical.doctorClinic.trim() || null : null
   let doctorName = typeof medical?.doctorName === 'string' ? medical.doctorName.trim() || null : null
-  let doctorPhone = typeof medical?.doctorPhone === 'string' ? medical.doctorPhone.trim() || null : null
+  let doctorPhone = normalizePhoneInput(medical?.doctorPhone)
 
   if (medicalInstitutionId) {
     const institutionResponse = await supabase
@@ -168,7 +178,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'doctor_master_scope_mismatch' }, { status: 400 })
     }
     doctorName = typeof doctor.full_name === 'string' ? doctor.full_name : doctorName
-    doctorPhone = typeof doctor.phone === 'string' ? doctor.phone : doctorPhone
+    doctorPhone = normalizePhoneInput(doctor.phone) ?? doctorPhone
   }
 
   const billing = (body as Record<string, unknown>).billing as Record<string, unknown> | undefined
@@ -187,7 +197,7 @@ export async function POST(request: Request) {
     address: addressLine1,
     phone,
     emergency_contact_name: typeof basic?.emergencyContactName === 'string' ? basic.emergencyContactName.trim() : '未設定',
-    emergency_contact_phone: typeof basic?.emergencyContactPhone === 'string' ? basic.emergencyContactPhone.trim() : '-',
+    emergency_contact_phone: normalizePhoneInput(basic?.emergencyContactPhone) ?? '-',
     emergency_contact_relation: typeof basic?.emergencyContactRelation === 'string' ? basic.emergencyContactRelation.trim() || null : null,
     doctor_name: doctorName,
     doctor_clinic: doctorClinic,
