@@ -32,6 +32,7 @@ import {
   FileClock,
   UserCog,
   Phone,
+  MapPin,
   ChevronDown,
 } from 'lucide-react'
 import { getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
@@ -155,6 +156,12 @@ function shiftDateKey(baseDateKey: string, diffDays: number) {
 
 function getTodayDateKey() {
   return toDateKey(new Date())
+}
+
+function buildGoogleMapsSearchUrl(address: string) {
+  const query = address.trim()
+  if (!query) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
 
 function decodeGooglePolyline(encoded: string) {
@@ -1271,6 +1278,8 @@ function PharmacyDayTaskCardHeader({
   statusClassName: string
   statusLabel: string
 }) {
+  const patientMapUrl = buildGoogleMapsSearchUrl(patientAddress)
+
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
@@ -1284,7 +1293,21 @@ function PharmacyDayTaskCardHeader({
           </Badge>
           <Badge variant="outline" className="border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
         </div>
-        <p className="mt-1 text-xs text-slate-500">{patientAddress}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="min-w-0 break-words">{patientAddress}</span>
+          {patientMapUrl ? (
+            <a
+              href={patientMapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+              aria-label={`${patientName}の住所をGoogle Mapsで開く`}
+            >
+              <MapPin className="h-3 w-3" />
+              地図で開く
+            </a>
+          ) : null}
+        </div>
         {(patientPhone && patientPhone !== '-') || (emergencyContactPhone && emergencyContactPhone !== '-') ? (
           <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
             {patientPhone && patientPhone !== '-' ? (
