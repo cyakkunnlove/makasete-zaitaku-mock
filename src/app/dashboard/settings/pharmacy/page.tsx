@@ -17,12 +17,51 @@ import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow, Gauge
 
 const PHARMACY_WORKLOAD_SETTINGS_KEY = 'makasete-pharmacy-workload-settings'
 
+const emergencyRouteOptions = ['Regional Admin 受付', '自局電話で受付', '転送電話で受付', 'LINE通知中心', 'その他']
+type SettingsErrorKey = 'forwardingPhone' | 'patientEditWindowMinutes' | 'billingPaidCancelWindowMinutes' | 'lightMax' | 'mediumMax' | 'firstVisitWeight' | 'inProgressWeight' | 'distanceWeight'
+type SettingsErrors = Partial<Record<SettingsErrorKey, string>>
+
+function normalizeFullWidthAscii(value: string) {
+  return value.replace(/[！-～]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ')
+}
+
+function normalizePhone(value: string) {
+  return normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 11)
+}
+
+function formatPhone(value: string) {
+  const digits = normalizePhone(value)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  if (digits.length === 10) return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+}
+
+function normalizeDecimal(value: string) {
+  return normalizeFullWidthAscii(value).replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1').slice(0, 5)
+}
+
+function normalizeInteger(value: string) {
+  return normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 4)
+}
+
+function isValidPhone(value: string) {
+  const digits = normalizePhone(value)
+  return !digits || digits.length === 10 || digits.length === 11
+}
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="mt-1 text-[11px] font-medium text-rose-600">{message}</p>
+}
+
 export default function PharmacySettingsPage() {
   const { role } = useAuth()
   const { guard, requiresReverification } = useReauthGuard()
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const canViewPage = role === 'pharmacy_admin' || role === 'regional_admin'
   const [toast, setToast] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<SettingsErrors>({})
   const [settings, setSettings] = useState({
     pharmacyName: '城南みらい薬局',
     emergencyRoute: 'Regional Admin 受付',
@@ -32,6 +71,30 @@ export default function PharmacySettingsPage() {
     contractPlan: '加盟店 / 夜間受託あり',
     adminOwner: '山田 美咲',
   })
+
+  const inputClass = (field: SettingsErrorKey) => `mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 ${fieldErrors[field] ? 'border-rose-300 bg-rose-50 ring-1 ring-rose-100' : ''}`
+
+  const validateSettings = () => {
+    const errors: SettingsErrors = {}
+    const patientEditWindowMinutes = Number(correctionSettings.patientEditWindowMinutes)
+    const billingPaidCancelWindowMinutes = Number(correctionSettings.billingPaidCancelWindowMinutes)
+    const lightMax = Number(workloadSettings.lightMax)
+    const mediumMax = Number(workloadSettings.mediumMax)
+    const firstVisitWeight = Number(workloadSettings.firstVisitWeight)
+    const inProgressWeight = Number(workloadSettings.inProgressWeight)
+    const distanceWeight = Number(workloadSettings.distanceWeight)
+
+    if (!isValidPhone(settings.forwardingPhone)) errors.forwardingPhone = '転送先電話は10桁または11桁で入力してください。'
+    if (!Number.isFinite(patientEditWindowMinutes) || patientEditWindowMinutes < 1 || patientEditWindowMinutes > 1440) errors.patientEditWindowMinutes = '1分から1440分の範囲で入力してください。'
+    if (!Number.isFinite(billingPaidCancelWindowMinutes) || billingPaidCancelWindowMinutes < 1 || billingPaidCancelWindowMinutes > 1440) errors.billingPaidCancelWindowMinutes = '1分から1440分の範囲で入力してください。'
+    if (!Number.isFinite(lightMax) || lightMax <= 0) errors.lightMax = '0より大きい数値を入力してください。'
+    if (!Number.isFinite(mediumMax) || mediumMax <= lightMax) errors.mediumMax = '軽めの上限より大きい数値を入力してください。'
+    if (!Number.isFinite(firstVisitWeight) || firstVisitWeight < 0) errors.firstVisitWeight = '0以上の数値を入力してください。'
+    if (!Number.isFinite(inProgressWeight) || inProgressWeight < 0) errors.inProgressWeight = '0以上の数値を入力してください。'
+    if (!Number.isFinite(distanceWeight) || distanceWeight < 0) errors.distanceWeight = '0以上の数値を入力してください。'
+
+    return errors
+  }
   const [workloadSettings, setWorkloadSettings] = useState({
     lightMax: '4',
     mediumMax: '8',
@@ -77,6 +140,14 @@ export default function PharmacySettingsPage() {
 
   const save = async () => {
     if (guard()) return
+    setFieldErrors({})
+    const validationErrors = validateSettings()
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
+      setToast('未入力または形式が正しくない項目があります')
+      setTimeout(() => setToast(null), 2500)
+      return
+    }
     try {
       window.localStorage.setItem(PHARMACY_WORKLOAD_SETTINGS_KEY, JSON.stringify({
         lightMax: Number(workloadSettings.lightMax || 4),
@@ -184,17 +255,28 @@ export default function PharmacySettingsPage() {
                 <p className="text-sm font-medium text-slate-900">夜間受託</p>
                 <p className="text-xs text-slate-500">夜間依頼を地域運用側へ委譲</p>
               </div>
-              <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">
-                {settings.nightDelegationEnabled === 'on' ? '有効' : '無効'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <select value={settings.nightDelegationEnabled} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, nightDelegationEnabled: e.target.value }))} className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-900 disabled:cursor-not-allowed disabled:opacity-60">
+                  <option value="on">有効</option>
+                  <option value="off">無効</option>
+                </select>
+                <Badge variant="outline" className={settings.nightDelegationEnabled === 'on' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700' : 'border-slate-300 bg-white text-slate-500'}>
+                  {settings.nightDelegationEnabled === 'on' ? '有効' : '無効'}
+                </Badge>
+              </div>
             </div>
             <div>
               <Label className="text-slate-600">夜間受付経路</Label>
-              <Input value={settings.emergencyRoute} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, emergencyRoute: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <select value={settings.emergencyRoute} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, emergencyRoute: e.target.value }))} className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 disabled:cursor-not-allowed disabled:opacity-60">
+                {emergencyRouteOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label className="text-slate-600">転送先電話</Label>
-              <Input value={settings.forwardingPhone} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, forwardingPhone: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={formatPhone(settings.forwardingPhone)} disabled={!isPharmacyAdmin} onChange={(e) => setSettings((prev) => ({ ...prev, forwardingPhone: normalizePhone(e.target.value) }))} className={inputClass('forwardingPhone')} inputMode="tel" placeholder="03-1234-5678" />
+              <FieldErrorText message={fieldErrors.forwardingPhone} />
             </div>
             <div>
               <Label className="text-slate-600">朝の確認メモ既定文</Label>
@@ -213,11 +295,13 @@ export default function PharmacySettingsPage() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div>
               <Label className="text-slate-600">患者編集の自己修正時間（分）</Label>
-              <Input type="number" min={1} max={1440} value={correctionSettings.patientEditWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, patientEditWindowMinutes: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input type="number" min={1} max={1440} value={correctionSettings.patientEditWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, patientEditWindowMinutes: normalizeInteger(e.target.value) }))} className={inputClass('patientEditWindowMinutes')} />
+              <FieldErrorText message={fieldErrors.patientEditWindowMinutes} />
             </div>
             <div>
               <Label className="text-slate-600">入金済みキャンセル可能時間（分）</Label>
-              <Input type="number" min={1} max={1440} value={correctionSettings.billingPaidCancelWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, billingPaidCancelWindowMinutes: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input type="number" min={1} max={1440} value={correctionSettings.billingPaidCancelWindowMinutes} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, billingPaidCancelWindowMinutes: normalizeInteger(e.target.value) }))} className={inputClass('billingPaidCancelWindowMinutes')} />
+              <FieldErrorText message={fieldErrors.billingPaidCancelWindowMinutes} />
             </div>
             <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               <input type="checkbox" checked={correctionSettings.correctionReasonRequired} disabled={!isPharmacyAdmin} onChange={(e) => setCorrectionSettings((prev) => ({ ...prev, correctionReasonRequired: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
@@ -234,23 +318,28 @@ export default function PharmacySettingsPage() {
           <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div>
               <Label className="text-slate-600">軽めの上限スコア</Label>
-              <Input value={workloadSettings.lightMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, lightMax: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={workloadSettings.lightMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, lightMax: normalizeDecimal(e.target.value) }))} className={inputClass('lightMax')} inputMode="decimal" />
+              <FieldErrorText message={fieldErrors.lightMax} />
             </div>
             <div>
               <Label className="text-slate-600">中程度の上限スコア</Label>
-              <Input value={workloadSettings.mediumMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, mediumMax: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={workloadSettings.mediumMax} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, mediumMax: normalizeDecimal(e.target.value) }))} className={inputClass('mediumMax')} inputMode="decimal" />
+              <FieldErrorText message={fieldErrors.mediumMax} />
             </div>
             <div>
               <Label className="text-slate-600">初回訪問の重み</Label>
-              <Input value={workloadSettings.firstVisitWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, firstVisitWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={workloadSettings.firstVisitWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, firstVisitWeight: normalizeDecimal(e.target.value) }))} className={inputClass('firstVisitWeight')} inputMode="decimal" />
+              <FieldErrorText message={fieldErrors.firstVisitWeight} />
             </div>
             <div>
               <Label className="text-slate-600">対応中件数の重み</Label>
-              <Input value={workloadSettings.inProgressWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, inProgressWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={workloadSettings.inProgressWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, inProgressWeight: normalizeDecimal(e.target.value) }))} className={inputClass('inProgressWeight')} inputMode="decimal" />
+              <FieldErrorText message={fieldErrors.inProgressWeight} />
             </div>
             <div>
               <Label className="text-slate-600">距離目安の重み</Label>
-              <Input value={workloadSettings.distanceWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, distanceWeight: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+              <Input value={workloadSettings.distanceWeight} disabled={!isPharmacyAdmin} onChange={(e) => setWorkloadSettings((prev) => ({ ...prev, distanceWeight: normalizeDecimal(e.target.value) }))} className={inputClass('distanceWeight')} inputMode="decimal" />
+              <FieldErrorText message={fieldErrors.distanceWeight} />
             </div>
           </CardContent>
         </Card>

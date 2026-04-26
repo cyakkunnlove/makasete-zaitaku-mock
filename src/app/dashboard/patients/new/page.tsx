@@ -37,6 +37,55 @@ const patternOptions: Array<{ value: VisitRulePattern; label: string }> = [
   { value: 'biweekly', label: '隔週' },
 ]
 
+const relationOptions = [
+  '配偶者',
+  '夫',
+  '妻',
+  '長男',
+  '長女',
+  '次男',
+  '次女',
+  '子',
+  '父',
+  '母',
+  '兄弟姉妹',
+  'ケアマネ',
+  '施設職員',
+  'その他',
+]
+
+const diseaseOptions = [
+  '高血圧',
+  '糖尿病',
+  '慢性心不全',
+  'COPD',
+  '認知症',
+  '脳梗塞後',
+  '慢性腎不全',
+  'がん',
+  '骨粗しょう症',
+  'パーキンソン病',
+  '関節リウマチ',
+  '脂質異常症',
+  '便秘症',
+  '慢性疼痛',
+]
+
+const medicalHistoryOptions = [
+  '脳梗塞',
+  '心筋梗塞',
+  '心不全',
+  '肺炎',
+  '骨折',
+  '手術歴あり',
+  '入退院歴あり',
+  '転倒歴あり',
+  'アレルギー歴あり',
+  '認知症',
+  '糖尿病',
+  '腎機能低下',
+]
+
 type FormFieldKey =
   | 'name'
   | 'dob'
@@ -76,6 +125,12 @@ function isValidDateInput(value: string) {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
 }
 
+function getDateYearsAgo(years: number) {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() - years)
+  return formatVisitCalendarDateKey(date)
+}
+
 function normalizePostalCode(value: string) {
   return normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 7)
 }
@@ -107,6 +162,13 @@ function normalizeVisitCount(value: string) {
 function isValidPhone(value: string) {
   const digits = normalizePhone(value)
   return !digits || digits.length === 10 || digits.length === 11
+}
+
+function composeSelectionText(selected: string[], note: string) {
+  const parts = [...selected]
+  const trimmedNote = note.trim()
+  if (trimmedNote) parts.push(`備考: ${trimmedNote}`)
+  return parts.join('、')
 }
 
 function RequiredLabel({ children }: { children: ReactNode }) {
@@ -153,6 +215,8 @@ export default function NewPatientPage() {
   const [visitCount, setVisitCount] = useState('4')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedDays, setSelectedDays] = useState<string[]>([])
+  const [selectedDiseases, setSelectedDiseases] = useState<string[]>([])
+  const [selectedMedicalHistories, setSelectedMedicalHistories] = useState<string[]>([])
   const [visitPattern, setVisitPattern] = useState<VisitRulePattern>('weekly')
   const [biweeklyAnchorWeek, setBiweeklyAnchorWeek] = useState<1 | 2>(1)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -182,7 +246,7 @@ export default function NewPatientPage() {
   const [doctorForm, setDoctorForm] = useState({ fullName: '', phone: '', department: '' })
   const [form, setForm] = useState({
     name: '',
-    dob: '',
+    dob: getDateYearsAgo(70),
     postalCode: '',
     phone: '',
     address: '',
@@ -199,6 +263,7 @@ export default function NewPatientPage() {
     allergies: '',
     diseaseName: '',
     preferredTime: '10:00',
+    preferredTimeUnspecified: 'false',
     visitNotes: '',
     insuranceInfo: '',
     isBillable: true,
@@ -232,6 +297,14 @@ export default function NewPatientPage() {
     setSelectedDays((prev) => prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day])
   }
 
+  const toggleDisease = (disease: string) => {
+    setSelectedDiseases((prev) => prev.includes(disease) ? prev.filter((item) => item !== disease) : [...prev, disease])
+  }
+
+  const toggleMedicalHistory = (history: string) => {
+    setSelectedMedicalHistories((prev) => prev.includes(history) ? prev.filter((item) => item !== history) : [...prev, history])
+  }
+
   const previewVisitRules = useMemo<PatientVisitRule[]>(() => {
     const baseRules: PatientVisitRule[] = selectedDays.map((day, index) => ({
       id: `preview-rule-${weekdayMap[day as keyof typeof weekdayMap]}-${index + 1}`,
@@ -239,7 +312,7 @@ export default function NewPatientPage() {
       weekday: weekdayMap[day as keyof typeof weekdayMap],
       intervalWeeks: visitPattern === 'biweekly' ? 2 : 1,
       anchorWeek: visitPattern === 'biweekly' ? biweeklyAnchorWeek : null,
-      preferredTime: form.preferredTime || null,
+      preferredTime: form.preferredTimeUnspecified === 'true' ? null : form.preferredTime || null,
       monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
       active: true,
       customDates: [],
@@ -253,7 +326,7 @@ export default function NewPatientPage() {
         weekday: null,
         intervalWeeks: 1,
         anchorWeek: null,
-        preferredTime: form.preferredTime || null,
+        preferredTime: form.preferredTimeUnspecified === 'true' ? null : form.preferredTime || null,
         monthlyVisitLimit: Math.max(1, Number(visitCount) || 4),
         active: true,
         customDates: effectiveCustomDates,
@@ -262,7 +335,7 @@ export default function NewPatientPage() {
     }
 
     return baseRules
-  }, [biweeklyAnchorWeek, effectiveCustomDates, excludedDates, form.preferredTime, selectedDays, visitCount, visitPattern])
+  }, [biweeklyAnchorWeek, effectiveCustomDates, excludedDates, form.preferredTime, form.preferredTimeUnspecified, selectedDays, visitCount, visitPattern])
 
   const calendarPreview = useMemo(() => {
     const { firstDay, daysInMonth } = getVisitCalendarMonthDays(previewYear, previewMonth)
@@ -313,6 +386,11 @@ export default function NewPatientPage() {
 
     if (key === 'preferredTime') {
       nextValue = normalizeFullWidthAscii(value).replace(/[^\d:]/g, '').slice(0, 5)
+    }
+
+    if (key === 'preferredTimeUnspecified') {
+      setForm((prev) => ({ ...prev, preferredTimeUnspecified: value, preferredTime: value === 'true' ? '' : prev.preferredTime || '10:00' }))
+      return
     }
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -663,6 +741,8 @@ export default function NewPatientPage() {
     const normalizedDob = normalizeDateInput(form.dob)
     const normalizedStartedAt = normalizeDateInput(form.startedAt)
     const normalizedFirstVisitDate = normalizeDateInput(form.firstVisitDate)
+    const diseaseName = composeSelectionText(selectedDiseases, form.diseaseName)
+    const medicalHistory = composeSelectionText(selectedMedicalHistories, form.medicalHistory)
 
     const requestPayload = {
       basic: {
@@ -681,6 +761,8 @@ export default function NewPatientPage() {
         firstVisitDate: normalizedFirstVisitDate,
         monthlyVisitCount: Math.max(1, Number(visitCount) || 4),
         visitWeekdays: selectedDays.map((day) => weekdayMap[day as keyof typeof weekdayMap]),
+        preferredTime: form.preferredTimeUnspecified === 'true' ? null : form.preferredTime || null,
+        visitRules: previewVisitRules,
       },
       medical: {
         medicalInstitutionId: selectedMedicalInstitutionId,
@@ -689,9 +771,9 @@ export default function NewPatientPage() {
         doctorClinic: form.doctorClinic,
         doctorPhone: form.doctorPhone,
         currentMeds: form.currentMeds,
-        medicalHistory: form.medicalHistory,
+        medicalHistory,
         allergies: form.allergies,
-        diseaseName: form.diseaseName,
+        diseaseName,
         insuranceInfo: form.insuranceInfo,
       },
       billing: {
@@ -946,7 +1028,27 @@ export default function NewPatientPage() {
 
           <div>
             <Label className="text-slate-700">希望時間</Label>
-            <Input data-field="preferredTime" type="time" value={form.preferredTime} onChange={(e) => handleChange('preferredTime', e.target.value)} className={inputClass('preferredTime', 'max-w-xs')} />
+            <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                data-field="preferredTime"
+                type="time"
+                step={600}
+                value={form.preferredTime}
+                disabled={form.preferredTimeUnspecified === 'true'}
+                onChange={(e) => handleChange('preferredTime', e.target.value)}
+                className={inputClass('preferredTime', 'mt-0 max-w-xs disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400')}
+              />
+              <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={form.preferredTimeUnspecified === 'true'}
+                  onChange={(e) => handleChange('preferredTimeUnspecified', e.target.checked ? 'true' : 'false')}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                指定なし
+              </label>
+            </div>
+            {form.preferredTimeUnspecified === 'true' && <p className="mt-1 text-[11px] font-medium text-slate-500">希望時間は「指定なし」として予定に反映します。</p>}
             <FieldErrorText message={fieldErrors.preferredTime} />
           </div>
 
@@ -1041,7 +1143,15 @@ export default function NewPatientPage() {
               <div><Label className="text-slate-700">注意事項メモ</Label><Textarea value={form.visitNotes} onChange={(e) => handleChange('visitNotes', e.target.value)} className="mt-1 min-h-[100px] border-slate-200 bg-white text-slate-900" placeholder="暗証番号 / 配薬場所 / 訪問時の注意 など" /></div>
               <div className="space-y-3">
                 <div><Label className="text-slate-700">緊急連絡先</Label><Input value={form.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="山田 一郎" /></div>
-                <div><Label className="text-slate-700">続柄</Label><Input value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="長男" /></div>
+                <div>
+                  <Label className="text-slate-700">続柄</Label>
+                  <select value={form.emergencyContactRelation} onChange={(e) => handleChange('emergencyContactRelation', e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900">
+                    <option value="">未選択</option>
+                    {relationOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <Label className="text-slate-700">緊急連絡先電話</Label>
                   <Input data-field="emergencyContactPhone" value={formatPhone(form.emergencyContactPhone)} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} className={inputClass('emergencyContactPhone')} placeholder="090-1234-5678" inputMode="tel" />
@@ -1213,8 +1323,34 @@ export default function NewPatientPage() {
                 <FieldErrorText message={fieldErrors.doctorPhone} />
               </div>
               <div><Label className="text-slate-700">現在薬</Label><Input value={form.currentMeds} onChange={(e) => handleChange('currentMeds', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="ラシックス など" /></div>
-              <div><Label className="text-slate-700">主疾患</Label><Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="心不全 など" /></div>
-              <div className="md:col-span-2"><Label className="text-slate-700">既往歴</Label><Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-1 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="既往歴を入力" /></div>
+              <div className="md:col-span-2">
+                <Label className="text-slate-700">主疾患</Label>
+                <div className="mt-2 flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                  {diseaseOptions.map((disease) => {
+                    const active = selectedDiseases.includes(disease)
+                    return (
+                      <button key={disease} type="button" onClick={() => toggleDisease(disease)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                        {disease}
+                      </button>
+                    )
+                  })}
+                </div>
+                <Input value={form.diseaseName} onChange={(e) => handleChange('diseaseName', e.target.value)} className="mt-2 border-slate-200 bg-white text-slate-900" placeholder="備考・その他疾患" />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-slate-700">既往歴</Label>
+                <div className="mt-2 flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                  {medicalHistoryOptions.map((history) => {
+                    const active = selectedMedicalHistories.includes(history)
+                    return (
+                      <button key={history} type="button" onClick={() => toggleMedicalHistory(history)} className={`rounded-md border px-3 py-1.5 text-xs ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                        {history}
+                      </button>
+                    )
+                  })}
+                </div>
+                <Textarea value={form.medicalHistory} onChange={(e) => handleChange('medicalHistory', e.target.value)} className="mt-2 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="備考・その他の既往歴" />
+              </div>
               <div><Label className="text-slate-700">アレルギー</Label><Input value={form.allergies} onChange={(e) => handleChange('allergies', e.target.value)} className="mt-1 border-slate-200 bg-white text-slate-900" placeholder="なし / ペニシリン系 など" /></div>
               <div><Label className="text-slate-700">保険情報</Label><Textarea value={form.insuranceInfo} onChange={(e) => handleChange('insuranceInfo', e.target.value)} className="mt-1 min-h-[80px] border-slate-200 bg-white text-slate-900" placeholder="保険種別・負担割合など" /></div>
             </div>

@@ -31,6 +31,17 @@ function normalizePhoneInput(value: unknown) {
   return digits || null
 }
 
+function normalizeTimeInput(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = normalizeFullWidthAscii(value).trim()
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed) ? trimmed : null
+}
+
+function normalizeDateArray(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => normalizeDateInput(item)).filter((item): item is string => Boolean(item))
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser()
 
@@ -64,6 +75,9 @@ export async function POST(request: Request) {
   const firstVisitDate = normalizeDateInput(visitPlan?.firstVisitDate)
   const visitWeekdays = Array.isArray(visitPlan?.visitWeekdays)
     ? visitPlan?.visitWeekdays.filter((item): item is number => typeof item === 'number')
+    : []
+  const submittedVisitRules = Array.isArray(visitPlan?.visitRules)
+    ? visitPlan.visitRules.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
     : []
 
   if (!fullName || !birthDate || !addressLine1) {
@@ -224,6 +238,36 @@ export async function POST(request: Request) {
   }
   if (error) {
     return NextResponse.json({ ok: false, error: 'supabase_insert_failed', details: error.message }, { status: 500 })
+  }
+
+  if (data && submittedVisitRules.length > 0) {
+    const visitRuleRows = submittedVisitRules.map((rule) => {
+      const pattern = rule.pattern === 'biweekly' || rule.pattern === 'custom' ? rule.pattern : 'weekly'
+      const weekday = typeof rule.weekday === 'number' && rule.weekday >= 0 && rule.weekday <= 6 ? rule.weekday : null
+      const intervalWeeks = typeof rule.intervalWeeks === 'number' ? Math.max(1, Math.min(4, Math.round(rule.intervalWeeks))) : pattern === 'biweekly' ? 2 : 1
+      const anchorWeek = rule.anchorWeek === 1 || rule.anchorWeek === 2 ? rule.anchorWeek : null
+      const monthlyVisitLimit = typeof rule.monthlyVisitLimit === 'number'
+        ? Math.max(1, Math.min(31, Math.round(rule.monthlyVisitLimit)))
+        : Math.max(1, Number(visitPlan?.monthlyVisitCount ?? 4) || 4)
+
+      return {
+        patient_id: data.id,
+        pattern,
+        weekday,
+        interval_weeks: intervalWeeks,
+        anchor_week: anchorWeek,
+        preferred_time: normalizeTimeInput(rule.preferredTime),
+        monthly_visit_limit: monthlyVisitLimit,
+        custom_dates: normalizeDateArray(rule.customDates),
+        excluded_dates: normalizeDateArray(rule.excludedDates),
+        active: rule.active !== false,
+      }
+    })
+
+    const visitRuleResponse = await supabase.from('patient_visit_rules').insert(visitRuleRows as never)
+    if (visitRuleResponse.error) {
+      return NextResponse.json({ ok: false, error: 'visit_rules_insert_failed', details: visitRuleResponse.error.message }, { status: 500 })
+    }
   }
 
   if (data) {
