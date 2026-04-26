@@ -3,6 +3,8 @@ import type { BillingRecord, DayTaskItem } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mapCollectionDbStatusToApp, type CollectionWorkflowStatus } from '@/lib/status-meta'
 
+export const COLLECTION_HANDOFF_NOTE_PREFIX = '請求処理へ回した訪問'
+
 export type BillingCollectionRecord = {
   id: string
   patientName: string
@@ -135,7 +137,11 @@ export function buildDayTaskCollectionRecords({
   collectionRecords: BillingCollectionRecord[]
 }): BillingCollectionRecord[] {
   return sharedDayTasks
-    .filter((task) => task.pharmacyId === ownPharmacyId)
+    .filter((task) => {
+      if (task.pharmacyId !== ownPharmacyId || task.status !== 'completed' || !task.billable) return false
+      const appStatus = mapCollectionDbStatusToApp(task.collectionStatus)
+      return appStatus !== 'ready' || task.note.startsWith(COLLECTION_HANDOFF_NOTE_PREFIX)
+    })
     .map((task) => {
       const patient = patientMap.get(task.patientId)
       const existing = collectionRecords.find((record) => record.linkedTaskId === task.id)
@@ -270,17 +276,24 @@ export function buildUnbilledVisitRecords({
   sharedDayTasks,
   ownPharmacyId,
   patientMap,
+  patientBillingSettings,
   mergedCollectionRecords,
   processedUnbilledIds,
 }: {
   sharedDayTasks: DayTaskItem[]
   ownPharmacyId: string
   patientMap: Map<string, RegisteredPatientRecord>
+  patientBillingSettings: Map<string, { isBillable: boolean; reason: string | null }>
   mergedCollectionRecords: BillingCollectionRecord[]
   processedUnbilledIds: Set<string>
 }): BillingUnbilledVisitRecord[] {
   return sharedDayTasks
-    .filter((task) => task.pharmacyId === ownPharmacyId && task.status === 'completed' && task.billable)
+    .filter((task) => {
+      if (task.pharmacyId !== ownPharmacyId || task.status !== 'completed' || !task.billable) return false
+      if (patientBillingSettings.get(task.patientId)?.isBillable === false) return false
+      const appStatus = mapCollectionDbStatusToApp(task.collectionStatus)
+      return appStatus === 'ready' && !task.note.startsWith(COLLECTION_HANDOFF_NOTE_PREFIX)
+    })
     .map((task) => {
       const patient = patientMap.get(task.patientId)
       return {

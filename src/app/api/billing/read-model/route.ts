@@ -117,6 +117,7 @@ export async function POST(request: Request) {
     sharedDayTasks,
     ownPharmacyId: scopedPharmacyId,
     patientMap,
+    patientBillingSettings,
     mergedCollectionRecords,
     processedUnbilledIds,
   })

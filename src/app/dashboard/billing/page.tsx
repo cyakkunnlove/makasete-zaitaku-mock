@@ -29,7 +29,7 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, ChevronDown, ChevronRight, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
-import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
+import { COLLECTION_HANDOFF_NOTE_PREFIX, buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
 import { DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES, correctionReasonCategories, getBillingPaidCorrectionAction } from '@/lib/correction-policy'
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mergePatientSources } from '@/lib/patient-read-model'
@@ -562,8 +562,8 @@ export default function BillingPage() {
     }
 
     const nextNote = record.note?.trim().length
-      ? `請求処理へ回した訪問: ${record.note}`
-      : '請求処理へ回した訪問'
+      ? `${COLLECTION_HANDOFF_NOTE_PREFIX}: ${record.note}`
+      : COLLECTION_HANDOFF_NOTE_PREFIX
 
     try {
       setSavingCollectionRecordId(record.id)
