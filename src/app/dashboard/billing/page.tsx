@@ -443,18 +443,15 @@ export default function BillingPage() {
       const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
       if (dayTask) {
         try {
-          const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
+          const response = await fetch(`/api/billing/collection-records/${dayTask.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              task: {
-                ...dayTask,
-	                collectionStatus: normalizeCollectionStatusToDb(status),
-                note: trimmedNote ? trimmedNote : dayTask.note,
-                handledBy: actorName,
-                handledById: user?.id ?? dayTask.handledById,
-                handledAt,
-              },
+              collectionStatus: normalizeCollectionStatusToDb(status),
+              note: trimmedNote ? trimmedNote : dayTask.note,
+              handledBy: actorName,
+              handledById: user?.id ?? dayTask.handledById,
+              handledAt,
             }),
           })
           if (!response.ok) {
@@ -571,18 +568,15 @@ export default function BillingPage() {
       setCollectionErrorMessage('')
       const actorName = user?.full_name ?? '担当者'
       const handledAt = new Date().toISOString()
-      const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
+      const response = await fetch(`/api/billing/collection-records/${dayTask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          task: {
-            ...dayTask,
-            collectionStatus: 'needs_billing',
-            note: nextNote,
-            handledBy: actorName,
-            handledById: user?.id ?? dayTask.handledById,
-            handledAt,
-          },
+          collectionStatus: 'needs_billing',
+          note: nextNote,
+          handledBy: actorName,
+          handledById: user?.id ?? dayTask.handledById,
+          handledAt,
         }),
       })
 
