@@ -25,7 +25,8 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const supabase = createServerSupabaseClient()
   const existingResult = await supabase
     .from('patient_day_tasks')
-    .select('collection_status, note, amount, patient_id, flow_date, pharmacy_id')
+    .select('collection_status, note, amount, patient_id, flow_date, pharmacy_id, organization_id')
+    .eq('organization_id', user.organization_id)
     .eq('id', params.taskId)
     .maybeSingle()
 
@@ -52,6 +53,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const patientResult = await supabase
     .from('patients')
     .select('id, pharmacy_id, status')
+    .eq('organization_id', user.organization_id)
     .eq('id', patientId)
     .maybeSingle()
 
@@ -67,6 +69,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const duplicateResult = await supabase
     .from('patient_day_tasks')
     .select('id, source, status, planning_status')
+    .eq('organization_id', user.organization_id)
     .eq('pharmacy_id', scopedPharmacyId)
     .eq('patient_id', patientId)
     .eq('flow_date', flowDate)
@@ -130,10 +133,8 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       planning_status: payload.planning_status,
       collection_status: payload.collection_status,
       previous_collection_status: previousCollectionStatus,
-      amount: payload.amount,
-      previous_amount: previousAmount,
-      note: payload.note,
-      previous_note: previousNote,
+      amount_changed: payload.amount !== previousAmount,
+      note_changed: payload.note !== previousNote,
     },
   })
 

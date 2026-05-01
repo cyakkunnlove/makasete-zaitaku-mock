@@ -39,6 +39,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { data: existingPatient, error: fetchError } = await supabase
     .from('patients')
     .select('id, pharmacy_id, address, updated_at, updated_by')
+    .eq('organization_id', user.organization_id)
     .eq('id', params.id)
     .maybeSingle() as unknown as { data: { id: string; pharmacy_id: string | null; address: string; updated_at: string | null; updated_by: string | null } | null; error: { message: string } | null }
 
@@ -130,6 +131,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       const institutionResponse = await supabase
         .from('medical_institutions')
         .select('id, name, organization_id')
+        .eq('organization_id', user.organization_id)
         .eq('id', medicalInstitutionId)
         .maybeSingle()
 
@@ -150,6 +152,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       const doctorResponse = await supabase
         .from('doctor_masters')
         .select('id, full_name, phone, organization_id, medical_institution_id')
+        .eq('organization_id', user.organization_id)
         .eq('id', doctorMasterId)
         .maybeSingle()
 
@@ -202,6 +205,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { data, error } = await supabase
     .from('patients')
     .update(payload as never)
+    .eq('organization_id', user.organization_id)
+    .eq('pharmacy_id', scopedPharmacyId)
     .eq('id', params.id)
     .select('*')
     .single() as unknown as { data: { id: string } | null; error: { message: string } | null }

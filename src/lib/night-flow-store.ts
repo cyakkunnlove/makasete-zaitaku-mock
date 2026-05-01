@@ -203,11 +203,11 @@ export async function listNightFlowData(user: CurrentUser) {
   const actor = getActor(user)
 
   const [actorsResult, pharmaciesResult, patientsResult, casesResult, faxesResult] = await Promise.all([
-    supabase.from('users').select('id,full_name,role,region_id,pharmacy_id,operation_unit_id').eq('status', 'active').order('created_at', { ascending: true }),
-    supabase.from('pharmacies').select('id,organization_id,region_id,name,phone,fax,status').eq('status', 'active').order('name', { ascending: true }),
-    supabase.from('patients').select('id,organization_id,pharmacy_id,full_name,address,phone,is_billable,status').eq('status', 'active').order('full_name', { ascending: true }),
-    supabase.from('night_request_cases').select('*').order('accepted_at', { ascending: false }).limit(100),
-    supabase.from('fax_attachments').select('*').order('received_at', { ascending: false }).limit(100),
+    supabase.from('users').select('id,full_name,role,region_id,pharmacy_id,operation_unit_id').eq('organization_id', user.organization_id).eq('status', 'active').order('created_at', { ascending: true }),
+    supabase.from('pharmacies').select('id,organization_id,region_id,name,phone,fax,status').eq('organization_id', user.organization_id).eq('status', 'active').order('name', { ascending: true }),
+    supabase.from('patients').select('id,organization_id,pharmacy_id,full_name,address,phone,is_billable,status').eq('organization_id', user.organization_id).eq('status', 'active').order('full_name', { ascending: true }),
+    supabase.from('night_request_cases').select('*').eq('organization_id', user.organization_id).order('accepted_at', { ascending: false }).limit(100),
+    supabase.from('fax_attachments').select('*').eq('organization_id', user.organization_id).order('received_at', { ascending: false }).limit(100),
   ])
 
   for (const result of [actorsResult, pharmaciesResult, patientsResult, casesResult, faxesResult]) {
@@ -277,8 +277,8 @@ export async function createNightCase(user: CurrentUser, payload: { pharmacyId?:
   if (!payload.patientId) throw new Error('patient_required')
 
   const [{ data: pharmacy, error: pharmacyError }, { data: patient, error: patientError }] = await Promise.all([
-    supabase.from('pharmacies').select('*').eq('id', payload.pharmacyId).eq('region_id', actor.regionId).maybeSingle(),
-    supabase.from('patients').select('*').eq('id', payload.patientId).maybeSingle(),
+    supabase.from('pharmacies').select('*').eq('organization_id', user.organization_id).eq('id', payload.pharmacyId).eq('region_id', actor.regionId).maybeSingle(),
+    supabase.from('patients').select('*').eq('organization_id', user.organization_id).eq('id', payload.patientId).maybeSingle(),
   ])
   if (pharmacyError) throw pharmacyError
   if (patientError) throw patientError
@@ -323,8 +323,8 @@ export async function linkFaxToNightCase(user: CurrentUser, faxId: string, reque
   if (actor.role !== 'night_pharmacist') throw new Error('role_not_allowed')
 
   const [{ data: fax, error: faxError }, { data: requestCase, error: caseError }] = await Promise.all([
-    supabase.from('fax_attachments').select('*').eq('id', faxId).maybeSingle(),
-    supabase.from('night_request_cases').select('*').eq('id', requestCaseId).maybeSingle(),
+    supabase.from('fax_attachments').select('*').eq('organization_id', user.organization_id).eq('id', faxId).maybeSingle(),
+    supabase.from('night_request_cases').select('*').eq('organization_id', user.organization_id).eq('id', requestCaseId).maybeSingle(),
   ])
   if (faxError) throw faxError
   if (caseError) throw caseError
@@ -334,8 +334,8 @@ export async function linkFaxToNightCase(user: CurrentUser, faxId: string, reque
 
   const timestamp = nowIso()
   const [{ data: updatedFax, error: updateFaxError }, { data: updatedCase, error: updateCaseError }] = await Promise.all([
-    supabase.from('fax_attachments').update({ linked_night_case_id: requestCase.id, linked_by_user_id: actor.id, linked_at: timestamp, status: 'linked', updated_at: timestamp }).eq('id', fax.id).select('*').single(),
-    supabase.from('night_request_cases').update({ accepted_channel: 'fax', updated_at: timestamp }).eq('id', requestCase.id).select('*').single(),
+    supabase.from('fax_attachments').update({ linked_night_case_id: requestCase.id, linked_by_user_id: actor.id, linked_at: timestamp, status: 'linked', updated_at: timestamp }).eq('organization_id', user.organization_id).eq('id', fax.id).select('*').single(),
+    supabase.from('night_request_cases').update({ accepted_channel: 'fax', updated_at: timestamp }).eq('organization_id', user.organization_id).eq('id', requestCase.id).select('*').single(),
   ])
   if (updateFaxError) throw updateFaxError
   if (updateCaseError) throw updateCaseError
@@ -349,7 +349,7 @@ export async function linkFaxToNightCase(user: CurrentUser, faxId: string, reque
 export async function updateNightCaseAction(user: CurrentUser, requestCaseId: string, action: string, payload: NightActionPayload) {
   const supabase = getSupabase()
   const actor = getActor(user)
-  const { data: requestCase, error: caseError } = await supabase.from('night_request_cases').select('*').eq('id', requestCaseId).maybeSingle()
+  const { data: requestCase, error: caseError } = await supabase.from('night_request_cases').select('*').eq('organization_id', user.organization_id).eq('id', requestCaseId).maybeSingle()
   if (caseError) throw caseError
   if (!requestCase) throw new Error('request_case_not_found')
   if (!canUpdateNightCase(actor, requestCase, action)) throw new Error('role_not_allowed')
@@ -386,7 +386,7 @@ export async function updateNightCaseAction(user: CurrentUser, requestCaseId: st
     throw new Error('action_not_allowed')
   }
 
-  const { data: updatedCase, error: updateError } = await supabase.from('night_request_cases').update(update).eq('id', requestCase.id).select('*').single()
+  const { data: updatedCase, error: updateError } = await supabase.from('night_request_cases').update(update).eq('organization_id', user.organization_id).eq('id', requestCase.id).select('*').single()
   if (updateError) throw updateError
 
   if (action === 'complete') {
@@ -418,10 +418,10 @@ export async function updateNightCaseAction(user: CurrentUser, requestCaseId: st
   await insertWorkflowEvent({ actor, organizationId: requestCase.organization_id, regionId: requestCase.region_id, pharmacyId: requestCase.source_pharmacy_id, eventType, entityType: 'night_request_case', entityId: requestCase.id, metadata: payload })
 
   const [patientResult, pharmacyResult, usersResult, faxResult] = await Promise.all([
-    updatedCase.patient_id ? supabase.from('patients').select('*').eq('id', updatedCase.patient_id).maybeSingle() : Promise.resolve({ data: null }),
-    updatedCase.source_pharmacy_id ? supabase.from('pharmacies').select('*').eq('id', updatedCase.source_pharmacy_id).maybeSingle() : Promise.resolve({ data: null }),
-    supabase.from('users').select('id,full_name,role').in('id', [updatedCase.handled_by_user_id, updatedCase.pharmacy_confirmed_by_user_id, actor.id].filter(Boolean)),
-    supabase.from('fax_attachments').select('*').eq('linked_night_case_id', updatedCase.id).maybeSingle(),
+    updatedCase.patient_id ? supabase.from('patients').select('*').eq('organization_id', user.organization_id).eq('id', updatedCase.patient_id).maybeSingle() : Promise.resolve({ data: null }),
+    updatedCase.source_pharmacy_id ? supabase.from('pharmacies').select('*').eq('organization_id', user.organization_id).eq('id', updatedCase.source_pharmacy_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from('users').select('id,full_name,role').eq('organization_id', user.organization_id).in('id', [updatedCase.handled_by_user_id, updatedCase.pharmacy_confirmed_by_user_id, actor.id].filter(Boolean)),
+    supabase.from('fax_attachments').select('*').eq('organization_id', user.organization_id).eq('linked_night_case_id', updatedCase.id).maybeSingle(),
   ])
 
   const users = 'data' in usersResult ? usersResult.data ?? [] : []

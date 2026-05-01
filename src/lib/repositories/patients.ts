@@ -3,7 +3,7 @@ import type { PatientVisitRule } from '@/lib/patient-master'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { getRepositoryMode } from '@/lib/repositories'
 
-export async function listPatientsByPharmacy(pharmacyId: string): Promise<Patient[]> {
+export async function listPatientsByPharmacy(input: { organizationId: string; pharmacyId: string }): Promise<Patient[]> {
   const mode = getRepositoryMode()
 
   if (mode.provider === 'supabase') {
@@ -11,7 +11,8 @@ export async function listPatientsByPharmacy(pharmacyId: string): Promise<Patien
     const { data, error } = await supabase
       .from('patients')
       .select('*')
-      .eq('pharmacy_id', pharmacyId)
+      .eq('organization_id', input.organizationId)
+      .eq('pharmacy_id', input.pharmacyId)
       .eq('status', 'active')
       .order('full_name', { ascending: true })
 
@@ -22,8 +23,8 @@ export async function listPatientsByPharmacy(pharmacyId: string): Promise<Patien
   return []
 }
 
-export async function listPatientsByIdsForPharmacy(pharmacyId: string, patientIds: string[]): Promise<Patient[]> {
-  const ids = Array.from(new Set(patientIds.map((id) => id.trim()).filter(Boolean)))
+export async function listPatientsByIdsForPharmacy(input: { organizationId: string; pharmacyId: string; patientIds: string[] }): Promise<Patient[]> {
+  const ids = Array.from(new Set(input.patientIds.map((id) => id.trim()).filter(Boolean)))
   if (ids.length === 0) return []
 
   const mode = getRepositoryMode()
@@ -33,7 +34,8 @@ export async function listPatientsByIdsForPharmacy(pharmacyId: string, patientId
     const { data, error } = await supabase
       .from('patients')
       .select('*')
-      .eq('pharmacy_id', pharmacyId)
+      .eq('organization_id', input.organizationId)
+      .eq('pharmacy_id', input.pharmacyId)
       .eq('status', 'active')
       .in('id', ids)
       .order('full_name', { ascending: true })
@@ -45,7 +47,7 @@ export async function listPatientsByIdsForPharmacy(pharmacyId: string, patientId
   return []
 }
 
-export async function getPatientById(patientId: string): Promise<Patient | null> {
+export async function getPatientByIdForPharmacy(input: { organizationId: string; pharmacyId: string; patientId: string }): Promise<Patient | null> {
   const mode = getRepositoryMode()
 
   if (mode.provider === 'supabase') {
@@ -53,7 +55,9 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
     const { data, error } = await supabase
       .from('patients')
       .select('*')
-      .eq('id', patientId)
+      .eq('organization_id', input.organizationId)
+      .eq('pharmacy_id', input.pharmacyId)
+      .eq('id', input.patientId)
       .maybeSingle()
 
     if (error) throw error
@@ -63,35 +67,26 @@ export async function getPatientById(patientId: string): Promise<Patient | null>
   return null
 }
 
-export async function getPatientRegionId(patientId: string): Promise<string | null> {
+export async function listPatientVisitRules(input: { organizationId: string; pharmacyId: string; patientId: string }): Promise<PatientVisitRule[]> {
   const mode = getRepositoryMode()
 
   if (mode.provider === 'supabase') {
     const supabase = createServerSupabaseClient()
-    const { data, error } = await supabase
+    const patientResponse = await supabase
       .from('patients')
-      .select('pharmacy:pharmacies(region_id)')
-      .eq('id', patientId)
+      .select('id')
+      .eq('organization_id', input.organizationId)
+      .eq('pharmacy_id', input.pharmacyId)
+      .eq('id', input.patientId)
       .maybeSingle()
 
-    if (error) throw error
-    const row = data as Record<string, unknown> | null
-    const pharmacy = row?.pharmacy as { region_id?: unknown } | null | undefined
-    return typeof pharmacy?.region_id === 'string' ? pharmacy.region_id : null
-  }
+    if (patientResponse.error) throw patientResponse.error
+    if (!patientResponse.data) return []
 
-  return null
-}
-
-export async function listPatientVisitRules(patientId: string): Promise<PatientVisitRule[]> {
-  const mode = getRepositoryMode()
-
-  if (mode.provider === 'supabase') {
-    const supabase = createServerSupabaseClient()
     const { data, error } = await supabase
       .from('patient_visit_rules')
       .select('*')
-      .eq('patient_id', patientId)
+      .eq('patient_id', input.patientId)
       .order('created_at', { ascending: true })
 
     if (error) throw error

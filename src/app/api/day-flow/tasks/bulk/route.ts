@@ -83,6 +83,7 @@ export async function PATCH(request: Request) {
   const patientScopeResult = await supabase
     .from('patients')
     .select('id, pharmacy_id, status')
+    .eq('organization_id', user.organization_id)
     .in('id', patientIds)
 
   if (patientScopeResult.error) {
@@ -101,6 +102,7 @@ export async function PATCH(request: Request) {
   const taskScopeResult = await supabase
     .from('patient_day_tasks')
     .select('id, pharmacy_id')
+    .eq('organization_id', user.organization_id)
     .in('id', taskIds)
 
   if (taskScopeResult.error) {
@@ -116,6 +118,7 @@ export async function PATCH(request: Request) {
   const existingDuplicateResult = await supabase
     .from('patient_day_tasks')
     .select('id, pharmacy_id, patient_id, flow_date')
+    .eq('organization_id', user.organization_id)
     .eq('pharmacy_id', scopedPharmacyId)
     .in('flow_date', flowDates)
     .in('patient_id', patientIds)
@@ -139,6 +142,7 @@ export async function PATCH(request: Request) {
   const previousRowsResult = await supabase
     .from('patient_day_tasks')
     .select('id, patient_id, flow_date, sort_order, collection_status, note, amount')
+    .eq('organization_id', user.organization_id)
     .eq('pharmacy_id', scopedPharmacyId)
     .in('id', taskIds)
 
@@ -149,6 +153,7 @@ export async function PATCH(request: Request) {
   const sortWindowResult = await supabase
     .from('patient_day_tasks')
     .select('id, flow_date, sort_order')
+    .eq('organization_id', user.organization_id)
     .eq('pharmacy_id', scopedPharmacyId)
     .in('flow_date', flowDates)
 
@@ -207,10 +212,8 @@ export async function PATCH(request: Request) {
           previous_sort_order: previous ? Number(previous.sort_order ?? 0) : null,
           collection_status: task.collection_status,
           previous_collection_status: previous ? String(previous.collection_status ?? '') || null : null,
-          amount: task.amount,
-          previous_amount: previous ? Number(previous.amount ?? 0) : null,
-          note: task.note,
-          previous_note: previous ? String(previous.note ?? '') : null,
+          amount_changed: previous ? task.amount !== Number(previous.amount ?? 0) : task.amount !== 0,
+          note_changed: previous ? task.note !== String(previous.note ?? '') : Boolean(task.note),
         }
       }),
     },

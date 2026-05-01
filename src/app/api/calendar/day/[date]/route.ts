@@ -97,6 +97,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     supabase
       .from('patient_day_tasks')
       .select('*')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .gte('flow_date', monthStart)
       .lte('flow_date', params.date)
@@ -105,6 +106,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     supabase
       .from('patients')
       .select(PATIENT_LIST_SELECT)
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId),
   ])
 
@@ -144,7 +146,11 @@ export async function GET(_request: Request, { params }: { params: { date: strin
       status: patient.status ?? 'active',
       created_at: '',
       updated_at: '',
-    }, await listPatientVisitRules(patient.id))),
+    }, await listPatientVisitRules({
+      organizationId: user.organization_id,
+      pharmacyId: scopedPharmacyId,
+      patientId: patient.id,
+    }))),
   )
   const generatedTasks = generateAutoDayTasksFromVisitRules(detailedPatients, params.date, persistedTasks.map(mapPersistedTask))
   const persistedIds = new Set(persistedTasks.map((task) => task.id))

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { getCurrentActorRole } from '@/lib/active-role'
 import { canEditPatientRecord, getScopedPharmacyId } from '@/lib/patient-permissions'
-import { getPatientById } from '@/lib/repositories/patients'
+import { getPatientByIdForPharmacy } from '@/lib/repositories/patients'
 import { writeAuditLog } from '@/lib/audit-log'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -13,7 +13,16 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  const patient = await getPatientById(params.id)
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!scopedPharmacyId) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
+  const patient = await getPatientByIdForPharmacy({
+    organizationId: user.organization_id,
+    pharmacyId: scopedPharmacyId,
+    patientId: params.id,
+  })
   if (!patient) {
     return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 })
   }
@@ -22,7 +31,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
-  const scopedPharmacyId = getScopedPharmacyId(user)
   const canEdit = canEditPatientRecord({
     role: getCurrentActorRole(user),
     user: { pharmacy_id: scopedPharmacyId },
@@ -42,7 +50,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     .from('patient_home_photos')
     .select('*')
     .eq('id', params.photoId)
-    .eq('patient_id', params.id)
+    .eq('patient_id', patient.id)
     .is('deleted_at', null)
     .maybeSingle()
 
@@ -64,6 +72,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       updated_at: now,
     } as never)
     .eq('id', params.photoId)
+    .eq('patient_id', patient.id)
 
   if (error) {
     return NextResponse.json({ ok: false, error: 'photo_delete_failed', details: error.message }, { status: 500 })
@@ -78,7 +87,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       patient_id: patient.id,
       photo_id: existingPhoto.id,
       delete_reason: deleteReason,
-      storage_path: existingPhoto.storage_path,
     },
   })
 

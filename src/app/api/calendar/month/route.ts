@@ -77,12 +77,13 @@ export async function GET(request: Request) {
     supabase
       .from('patient_day_tasks')
       .select('*')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .gte('flow_date', monthStart)
       .lte('flow_date', monthEndKey)
       .order('flow_date', { ascending: true })
       .order('sort_order', { ascending: true }),
-    listPatientsByPharmacy(scopedPharmacyId),
+    listPatientsByPharmacy({ organizationId: user.organization_id, pharmacyId: scopedPharmacyId }),
   ])
 
   if (error) {
@@ -91,7 +92,11 @@ export async function GET(request: Request) {
 
   const persistedTasks = (data ?? []) as PatientDayTask[]
   const patientRecords = await Promise.all(
-    patients.map(async (patient) => mapDatabasePatientToPatientRecord(patient, await listPatientVisitRules(patient.id))),
+    patients.map(async (patient) => mapDatabasePatientToPatientRecord(patient, await listPatientVisitRules({
+      organizationId: user.organization_id,
+      pharmacyId: scopedPharmacyId,
+      patientId: patient.id,
+    }))),
   )
 
   const generatedTasks = Array.from({ length: monthEnd.getDate() }, (_, index) => {

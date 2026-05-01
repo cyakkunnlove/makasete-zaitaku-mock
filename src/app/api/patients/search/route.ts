@@ -43,10 +43,11 @@ export async function GET(request: Request) {
     .limit(30)
     .order('full_name', { ascending: true })
 
-  if (!actorScope.pharmacyId) {
+  const scopedPharmacyId = actorScope.pharmacyId
+  if (!scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
-  query = query.eq('pharmacy_id', actorScope.pharmacyId)
+  query = query.eq('pharmacy_id', scopedPharmacyId)
 
   const orConditions = [
     `full_name.ilike.%${q}%`,
@@ -74,7 +75,11 @@ export async function GET(request: Request) {
 
   const patients = await Promise.all(
     ((response.data ?? []) as Array<Record<string, unknown>>).map(async (row) => {
-      const visitRules = await listPatientVisitRules(String(row.id))
+      const visitRules = await listPatientVisitRules({
+        organizationId: user.organization_id,
+        pharmacyId: scopedPharmacyId,
+        patientId: String(row.id),
+      })
       return mapDatabasePatientToPatientRecord(row as never, visitRules, {
         pharmacyName: pharmacyMap.get(String(row.pharmacy_id ?? '')) || null,
       })

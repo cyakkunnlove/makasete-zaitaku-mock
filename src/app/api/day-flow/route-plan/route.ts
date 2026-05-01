@@ -31,11 +31,13 @@ export async function POST(request: Request) {
     supabase
       .from('patients')
       .select('id, full_name, address, latitude, longitude, geocode_input_address, geocode_status')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .in('id', patientIds),
     supabase
       .from('pharmacies')
       .select('id, name, address')
+      .eq('organization_id', user.organization_id)
       .eq('id', scopedPharmacyId)
       .maybeSingle(),
   ])
@@ -107,6 +109,7 @@ export async function POST(request: Request) {
             geocode_input_address: geocoded.normalizedAddress,
             updated_at: new Date().toISOString(),
           } as never)
+          .eq('organization_id', user.organization_id)
           .eq('id', patient.id)
           .eq('pharmacy_id', scopedPharmacyId)
       } catch {

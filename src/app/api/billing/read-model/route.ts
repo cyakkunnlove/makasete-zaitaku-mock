@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { buildAdminBillingRecords, buildDateCollectionSummaries, buildDayTaskCollectionRecords, buildPatientVisitHistory, buildUnbilledVisitRecords, type BillingCollectionRecord } from '@/lib/billing-read-model'
-import { billingData } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
@@ -24,9 +23,6 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
 
   const body = await request.json().catch(() => null)
-  const collectionRecords = body && typeof body === 'object' && Array.isArray((body as Record<string, unknown>).collectionRecords)
-    ? (body as Record<string, unknown>).collectionRecords as BillingCollectionRecord[]
-    : []
   const flowDate = body && typeof body === 'object' && typeof (body as Record<string, unknown>).flowDate === 'string'
     ? String((body as Record<string, unknown>).flowDate)
     : getTodayJstDateKey()
@@ -39,6 +35,7 @@ export async function POST(request: Request) {
   const processedUnbilledIds = body && typeof body === 'object' && Array.isArray((body as Record<string, unknown>).processedUnbilledIds)
     ? new Set(((body as Record<string, unknown>).processedUnbilledIds as unknown[]).filter((item): item is string => typeof item === 'string'))
     : new Set<string>()
+  const collectionRecords: BillingCollectionRecord[] = []
 
   const scopedPharmacyId = getScopedPharmacyId(user)
   if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
@@ -50,10 +47,16 @@ export async function POST(request: Request) {
     supabase
       .from('patient_day_tasks')
       .select('*')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .eq('flow_date', flowDate)
       .order('sort_order', { ascending: true }),
-    supabase.from('pharmacies').select('name').eq('id', scopedPharmacyId).maybeSingle(),
+    supabase
+      .from('pharmacies')
+      .select('name')
+      .eq('organization_id', user.organization_id)
+      .eq('id', scopedPharmacyId)
+      .maybeSingle(),
   ])
 
   if (tasksResult.error) {
@@ -64,10 +67,14 @@ export async function POST(request: Request) {
 
   let ownPatients: RegisteredPatientRecord[] = []
   if (canManagePatientsForUser(user)) {
-    const patients = await listPatientsByPharmacy(scopedPharmacyId)
+    const patients = await listPatientsByPharmacy({ organizationId: user.organization_id, pharmacyId: scopedPharmacyId })
     ownPatients = await Promise.all(
       patients.map(async (patient) => {
-        const visitRules = await listPatientVisitRules(patient.id)
+        const visitRules = await listPatientVisitRules({
+          organizationId: user.organization_id,
+          pharmacyId: scopedPharmacyId,
+          patientId: patient.id,
+        })
         return mapDatabasePatientToPatientRecord(patient, visitRules, { pharmacyName })
       }),
     )
@@ -124,7 +131,7 @@ export async function POST(request: Request) {
 
   const adminBillingRecords = buildAdminBillingRecords({
     collectionRecords: mergedCollectionRecords,
-    fallbackRecords: billingData,
+    fallbackRecords: [],
     pharmacyId: scopedPharmacyId,
     pharmacyName,
   })

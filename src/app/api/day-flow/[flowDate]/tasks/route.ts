@@ -17,12 +17,14 @@ export async function GET(_request: Request, { params }: { params: { flowDate: s
     supabase
       .from('patient_day_tasks')
       .select('*')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .eq('flow_date', params.flowDate)
       .order('sort_order', { ascending: true }),
     supabase
       .from('patient_day_tasks')
       .select('*')
+      .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
       .lt('flow_date', params.flowDate)
       .gte('flow_date', `${params.flowDate.slice(0, 7)}-01`)

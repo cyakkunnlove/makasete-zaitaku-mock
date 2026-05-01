@@ -388,10 +388,7 @@ export default function BillingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            collectionRecords: mergedCollectionRecords,
             flowDate: billingFlowDate,
-            pharmacyId: ownPharmacyId,
-            pharmacyName: 'マカセテ在宅テスト薬局',
             patientSearch,
             statusFilter,
             processedUnbilledIds: Array.from(processedUnbilledIds),
@@ -417,7 +414,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [billingFlowDate, mergedCollectionRecords, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter, user])
+  }, [billingFlowDate, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter, user])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)

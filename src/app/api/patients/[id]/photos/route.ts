@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { getCurrentActorRole } from '@/lib/active-role'
 import { canEditPatientRecord, getScopedPharmacyId } from '@/lib/patient-permissions'
-import { getPatientById } from '@/lib/repositories/patients'
+import { getPatientByIdForPharmacy } from '@/lib/repositories/patients'
 import { writeAuditLog } from '@/lib/audit-log'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { PatientHomePhoto, PatientHomePhotoType } from '@/types/database'
@@ -17,14 +17,22 @@ async function ensureCanAccessPatient(patientId: string) {
   const user = await getCurrentUser()
   if (!user) return { error: NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 }) }
 
-  const patient = await getPatientById(patientId)
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!scopedPharmacyId) {
+    return { error: NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 }) }
+  }
+
+  const patient = await getPatientByIdForPharmacy({
+    organizationId: user.organization_id,
+    pharmacyId: scopedPharmacyId,
+    patientId,
+  })
   if (!patient) return { error: NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 }) }
 
   if (!patient.pharmacy_id) {
     return { error: NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 }) }
   }
 
-  const scopedPharmacyId = getScopedPharmacyId(user)
   const canEdit = canEditPatientRecord({
     role: getCurrentActorRole(user),
     user: { pharmacy_id: scopedPharmacyId },
@@ -59,7 +67,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const { data, error } = await admin
     .from('patient_home_photos')
     .select('*')
-    .eq('patient_id', params.id)
+    .eq('patient_id', access.patient.id)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
@@ -73,7 +81,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const userNameMap = new Map<string, string>()
 
   if (uploadedByIds.length > 0) {
-    const { data: users } = await admin.from('users').select('id, full_name').in('id', uploadedByIds)
+    const { data: users } = await admin.from('users').select('id, full_name').eq('organization_id', access.user.organization_id).in('id', uploadedByIds)
     ;(users ?? []).forEach((row) => {
       const record = row as { id: string; full_name: string | null }
       if (record.id) userNameMap.set(record.id, record.full_name ?? record.id)
@@ -105,7 +113,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { data: activePhotos, error: countError } = await admin
     .from('patient_home_photos')
     .select('id, sort_order')
-    .eq('patient_id', params.id)
+    .eq('patient_id', patient.id)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
@@ -164,7 +172,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
       patient_id: patient.id,
       photo_id: savedPhoto.id,
       photo_type: savedPhoto.photo_type,
-      storage_path: savedPhoto.storage_path,
     },
   })
 

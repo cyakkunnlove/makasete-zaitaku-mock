@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { ensureRecentReverification } from '@/lib/api-reauth'
 import { getCurrentActorRole } from '@/lib/active-role'
 import { canEditPatientRecord, getScopedPharmacyId } from '@/lib/patient-permissions'
-import { getPatientById } from '@/lib/repositories/patients'
+import { getPatientByIdForPharmacy } from '@/lib/repositories/patients'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { writeAuditLog } from '@/lib/audit-log'
 import type { PatientVisitRule } from '@/lib/patient-master'
@@ -36,13 +36,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   })
   if (reauthResponse) return reauthResponse
 
-  const patient = await getPatientById(params.id)
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!scopedPharmacyId) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
+  const patient = await getPatientByIdForPharmacy({
+    organizationId: user.organization_id,
+    pharmacyId: scopedPharmacyId,
+    patientId: params.id,
+  })
   if (!patient) {
     return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 })
   }
 
-  const scopedPharmacyId = getScopedPharmacyId(user)
-  if (!patient.pharmacy_id || !scopedPharmacyId || patient.pharmacy_id !== scopedPharmacyId) {
+  if (!patient.pharmacy_id) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -65,7 +73,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { error: deleteError } = await supabase
     .from('patient_visit_rules')
     .delete()
-    .eq('patient_id', params.id)
+    .eq('patient_id', patient.id)
 
   if (deleteError) {
     return NextResponse.json({ ok: false, error: 'visit_rule_delete_failed', details: deleteError.message }, { status: 500 })
@@ -73,7 +81,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   if (visitRules.length > 0) {
     const insertPayload = visitRules.map((rule) => ({
-      patient_id: params.id,
+      patient_id: patient.id,
       ...normalizeRule(rule),
     }))
 
@@ -90,7 +98,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     user,
     action: 'patient_visit_rules_updated',
     targetType: 'patient',
-    targetId: params.id,
+    targetId: patient.id,
     details: {
       visit_rule_count: visitRules.length,
       active_rule_count: visitRules.filter((rule) => rule.active).length,

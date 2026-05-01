@@ -167,6 +167,7 @@ export async function POST(request: Request) {
     const institutionResponse = await supabase
       .from('medical_institutions')
       .select('id, name, organization_id')
+      .eq('organization_id', user.organization_id)
       .eq('id', medicalInstitutionId)
       .maybeSingle()
 
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
     const doctorResponse = await supabase
       .from('doctor_masters')
       .select('id, full_name, phone, organization_id, medical_institution_id')
+      .eq('organization_id', user.organization_id)
       .eq('id', doctorMasterId)
       .maybeSingle()
 
@@ -277,7 +279,6 @@ export async function POST(request: Request) {
       targetType: 'patient',
       targetId: data.id,
       details: {
-        patient_name: data.full_name,
         phone_missing: !phone,
         has_visit_weekdays: visitWeekdays.length > 0,
         has_first_visit_date: Boolean(firstVisitDate),

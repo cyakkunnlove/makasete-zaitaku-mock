@@ -29,18 +29,27 @@ export async function GET(request: Request, { params }: { params: { pharmacyId: 
     .filter(Boolean)
 
   const patients = patientIds.length > 0
-    ? await listPatientsByIdsForPharmacy(scopedPharmacyId, patientIds)
-    : await listPatientsByPharmacy(scopedPharmacyId)
+    ? await listPatientsByIdsForPharmacy({ organizationId: user.organization_id, pharmacyId: scopedPharmacyId, patientIds })
+    : await listPatientsByPharmacy({ organizationId: user.organization_id, pharmacyId: scopedPharmacyId })
   let pharmacyName: string | null = null
   const supabase = createServerSupabaseClient()
-  const pharmacyResponse = await supabase.from('pharmacies').select('name').eq('id', scopedPharmacyId).maybeSingle()
+  const pharmacyResponse = await supabase
+    .from('pharmacies')
+    .select('name')
+    .eq('organization_id', user.organization_id)
+    .eq('id', scopedPharmacyId)
+    .maybeSingle()
   if (!pharmacyResponse.error) {
     pharmacyName = String((pharmacyResponse.data as Record<string, unknown> | null)?.name ?? '') || null
   }
 
   const patientsWithVisitRules = await Promise.all(
     patients.map(async (patient) => {
-      const visitRules = await listPatientVisitRules(patient.id)
+      const visitRules = await listPatientVisitRules({
+        organizationId: user.organization_id,
+        pharmacyId: scopedPharmacyId,
+        patientId: patient.id,
+      })
       return mapDatabasePatientToPatientRecord(patient, visitRules, { pharmacyName })
     }),
   )
