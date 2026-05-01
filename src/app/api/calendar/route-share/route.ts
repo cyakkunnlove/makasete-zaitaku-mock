@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 
 import { getCurrentUser } from '@/lib/auth'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 
 type RouteStop = {
   id: string
@@ -31,7 +31,8 @@ function escapeHtml(value: string) {
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (!canManagePatients(user.role) || !user.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
   if (!user.email) {

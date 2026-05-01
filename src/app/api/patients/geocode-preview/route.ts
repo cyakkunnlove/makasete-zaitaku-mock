@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser } from '@/lib/patient-permissions'
 import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  if (!canManagePatients(user.role)) {
+  if (!canManagePatientsForUser(user)) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 

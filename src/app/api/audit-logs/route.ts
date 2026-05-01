@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
+import { getCurrentActorRole } from '@/lib/active-role'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
 const billingStatusLabel: Record<string, string> = {
@@ -33,7 +34,7 @@ function summarizeAuditDetails(action: string, details: Record<string, unknown> 
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (user.role !== 'system_admin') {
+  if (getCurrentActorRole(user) !== 'system_admin') {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -66,13 +67,13 @@ export async function GET() {
 
   const [usersResponse, regionsResponse, pharmaciesResponse] = await Promise.all([
     userIds.length
-      ? supabase.from('users').select('id, full_name, role').in('id', userIds)
+      ? supabase.from('users').select('id, full_name, role').eq('organization_id', user.organization_id).in('id', userIds)
       : Promise.resolve({ data: [], error: null }),
     regionIds.length
-      ? supabase.from('regions').select('id, name').in('id', regionIds)
+      ? supabase.from('regions').select('id, name').eq('organization_id', user.organization_id).in('id', regionIds)
       : Promise.resolve({ data: [], error: null }),
     pharmacyIds.length
-      ? supabase.from('pharmacies').select('id, name').in('id', pharmacyIds)
+      ? supabase.from('pharmacies').select('id, name').eq('organization_id', user.organization_id).in('id', pharmacyIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 

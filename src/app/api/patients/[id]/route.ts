@@ -32,6 +32,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   const mode = getRepositoryMode()
   if (mode.provider !== 'supabase') {
+    if (user.authMode !== 'mock') {
+      return NextResponse.json({ ok: false, error: 'repository_unavailable' }, { status: 503 })
+    }
+
     return NextResponse.json({ ok: true, mode: 'mock' })
   }
 

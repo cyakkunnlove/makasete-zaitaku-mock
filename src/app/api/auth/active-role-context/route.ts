@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     ? await getRoleContextForUser(user.id, assignmentId)
     : null
 
-  const assignments = getMockRoleAssignmentsByRole(user.role)
+  const assignments = user.authMode === 'mock' ? getMockRoleAssignmentsByRole(user.role) : []
   const assignment = dbAssignment ?? assignments.find((item) => item.id === assignmentId && item.is_active)
 
   if (!assignment) {

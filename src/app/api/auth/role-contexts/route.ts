@@ -15,7 +15,9 @@ export async function GET() {
     ? await listRoleContextsForUser(user.id)
     : []
 
-  const fallbackAssignments = toMockRoleContextViews(getMockRoleAssignmentsByRole(user.role))
+  const fallbackAssignments = user.authMode === 'mock'
+    ? toMockRoleContextViews(getMockRoleAssignmentsByRole(user.role))
+    : []
 
   return NextResponse.json({
     ok: true,
