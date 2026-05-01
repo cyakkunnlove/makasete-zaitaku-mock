@@ -451,6 +451,9 @@ export default function BillingPage() {
                 ...dayTask,
 	                collectionStatus: normalizeCollectionStatusToDb(status),
                 note: trimmedNote ? trimmedNote : dayTask.note,
+                handledBy: actorName,
+                handledById: user?.id ?? dayTask.handledById,
+                handledAt,
               },
             }),
           })
@@ -566,6 +569,8 @@ export default function BillingPage() {
       setSavingCollectionRecordId(record.id)
       setFailedCollectionRecordId(null)
       setCollectionErrorMessage('')
+      const actorName = user?.full_name ?? '担当者'
+      const handledAt = new Date().toISOString()
       const response = await fetch(`/api/day-flow/tasks/${dayTask.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -574,6 +579,9 @@ export default function BillingPage() {
             ...dayTask,
             collectionStatus: 'needs_billing',
             note: nextNote,
+            handledBy: actorName,
+            handledById: user?.id ?? dayTask.handledById,
+            handledAt,
           },
         }),
       })
@@ -584,7 +592,14 @@ export default function BillingPage() {
 
       setSharedDayTasks((prev) => prev.map((task) => (
         task.id === dayTask.id
-          ? { ...task, collectionStatus: toLegacyDayTaskCollectionStatus('ready'), note: nextNote }
+          ? {
+              ...task,
+              collectionStatus: toLegacyDayTaskCollectionStatus('ready'),
+              note: nextNote,
+              handledBy: actorName,
+              handledById: user?.id ?? task.handledById,
+              handledAt,
+            }
           : task
       )))
       setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))

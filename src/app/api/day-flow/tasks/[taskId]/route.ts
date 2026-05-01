@@ -25,7 +25,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const supabase = createServerSupabaseClient()
   const existingResult = await supabase
     .from('patient_day_tasks')
-    .select('collection_status, note, amount, patient_id, flow_date, pharmacy_id, organization_id')
+    .select('collection_status, note, amount, handled_by_id, handled_at, patient_id, flow_date, pharmacy_id, organization_id')
     .eq('organization_id', user.organization_id)
     .eq('id', params.taskId)
     .maybeSingle()
@@ -42,6 +42,8 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const previousCollectionStatus = String(existingTask?.collection_status ?? '') || null
   const previousNote = String(existingTask?.note ?? '') || null
   const previousAmount = Number(existingTask?.amount ?? 0)
+  const previousHandledById = String(existingTask?.handled_by_id ?? '') || null
+  const previousHandledAt = String(existingTask?.handled_at ?? '') || null
 
   const patientId = typeof task.patientId === 'string' ? task.patientId : null
   const flowDate = typeof task.flowDate === 'string' ? task.flowDate : null
@@ -133,6 +135,14 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       planning_status: payload.planning_status,
       collection_status: payload.collection_status,
       previous_collection_status: previousCollectionStatus,
+      previous_amount: previousAmount,
+      previous_note: previousNote,
+      previous_handled_by_id: previousHandledById,
+      previous_handled_at: previousHandledAt,
+      current_amount: payload.amount,
+      current_note: payload.note,
+      current_handled_by_id: payload.handled_by_id,
+      current_handled_at: payload.handled_at,
       amount_changed: payload.amount !== previousAmount,
       note_changed: payload.note !== previousNote,
     },
