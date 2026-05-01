@@ -25,19 +25,43 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const supabase = createServerSupabaseClient()
   const existingResult = await supabase
     .from('patient_day_tasks')
-    .select('collection_status, note, amount, patient_id, flow_date')
+    .select('collection_status, note, amount, patient_id, flow_date, pharmacy_id')
     .eq('id', params.taskId)
     .maybeSingle()
 
-  const previousCollectionStatus = existingResult.error ? null : String((existingResult.data as Record<string, unknown> | null)?.collection_status ?? '') || null
-  const previousNote = existingResult.error ? null : String((existingResult.data as Record<string, unknown> | null)?.note ?? '') || null
-  const previousAmount = existingResult.error ? null : Number((existingResult.data as Record<string, unknown> | null)?.amount ?? 0)
+  if (existingResult.error) {
+    return NextResponse.json({ ok: false, error: 'day_flow_lookup_failed', details: existingResult.error.message }, { status: 500 })
+  }
+
+  const existingTask = existingResult.data as Record<string, unknown> | null
+  if (existingTask && existingTask.pharmacy_id !== scopedPharmacyId) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
+  const previousCollectionStatus = String(existingTask?.collection_status ?? '') || null
+  const previousNote = String(existingTask?.note ?? '') || null
+  const previousAmount = Number(existingTask?.amount ?? 0)
 
   const patientId = typeof task.patientId === 'string' ? task.patientId : null
   const flowDate = typeof task.flowDate === 'string' ? task.flowDate : null
 
   if (!patientId || !flowDate) {
     return NextResponse.json({ ok: false, error: 'patient_and_flow_date_required' }, { status: 400 })
+  }
+
+  const patientResult = await supabase
+    .from('patients')
+    .select('id, pharmacy_id, status')
+    .eq('id', patientId)
+    .maybeSingle()
+
+  if (patientResult.error) {
+    return NextResponse.json({ ok: false, error: 'patient_lookup_failed', details: patientResult.error.message }, { status: 500 })
+  }
+
+  const patient = patientResult.data as { id: string; pharmacy_id: string | null; status: string | null } | null
+  if (!patient || patient.pharmacy_id !== scopedPharmacyId || patient.status !== 'active') {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
   const duplicateResult = await supabase

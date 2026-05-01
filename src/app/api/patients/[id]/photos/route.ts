@@ -2,7 +2,8 @@ import { Buffer } from 'node:buffer'
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { canEditPatientRecord } from '@/lib/patient-permissions'
+import { getCurrentActorRole } from '@/lib/active-role'
+import { canEditPatientRecord, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { getPatientById } from '@/lib/repositories/patients'
 import { writeAuditLog } from '@/lib/audit-log'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -23,7 +24,12 @@ async function ensureCanAccessPatient(patientId: string) {
     return { error: NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 }) }
   }
 
-  const canEdit = canEditPatientRecord({ role: user.role, user, patient: { pharmacyId: patient.pharmacy_id } })
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  const canEdit = canEditPatientRecord({
+    role: getCurrentActorRole(user),
+    user: { pharmacy_id: scopedPharmacyId },
+    patient: { pharmacyId: patient.pharmacy_id },
+  })
   if (!canEdit) return { error: NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 }) }
 
   return { user, patient }

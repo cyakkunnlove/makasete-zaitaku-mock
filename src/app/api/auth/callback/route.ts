@@ -105,7 +105,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const shouldForceChooser = !isPasskeySetupFlow && !nextPath && matchedUserId && roleContextsCount > 1
+  const shouldForceChooser = !isPasskeySetupFlow && matchedUserId && roleContextsCount > 1 && (!nextPath || nextPath === '/dashboard')
 
   const redirectTarget = (() => {
     if (isPasskeySetupFlow) {

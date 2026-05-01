@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     : new Set<string>()
 
   const scopedPharmacyId = getScopedPharmacyId(user)
-  if (!scopedPharmacyId) {
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 

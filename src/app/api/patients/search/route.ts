@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   const actorRole = getCurrentActorRole(user)
   const actorScope = getCurrentScope(user)
-  if (!['regional_admin', 'pharmacy_admin', 'pharmacy_staff'].includes(actorRole ?? '')) {
+  if (!['pharmacy_admin', 'pharmacy_staff'].includes(actorRole ?? '')) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -22,22 +22,7 @@ export async function GET(request: Request) {
 
   const supabase = createServerSupabaseClient()
 
-  let allowedPharmacyIds: string[] | null = null
   let matchedPharmacyIds: string[] = []
-  if (actorRole === 'regional_admin') {
-    if (!actorScope.regionId) return NextResponse.json({ ok: true, patients: [] })
-    const pharmacyResponse = await supabase
-      .from('pharmacies')
-      .select('id')
-      .eq('organization_id', user.organization_id)
-      .eq('region_id', actorScope.regionId)
-
-    if (pharmacyResponse.error) {
-      return NextResponse.json({ ok: false, error: 'pharmacy_scope_lookup_failed', details: pharmacyResponse.error.message }, { status: 500 })
-    }
-    allowedPharmacyIds = (pharmacyResponse.data ?? []).map((row) => String((row as Record<string, unknown>).id ?? '')).filter(Boolean)
-    if (allowedPharmacyIds.length === 0) return NextResponse.json({ ok: true, patients: [] })
-  }
 
   const pharmacyNameSearch = await supabase
     .from('pharmacies')
@@ -58,12 +43,10 @@ export async function GET(request: Request) {
     .limit(30)
     .order('full_name', { ascending: true })
 
-  if (allowedPharmacyIds) {
-    query = query.in('pharmacy_id', allowedPharmacyIds)
+  if (!actorScope.pharmacyId) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
-  if ((actorRole === 'pharmacy_admin' || actorRole === 'pharmacy_staff') && actorScope.pharmacyId) {
-    query = query.eq('pharmacy_id', actorScope.pharmacyId)
-  }
+  query = query.eq('pharmacy_id', actorScope.pharmacyId)
 
   const orConditions = [
     `full_name.ilike.%${q}%`,

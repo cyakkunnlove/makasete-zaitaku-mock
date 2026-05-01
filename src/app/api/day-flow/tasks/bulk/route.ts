@@ -80,6 +80,39 @@ export async function PATCH(request: Request) {
   const patientIds = Array.from(new Set(normalizedTasks.map((task) => task.patient_id)))
   const taskIds = normalizedTasks.map((task) => task.id as string)
 
+  const patientScopeResult = await supabase
+    .from('patients')
+    .select('id, pharmacy_id, status')
+    .in('id', patientIds)
+
+  if (patientScopeResult.error) {
+    return NextResponse.json({ ok: false, error: 'patient_scope_lookup_failed', details: patientScopeResult.error.message }, { status: 500 })
+  }
+
+  const scopedPatientIds = new Set(
+    ((patientScopeResult.data ?? []) as Array<Record<string, unknown>>)
+      .filter((row) => row.pharmacy_id === scopedPharmacyId && row.status === 'active')
+      .map((row) => String(row.id)),
+  )
+  if (patientIds.some((patientId) => !scopedPatientIds.has(patientId))) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
+  const taskScopeResult = await supabase
+    .from('patient_day_tasks')
+    .select('id, pharmacy_id')
+    .in('id', taskIds)
+
+  if (taskScopeResult.error) {
+    return NextResponse.json({ ok: false, error: 'day_flow_scope_lookup_failed', details: taskScopeResult.error.message }, { status: 500 })
+  }
+
+  const outOfScopeTask = ((taskScopeResult.data ?? []) as Array<Record<string, unknown>>)
+    .some((row) => row.pharmacy_id !== scopedPharmacyId)
+  if (outOfScopeTask) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
   const existingDuplicateResult = await supabase
     .from('patient_day_tasks')
     .select('id, pharmacy_id, patient_id, flow_date')
@@ -106,6 +139,7 @@ export async function PATCH(request: Request) {
   const previousRowsResult = await supabase
     .from('patient_day_tasks')
     .select('id, patient_id, flow_date, sort_order, collection_status, note, amount')
+    .eq('pharmacy_id', scopedPharmacyId)
     .in('id', taskIds)
 
   if (previousRowsResult.error) {

@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/staff', label: 'スタッフ管理', icon: <Users size={20} />, permission: 'staff' },
   { href: '/dashboard/patients', label: '患者情報', icon: <Users size={20} />, permission: 'patients' },
   { href: '/dashboard/calendar', label: 'カレンダー', icon: <Calendar size={20} />, permission: 'patients' },
+  { href: '/dashboard/night-flow', label: '夜間フロー', icon: <Moon size={20} />, permission: 'requests' },
   { href: '/dashboard/night-patients', label: '夜間患者検索', icon: <Search size={20} />, permission: 'nightPatients' },
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
@@ -71,6 +72,7 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/settings/')) return 'settings'
   if (pathname.startsWith('/dashboard/requests/')) return 'requestDetail'
   if (pathname.startsWith('/dashboard/requests')) return 'requests'
+  if (pathname.startsWith('/dashboard/night-flow')) return 'requests'
   if (pathname.startsWith('/dashboard/handovers')) return 'handovers'
   if (pathname.startsWith('/dashboard/night-patients')) return 'nightPatients'
   if (pathname.startsWith('/dashboard/calendar')) return 'patients'

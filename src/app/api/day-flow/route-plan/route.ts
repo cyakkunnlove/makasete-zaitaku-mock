@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { canManagePatients } from '@/lib/patient-permissions'
+import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { buildGeocodeWarnings, geocodeAddress, optimizeRoundTripRoute } from '@/lib/google-maps'
 
@@ -12,7 +12,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
-  if (!canManagePatients(user.role) || !user.pharmacy_id) {
+  const scopedPharmacyId = getScopedPharmacyId(user)
+  if (!canManagePatientsForUser(user) || !scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -30,12 +31,12 @@ export async function POST(request: Request) {
     supabase
       .from('patients')
       .select('id, full_name, address, latitude, longitude, geocode_input_address, geocode_status')
-      .eq('pharmacy_id', user.pharmacy_id)
+      .eq('pharmacy_id', scopedPharmacyId)
       .in('id', patientIds),
     supabase
       .from('pharmacies')
       .select('id, name, address')
-      .eq('id', user.pharmacy_id)
+      .eq('id', scopedPharmacyId)
       .maybeSingle(),
   ])
 
@@ -60,6 +61,11 @@ export async function POST(request: Request) {
     geocode_input_address?: string | null
     geocode_status?: string | null
   }>
+
+  const requestedPatientIds = Array.from(new Set(patientIds))
+  if (rows.length !== requestedPatientIds.length) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
 
   const patients = rows.map((patient) => {
     const address = String(patient.address)
@@ -102,6 +108,7 @@ export async function POST(request: Request) {
             updated_at: new Date().toISOString(),
           } as never)
           .eq('id', patient.id)
+          .eq('pharmacy_id', scopedPharmacyId)
       } catch {
         // keep missing state for UI feedback
       }
