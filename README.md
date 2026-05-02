@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Production repository
+
+This directory is the canonical production app for マカセテ在宅.
+
+- Local path: `/Users/takuyakatou/clawd/projects/makasete-zaitaku/app`
+- GitHub remote: `https://github.com/cyakkunnlove/makasete-zaitaku-mock.git`
+- Vercel project: `makasete-zaitaku-mock`
+
+Before production work or push, run:
+
+```bash
+npm run repo:check
+```
+
+Do not push from `/Users/takuyakatou/clawd/projects/makasete-zaitaku/mock`; it is an old HTML prototype that shares the same remote.
+
 ## Deployment operation
 
 For GitHub/Vercel production workflow, see [docs/deployment-runbook.md](docs/deployment-runbook.md).

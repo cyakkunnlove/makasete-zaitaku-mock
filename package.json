@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "repo:check": "bash scripts/check-repo-target.sh"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1029.0",
