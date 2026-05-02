@@ -70,7 +70,7 @@ function isFaxVisible(actor: NightActor, fax: DbRow) {
 function canUpdateNightCase(actor: NightActor, requestCase: DbRow, action: string) {
   if (!isNightCaseVisible(actor, requestCase)) return false
   if (action === 'start' || action === 'complete') return actor.role === 'night_pharmacist'
-  if (action === 'confirm' || action === 'connect_billing') return actor.role === 'pharmacy_admin' || actor.role === 'pharmacy_staff'
+  if (action === 'confirm' || action === 'keep_for_later' || action === 'connect_billing') return actor.role === 'pharmacy_admin' || actor.role === 'pharmacy_staff'
   return false
 }
 
@@ -133,7 +133,8 @@ function toNightCaseView(requestCase: DbRow, maps: { patients: Map<string, DbRow
   const confirmedDate = typeof requestCase.pharmacy_confirmed_at === 'string' ? requestCase.pharmacy_confirmed_at.slice(0, 10) : null
   const today = dateKey()
   const isConfirmedToday = requestCase.status === 'pharmacy_confirmed' && confirmedDate === today
-  const isHiddenFromDashboard = requestCase.status === 'pharmacy_confirmed' && Boolean(confirmedDate && confirmedDate !== today)
+  const isKeptForLater = Boolean(requestCase.kept_for_later)
+  const isHiddenFromDashboard = requestCase.status === 'pharmacy_confirmed' && Boolean(confirmedDate && confirmedDate !== today && !isKeptForLater)
 
   return {
     id: requestCase.id,
@@ -157,6 +158,9 @@ function toNightCaseView(requestCase: DbRow, maps: { patients: Map<string, DbRow
     billingLinkageStatus: requestCase.billing_linkage_status,
     billingLinkedAt: requestCase.billing_linked_at,
     billingLinkedByUserId: requestCase.billing_linked_by_user_id,
+    keptForLater: isKeptForLater,
+    keptForLaterAt: requestCase.kept_for_later_at,
+    keptForLaterByUserId: requestCase.kept_for_later_by_user_id,
     displayDate: requestCase.display_date,
     createdAt: requestCase.created_at,
     updatedAt: requestCase.updated_at,
@@ -166,6 +170,7 @@ function toNightCaseView(requestCase: DbRow, maps: { patients: Map<string, DbRow
     confirmedBy: toActorView(confirmedBy),
     fax: toFaxView(fax),
     isConfirmedToday,
+    isKeptForLater,
     isHiddenFromDashboard,
   }
 }
@@ -176,6 +181,7 @@ function buildSummary(cases: ReturnType<typeof toNightCaseView>[], faxes: Return
     waitingConfirmationCount: cases.filter((item) => item.status === 'completed').length,
     confirmedTodayCount: cases.filter((item) => item.isConfirmedToday).length,
     hiddenConfirmedCount: cases.filter((item) => item.isHiddenFromDashboard).length,
+    keptForLaterCount: cases.filter((item) => item.isKeptForLater).length,
     unlinkedFaxCount: faxes.filter((item) => item?.status === 'unlinked').length,
   }
 }
@@ -389,6 +395,12 @@ export async function updateNightCaseAction(user: CurrentUser, requestCaseId: st
     update.pharmacy_confirmed_at = timestamp
     update.pharmacy_confirmed_by_user_id = actor.id
     eventType = 'handoff.confirmed'
+  } else if (action === 'keep_for_later') {
+    if (requestCase.status !== 'pharmacy_confirmed') throw new Error('case_not_confirmed')
+    update.kept_for_later = true
+    update.kept_for_later_at = timestamp
+    update.kept_for_later_by_user_id = actor.id
+    eventType = 'handoff.kept_for_later'
   } else if (action === 'connect_billing') {
     if (requestCase.status !== 'pharmacy_confirmed') throw new Error('case_not_confirmed')
     update.billing_linkage_status = payload.isBillable === false ? 'not_needed' : 'linked'

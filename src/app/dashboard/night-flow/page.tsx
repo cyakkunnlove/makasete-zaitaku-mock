@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { adminCardClass, adminPageClass } from '@/components/admin-ui'
-import { ClipboardCheck, FileImage, Moon, Phone, Receipt, RotateCw } from 'lucide-react'
+import { BookmarkPlus, ClipboardCheck, FileImage, Moon, Phone, Receipt, RotateCw } from 'lucide-react'
 
 type NightRole = 'regional_admin' | 'pharmacy_admin' | 'pharmacy_staff' | 'night_pharmacist' | 'system_admin'
 type NightCaseStatus = 'accepted' | 'in_progress' | 'completed' | 'pharmacy_confirmed'
@@ -61,11 +61,14 @@ type NightCase = {
   morningRequest?: string
   attentionLevel?: AttentionLevel
   billingLinkageStatus: BillingStatus
+  keptForLater: boolean
+  keptForLaterAt: string | null
   patient: NightPatient | null
   pharmacy: NightPharmacy | null
   handledBy: NightActor | null
   fax: NightFax | null
   isConfirmedToday: boolean
+  isKeptForLater: boolean
   isHiddenFromDashboard: boolean
 }
 
@@ -82,6 +85,7 @@ type NightFlowData = {
     waitingConfirmationCount: number
     confirmedTodayCount: number
     hiddenConfirmedCount: number
+    keptForLaterCount: number
     unlinkedFaxCount: number
   }
 }
@@ -179,8 +183,13 @@ export default function NightFlowPage() {
   const canCreateCase = data?.actor.role === 'night_pharmacist'
   const canHandleFax = data?.actor.role === 'night_pharmacist' || data?.actor.role === 'regional_admin'
   const canConfirm = data?.actor.role === 'pharmacy_admin' || data?.actor.role === 'pharmacy_staff'
+  const isPharmacyActor = data?.actor.role === 'pharmacy_admin' || data?.actor.role === 'pharmacy_staff'
   const morningRequestOptions = morningRequestOptionsByResult[handoffResult]
   const selectedMorningRequest = morningRequestOptions.includes(morningRequest) ? morningRequest : morningRequestOptions[0]
+  const dashboardCases = data?.visibleDashboardCases ?? []
+  const waitingConfirmationCases = dashboardCases.filter((item) => item.status === 'completed')
+  const otherDashboardCases = dashboardCases.filter((item) => item.status !== 'completed' && (!item.isConfirmedToday || item.isKeptForLater))
+  const foldedConfirmedCases = (data?.cases ?? []).filter((item) => item.isConfirmedToday && !item.isKeptForLater)
 
   async function mutate(path: string, payload: Record<string, unknown>) {
     setMessage('')
@@ -272,7 +281,7 @@ export default function NightFlowPage() {
       </div>
 
       <Card className={adminCardClass}>
-        <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_repeat(5,minmax(0,1fr))]">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_repeat(6,minmax(0,1fr))]">
           <label className="grid gap-1 text-xs text-slate-500">
             操作ロール
             <select
@@ -294,6 +303,7 @@ export default function NightFlowPage() {
           <Summary label="進行中" value={data.summary.activeCount} />
           <Summary label="本日確認済み" value={data.summary.confirmedTodayCount} />
           <Summary label="通常非表示" value={data.summary.hiddenConfirmedCount} />
+          <Summary label="あとで確認" value={data.summary.keptForLaterCount} />
           <Summary label="未紐付けFAX" value={data.summary.unlinkedFaxCount} />
         </CardContent>
       </Card>
@@ -374,8 +384,11 @@ export default function NightFlowPage() {
         </Card>
       )}
 
-      <CaseSection title="確認待ち・進行中" cases={data.visibleDashboardCases} canConfirm={canConfirm} actorRole={data.actor.role} runAction={runAction} completePayload={buildHandoffPayload} />
-      <CaseSection title="本日確認済み" cases={data.cases.filter((item) => item.isConfirmedToday)} canConfirm={false} actorRole={data.actor.role} runAction={runAction} completePayload={buildHandoffPayload} />
+      {isPharmacyActor && (
+        <CaseSection title="夜間対応確認待ち" cases={waitingConfirmationCases} canConfirm={canConfirm} canConnectBilling={canConfirm} actorRole={data.actor.role} runAction={runAction} completePayload={buildHandoffPayload} />
+      )}
+      <CaseSection title={isPharmacyActor ? '進行中・あとで確認' : '確認待ち・進行中'} cases={isPharmacyActor ? otherDashboardCases : dashboardCases} canConfirm={canConfirm} canConnectBilling={canConfirm} actorRole={data.actor.role} runAction={runAction} completePayload={buildHandoffPayload} />
+      <ConfirmedCaseSection cases={foldedConfirmedCases} canConnectBilling={canConfirm} actorRole={data.actor.role} runAction={runAction} completePayload={buildHandoffPayload} />
 
       <div className="flex flex-wrap gap-2">
         <Link href="/dashboard/requests"><Button variant="outline">依頼管理へ</Button></Link>
@@ -396,39 +409,65 @@ function Summary({ label, value }: { label: string; value: number }) {
   )
 }
 
-function CaseSection({ title, cases, actorRole, canConfirm, runAction, completePayload }: { title: string; cases: NightCase[]; actorRole: NightRole; canConfirm: boolean; runAction: (caseId: string, action: string, payload?: Record<string, unknown>) => Promise<void>; completePayload: () => Record<string, unknown> }) {
+function CaseSection({ title, cases, actorRole, canConfirm, canConnectBilling, runAction, completePayload }: { title: string; cases: NightCase[]; actorRole: NightRole; canConfirm: boolean; canConnectBilling: boolean; runAction: (caseId: string, action: string, payload?: Record<string, unknown>) => Promise<void>; completePayload: () => Record<string, unknown> }) {
   return (
     <Card className={adminCardClass}>
       <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-4 w-4 text-indigo-500" />{title}</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         {cases.length === 0 ? <p className="text-sm text-slate-500">対象の夜間対応はありません。</p> : cases.map((item) => (
-          <div key={item.id} className={cn('rounded-lg border p-4', caseTone(item))}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-medium text-slate-900">{item.patient?.fullName ?? '患者未特定'}</p>
-                <p className="mt-1 text-xs text-slate-500">{item.pharmacy?.name ?? '-'} / {statusLabel(item.status)} / {billingLabel(item.billingLinkageStatus)}</p>
-              </div>
-              <p className="text-xs text-slate-500">受付 {formatDateTime(item.acceptedAt)}</p>
-            </div>
-            <div className="mt-3 grid gap-1 text-xs text-slate-600 md:grid-cols-2">
-              <p>FAX: {item.fax?.title ?? '-'}</p>
-              <p>対応者: {item.handledBy?.displayName ?? '-'}</p>
-              <p>開始: {formatDateTime(item.startedAt)}</p>
-              <p>完了: {formatDateTime(item.completedAt)}</p>
-              <p>対応結果: {item.handoffResult ?? '-'}</p>
-              <p>翌朝依頼: {item.morningRequest ?? '-'}</p>
-              <p>注意度: {item.attentionLevel ?? '通常'}</p>
-              <p className="md:col-span-2 whitespace-pre-line">申し送り: {item.handoffNote || '-'}</p>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {actorRole === 'night_pharmacist' && item.status === 'accepted' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'start')}>対応開始</Button>}
-              {actorRole === 'night_pharmacist' && (item.status === 'accepted' || item.status === 'in_progress') && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'complete', completePayload())}>対応完了</Button>}
-              {canConfirm && item.status === 'completed' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'confirm')}>薬局確認済みにする</Button>}
-              {canConfirm && item.status === 'pharmacy_confirmed' && item.billingLinkageStatus !== 'linked' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'connect_billing', { isBillable: item.patient?.isBillable !== false })}><Receipt className="h-3.5 w-3.5" />回収管理に追加</Button>}
-            </div>
-          </div>
+          <CaseCard key={item.id} item={item} actorRole={actorRole} canConfirm={canConfirm} canConnectBilling={canConnectBilling} runAction={runAction} completePayload={completePayload} />
         ))}
       </CardContent>
     </Card>
+  )
+}
+
+function ConfirmedCaseSection({ cases, actorRole, canConnectBilling, runAction, completePayload }: { cases: NightCase[]; actorRole: NightRole; canConnectBilling: boolean; runAction: (caseId: string, action: string, payload?: Record<string, unknown>) => Promise<void>; completePayload: () => Record<string, unknown> }) {
+  return (
+    <Card className={adminCardClass}>
+      <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-4 w-4 text-emerald-600" />本日確認済み</CardTitle></CardHeader>
+      <CardContent>
+        <details>
+          <summary className="cursor-pointer text-sm text-slate-600">折りたたみ表示 ({cases.length}件)</summary>
+          <div className="mt-3 space-y-3">
+            {cases.length === 0 ? <p className="text-sm text-slate-500">本日確認済みの夜間対応はありません。</p> : cases.map((item) => (
+              <CaseCard key={item.id} item={item} actorRole={actorRole} canConfirm={false} canConnectBilling={canConnectBilling} runAction={runAction} completePayload={completePayload} />
+            ))}
+          </div>
+        </details>
+      </CardContent>
+    </Card>
+  )
+}
+
+function CaseCard({ item, actorRole, canConfirm, canConnectBilling, runAction, completePayload }: { item: NightCase; actorRole: NightRole; canConfirm: boolean; canConnectBilling: boolean; runAction: (caseId: string, action: string, payload?: Record<string, unknown>) => Promise<void>; completePayload: () => Record<string, unknown> }) {
+  return (
+    <div className={cn('rounded-lg border p-4', caseTone(item))}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-medium text-slate-900">{item.patient?.fullName ?? '患者未特定'}</p>
+          <p className="mt-1 text-xs text-slate-500">{item.pharmacy?.name ?? '-'} / {statusLabel(item.status)} / {billingLabel(item.billingLinkageStatus)}</p>
+        </div>
+        <p className="text-xs text-slate-500">受付 {formatDateTime(item.acceptedAt)}</p>
+      </div>
+      <div className="mt-3 grid gap-1 text-xs text-slate-600 md:grid-cols-2">
+        <p>FAX: {item.fax?.title ?? '-'}</p>
+        <p>対応者: {item.handledBy?.displayName ?? '-'}</p>
+        <p>開始: {formatDateTime(item.startedAt)}</p>
+        <p>完了: {formatDateTime(item.completedAt)}</p>
+        <p>対応結果: {item.handoffResult ?? '-'}</p>
+        <p>翌朝依頼: {item.morningRequest ?? '-'}</p>
+        <p>注意度: {item.attentionLevel ?? '通常'}</p>
+        {item.isKeptForLater && <p>あとで確認: {formatDateTime(item.keptForLaterAt)}</p>}
+        <p className="whitespace-pre-line md:col-span-2">申し送り: {item.handoffNote || '-'}</p>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {actorRole === 'night_pharmacist' && item.status === 'accepted' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'start')}>対応開始</Button>}
+        {actorRole === 'night_pharmacist' && (item.status === 'accepted' || item.status === 'in_progress') && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'complete', completePayload())}>対応完了</Button>}
+        {canConfirm && item.status === 'completed' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'confirm')}>薬局確認済みにする</Button>}
+        {canConnectBilling && item.status === 'pharmacy_confirmed' && !item.isKeptForLater && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'keep_for_later')}><BookmarkPlus className="h-3.5 w-3.5" />あとで確認に残す</Button>}
+        {canConnectBilling && item.status === 'pharmacy_confirmed' && item.billingLinkageStatus !== 'linked' && <Button variant="outline" size="sm" onClick={() => runAction(item.id, 'connect_billing', { isBillable: item.patient?.isBillable !== false })}><Receipt className="h-3.5 w-3.5" />回収管理に追加</Button>}
+      </div>
+    </div>
   )
 }

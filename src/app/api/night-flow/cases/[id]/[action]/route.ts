@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireNightFlowActorRole } from '@/lib/night-flow-auth'
 import { updateNightCaseAction } from '@/lib/night-flow-store'
 
-const allowedActions = new Set(['start', 'complete', 'confirm', 'connect_billing'])
+const allowedActions = new Set(['start', 'complete', 'confirm', 'keep_for_later', 'connect_billing'])
 
 export async function POST(request: Request, { params }: { params: { id: string; action: string } }) {
   const { user, errorResponse } = await requireNightFlowActorRole()
