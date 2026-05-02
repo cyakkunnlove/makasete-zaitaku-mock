@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, TriangleAlert, FileImage, ExternalLink } from 'lucide-react'
-import { requestData } from '@/lib/mock-data'
 
 type NightPatientSearchRecord = {
   id: string
@@ -17,6 +16,17 @@ type NightPatientSearchRecord = {
   dateOfBirth?: string | null
   pharmacyName?: string | null
   status?: string | null
+}
+
+type NightFlowCase = {
+  id: string
+  acceptedAt: string
+  acceptedChannel: 'phone' | 'fax'
+  status: string
+  patientId: string | null
+  patient: { id: string; fullName: string } | null
+  pharmacy: { id: string; name: string } | null
+  fax: { id: string; title: string; attachmentUrl: string | null; receivedAt: string; status: string } | null
 }
 
 function calculateAge(dob: string): number {
@@ -100,11 +110,12 @@ export default function NightPatientsPage() {
   const [nameQuery, setNameQuery] = useState('')
   const [birthDateQuery, setBirthDateQuery] = useState('')
   const [patients, setPatients] = useState<NightPatientSearchRecord[]>([])
+  const [nightCases, setNightCases] = useState<NightFlowCase[]>([])
   const [loadingPatients, setLoadingPatients] = useState(true)
   const [patientFetchError, setPatientFetchError] = useState<string | null>(null)
   const requestId = searchParams.get('requestId')
   const source = searchParams.get('source') ?? 'request'
-  const request = requestId ? requestData.find((item) => item.id === requestId) : null
+  const request = requestId ? nightCases.find((item) => item.id === requestId) ?? null : null
   const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
   const normalizedName = normalizeText(nameQuery)
@@ -123,6 +134,7 @@ export default function NightPatientsPage() {
         if (cancelled) return
         if (!response.ok || !Array.isArray(result?.patients)) {
           setPatients([])
+          setNightCases([])
           setPatientFetchError('night_patient_fetch_failed')
           return
         }
@@ -131,9 +143,11 @@ export default function NightPatientsPage() {
             .map((row: Record<string, unknown>) => normalizePatient(row))
             .filter((patient: NightPatientSearchRecord) => patient.id && patient.fullName),
         )
+        setNightCases(Array.isArray(result?.visibleDashboardCases) ? result.visibleDashboardCases : Array.isArray(result?.cases) ? result.cases : [])
       } catch {
         if (!cancelled) {
           setPatients([])
+          setNightCases([])
           setPatientFetchError('night_patient_fetch_failed')
         }
       } finally {
@@ -190,15 +204,15 @@ export default function NightPatientsPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                 <p className="text-gray-500">受信時刻</p>
-                <p className="mt-1 text-white">{request.receivedDate} {request.receivedAt}</p>
+                <p className="mt-1 text-white">{new Date(request.acceptedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                 <p className="text-gray-500">FAX状況</p>
-                <p className="mt-1 text-white">{request.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</p>
+                <p className="mt-1 text-white">{request.fax ? 'FAX紐付け済み' : request.acceptedChannel === 'fax' ? 'FAX受付' : '電話受付'}</p>
               </div>
               <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
                 <p className="text-gray-500">状態</p>
-                <p className="mt-1 text-white">患者・薬局 未特定</p>
+                <p className="mt-1 text-white">{request.patientId ? '患者特定済み' : '患者未特定'}</p>
               </div>
             </div>
 
@@ -209,8 +223,8 @@ export default function NightPatientsPage() {
                     <FileImage className="h-4 w-4 text-amber-300" />
                     <p className="text-sm font-medium text-white">処方箋FAX画像（依頼画面と共通）</p>
                   </div>
-                  {request.faxImageUrl && (
-                    <a href={request.faxImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-indigo-300 hover:text-indigo-200">
+                  {request.fax?.attachmentUrl && (
+                    <a href={request.fax.attachmentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-indigo-300 hover:text-indigo-200">
                       開く
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
@@ -219,15 +233,15 @@ export default function NightPatientsPage() {
                 <div className="mt-3 flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5">
                   <div className="space-y-2 px-6 text-center">
                     <FileImage className="mx-auto h-10 w-10 text-amber-300" />
-                    <p className="text-sm text-amber-100">FAXで届いた処方箋画像をここで確認</p>
-                    <p className="text-[11px] text-amber-200/70">依頼 {request.id} のFAX原本を共通参照: {request.faxImageUrl ?? 'FAX受信後に表示'}</p>
+                    <p className="text-sm text-amber-100">DBに紐づいたFAX添付をここで確認</p>
+                    <p className="text-[11px] text-amber-200/70">依頼 {request.id} のFAX添付: {request.fax?.attachmentUrl ?? '未紐付け'}</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-                  <p className="text-sm font-medium text-amber-100">まだ患者・薬局は未特定です</p>
-                  <p className="mt-2 text-xs text-amber-200/80">/dashboard/requests/[id]/fax と同じFAX原本を見ています。内容を確認して患者検索へ進んでください。</p>
+                  <p className="text-sm font-medium text-amber-100">DB case の患者確認です</p>
+                  <p className="mt-2 text-xs text-amber-200/80">/dashboard/requests/[id]/fax と同じDB添付を見ています。内容を確認して患者検索へ進んでください。</p>
                 </div>
               </div>
             </div>
