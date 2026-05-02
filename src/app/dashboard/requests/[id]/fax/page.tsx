@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { patientData, requestData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
+import { requestData, getAttentionFlags, getAttentionFlagClass } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { ArrowLeft, FileImage, CheckCircle2, AlertTriangle, User, CalendarDays, Building2, MapPin, ArrowRight, ExternalLink } from 'lucide-react'
@@ -48,7 +48,7 @@ export default function RequestFaxReviewPage() {
   }, [request?.pharmacyId])
 
   const patientSource = useMemo(
-    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    () => mergePatientSources({ databasePatients, includeMockPatients: false }),
     [databasePatients],
   )
 
@@ -61,7 +61,13 @@ export default function RequestFaxReviewPage() {
       .filter((patient): patient is NonNullable<typeof patient> => Boolean(patient))
   }, [id, patientSource])
 
-  const [selectedPatientId, setSelectedPatientId] = useState(linkedPatient?.id ?? candidates[0]?.id ?? '')
+  const [selectedPatientId, setSelectedPatientId] = useState('')
+
+  useEffect(() => {
+    if (selectedPatientId) return
+    setSelectedPatientId(linkedPatient?.id ?? candidates[0]?.id ?? '')
+  }, [candidates, linkedPatient?.id, selectedPatientId])
+
   const selectedPatient = candidates.find((patient) => patient.id === selectedPatientId) ?? linkedPatient ?? null
 
   if (!request) {

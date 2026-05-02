@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -8,7 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, TriangleAlert, FileImage, ExternalLink } from 'lucide-react'
-import { patientData, requestData } from '@/lib/mock-data'
+import { requestData } from '@/lib/mock-data'
+
+type NightPatientSearchRecord = {
+  id: string
+  fullName: string
+  kana?: string | null
+  dateOfBirth?: string | null
+  pharmacyName?: string | null
+  status?: string | null
+}
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
@@ -33,6 +42,22 @@ const patientNameReadings: Record<string, string[]> = {
   'PT-008': ['もりたこういち'],
   'PT-009': ['はやしこういち'],
   'PT-010': ['たかだこういち'],
+}
+
+function normalizePatient(row: Record<string, unknown>): NightPatientSearchRecord {
+  const pharmacy = row.pharmacy
+  return {
+    id: String(row.id ?? ''),
+    fullName: String(row.fullName ?? row.name ?? ''),
+    kana: typeof row.kana === 'string' ? row.kana : null,
+    dateOfBirth: typeof row.dateOfBirth === 'string' ? row.dateOfBirth : typeof row.dob === 'string' ? row.dob : null,
+    pharmacyName: typeof row.pharmacyName === 'string'
+      ? row.pharmacyName
+      : typeof pharmacy === 'object' && pharmacy && 'name' in pharmacy
+        ? String((pharmacy as Record<string, unknown>).name ?? '')
+        : null,
+    status: typeof row.status === 'string' ? row.status : null,
+  }
 }
 
 function normalizeText(value: string) {
@@ -74,6 +99,9 @@ export default function NightPatientsPage() {
   const searchParams = useSearchParams()
   const [nameQuery, setNameQuery] = useState('')
   const [birthDateQuery, setBirthDateQuery] = useState('')
+  const [patients, setPatients] = useState<NightPatientSearchRecord[]>([])
+  const [loadingPatients, setLoadingPatients] = useState(true)
+  const [patientFetchError, setPatientFetchError] = useState<string | null>(null)
   const requestId = searchParams.get('requestId')
   const source = searchParams.get('source') ?? 'request'
   const request = requestId ? requestData.find((item) => item.id === requestId) : null
@@ -83,15 +111,52 @@ export default function NightPatientsPage() {
   const normalizedBirthDate = normalizeBirthDateInput(birthDateQuery)
   const canSearch = normalizedName.length > 0 && Boolean(normalizedBirthDate)
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchNightPatients() {
+      setLoadingPatients(true)
+      setPatientFetchError(null)
+      try {
+        const response = await fetch('/api/night-flow', { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (cancelled) return
+        if (!response.ok || !Array.isArray(result?.patients)) {
+          setPatients([])
+          setPatientFetchError('night_patient_fetch_failed')
+          return
+        }
+        setPatients(
+          result.patients
+            .map((row: Record<string, unknown>) => normalizePatient(row))
+            .filter((patient: NightPatientSearchRecord) => patient.id && patient.fullName),
+        )
+      } catch {
+        if (!cancelled) {
+          setPatients([])
+          setPatientFetchError('night_patient_fetch_failed')
+        }
+      } finally {
+        if (!cancelled) setLoadingPatients(false)
+      }
+    }
+
+    fetchNightPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const filtered = useMemo(() => {
     if (!canSearch || !normalizedBirthDate) return []
-    return patientData.filter((patient) => {
-      const nameMatch = normalizeText(patient.name).includes(normalizedName)
+    return patients.filter((patient) => {
+      const nameMatch = normalizeText(patient.fullName).includes(normalizedName)
+      const kanaMatch = patient.kana ? normalizeText(patient.kana).includes(normalizedName) : false
       const readingMatch = (patientNameReadings[patient.id] ?? []).some((reading) => normalizeText(reading).includes(normalizedName))
-      const dobMatch = patient.dob === normalizedBirthDate
-      return (nameMatch || readingMatch) && dobMatch
+      const dobMatch = patient.dateOfBirth === normalizedBirthDate
+      return (nameMatch || kanaMatch || readingMatch) && dobMatch
     })
-  }, [canSearch, normalizedBirthDate, normalizedName])
+  }, [canSearch, normalizedBirthDate, normalizedName, patients])
 
   if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
@@ -188,6 +253,8 @@ export default function NightPatientsPage() {
               <p>氏名と生年月日の両方が一致したときだけ候補を表示します。氏名は読み仮名でも検索でき、生年月日は西暦・和暦どちらでも入力可能です。</p>
             </div>
           </div>
+          {loadingPatients && <p className="text-xs text-gray-400">患者情報を読み込んでいます。</p>}
+          {patientFetchError && <p className="text-xs text-rose-300">患者情報を取得できませんでした。夜間フローの権限またはDB接続を確認してください。</p>}
         </CardContent>
       </Card>
 
@@ -206,12 +273,12 @@ export default function NightPatientsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-white">{patient.name}</p>
+                          <p className="font-medium text-white">{patient.fullName}</p>
                           <Badge variant="outline" className={patient.status === 'active' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300'}>
                             {patient.status === 'active' ? '利用中' : '休止'}
                           </Badge>
                         </div>
-                        <p className="mt-1 text-xs text-gray-400">{patient.id} / {patient.dob} / {calculateAge(patient.dob)}歳</p>
+                        <p className="mt-1 text-xs text-gray-400">{patient.id} / {patient.dateOfBirth ?? '生年月日未設定'}{patient.dateOfBirth ? ` / ${calculateAge(patient.dateOfBirth)}歳` : ''}</p>
                         <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
                       </div>
                       <div className="text-right text-xs text-gray-500">詳細を見る</div>

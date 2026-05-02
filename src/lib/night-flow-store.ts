@@ -102,8 +102,24 @@ function toPatientView(patient: DbRow | null | undefined, pharmacyRegionId?: str
     regionId: pharmacyRegionId ?? null,
     fullName: patient.full_name,
     kana: patient.full_name,
+    dateOfBirth: patient.date_of_birth,
     address: patient.address,
     phone: patient.phone,
+    emergencyContact: {
+      name: patient.emergency_contact_name ?? '未設定',
+      relation: patient.emergency_contact_relation ?? '未設定',
+      phone: patient.emergency_contact_phone ?? '-',
+    },
+    doctor: {
+      name: patient.doctor_name ?? '未設定',
+      clinic: patient.doctor_clinic ?? '未設定',
+      phone: patient.doctor_night_phone ?? '-',
+    },
+    diseaseName: patient.disease_name ?? '未設定',
+    allergies: patient.allergies ?? 'なし',
+    medicalHistory: patient.medical_history ?? '未設定',
+    currentMeds: patient.current_medications ?? '未設定',
+    visitNotes: patient.visit_notes ?? '未設定',
     isBillable: patient.is_billable !== false,
     status: patient.status,
   }
@@ -211,7 +227,7 @@ export async function listNightFlowData(user: CurrentUser) {
   const [actorsResult, pharmaciesResult, patientsResult, casesResult, faxesResult] = await Promise.all([
     supabase.from('users').select('id,full_name,role,region_id,pharmacy_id,operation_unit_id').eq('organization_id', user.organization_id).eq('status', 'active').order('created_at', { ascending: true }),
     supabase.from('pharmacies').select('id,organization_id,region_id,name,phone,fax,status').eq('organization_id', user.organization_id).eq('status', 'active').order('name', { ascending: true }),
-    supabase.from('patients').select('id,organization_id,pharmacy_id,full_name,address,phone,is_billable,status').eq('organization_id', user.organization_id).eq('status', 'active').order('full_name', { ascending: true }),
+    supabase.from('patients').select('id,organization_id,pharmacy_id,full_name,date_of_birth,address,phone,emergency_contact_name,emergency_contact_relation,emergency_contact_phone,doctor_name,doctor_clinic,doctor_night_phone,disease_name,allergies,medical_history,current_medications,visit_notes,is_billable,status').eq('organization_id', user.organization_id).eq('status', 'active').order('full_name', { ascending: true }),
     supabase.from('night_request_cases').select('*').eq('organization_id', user.organization_id).order('accepted_at', { ascending: false }).limit(100),
     supabase.from('fax_attachments').select('*').eq('organization_id', user.organization_id).order('received_at', { ascending: false }).limit(100),
   ])

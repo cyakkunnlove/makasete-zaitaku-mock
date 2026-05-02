@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import {
   requestData,
-  patientData,
   staffData,
   statusMeta,
   priorityMeta,
@@ -73,7 +72,7 @@ export default function RequestDetailPage() {
   }, [request?.pharmacyId])
 
   const patientSource = useMemo(
-    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    () => mergePatientSources({ databasePatients, includeMockPatients: false }),
     [databasePatients],
   )
 

@@ -47,7 +47,7 @@ import {
   type ShiftEntry,
   type DayTaskItem,
 } from '@/lib/mock-data'
-import { loadMockFallbackPatients, type RegisteredPatientRecord } from '@/lib/patient-master'
+import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
@@ -245,7 +245,6 @@ export default function StaffPage() {
   const { guard, requiresReverification } = useReauthGuard()
   const [pageTab, setPageTab] = useState<PageTab>('staff')
   const [activityRange, setActivityRange] = useState<ActivityRange>('7d')
-  const [registeredPatients, setRegisteredPatients] = useState<RegisteredPatientRecord[]>([])
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [recentDayTasks, setRecentDayTasks] = useState<DayTaskItem[]>([])
   const [isActivityLoading, setIsActivityLoading] = useState(false)
@@ -337,9 +336,9 @@ export default function StaffPage() {
   const pendingInvitationCount = invitations.filter((invitation) => invitation.status === 'pending').length
 
   const ownPatients = useMemo(() => {
-    const merged = mergePatientSources({ databasePatients, registeredPatients })
+    const merged = mergePatientSources({ databasePatients, includeMockPatients: false })
     return merged.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
-  }, [databasePatients, registeredPatients, ownPharmacyId])
+  }, [databasePatients, ownPharmacyId])
 
   const staffActivitySummaries = useMemo(() => {
     const days = activityRange === '30d' ? 30 : 7
@@ -455,16 +454,6 @@ export default function StaffPage() {
       cancelled = true
     }
   }, [isSystemAdmin])
-
-  useEffect(() => {
-    const syncPatients = () => setRegisteredPatients(loadMockFallbackPatients())
-    syncPatients()
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === 'makasete-patient-master:v1') syncPatients()
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
 
   useEffect(() => {
     let active = true

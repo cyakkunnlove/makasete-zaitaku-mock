@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -8,8 +8,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { patientData, handoverData } from '@/lib/mock-data'
 import { ArrowLeft, AlertTriangle, FileText, Phone, Pill, Stethoscope, User } from 'lucide-react'
+
+type NightPatientDetailRecord = {
+  id: string
+  fullName: string
+  dateOfBirth?: string | null
+  address?: string | null
+  pharmacyName?: string | null
+  status?: string | null
+  emergencyContact?: { name?: string | null; relation?: string | null; phone?: string | null }
+  doctor?: { name?: string | null; clinic?: string | null; phone?: string | null }
+  diseaseName?: string | null
+  allergies?: string | null
+  medicalHistory?: string | null
+  currentMeds?: string | null
+  visitNotes?: string | null
+}
+
+function normalizePatient(row: Record<string, unknown>): NightPatientDetailRecord {
+  const pharmacy = row.pharmacy
+  const emergencyContact = typeof row.emergencyContact === 'object' && row.emergencyContact
+    ? row.emergencyContact as NightPatientDetailRecord['emergencyContact']
+    : null
+  const doctor = typeof row.doctor === 'object' && row.doctor
+    ? row.doctor as NightPatientDetailRecord['doctor']
+    : null
+
+  return {
+    id: String(row.id ?? ''),
+    fullName: String(row.fullName ?? row.name ?? ''),
+    dateOfBirth: typeof row.dateOfBirth === 'string' ? row.dateOfBirth : typeof row.dob === 'string' ? row.dob : null,
+    address: typeof row.address === 'string' ? row.address : null,
+    pharmacyName: typeof row.pharmacyName === 'string'
+      ? row.pharmacyName
+      : typeof pharmacy === 'object' && pharmacy && 'name' in pharmacy
+        ? String((pharmacy as Record<string, unknown>).name ?? '')
+        : null,
+    status: typeof row.status === 'string' ? row.status : null,
+    emergencyContact: emergencyContact ?? undefined,
+    doctor: doctor ?? undefined,
+    diseaseName: typeof row.diseaseName === 'string' ? row.diseaseName : null,
+    allergies: typeof row.allergies === 'string' ? row.allergies : null,
+    medicalHistory: typeof row.medicalHistory === 'string' ? row.medicalHistory : null,
+    currentMeds: typeof row.currentMeds === 'string' ? row.currentMeds : null,
+    visitNotes: typeof row.visitNotes === 'string' ? row.visitNotes : null,
+  }
+}
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
@@ -26,12 +71,51 @@ export default function NightPatientDetailPage() {
   const searchParams = useSearchParams()
   const id = params.id as string
   const [nightNote, setNightNote] = useState('')
+  const [patients, setPatients] = useState<NightPatientDetailRecord[]>([])
+  const [loadingPatient, setLoadingPatient] = useState(true)
+  const [patientFetchError, setPatientFetchError] = useState<string | null>(null)
   const requestId = searchParams.get('requestId')
   const source = searchParams.get('source') ?? 'request'
   const sourceLabel = source === 'fax' ? 'FAX確認' : source === 'phone' ? '電話受付' : '依頼確認'
 
-  const patient = useMemo(() => patientData.find((p) => p.id === id), [id])
-  const patientHandovers = useMemo(() => handoverData.filter((h) => h.patientId === id).slice(0, 3), [id])
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchNightPatients() {
+      setLoadingPatient(true)
+      setPatientFetchError(null)
+      try {
+        const response = await fetch('/api/night-flow', { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (cancelled) return
+        if (!response.ok || !Array.isArray(result?.patients)) {
+          setPatients([])
+          setPatientFetchError('night_patient_fetch_failed')
+          return
+        }
+        setPatients(
+          result.patients
+            .map((row: Record<string, unknown>) => normalizePatient(row))
+            .filter((patient: NightPatientDetailRecord) => patient.id && patient.fullName),
+        )
+      } catch {
+        if (!cancelled) {
+          setPatients([])
+          setPatientFetchError('night_patient_fetch_failed')
+        }
+      } finally {
+        if (!cancelled) setLoadingPatient(false)
+      }
+    }
+
+    fetchNightPatients()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const patient = useMemo(() => patients.find((item) => item.id === id) ?? null, [id, patients])
+  const patientHandovers: Array<{ id: string; timestamp: string; pharmacistName: string; situation: string; recommendation: string }> = []
 
   if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
@@ -41,16 +125,29 @@ export default function NightPatientDetailPage() {
     )
   }
 
-  if (!patient) {
+  if (loadingPatient) {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-        <CardContent className="p-6 text-sm text-gray-400">患者が見つかりませんでした。</CardContent>
+        <CardContent className="p-6 text-sm text-gray-400">患者情報を読み込んでいます。</CardContent>
       </Card>
     )
   }
 
-  const age = calculateAge(patient.dob)
-  const maskedAddress = `${patient.address.slice(0, 12)}${patient.address.length > 12 ? '…' : ''}`
+  if (!patient) {
+    return (
+      <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
+        <CardContent className="p-6 text-sm text-gray-400">
+          {patientFetchError ? '患者情報を取得できませんでした。夜間フローの権限またはDB接続を確認してください。' : '患者が見つかりませんでした。'}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const age = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null
+  const address = patient.address ?? '住所未設定'
+  const maskedAddress = `${address.slice(0, 12)}${address.length > 12 ? '…' : ''}`
+  const emergencyContact = patient.emergencyContact ?? {}
+  const doctor = patient.doctor ?? {}
 
   return (
     <div className="space-y-4 text-gray-100">
@@ -74,12 +171,12 @@ export default function NightPatientDetailPage() {
                 ここでは患者確認の最終確認を行います。確定した時刻がタイムスタンプとして記録され、受付時間としてタイムラインへ反映されます。{requestId ? ` 対象依頼: ${requestId}` : ''}
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-lg font-semibold text-white">{patient.name}</p>
+                <p className="text-lg font-semibold text-white">{patient.fullName}</p>
                 <Badge variant="outline" className={patient.status === 'active' ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300' : 'border-gray-500/40 bg-gray-500/20 text-gray-300'}>
                   {patient.status === 'active' ? '利用中' : '休止'}
                 </Badge>
               </div>
-              <p className="mt-1 text-xs text-gray-400">{patient.id} / {patient.dob} / {age}歳</p>
+              <p className="mt-1 text-xs text-gray-400">{patient.id} / {patient.dateOfBirth ?? '生年月日未設定'}{age == null ? '' : ` / ${age}歳`}</p>
               <p className="mt-1 text-xs text-indigo-300">{patient.pharmacyName}</p>
               <p className="mt-1 text-xs text-gray-500">住所: {maskedAddress}</p>
             </div>
@@ -93,9 +190,9 @@ export default function NightPatientDetailPage() {
             <CardTitle className="flex items-center gap-2 text-sm text-white"><User className="h-4 w-4 text-indigo-400" />緊急連絡先</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-gray-200">
-            <p>{patient.emergencyContact.name}（{patient.emergencyContact.relation}）</p>
-            <a href={`tel:${patient.emergencyContact.phone}`} className="inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200">
-              <Phone className="h-3.5 w-3.5" />{patient.emergencyContact.phone}
+            <p>{emergencyContact.name ?? '未設定'}（{emergencyContact.relation ?? '未設定'}）</p>
+            <a href={`tel:${emergencyContact.phone ?? ''}`} className="inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200">
+              <Phone className="h-3.5 w-3.5" />{emergencyContact.phone ?? '-'}
             </a>
           </CardContent>
         </Card>
@@ -105,10 +202,10 @@ export default function NightPatientDetailPage() {
             <CardTitle className="flex items-center gap-2 text-sm text-white"><Stethoscope className="h-4 w-4 text-sky-400" />主治医情報</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-gray-200">
-            <p>{patient.doctor.name}</p>
-            <p className="text-gray-400">{patient.doctor.clinic}</p>
-            <a href={`tel:${patient.doctor.phone}`} className="inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200">
-              <Phone className="h-3.5 w-3.5" />{patient.doctor.phone}
+            <p>{doctor.name ?? '未設定'}</p>
+            <p className="text-gray-400">{doctor.clinic ?? '未設定'}</p>
+            <a href={`tel:${doctor.phone ?? ''}`} className="inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200">
+              <Phone className="h-3.5 w-3.5" />{doctor.phone ?? '-'}
             </a>
           </CardContent>
         </Card>
@@ -121,15 +218,15 @@ export default function NightPatientDetailPage() {
         <CardContent className="space-y-3 text-sm text-gray-200">
           <div>
             <p className="text-xs text-gray-500">主疾患</p>
-            <p className="mt-1">{patient.diseaseName}</p>
+            <p className="mt-1">{patient.diseaseName ?? '未設定'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">アレルギー</p>
-            <p className="mt-1">{patient.allergies}</p>
+            <p className="mt-1">{patient.allergies ?? 'なし'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">既往歴</p>
-            <p className="mt-1">{patient.medicalHistory}</p>
+            <p className="mt-1">{patient.medicalHistory ?? '未設定'}</p>
           </div>
         </CardContent>
       </Card>
@@ -138,14 +235,14 @@ export default function NightPatientDetailPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-white"><Pill className="h-4 w-4 text-indigo-400" />現在薬</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-gray-200">{patient.currentMeds}</CardContent>
+        <CardContent className="text-sm text-gray-200">{patient.currentMeds ?? '未設定'}</CardContent>
       </Card>
 
       <Card className="border-amber-500/40 bg-amber-500/10">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm text-amber-200"><AlertTriangle className="h-4 w-4 text-amber-300" />訪問時注意事項</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm leading-relaxed whitespace-pre-line text-amber-100">{patient.visitNotes}</CardContent>
+        <CardContent className="text-sm leading-relaxed whitespace-pre-line text-amber-100">{patient.visitNotes ?? '未設定'}</CardContent>
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
@@ -197,7 +294,7 @@ export default function NightPatientDetailPage() {
                 <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者で受付確定</Button>
               </Link>
             ) : (
-              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者で受付確定（モック）</Button>
+              <Button className="bg-indigo-600 text-white hover:bg-indigo-500">この患者で受付確定</Button>
             )}
             <Link href="/dashboard/night-patients">
               <Button variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">患者検索に戻る</Button>
@@ -217,10 +314,10 @@ export default function NightPatientDetailPage() {
           <Textarea
             value={nightNote}
             onChange={(e) => setNightNote(e.target.value)}
-            placeholder="夜間対応結果や引継ぎメモを入力（モック）"
+            placeholder="夜間対応結果や引継ぎメモを入力"
             className="min-h-[120px] border-[#2a3553] bg-[#11182c] text-gray-100"
           />
-          <Button className="bg-indigo-600 text-white hover:bg-indigo-500">対応結果を保存（モック）</Button>
+          <Button className="bg-indigo-600 text-white hover:bg-indigo-500">対応結果を保存</Button>
         </CardContent>
       </Card>
     </div>

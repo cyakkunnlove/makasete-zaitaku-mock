@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+
 import { useAuth } from '@/contexts/auth-context'
+import type { RequestPriority, RequestStatus } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -37,15 +38,62 @@ import {
 import { cn } from '@/lib/utils'
 import { adminCardClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { EmptyState } from '@/components/common/EmptyState'
+import { LoadingState } from '@/components/common/LoadingState'
 import { Clock3, Plus } from 'lucide-react'
 import {
-  requestData,
   statusMeta,
   priorityMeta,
 } from '@/lib/mock-data'
 import { getRequestDisplayStatus } from '@/lib/status-meta'
 
 type TabKey = 'received' | 'active' | 'completed' | 'all'
+
+type RequestRow = {
+  id: string
+  patientId: string | null
+  pharmacyId: string
+  receivedAt: string
+  receivedDate: string
+  patientName: string | null
+  pharmacyName: string
+  status: RequestStatus
+  priority: RequestPriority
+  assignee: string
+  assigneeId: string | null
+  symptom: string
+  vitalsChange: string
+  consciousness: string
+  urgency: string
+  notes: string
+  faxImageUrl?: string | null
+  patientLinkedAt?: string | null
+  patientLinkedBy?: string | null
+  timelineEvents: { status: string; timestamp: string; userName: string; note?: string }[]
+}
+
+type NightFlowCase = {
+  id: string
+  patientId: string | null
+  sourcePharmacyId: string | null
+  acceptedChannel: 'phone' | 'fax'
+  acceptedAt: string
+  status: 'accepted' | 'in_progress' | 'completed' | 'pharmacy_confirmed' | 'cancelled'
+  startedAt: string | null
+  completedAt: string | null
+  summary: string | null
+  handoffNote: string | null
+  morningRequest: string | null
+  attentionLevel: '通常' | '要確認' | string | null
+  patient: { id: string; fullName: string } | null
+  pharmacy: { id: string; name: string } | null
+  handledBy: { id: string; displayName: string } | null
+  fax: { attachmentUrl: string | null; linkedAt: string | null; linkedByUserId: string | null } | null
+}
+
+type NightFlowResponse = {
+  visibleDashboardCases?: NightFlowCase[]
+  cases?: NightFlowCase[]
+}
 
 type CorrectionRequestRow = {
   id: string
@@ -59,17 +107,76 @@ type CorrectionRequestRow = {
   created_at: string
 }
 
-function getNightNextAction(request: (typeof requestData)[number]) {
+function getNightNextAction(request: RequestRow) {
   if (request.status === 'fax_pending') {
-    return { label: 'FAX受信待ち', href: `/dashboard/requests/${request.id}`, tone: 'muted' as const }
+    return { label: 'FAX受信待ち', href: '/dashboard/night-flow', tone: 'muted' as const }
   }
   if (!request.patientId || ['fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)) {
-    return { label: 'FAX確認・患者特定', href: `/dashboard/night-patients?requestId=${request.id}&source=fax`, tone: 'primary' as const }
+    return { label: '患者確認へ進む', href: `/dashboard/night-patients?requestId=${request.id}&source=${request.faxImageUrl ? 'fax' : 'phone'}`, tone: 'primary' as const }
   }
   if (['dispatched', 'arrived', 'in_progress'].includes(request.status)) {
-    return { label: '対応中を確認', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
+    return { label: '対応中を確認', href: '/dashboard/night-flow', tone: 'secondary' as const }
   }
-  return { label: '依頼詳細を開く', href: `/dashboard/requests/${request.id}`, tone: 'secondary' as const }
+  return { label: '夜間対応を開く', href: '/dashboard/night-flow', tone: 'secondary' as const }
+}
+
+function formatDateParts(value: string | null | undefined) {
+  if (!value) return { date: '-', time: '-' }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return { date: '-', time: '-' }
+  return {
+    date: date.toISOString().slice(0, 10),
+    time: date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' }),
+  }
+}
+
+function mapNightCaseStatus(status: NightFlowCase['status'], acceptedChannel: NightFlowCase['acceptedChannel']): RequestStatus {
+  switch (status) {
+    case 'accepted':
+      return acceptedChannel === 'fax' ? 'fax_received' : 'received'
+    case 'in_progress':
+      return 'in_progress'
+    case 'completed':
+    case 'pharmacy_confirmed':
+      return 'completed'
+    case 'cancelled':
+      return 'cancelled'
+    default:
+      return 'received'
+  }
+}
+
+function mapNightCaseToRequestRow(requestCase: NightFlowCase): RequestRow {
+  const accepted = formatDateParts(requestCase.acceptedAt)
+  const status = mapNightCaseStatus(requestCase.status, requestCase.acceptedChannel)
+  const timelineEvents: RequestRow['timelineEvents'] = [
+    { status: 'received', timestamp: requestCase.acceptedAt, userName: requestCase.handledBy?.displayName ?? '夜間担当', note: '夜間依頼受付' },
+  ]
+  if (requestCase.startedAt) timelineEvents.push({ status: 'in_progress', timestamp: requestCase.startedAt, userName: requestCase.handledBy?.displayName ?? '夜間担当', note: '対応開始' })
+  if (requestCase.completedAt) timelineEvents.push({ status: 'completed', timestamp: requestCase.completedAt, userName: requestCase.handledBy?.displayName ?? '夜間担当', note: requestCase.handoffNote ?? '対応完了' })
+
+  return {
+    id: requestCase.id,
+    patientId: requestCase.patientId,
+    pharmacyId: requestCase.sourcePharmacyId ?? '',
+    receivedAt: accepted.time,
+    receivedDate: accepted.date,
+    patientName: requestCase.patient?.fullName ?? null,
+    pharmacyName: requestCase.pharmacy?.name ?? '未設定薬局',
+    status,
+    priority: requestCase.attentionLevel === '要確認' ? 'high' : 'normal',
+    assignee: requestCase.handledBy?.displayName ?? '未割当',
+    assigneeId: requestCase.handledBy?.id ?? null,
+    symptom: requestCase.summary || requestCase.handoffNote || '夜間対応依頼',
+    vitalsChange: '-',
+    consciousness: '-',
+    urgency: requestCase.attentionLevel === '要確認' ? '高' : '中',
+    notes: requestCase.morningRequest || requestCase.handoffNote || '',
+    faxImageUrl: requestCase.fax?.attachmentUrl ?? null,
+    patientLinkedAt: requestCase.patientId ? requestCase.acceptedAt : null,
+    patientLinkedBy: requestCase.patientId ? requestCase.handledBy?.displayName ?? null : null,
+    timelineEvents,
+  }
 }
 
 function getCorrectionRequestHref(request: CorrectionRequestRow) {
@@ -98,7 +205,6 @@ function getCorrectionTargetLabel(targetType: string) {
 
 
 export default function RequestsPage() {
-  const router = useRouter()
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
@@ -107,6 +213,8 @@ export default function RequestsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)
   const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequestRow[]>([])
+  const [nightRequests, setNightRequests] = useState<RequestRow[]>([])
+  const [isNightRequestsLoading, setIsNightRequestsLoading] = useState(false)
   const [formData, setFormData] = useState({
     pharmacy: '',
     patientName: '',
@@ -117,6 +225,33 @@ export default function RequestsPage() {
   })
 
   const canCreateRequest = role === 'regional_admin'
+
+  useEffect(() => {
+    if (isPharmacyAdmin) {
+      setNightRequests([])
+      return
+    }
+
+    let active = true
+    setIsNightRequestsLoading(true)
+    fetch('/api/night-flow', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null) as NightFlowResponse | null
+        if (!response.ok || !data) throw new Error('night_flow_fetch_failed')
+        const cases = data.visibleDashboardCases ?? data.cases ?? []
+        if (active) setNightRequests(cases.map(mapNightCaseToRequestRow))
+      })
+      .catch(() => {
+        if (active) setNightRequests([])
+      })
+      .finally(() => {
+        if (active) setIsNightRequestsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isPharmacyAdmin])
 
   useEffect(() => {
     if (!canViewCorrectionRequests) {
@@ -146,14 +281,9 @@ export default function RequestsPage() {
   )
 
   const visibleRequests = useMemo(() => {
-    if (isPharmacyAdmin) {
-      return []
-    }
-    if (isNightPharmacist) {
-      return requestData.filter((request) => (request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一') && request.receivedDate === '2026-03-05')
-    }
-    return requestData
-  }, [isNightPharmacist, isPharmacyAdmin])
+    if (isPharmacyAdmin) return []
+    return nightRequests
+  }, [isPharmacyAdmin, nightRequests])
 
   const tabItems = useMemo<Array<{ key: TabKey; label: string }>>(() => {
     const receivedCount = visibleRequests.filter((request) =>
@@ -291,7 +421,13 @@ export default function RequestsPage() {
 
       {/* Mobile card view */}
       <div className="lg:hidden space-y-3">
-        {filteredRequests.length === 0 ? (
+        {isNightRequestsLoading ? (
+          <Card className={adminCardClass}>
+            <CardContent className="p-4">
+              <LoadingState message="依頼一覧を読み込み中です。" />
+            </CardContent>
+          </Card>
+        ) : filteredRequests.length === 0 ? (
           <EmptyState
             title={isPharmacyAdmin ? '依頼管理は実装予定です' : '条件に合う依頼はまだありません'}
             description={isPharmacyAdmin ? '支給依頼の受付一覧はDB接続後に表示します。' : '新しい依頼が入るとここに表示されます。'}
@@ -315,7 +451,7 @@ export default function RequestsPage() {
               : request.patientName ?? '患者未特定'
 
           return (
-            <Link key={request.id} href={isPharmacyAdmin ? '#' : `/dashboard/requests/${request.id}`} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
+            <Link key={request.id} href={isPharmacyAdmin ? '#' : getNightNextAction(request).href} onClick={(event) => { if (isPharmacyAdmin) event.preventDefault() }}>
               <Card
                 className={cn(
                   `${adminCardClass} soft-pop cursor-pointer border-l-4 hover:border-indigo-400 hover:shadow-md`,
@@ -398,7 +534,13 @@ export default function RequestsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRequests.length === 0 ? (
+            {isNightRequestsLoading ? (
+              <TableRow className="border-slate-200 hover:bg-slate-50">
+                <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-6">
+                  <LoadingState message="依頼一覧を読み込み中です。" className="justify-center" />
+                </TableCell>
+              </TableRow>
+            ) : filteredRequests.length === 0 ? (
               <TableRow className="border-slate-200 hover:bg-slate-50">
                 <TableCell colSpan={isNightPharmacist ? 8 : 7} className="py-6">
                   <EmptyState
@@ -428,7 +570,7 @@ export default function RequestsPage() {
               return (
                 <TableRow
                   key={request.id}
-                  onClick={() => { if (!isPharmacyAdmin) router.push(`/dashboard/requests/${request.id}`) }}
+                  onClick={() => { if (!isPharmacyAdmin) window.location.href = getNightNextAction(request).href }}
                   className={cn('border-slate-200 transition hover:bg-slate-50', !isPharmacyAdmin && 'cursor-pointer')}
                 >
                   <TableCell>
@@ -442,7 +584,7 @@ export default function RequestsPage() {
                     {isPharmacyAdmin ? (
                       <span className="inline-flex items-center gap-2 text-slate-700">{patientLabel}</span>
                     ) : (
-                      <Link href={`/dashboard/requests/${request.id}`} className="text-slate-700 hover:text-indigo-600">
+                      <Link href={getNightNextAction(request).href} className="text-slate-700 hover:text-indigo-600">
                         <span className="inline-flex items-center gap-2">
                           {patientLabel}
                         </span>

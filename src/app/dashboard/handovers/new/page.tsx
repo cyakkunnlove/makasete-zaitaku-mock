@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, Sparkles, Loader2, Pencil, Camera, CheckCircle2, XCircle, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { patientData, requestData } from '@/lib/mock-data'
+import { requestData } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -92,7 +92,7 @@ export default function NewHandoverPage() {
   }, [selectedRequest?.pharmacyId])
 
   const patientSource = useMemo(
-    () => (databasePatients.length > 0 ? mergePatientSources({ databasePatients, includeMockPatients: false }) : patientData),
+    () => mergePatientSources({ databasePatients, includeMockPatients: false }),
     [databasePatients],
   )
 

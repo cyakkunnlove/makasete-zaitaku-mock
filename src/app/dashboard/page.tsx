@@ -20,7 +20,6 @@ import {
   Building2,
   ClipboardList,
   ArrowUpRight,
-  ArrowDownRight,
   Timer,
   Stethoscope,
   FileImage,
@@ -35,18 +34,12 @@ import {
   MapPin,
   ChevronDown,
 } from 'lucide-react'
-import { getAttentionFlags, getAttentionFlagClass, handoverData, kpiData, pharmacyData, requestData, shiftData, statusMeta, type DayTaskItem } from '@/lib/mock-data'
+import { getAttentionFlags, getAttentionFlagClass, pharmacyData, shiftData, type DayTaskItem } from '@/lib/mock-data'
 import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
-
-const mockPharmacyRequests = [
-  { id: 'REQ-0308-001', patientName: '田中 優子', status: '対応完了', time: '22:30', pharmacist: '佐藤 健一' },
-  { id: 'REQ-0308-002', patientName: '清水 恒一', status: '対応中', time: '23:00', pharmacist: '佐藤 健一' },
-  { id: 'REQ-0308-003', patientName: '小川 正子', status: 'FAX送信済', time: '23:10', pharmacist: '未アサイン' },
-]
 
 const staffStatusClass: Record<string, string> = {
   待機中: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
@@ -54,7 +47,6 @@ const staffStatusClass: Record<string, string> = {
   移動中: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
 }
 
-const kpiIcons = [ClipboardList, Activity, Building2, Timer]
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
 const STABLE_DATA_CACHE_MS = 5 * 60 * 1000
@@ -100,6 +92,107 @@ type PharmacyMasterSettingsResponse = {
 type PatientsByPharmacyResponse = {
   ok: boolean
   patients?: RegisteredPatientRecord[]
+}
+
+type NightDashboardCaseStatus = 'accepted' | 'in_progress' | 'completed' | 'pharmacy_confirmed' | 'cancelled'
+
+type NightDashboardCase = {
+  id: string
+  patientId: string | null
+  sourcePharmacyId: string | null
+  acceptedChannel: 'phone' | 'fax'
+  acceptedAt: string | null
+  status: NightDashboardCaseStatus
+  startedAt: string | null
+  completedAt: string | null
+  summary: string | null
+  handoffNote: string | null
+  handoffResult: string | null
+  morningRequest: string | null
+  attentionLevel: string | null
+  pharmacyConfirmedAt: string | null
+  billingLinkageStatus: 'pending' | 'linked' | 'not_needed' | string | null
+  keptForLater: boolean
+  patient: { id: string; fullName: string } | null
+  pharmacy: { id: string; name: string } | null
+  handledBy: { id: string; displayName: string } | null
+  fax: { attachmentUrl: string | null; linkedAt: string | null; linkedByUserId: string | null } | null
+}
+
+type NightFlowDashboardResponse = {
+  visibleDashboardCases?: NightDashboardCase[]
+  cases?: NightDashboardCase[]
+  summary?: {
+    activeCount: number
+    waitingConfirmationCount: number
+    confirmedTodayCount: number
+    hiddenConfirmedCount: number
+    keptForLaterCount: number
+    unlinkedFaxCount: number
+  }
+}
+
+const emptyNightSummary: NonNullable<NightFlowDashboardResponse['summary']> = {
+  activeCount: 0,
+  waitingConfirmationCount: 0,
+  confirmedTodayCount: 0,
+  hiddenConfirmedCount: 0,
+  keptForLaterCount: 0,
+  unlinkedFaxCount: 0,
+}
+
+const nightCaseStatusMeta: Record<NightDashboardCaseStatus, { label: string; className: string }> = {
+  accepted: { label: '受付済み', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  in_progress: { label: '対応中', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  completed: { label: '薬局確認待ち', className: 'border-sky-200 bg-sky-50 text-sky-700' },
+  pharmacy_confirmed: { label: '薬局確認済み', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  cancelled: { label: 'キャンセル', className: 'border-slate-200 bg-slate-50 text-slate-500' },
+}
+
+function getNightDashboardCases(data: NightFlowDashboardResponse | null) {
+  return data?.visibleDashboardCases ?? data?.cases ?? []
+}
+
+function useNightFlowDashboardData(enabled = true) {
+  const [data, setData] = useState<NightFlowDashboardResponse | null>(null)
+  const [loading, setLoading] = useState(enabled)
+
+  useEffect(() => {
+    if (!enabled) {
+      setData(null)
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+    async function fetchNightFlow() {
+      setLoading(true)
+      try {
+        const response = await fetch('/api/night-flow', { cache: 'no-store' })
+        const result = await response.json().catch(() => null)
+        if (!cancelled && response.ok) setData(result)
+        if (!cancelled && !response.ok) setData(null)
+      } catch {
+        if (!cancelled) setData(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchNightFlow()
+    return () => {
+      cancelled = true
+    }
+  }, [enabled])
+
+  return { data, loading }
+}
+
+function getNightCaseTime(value: string | null | undefined) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' })
 }
 
 const defaultWorkloadSettings: PharmacyWorkloadSettings = {
@@ -238,35 +331,44 @@ function collectionStatusMeta(status: DayTaskItem['collectionStatus']) {
 }
 
 function RegionalAdminDashboard() {
-  const slaRate = 94.2
-  const delayedRequests = requestData.filter((request) => ['fax_received', 'assigning', 'assigned'].includes(request.status)).length
-  const unassignedRequests = requestData.filter((request) => !request.assigneeId && request.status !== 'completed' && request.status !== 'cancelled').length
-  const urgentActiveRequests = requestData.filter((request) => request.priority === 'high' && ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
-  const unconfirmedHandovers = handoverData.filter((handover) => !handover.confirmed).length
+  const { data: nightFlowData, loading: isNightFlowLoading } = useNightFlowDashboardData()
+  const nightCases = getNightDashboardCases(nightFlowData)
+  const nightSummary = nightFlowData?.summary ?? emptyNightSummary
+  const slaRate = nightCases.length > 0
+    ? Math.round((nightCases.filter((requestCase) => requestCase.status === 'completed' || requestCase.status === 'pharmacy_confirmed').length / nightCases.length) * 1000) / 10
+    : 0
+  const delayedRequests = nightCases.filter((requestCase) => requestCase.status === 'accepted' || requestCase.status === 'in_progress').length
+  const unassignedRequests = nightCases.filter((requestCase) => !requestCase.handledBy && requestCase.status !== 'pharmacy_confirmed' && requestCase.status !== 'cancelled').length
+  const urgentActiveRequests = nightCases.filter((requestCase) => requestCase.attentionLevel === '要確認' && (requestCase.status === 'accepted' || requestCase.status === 'in_progress')).length
+  const unconfirmedHandovers = nightSummary.waitingConfirmationCount
   const activePharmacies = pharmacyData.filter((pharmacy) => pharmacy.status === 'active').length
   const forwardingReady = pharmacyData.filter((pharmacy) => pharmacy.forwarding).length
-  const patientUnresolved = requestData.filter((request) => !request.patientId && request.status !== 'cancelled' && request.status !== 'completed').length
+  const patientUnresolved = nightCases.filter((requestCase) => !requestCase.patientId && requestCase.status !== 'cancelled' && requestCase.status !== 'pharmacy_confirmed').length
 
   return (
     <div className={`${adminPageClass} space-y-4`}>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {kpiData.map((kpi, index) => {
-          const Icon = kpiIcons[index]
-          const TrendIcon = kpi.trendUp ? ArrowUpRight : ArrowDownRight
+        {[
+          { label: '夜間受付案件', value: nightCases.length, icon: ClipboardList, subtext: isNightFlowLoading ? '読込中' : 'DB case' },
+          { label: '対応中・受付済み', value: nightSummary.activeCount, icon: Activity, subtext: 'accepted / in_progress' },
+          { label: '薬局確認待ち', value: nightSummary.waitingConfirmationCount, icon: Building2, subtext: 'completed' },
+          { label: '未リンクFAX', value: nightSummary.unlinkedFaxCount, icon: Timer, subtext: 'fax_attachments' },
+        ].map((kpi) => {
+          const Icon = kpi.icon
           return (
             <Card key={kpi.label} className={adminCardClass}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <Icon className="h-4 w-4 text-indigo-500" />
-                  <span className={cn('inline-flex items-center gap-1 text-xs font-medium', kpi.trendUp ? 'text-emerald-600' : 'text-rose-600')}>
-                    <TrendIcon className="h-3 w-3" />
-                    {kpi.trend}
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                    <ArrowUpRight className="h-3 w-3" />
+                    実DB
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
-                <p className="text-[10px] text-slate-500">{kpi.label}</p>
+                <p className="text-[10px] text-slate-500">{kpi.label} / {kpi.subtext}</p>
               </CardContent>
             </Card>
           )
@@ -364,9 +466,9 @@ function RegionalAdminDashboard() {
               return <p className="text-xs text-slate-500">本日の担当データがありません。</p>
             }
             return todayShifts.map((shift) => {
-              const activeRequest = requestData.find((req) => req.assigneeId === shift.pharmacistId && ['dispatched', 'arrived', 'in_progress'].includes(req.status))
-              const status = activeRequest ? (activeRequest.status === 'dispatched' ? '移動中' : '対応中') : '待機中'
-              const assignment = activeRequest ? `${activeRequest.pharmacyName} / ${activeRequest.patientName ?? '患者照合中'}` : '次回アサイン待機'
+              const activeRequest = nightCases.find((requestCase) => requestCase.handledBy?.id === shift.pharmacistId && requestCase.status === 'in_progress')
+              const status = activeRequest ? '対応中' : '待機中'
+              const assignment = activeRequest ? `${activeRequest.pharmacy?.name ?? '薬局未設定'} / ${activeRequest.patient?.fullName ?? '患者照合中'}` : '次回アサイン待機'
               return (
                 <div key={shift.id} className={`${adminPanelClass} flex items-center justify-between p-3`}>
                   <div className="flex items-center gap-2">
@@ -1705,6 +1807,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [flowDate, routePlanResult, user?.email])
 
   const ownPharmacyId = getScopedPharmacyId(user)
+  const { data: pharmacyNightFlowData } = useNightFlowDashboardData(Boolean(ownPharmacyId))
+  const pharmacyNightCases = useMemo(() => {
+    return getNightDashboardCases(pharmacyNightFlowData).filter((requestCase) => !ownPharmacyId || requestCase.sourcePharmacyId === ownPharmacyId)
+  }, [ownPharmacyId, pharmacyNightFlowData])
   const ownPatients = useMemo(() => {
     return databasePatients.filter((patient) => isPatientInPharmacyScope(patient, ownPharmacyId))
   }, [databasePatients, ownPharmacyId])
@@ -2011,14 +2117,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   }, [helperCandidatePatientIds, ownPatients, searchQuery])
 
   const billableReadyCount = draftDayTasks.filter((task) => task.billable).length
-  const ownRequests = requestData.filter((request) => request.pharmacyId === ownPharmacyId)
-  const ownUnconfirmedHandovers = handoverData.filter((handover) => {
-    if (handover.confirmed) return false
-    if (isPatientInPharmacyScope({ pharmacyId: handover.pharmacyId }, ownPharmacyId)) return true
-    return ownPatients.some((patient) => patient.id === handover.patientId)
-  })
-  const ownOvernightPatients = new Set(ownRequests.filter((request) => request.receivedDate === '2026-03-05' || request.receivedDate === '2026-03-06').map((request) => request.patientId).filter(Boolean)).size
-  const ownActiveRequests = ownRequests.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist', 'dispatched', 'arrived', 'in_progress'].includes(request.status)).length
+  const ownRequests = pharmacyNightCases.map((requestCase) => ({ patientId: requestCase.patientId }))
+  const ownUnconfirmedHandovers = pharmacyNightCases
+    .filter((requestCase) => requestCase.status === 'completed')
+    .map((requestCase) => ({
+      id: requestCase.id,
+      patientId: requestCase.patientId ?? '',
+      patientName: requestCase.patient?.fullName ?? '患者照合中',
+      pharmacistName: requestCase.handledBy?.displayName ?? '夜間担当',
+      pharmacyId: requestCase.sourcePharmacyId ?? '',
+      timestamp: getNightCaseTime(requestCase.completedAt ?? requestCase.acceptedAt),
+      situation: requestCase.summary ?? '夜間対応の申し送り確認が必要です。',
+      recommendation: requestCase.morningRequest ?? requestCase.handoffNote ?? '薬局側で内容を確認してください。',
+      confirmed: false,
+    }))
+  const ownOvernightPatients = new Set(pharmacyNightCases.map((requestCase) => requestCase.patientId).filter(Boolean)).size
+  const ownActiveRequests = pharmacyNightCases.filter((requestCase) => requestCase.status === 'accepted' || requestCase.status === 'in_progress' || requestCase.status === 'completed').length
   const scheduledTaskCount = draftDayTasks.filter((task) => task.status === 'scheduled').length
   const inProgressTaskCount = draftDayTasks.filter((task) => task.status === 'in_progress').length
   const completedTaskCount = draftDayTasks.filter((task) => task.status === 'completed').length
@@ -2663,7 +2777,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   onSearchChange={setSearchQuery}
                   filteredMasterPatients={filteredMasterPatients}
                   ownRequests={ownRequests}
-                  handoverData={handoverData}
+                  handoverData={ownUnconfirmedHandovers}
                   ownPharmacyId={ownPharmacyId}
                   draftDayTasks={draftDayTasks}
                   flowDate={flowDate}
@@ -2724,7 +2838,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   onSearchChange={setSearchQuery}
                   filteredMasterPatients={filteredMasterPatients}
                   ownRequests={ownRequests}
-                  handoverData={handoverData}
+                  handoverData={ownUnconfirmedHandovers}
                   ownPharmacyId={ownPharmacyId}
                   draftDayTasks={draftDayTasks}
                   flowDate={flowDate}
@@ -2737,26 +2851,33 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       </>
       {!isPharmacyStaff && (
         <PharmacyDashboardCollapsibleSection
-          title="送信済みFAX"
-          countLabel={`${mockPharmacyRequests.length}件`}
+          title="直近の夜間対応"
+          countLabel={`${pharmacyNightCases.length}件`}
           icon={FileImage}
         >
           <div className="space-y-2">
-            {mockPharmacyRequests.map((req) => (
-              <Card key={req.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{req.patientName}</p>
-                      <p className="text-xs text-slate-500">{req.id} • {req.time}</p>
-                    </div>
-                    <Badge variant="outline" className={cn('border text-xs', req.status === '対応完了' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : req.status === '対応中' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')}>
-                      {req.status}
-                    </Badge>
-                  </div>
-                </CardContent>
+            {pharmacyNightCases.length === 0 ? (
+              <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
+                <CardContent className="p-3 text-sm text-slate-500">自局に紐づく夜間対応はまだありません。</CardContent>
               </Card>
-            ))}
+            ) : pharmacyNightCases.slice(0, 5).map((requestCase) => {
+              const meta = nightCaseStatusMeta[requestCase.status]
+              return (
+                <Card key={requestCase.id} className="border-slate-200 bg-white text-slate-900 shadow-sm">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{requestCase.patient?.fullName ?? '患者照合中'}</p>
+                        <p className="text-xs text-slate-500">{requestCase.id} • {getNightCaseTime(requestCase.acceptedAt)} • {requestCase.acceptedChannel === 'fax' ? 'FAX' : '電話'}</p>
+                      </div>
+                      <Badge variant="outline" className={cn('border text-xs', meta.className)}>
+                        {meta.label}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </PharmacyDashboardCollapsibleSection>
       )}
@@ -2786,21 +2907,21 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 }
 
 function PharmacistDashboard() {
-  const ownAssignments = requestData.filter((request) => request.assigneeId === 'ST-02' || request.assignee === '佐藤 健一')
-  const waitingCount = ownAssignments.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status)).length
-  const inProgressCount = ownAssignments.filter((request) => ['dispatched', 'arrived', 'in_progress'].includes(request.status)).length
-  const completedCount = ownAssignments.filter((request) => request.status === 'completed').length
-  const faxCount = ownAssignments.filter((request) => ['fax_pending', 'fax_received'].includes(request.status)).length
-  const intakeRequests = ownAssignments.filter((request) => ['received', 'fax_pending', 'fax_received', 'assigning', 'assigned', 'checklist'].includes(request.status))
-  const newestIntakeRequest = intakeRequests[0] ?? null
+  const { data: nightFlowData, loading: isNightFlowLoading } = useNightFlowDashboardData()
+  const ownAssignments = getNightDashboardCases(nightFlowData)
+  const waitingCount = ownAssignments.filter((requestCase) => requestCase.status === 'accepted').length
+  const inProgressCount = ownAssignments.filter((requestCase) => requestCase.status === 'in_progress').length
+  const completedCount = ownAssignments.filter((requestCase) => requestCase.status === 'completed' || requestCase.status === 'pharmacy_confirmed').length
+  const faxCount = ownAssignments.filter((requestCase) => requestCase.acceptedChannel === 'fax' || Boolean(requestCase.fax)).length
+  const newestIntakeRequest = ownAssignments.find((requestCase) => requestCase.status === 'accepted') ?? null
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-white">{ownAssignments.length}</p><p className="text-[10px] text-gray-500">夜間受付案件</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{waitingCount}</p><p className="text-[10px] text-gray-500">患者確認前 / 対応待ち</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-300">{waitingCount}</p><p className="text-[10px] text-gray-500">受付済み / 開始前</p></CardContent></Card>
         <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-sky-300">{inProgressCount}</p><p className="text-[10px] text-gray-500">対応中</p></CardContent></Card>
-        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-indigo-300">{faxCount}</p><p className="text-[10px] text-gray-500">FAX確認待ち</p></CardContent></Card>
+        <Card className="border-[#2a3553] bg-[#1a2035]"><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-indigo-300">{faxCount}</p><p className="text-[10px] text-gray-500">FAX関連</p></CardContent></Card>
       </div>
 
       {newestIntakeRequest && (
@@ -2816,17 +2937,17 @@ function PharmacistDashboard() {
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-100">新規受付</span>
-                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-100">{newestIntakeRequest.status === 'fax_pending' ? 'FAX受信待ち' : 'FAX受信済み'}</span>
-                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-100">{newestIntakeRequest.receivedAt}</span>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-100">{newestIntakeRequest.acceptedChannel === 'fax' ? 'FAX受付' : '電話受付'}</span>
+                  <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[11px] text-indigo-100">{getNightCaseTime(newestIntakeRequest.acceptedAt)}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">患者・薬局は未特定</p>
-                  <p className="mt-1 text-xs text-gray-300">{newestIntakeRequest.symptom}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">電子FAXの添付処方箋を確認し、内容を見ながら患者と薬局を特定します。</p>
+                  <p className="text-sm font-medium text-white">{newestIntakeRequest.patient?.fullName ?? '患者照合中'}</p>
+                  <p className="mt-1 text-xs text-gray-300">{newestIntakeRequest.summary ?? '夜間対応依頼'}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">DB-backed の夜間受付案件です。患者未確定の場合は患者特定へ進みます。</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <Link href={`/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=fax`}>
+                <Link href={newestIntakeRequest.patientId ? '/dashboard/night-flow' : `/dashboard/night-patients?requestId=${newestIntakeRequest.id}&source=${newestIntakeRequest.acceptedChannel}`}>
                   <Button className="w-full bg-rose-600 text-white transition hover:-translate-y-0.5 hover:bg-rose-500">内容を確認する</Button>
                 </Link>
               </div>
@@ -2838,7 +2959,7 @@ function PharmacistDashboard() {
       <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm text-white"><Moon className="h-4 w-4 text-indigo-400" />夜間受付ワークスペース</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。新規受付はまずダッシュボードで検知し、電子FAXの添付処方箋を確認してから患者特定へ進みます。</p>
+          <p className="text-sm text-gray-300">ナイトファーマシストは夜間の受付担当です。トップの件数と直近案件は /api/night-flow から取得した実DB案件だけを表示します。</p>
           <div className="grid gap-3 md:grid-cols-2">
             <Link href="/dashboard/requests">
               <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4 transition hover:border-indigo-400">
@@ -2860,40 +2981,27 @@ function PharmacistDashboard() {
       </Card>
 
       <Card className="border-[#2a3553] bg-[#1a2035]">
-        <CardHeader className="pb-2"><CardTitle className="text-sm text-white">受付ルール</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3 text-sm">
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <p className="text-xs text-gray-500">受付起点</p>
-            <p className="mt-1 text-white">受電後にFAX受信まで含めた受付フロー</p>
-          </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <p className="text-xs text-gray-500">受付時間</p>
-            <p className="mt-1 text-white">患者確認ボタン押下時刻</p>
-          </div>
-          <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-            <p className="text-xs text-gray-500">次アクション</p>
-            <p className="mt-1 text-white">対応開始 → 申し送り作成</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#2a3553] bg-[#1a2035]">
         <CardHeader className="pb-2"><CardTitle className="text-sm text-white">直近の自分案件</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {ownAssignments.slice(0, 3).map((request) => (
-            <Link key={request.id} href={`/dashboard/requests/${request.id}`}>
-              <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 transition hover:border-indigo-500/40">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-white">{request.id} / {request.patientName ?? '患者照合中'}</p>
-                    <p className="text-xs text-gray-400">{request.pharmacyName} ・ {request.receivedAt}</p>
+          {isNightFlowLoading && <p className="text-xs text-gray-500">夜間案件を読み込み中...</p>}
+          {!isNightFlowLoading && ownAssignments.length === 0 && <p className="text-xs text-gray-500">表示できる夜間案件はありません。</p>}
+          {ownAssignments.slice(0, 3).map((requestCase) => {
+            const meta = nightCaseStatusMeta[requestCase.status]
+            return (
+              <Link key={requestCase.id} href="/dashboard/night-flow">
+                <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3 transition hover:border-indigo-500/40">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-white">{requestCase.id} / {requestCase.patient?.fullName ?? '患者照合中'}</p>
+                      <p className="text-xs text-gray-400">{requestCase.pharmacy?.name ?? '薬局未設定'} ・ {getNightCaseTime(requestCase.acceptedAt)}</p>
+                    </div>
+                    <Badge variant="outline" className={cn('border text-xs', meta.className)}>{meta.label}</Badge>
                   </div>
-                  <Badge variant="outline" className={cn('border text-xs', statusMeta[request.status].className)}>{statusMeta[request.status].label}</Badge>
                 </div>
-              </div>
-            </Link>
-          ))}
-          <p className="text-[11px] text-gray-500">完了済み案件 {completedCount} 件。申し送りは案件詳細から作成する想定です。</p>
+              </Link>
+            )
+          })}
+          <p className="text-[11px] text-gray-500">完了済み案件 {completedCount} 件。申し送りは夜間対応フローで作成・確認します。</p>
         </CardContent>
       </Card>
     </div>
