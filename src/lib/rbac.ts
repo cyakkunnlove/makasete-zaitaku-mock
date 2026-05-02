@@ -29,7 +29,7 @@ export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
   staff: ['system_admin', 'regional_admin', 'pharmacy_admin'],
   patients: ['pharmacy_admin', 'pharmacy_staff'],
   nightPatients: ['regional_admin', 'night_pharmacist'],
-  billing: ['system_admin', 'pharmacy_admin', 'pharmacy_staff'],
+  billing: ['pharmacy_admin', 'pharmacy_staff'],
   reports: ['regional_admin'],
   audit: ['system_admin', 'regional_admin'],
   shifts: ['regional_admin'],

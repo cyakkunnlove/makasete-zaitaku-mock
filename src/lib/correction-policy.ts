@@ -1,7 +1,7 @@
 import type { CollectionWorkflowStatus } from '@/lib/status-meta'
 
-export const DEFAULT_PATIENT_EDIT_WINDOW_MINUTES = 30
-export const DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES = 30
+export const DEFAULT_PATIENT_EDIT_WINDOW_MINUTES = 15
+export const DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES = 15
 
 export const correctionReasonCategories = [
   '入力ミス',
@@ -31,9 +31,11 @@ export function getBillingPaidCorrectionAction(input: {
   windowMinutes?: number
   isPharmacyAdmin: boolean
   isPharmacyStaff: boolean
+  hasCorrectionRequest?: boolean
   now?: Date
 }) {
   if (input.status !== 'paid') return 'none' as const
+  if (input.hasCorrectionRequest && input.isPharmacyAdmin) return 'edit_from_request' as const
 
   const windowMinutes = input.windowMinutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES
   const withinWindow = isWithinCorrectionWindow(input.handledAt, windowMinutes, input.now)
@@ -50,7 +52,7 @@ export function getPatientEditCorrectionAction(input: {
   adminOverrideConfirmed?: boolean
   now?: Date
 }) {
-  if (input.hasCorrectionRequest) return 'edit_from_request' as const
+  if (input.hasCorrectionRequest && input.isPharmacyAdmin) return 'edit_from_request' as const
   if (input.isPharmacyAdmin && input.adminOverrideConfirmed) return 'admin_override' as const
 
   const windowMinutes = input.windowMinutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES

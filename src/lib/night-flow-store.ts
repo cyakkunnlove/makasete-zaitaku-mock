@@ -224,12 +224,14 @@ export async function listNightFlowData(user: CurrentUser) {
   const visiblePharmacyIds = new Set(visiblePharmacies.map((pharmacy: DbRow) => pharmacy.id))
   const pharmacyRegionById: Map<string, string | null> = new Map(allPharmacies.map((pharmacy: DbRow) => [String(pharmacy.id), typeof pharmacy.region_id === 'string' ? pharmacy.region_id : null]))
 
+  const visibleCases = (casesResult.data ?? []).filter((requestCase: DbRow) => isNightCaseVisible(actor, requestCase))
+  const visibleCasePatientIds = new Set(visibleCases.map((requestCase: DbRow) => requestCase.patient_id).filter(Boolean))
+
   const visiblePatients = (patientsResult.data ?? []).filter((patient: DbRow) => {
     if (actor.role === 'system_admin') return true
+    if (actor.role === 'regional_admin') return visibleCasePatientIds.has(patient.id)
     return patient.pharmacy_id ? visiblePharmacyIds.has(patient.pharmacy_id) : false
   })
-
-  const visibleCases = (casesResult.data ?? []).filter((requestCase: DbRow) => isNightCaseVisible(actor, requestCase))
   const visibleFaxes = (faxesResult.data ?? []).filter((fax: DbRow) => isFaxVisible(actor, fax))
   const linkedFaxesByCase: Map<string, DbRow> = new Map(visibleFaxes.filter((fax: DbRow) => fax.linked_night_case_id).map((fax: DbRow) => [String(fax.linked_night_case_id), fax]))
   const caseUserIds = new Set(visibleCases.flatMap((item: DbRow) => [item.handled_by_user_id, item.pharmacy_confirmed_by_user_id, item.accepted_by_user_id].filter(Boolean)))
@@ -242,6 +244,17 @@ export async function listNightFlowData(user: CurrentUser) {
   }
   const cases = visibleCases.map((item: DbRow) => toNightCaseView(item, maps))
   const faxes = visibleFaxes.map(toFaxView).filter(Boolean)
+
+  if (actor.role === 'regional_admin' && visibleCasePatientIds.size > 0) {
+    await insertWorkflowEvent({
+      actor,
+      organizationId: user.organization_id,
+      regionId: actor.regionId,
+      eventType: 'regional.patient_context_viewed',
+      entityType: 'night_flow_dashboard',
+      metadata: { patientIds: Array.from(visibleCasePatientIds), reason: 'night_operations_supervision' },
+    })
+  }
 
   const roles = new Set<UserRole>()
   const demoActors = (actorsResult.data ?? [])

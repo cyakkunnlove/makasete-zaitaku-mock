@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
+import { getCurrentActorRole } from '@/lib/active-role'
 import { writeAuditLog } from '@/lib/audit-log'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
+import { normalizeCollectionStatusToDb, type CollectionWorkflowDbStatus } from '@/lib/status-meta'
+import {
+  DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES,
+  getBillingPaidCorrectionAction,
+} from '@/lib/correction-policy'
 
 type CollectionStatusPayload = {
   collectionStatus?: unknown
@@ -13,6 +18,7 @@ type CollectionStatusPayload = {
   handledBy?: unknown
   handledById?: unknown
   handledAt?: unknown
+  correctionRequestId?: unknown
 }
 
 export async function PATCH(request: Request, { params }: { params: { taskId: string } }) {
@@ -77,7 +83,80 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     ? body.handledById
     : user.id
   const note = typeof body.note === 'string' ? body.note : previousNote ?? ''
-  const collectionStatus = normalizeCollectionStatusToDb(rawStatus)
+  const collectionStatus = normalizeCollectionStatusToDb(rawStatus) as CollectionWorkflowDbStatus
+  const actorRole = getCurrentActorRole(user)
+  const correctionRequestId = typeof body.correctionRequestId === 'string' ? body.correctionRequestId.trim() : ''
+  let hasValidCorrectionRequest = false
+
+  if (correctionRequestId) {
+    if (actorRole !== 'pharmacy_admin') {
+      return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+    }
+
+    const correctionRequestResponse = await supabase
+      .from('correction_requests')
+      .select('id, pharmacy_id, target_type, target_id, patient_day_task_id, status')
+      .eq('organization_id', user.organization_id)
+      .eq('pharmacy_id', scopedPharmacyId)
+      .eq('id', correctionRequestId)
+      .maybeSingle()
+
+    if (correctionRequestResponse.error) {
+      return NextResponse.json({ ok: false, error: 'correction_request_lookup_failed', details: correctionRequestResponse.error.message }, { status: 500 })
+    }
+
+    const correctionRequest = correctionRequestResponse.data as {
+      target_type?: string | null
+      target_id?: string | null
+      patient_day_task_id?: string | null
+      status?: string | null
+    } | null
+    const requestMatchesTask = correctionRequest?.target_id === params.taskId || correctionRequest?.patient_day_task_id === params.taskId
+    const requestIsOpen = correctionRequest?.status === 'pending' || correctionRequest?.status === 'approved'
+    const requestTargetsBilling = correctionRequest?.target_type === 'billing_collection' || correctionRequest?.target_type === 'patient_day_task'
+
+    if (!correctionRequest || !requestMatchesTask || !requestTargetsBilling || !requestIsOpen) {
+      return NextResponse.json({ ok: false, error: 'invalid_correction_request' }, { status: 400 })
+    }
+
+    hasValidCorrectionRequest = true
+  }
+
+  if (previousCollectionStatus === 'paid' && collectionStatus !== 'paid') {
+    const settingsResponse = await supabase
+      .from('pharmacy_operation_settings')
+      .select('billing_paid_cancel_window_minutes')
+      .eq('pharmacy_id', scopedPharmacyId)
+      .maybeSingle()
+
+    if (settingsResponse.error) {
+      return NextResponse.json({ ok: false, error: 'operation_settings_fetch_failed', details: settingsResponse.error.message }, { status: 500 })
+    }
+
+    const settings = settingsResponse.data as { billing_paid_cancel_window_minutes?: number | null } | null
+    const windowMinutes = settings?.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES
+    const correctionAction = getBillingPaidCorrectionAction({
+      status: 'paid',
+      handledAt: previousHandledAt,
+      windowMinutes,
+      isPharmacyAdmin: actorRole === 'pharmacy_admin',
+      isPharmacyStaff: actorRole === 'pharmacy_staff',
+      hasCorrectionRequest: hasValidCorrectionRequest,
+    })
+
+    if (correctionAction === 'request') {
+      return NextResponse.json({
+        ok: false,
+        error: 'correction_request_required',
+        reason: 'billing_paid_locked',
+        billingPaidCancelWindowMinutes: windowMinutes,
+      }, { status: 423 })
+    }
+
+    if (correctionAction === 'none') {
+      return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+    }
+  }
 
   const { data, error } = await supabase
     .from('patient_day_tasks')
@@ -120,6 +199,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       current_handled_at: handledAt,
       amount_changed: false,
       note_changed: note !== previousNote,
+      correction_request_id: correctionRequestId || null,
     },
   })
 

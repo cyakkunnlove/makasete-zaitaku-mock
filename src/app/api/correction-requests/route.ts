@@ -13,7 +13,7 @@ export async function GET() {
   const actorRole = getCurrentActorRole(user)
   const scopedPharmacyId = getScopedPharmacyId(user)
 
-  if (!actorRole || !['system_admin', 'regional_admin', 'pharmacy_admin', 'pharmacy_staff'].includes(actorRole)) {
+  if (!actorRole || !['system_admin', 'pharmacy_admin', 'pharmacy_staff'].includes(actorRole)) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
 
@@ -74,6 +74,22 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerSupabaseClient()
+  const { data: operationSettings, error: operationSettingsError } = await supabase
+    .from('pharmacy_operation_settings')
+    .select('correction_reason_required')
+    .eq('pharmacy_id', scopedPharmacyId)
+    .maybeSingle()
+
+  if (operationSettingsError) {
+    return NextResponse.json({ ok: false, error: 'operation_settings_fetch_failed', details: operationSettingsError.message }, { status: 500 })
+  }
+
+  const typedOperationSettings = operationSettings as { correction_reason_required?: boolean } | null
+  const correctionReasonRequired = typedOperationSettings?.correction_reason_required ?? true
+  if (correctionReasonRequired && !reasonCategory && !reasonText) {
+    return NextResponse.json({ ok: false, error: 'correction_reason_required' }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('correction_requests')
     .insert({

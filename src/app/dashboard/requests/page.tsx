@@ -102,7 +102,7 @@ export default function RequestsPage() {
   const { role } = useAuth()
   const isAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
-  const canViewCorrectionRequests = role === 'pharmacy_admin' || role === 'pharmacy_staff' || role === 'regional_admin'
+  const canViewCorrectionRequests = role === 'pharmacy_admin' || role === 'pharmacy_staff'
   const isNightPharmacist = role === 'night_pharmacist'
   const [activeTab, setActiveTab] = useState<TabKey>('received')
   const [newRequestOpen, setNewRequestOpen] = useState(false)

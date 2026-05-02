@@ -70,13 +70,48 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const patientEditWindowMinutes = settings?.patient_edit_window_minutes ?? DEFAULT_PATIENT_EDIT_WINDOW_MINUTES
   const actorRole = getCurrentActorRole(user)
   const correctionRequestId = typeof patch.correctionRequestId === 'string' ? patch.correctionRequestId.trim() : ''
+  let hasValidCorrectionRequest = false
+
+  if (correctionRequestId) {
+    if (actorRole !== 'pharmacy_admin') {
+      return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+    }
+
+    const correctionRequestResponse = await supabase
+      .from('correction_requests')
+      .select('id, pharmacy_id, target_type, target_id, patient_id, status')
+      .eq('organization_id', user.organization_id)
+      .eq('pharmacy_id', scopedPharmacyId)
+      .eq('id', correctionRequestId)
+      .maybeSingle()
+
+    if (correctionRequestResponse.error) {
+      return NextResponse.json({ ok: false, error: 'correction_request_lookup_failed', details: correctionRequestResponse.error.message }, { status: 500 })
+    }
+
+    const correctionRequest = correctionRequestResponse.data as {
+      target_type?: string | null
+      target_id?: string | null
+      patient_id?: string | null
+      status?: string | null
+    } | null
+    const requestMatchesPatient = correctionRequest?.target_id === params.id || correctionRequest?.patient_id === params.id
+    const requestIsOpen = correctionRequest?.status === 'pending' || correctionRequest?.status === 'approved'
+
+    if (!correctionRequest || correctionRequest.target_type !== 'patient' || !requestMatchesPatient || !requestIsOpen) {
+      return NextResponse.json({ ok: false, error: 'invalid_correction_request' }, { status: 400 })
+    }
+
+    hasValidCorrectionRequest = true
+  }
+
   const adminOverrideConfirmed = patch.adminOverrideConfirmed === true
   const adminPasswordConfirmed = patch.adminPasswordConfirmed === true
   const adminPasskeyConfirmed = patch.adminPasskeyConfirmed === true
   const correctionAction = getPatientEditCorrectionAction({
     updatedAt: existingPatient.updated_at,
     windowMinutes: patientEditWindowMinutes,
-    hasCorrectionRequest: Boolean(correctionRequestId),
+    hasCorrectionRequest: hasValidCorrectionRequest,
     isPharmacyAdmin: actorRole === 'pharmacy_admin',
     adminOverrideConfirmed,
   })
