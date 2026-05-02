@@ -150,14 +150,14 @@ export function buildDayTaskCollectionRecords({
       return {
         id: existing?.id ?? `COL-${task.id}`,
         patientName: patient?.name ?? task.patientId,
-        month: task.completedAt?.slice(0, 7) ?? task.flowDate.slice(0, 7),
+        month: task.flowDate.slice(0, 7),
         amount: task.amount,
         status,
         dueDate: existing?.dueDate ?? `${task.flowDate.slice(0, 7)}-25`,
         note: existing?.note ?? (patientBilling?.isBillable === false ? (patientBilling.reason ?? '請求対象外') : 'day task 由来の請求候補'),
         linkedTaskId: task.id,
         handledBy: existing?.handledBy ?? task.handledBy,
-        handledAt: existing?.handledAt ?? task.completedAt ?? task.handledAt,
+        handledAt: existing?.handledAt ?? task.handledAt ?? task.completedAt,
         billable: task.billable && patientBilling?.isBillable !== false,
       }
     })
@@ -179,7 +179,7 @@ export function buildPatientVisitHistory({
     const completedTaskVisits = tasks
       .filter((task) => task.status === 'completed' && !!task.completedAt)
       .map((task) => {
-        const visitDate = task.completedAt?.slice(0, 10) ?? task.flowDate
+        const visitDate = task.flowDate
         const linkedCollection = patientRecords.find((record) => record.linkedTaskId === task.id)
           ?? patientRecords.find((record) => record.handledAt?.slice(0, 10) === visitDate)
           ?? null
@@ -211,12 +211,12 @@ export function buildPatientVisitHistory({
       }))
 
     const visits = [...completedTaskVisits, ...recordOnlyVisits].sort((a, b) => b.visitDate.localeCompare(a.visitDate))
-    const lastVisit = tasks.filter((task) => task.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))[0]
+    const lastVisit = tasks.filter((task) => task.completedAt || task.status === 'completed').sort((a, b) => b.flowDate.localeCompare(a.flowDate))[0]
 
     return {
       patientId: patient.id,
       patientName: patient.name,
-      lastVisitAt: lastVisit?.completedAt ?? '—',
+      lastVisitAt: lastVisit?.flowDate ?? '—',
       visits,
     }
   })
@@ -301,8 +301,8 @@ export function buildUnbilledVisitRecords({
         linkedTaskId: task.id,
         patientId: task.patientId,
         patientName: patient?.name ?? task.patientId,
-        visitDate: task.completedAt?.slice(0, 10) ?? task.flowDate,
-        prescriptionDate: task.completedAt?.slice(0, 10) ?? task.flowDate,
+        visitDate: task.flowDate,
+        prescriptionDate: task.flowDate,
         visitType: task.visitType,
         staffName: task.handledBy ?? '未設定',
         amount: task.amount,
