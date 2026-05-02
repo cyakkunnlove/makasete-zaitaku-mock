@@ -155,8 +155,10 @@ export async function GET(_request: Request, { params }: { params: { date: strin
   const generatedTasks = generateAutoDayTasksFromVisitRules(detailedPatients, params.date, persistedTasks.map(mapPersistedTask))
   const persistedIds = new Set(persistedTasks.map((task) => task.id))
   const mergedTasks = [
-    ...persistedTasks,
-    ...generatedTasks.filter((task) => !persistedIds.has(task.id)).map((task) => mapGeneratedTaskToCalendarTask(task, persistedTasks)),
+    ...persistedTasks.map((task) => ({ ...task, isGeneratedCandidate: false })),
+    ...generatedTasks
+      .filter((task) => !persistedIds.has(task.id))
+      .map((task) => ({ ...mapGeneratedTaskToCalendarTask(task, persistedTasks), isGeneratedCandidate: true })),
   ]
   const patientsById = new Map(patients.map((patient) => [patient.id, patient]))
   const detail = buildCalendarDayDetail({

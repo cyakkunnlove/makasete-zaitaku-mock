@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Clock3, UserRound, Route, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
 
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,6 +36,8 @@ type CalendarDaySummary = {
   isPast: boolean
   isToday: boolean
   totalCount: number
+  confirmedCount: number
+  generatedCandidateCount: number
   plannedCount: number
   inProgressCount: number
   completedCount: number
@@ -57,6 +59,8 @@ type CalendarDayDetail = {
     patientId: string | null
     patientName: string
     scheduledTime: string
+    source: '自動生成' | '手動追加'
+    isGeneratedCandidate: boolean
     status: 'scheduled' | 'in_progress' | 'completed'
     handledBy: string | null
     completedAt: string | null
@@ -71,17 +75,19 @@ type CalendarDayDetail = {
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const
 
 function getTaskPriority(task: CalendarDayDetail['tasks'][number]) {
-  if (!task.handledBy && task.status !== 'completed') return 0
-  if (task.hasNightHandover) return 1
+  if (task.hasNightHandover) return 0
+  if (!task.handledBy && task.status !== 'completed' && !task.isGeneratedCandidate) return 1
   if (task.status === 'in_progress') return 2
-  if (task.status === 'scheduled') return 3
-  return 4
+  if (task.status === 'scheduled' && !task.isGeneratedCandidate) return 3
+  if (task.status === 'completed') return 4
+  return 5
 }
 
-function getTaskStatusLabel(status: CalendarDayDetail['tasks'][number]['status']) {
-  if (status === 'completed') return '完了'
-  if (status === 'in_progress') return '対応中'
-  return '予定'
+function getTaskStatusLabel(task: CalendarDayDetail['tasks'][number]) {
+  if (task.isGeneratedCandidate) return '自動候補'
+  if (task.status === 'completed') return '完了'
+  if (task.status === 'in_progress') return '対応中'
+  return '確定予定'
 }
 
 export default function CalendarPage() {
@@ -165,6 +171,8 @@ export default function CalendarPage() {
   const canBuildRouteForSelectedDate = Boolean(selectedDate && selectedDate >= todayDateKey)
   const futureSelectedCount = selectedRouteCandidateIds.length
   const selectedSummary = selectedDate ? summaryByDate.get(selectedDate) ?? null : null
+  const selectedGeneratedCandidateCount = selectedSummary?.generatedCandidateCount ?? 0
+  const selectedConfirmedPlannedCount = Math.max((selectedSummary?.plannedCount ?? 0) - selectedGeneratedCandidateCount, 0)
   const monthGrid = getMonthGrid(viewYear, viewMonth)
   const sortedDetailTasks = useMemo(() => {
     if (!detail?.tasks?.length) return []
@@ -277,10 +285,9 @@ export default function CalendarPage() {
           <h1 className="text-lg font-semibold text-slate-900">在宅カレンダー</h1>
           <p className="text-sm text-slate-500">過去は確定実績、未来は予定として確認できます。日付を押すとその日の詳細が見られます。</p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" /> 完了中心
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" /> 対応中あり
-          <span className="inline-flex h-2.5 w-2.5 rounded-full bg-indigo-400" /> 予定あり
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-slate-500" />確定</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-indigo-400" />自動候補</span>
           <span className="hidden h-4 w-px bg-slate-200 sm:inline-flex" />
           <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 sm:inline-flex">完了+回収済</span>
           <span className="hidden rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-700 sm:inline-flex">完了後未回収</span>
@@ -322,7 +329,7 @@ export default function CalendarPage() {
               ))}
             </div>
             <div className="flex justify-end text-[10px] text-slate-500 sm:hidden">
-              ※ 数字はその日の患者数です
+              ※ 太字は確定、薄字は自動候補です
             </div>
             <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {Array.from({ length: monthGrid.firstDay }).map((_, index) => <div key={`empty-${index}`} className="h-20 sm:h-28 rounded-lg border border-transparent" />)}
@@ -332,16 +339,21 @@ export default function CalendarPage() {
                 const summary = summaryByDate.get(dateKey)
                 const isSelected = selectedDate === dateKey
                 const weekDayIndex = new Date(`${dateKey}T00:00:00`).getDay()
-                const mobilePatientCount = (summary?.plannedCount ?? 0) + (summary?.inProgressCount ?? 0) + (summary?.completedCount ?? 0)
+                const confirmedCount = summary?.confirmedCount ?? 0
+                const generatedCandidateCount = summary?.generatedCandidateCount ?? 0
+                const confirmedPlannedCount = Math.max((summary?.plannedCount ?? 0) - generatedCandidateCount, 0)
+                const mobilePatientCount = confirmedCount
                 const isFullyDoneAndCollected = Boolean(summary?.allCompleted && summary.allCollected)
                 const hasCompletedUncollected = (summary?.uncollectedCompletedCount ?? 0) > 0
                 const toneClass = summary?.completedCount
                   ? 'border-emerald-500/40 bg-emerald-500/10'
                   : summary?.inProgressCount
                     ? 'border-amber-500/40 bg-amber-500/10'
-                    : summary?.plannedCount
-                      ? 'border-indigo-500/40 bg-indigo-500/10'
-                      : 'border-slate-200 bg-slate-50'
+                    : confirmedPlannedCount > 0
+                      ? 'border-slate-400/50 bg-slate-100'
+                      : generatedCandidateCount > 0
+                        ? 'border-indigo-300/60 bg-indigo-50/70'
+                        : 'border-slate-200 bg-slate-50'
 
                 return (
                   <button
@@ -366,15 +378,24 @@ export default function CalendarPage() {
                       {summary?.isToday && <Badge className="border-indigo-500/40 bg-indigo-500/20 px-1.5 py-0 text-[10px] text-indigo-200">今日</Badge>}
                     </div>
                     <div className="mt-1 hidden space-y-1 text-[11px] text-slate-600 sm:block">
-                      <p>予定 {summary?.plannedCount ?? 0}</p>
-                      <p>完了 {summary?.completedCount ?? 0}</p>
+                      <div className="flex items-center justify-between gap-2 rounded bg-white/70 px-1.5 py-0.5">
+                        <span className="font-medium text-slate-800">確定</span>
+                        <span className="font-semibold text-slate-900">{confirmedCount}</span>
+                      </div>
+                      {generatedCandidateCount > 0 ? (
+                        <div className="flex items-center justify-between gap-2 rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700">
+                          <span>自動候補</span>
+                          <span className="font-semibold">{generatedCandidateCount}</span>
+                        </div>
+                      ) : null}
+                      <p>予定 {confirmedPlannedCount} / 完了 {summary?.completedCount ?? 0}</p>
                       {isFullyDoneAndCollected ? <p className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">完了+回収済</p> : null}
                       {hasCompletedUncollected ? <p className="rounded bg-rose-100 px-1.5 py-0.5 font-medium text-rose-700">未回収 {summary?.uncollectedCompletedCount ?? 0}</p> : null}
-                      <p>初回 {summary?.firstVisitCount ?? 0}</p>
-                      {summary && summary.nightHandoverCount > 0 && <p className="text-amber-300">申し送り {summary.nightHandoverCount}</p>}
+                      {summary && summary.nightHandoverCount > 0 && <p className="text-amber-700">申し送り {summary.nightHandoverCount}</p>}
                     </div>
                     <div className="mt-2 sm:hidden">
-                      {mobilePatientCount > 0 ? <p className="text-xs font-semibold text-slate-700">{mobilePatientCount}人</p> : null}
+                      {mobilePatientCount > 0 ? <p className="text-xs font-semibold text-slate-700">確定 {mobilePatientCount}</p> : null}
+                      {generatedCandidateCount > 0 ? <p className="mt-1 text-[10px] font-medium text-indigo-700">候補 {generatedCandidateCount}</p> : null}
                       {isFullyDoneAndCollected ? <p className="mt-1 text-[10px] font-medium text-emerald-700">回収済</p> : null}
                       {hasCompletedUncollected ? <p className="mt-1 text-[10px] font-medium text-rose-700">未回収 {summary?.uncollectedCompletedCount ?? 0}</p> : null}
                     </div>
@@ -399,9 +420,13 @@ export default function CalendarPage() {
             {selectedSummary && (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">予定 {selectedSummary.plannedCount}</Badge>
-                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">対応中 {selectedSummary.inProgressCount}</Badge>
-                  <Badge className="border-slate-200 bg-slate-50 text-slate-700">完了 {selectedSummary.completedCount}</Badge>
+                  <Badge className="border-slate-200 bg-slate-50 text-slate-700"><CheckCircle2 className="mr-1 h-3 w-3" />確定 {selectedSummary.confirmedCount}</Badge>
+                  <Badge className="border-slate-200 bg-white text-slate-700">確定予定 {selectedConfirmedPlannedCount}</Badge>
+                  <Badge className="border-slate-200 bg-white text-slate-700">対応中 {selectedSummary.inProgressCount}</Badge>
+                  <Badge className="border-slate-200 bg-white text-slate-700">完了 {selectedSummary.completedCount}</Badge>
+                  {selectedGeneratedCandidateCount > 0 ? (
+                    <Badge className="border-indigo-200 bg-indigo-50 text-indigo-700"><Sparkles className="mr-1 h-3 w-3" />自動候補 {selectedGeneratedCandidateCount}</Badge>
+                  ) : null}
                   {selectedSummary.allCompleted && selectedSummary.allCollected ? (
                     <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">全完了・全回収済</Badge>
                   ) : null}
@@ -513,7 +538,7 @@ export default function CalendarPage() {
             ) : sortedDetailTasks.length ? (
               <div className="space-y-2">
                 {sortedDetailTasks.map((task, index) => {
-                  const isAttention = (!task.handledBy && task.status !== 'completed') || task.hasNightHandover
+                  const isAttention = (!task.handledBy && task.status !== 'completed' && !task.isGeneratedCandidate) || task.hasNightHandover
                   const defaultOpen = index === 0 && isAttention
 
                   return (
@@ -522,9 +547,12 @@ export default function CalendarPage() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium text-slate-900">{task.patientName}</p>
-                          <Badge className="border-slate-200 bg-slate-50 text-slate-700">{getTaskStatusLabel(task.status)}</Badge>
+                          <Badge className={cn(
+                            'border',
+                            task.isGeneratedCandidate ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-slate-50 text-slate-700',
+                          )}>{task.isGeneratedCandidate ? <Sparkles className="mr-1 h-3 w-3" /> : null}{getTaskStatusLabel(task)}</Badge>
                           {isAttention && <Badge className="border-amber-200 bg-amber-50 text-amber-700"><AlertTriangle className="mr-1 h-3 w-3" />確認</Badge>}
-                          {task.isFirstVisit && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
+                          {task.isFirstVisit && !task.isGeneratedCandidate && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                           <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{task.scheduledTime}</span>
@@ -536,9 +564,10 @@ export default function CalendarPage() {
                     </summary>
                     <div className="border-t border-slate-100 px-3 pb-3 pt-2">
                       <div className="flex flex-wrap items-center gap-2">
-                      {task.isFirstVisit && <Badge className="border-sky-500/40 bg-sky-500/20 text-sky-200">初回</Badge>}
-                      {task.isLongGapVisit && <Badge className="border-violet-500/40 bg-violet-500/20 text-violet-200">久しぶり</Badge>}
-                      {task.hasNightHandover && <Badge className="border-amber-500/40 bg-amber-500/20 text-amber-200">夜間申し送りあり</Badge>}
+                      {task.isGeneratedCandidate && <Badge className="border-indigo-200 bg-indigo-50 text-indigo-700">訪問ルールからの自動候補</Badge>}
+                      {task.isFirstVisit && !task.isGeneratedCandidate && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
+                      {task.isLongGapVisit && <Badge className="border-violet-200 bg-violet-50 text-violet-700">久しぶり</Badge>}
+                      {task.hasNightHandover && <Badge className="border-amber-200 bg-amber-50 text-amber-700">夜間申し送りあり</Badge>}
                     </div>
                     <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <p className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />予定 {task.scheduledTime}</p>
@@ -547,6 +576,7 @@ export default function CalendarPage() {
                       <p>担当変更 {task.assigneeChangedAt ? task.assigneeChangedAt.replace('T', ' ').slice(0, 16) : '—'}</p>
                     </div>
                     {task.note ? <p className="mt-2 text-xs text-slate-600">{task.note}</p> : null}
+                    {task.isGeneratedCandidate ? <p className="mt-2 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-xs text-indigo-700">まだ保存済みの訪問タスクではありません。日中業務に入れる場合は day-flow 側で確定します。</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {task.patientId ? (
                         <Button asChild size="sm" variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">

@@ -130,8 +130,10 @@ export async function GET(request: Request) {
 
   const persistedIds = new Set(persistedTasks.map((task) => task.id))
   const mergedTasks = [
-    ...persistedTasks,
-    ...generatedTasks.filter((task) => !persistedIds.has(task.id)).map((task) => mapGeneratedTaskToCalendarTask(task, persistedTasks)),
+    ...persistedTasks.map((task) => ({ ...task, isGeneratedCandidate: false })),
+    ...generatedTasks
+      .filter((task) => !persistedIds.has(task.id))
+      .map((task) => ({ ...mapGeneratedTaskToCalendarTask(task, persistedTasks), isGeneratedCandidate: true })),
   ]
 
   const summaries = buildCalendarMonthSummary({

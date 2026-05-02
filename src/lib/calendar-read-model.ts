@@ -16,6 +16,8 @@ export type CalendarDaySummary = {
   isPast: boolean
   isToday: boolean
   totalCount: number
+  confirmedCount: number
+  generatedCandidateCount: number
   plannedCount: number
   inProgressCount: number
   completedCount: number
@@ -34,6 +36,8 @@ export type CalendarDayTaskDetail = {
   patientId: string | null
   patientName: string
   scheduledTime: string
+  source: PatientDayTask['source']
+  isGeneratedCandidate: boolean
   status: PatientDayTask['status']
   handledBy: string | null
   completedAt: string | null
@@ -119,7 +123,7 @@ function diffDays(from: string, to: string) {
 }
 
 export function buildCalendarMonthSummary(input: {
-  tasks: PatientDayTask[]
+  tasks: Array<PatientDayTask & { isGeneratedCandidate?: boolean }>
   patients?: Patient[]
   year: number
   month: number
@@ -139,6 +143,8 @@ export function buildCalendarMonthSummary(input: {
       isPast: date < today,
       isToday: date === today,
       totalCount: 0,
+      confirmedCount: 0,
+      generatedCandidateCount: 0,
       plannedCount: 0,
       inProgressCount: 0,
       completedCount: 0,
@@ -153,6 +159,8 @@ export function buildCalendarMonthSummary(input: {
     }
 
     existing.totalCount += 1
+    if (task.isGeneratedCandidate) existing.generatedCandidateCount += 1
+    else existing.confirmedCount += 1
     if (task.status === 'completed') existing.completedCount += 1
     else if (task.status === 'in_progress') existing.inProgressCount += 1
     else existing.plannedCount += 1
@@ -211,7 +219,7 @@ export function buildCalendarMonthSummary(input: {
 }
 
 export function buildCalendarDayDetail(input: {
-  tasks: PatientDayTask[]
+  tasks: Array<PatientDayTask & { isGeneratedCandidate?: boolean }>
   date: string
   today?: string
   canEditPast?: boolean
@@ -239,6 +247,8 @@ export function buildCalendarDayDetail(input: {
       patientId: task.patient_id,
       patientName: patient?.full_name ?? '患者不明',
       scheduledTime: task.scheduled_time,
+      source: task.source,
+      isGeneratedCandidate: Boolean(task.isGeneratedCandidate),
       status: task.status,
       handledBy: task.handled_by,
       completedAt: task.completed_at,
