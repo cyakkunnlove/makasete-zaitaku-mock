@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Shield, Building2, PhoneCall, BellRing, Save, FileText, Workflow, Gauge } from 'lucide-react'
 import { fetchJsonWithClientCache, writeClientCache } from '@/lib/client-cache'
 
-const emergencyRouteOptions = ['Regional Admin 受付', '自局電話で受付', '転送電話で受付', 'LINE通知中心', 'その他']
+const emergencyRouteOptions = ['リージョン管理者 受付', '自局電話で受付', '転送電話で受付', 'LINE通知中心', 'その他']
 const PHARMACY_MASTER_SETTINGS_CACHE_KEY = 'makasete:pharmacy-master-settings:v1'
 const PHARMACY_OPERATION_SETTINGS_CACHE_KEY = 'makasete:pharmacy-operation-settings:v1'
 const STABLE_SETTINGS_CACHE_MS = 5 * 60 * 1000
@@ -90,7 +90,7 @@ export default function PharmacySettingsPage() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [settings, setSettings] = useState({
     pharmacyName: '城南みらい薬局',
-    emergencyRoute: 'Regional Admin 受付',
+    emergencyRoute: 'リージョン管理者 受付',
     nightDelegationEnabled: 'on',
     forwardingPhone: '03-1234-5678',
     defaultMorningNote: '夜間申し送りは pharmacy_admin が朝一確認し、必要に応じて pharmacy_staff へ共有する。',
@@ -138,7 +138,7 @@ export default function PharmacySettingsPage() {
     if (!data.ok || !data.settings) return
     setSettings({
       pharmacyName: data.settings.pharmacyName ?? '',
-      emergencyRoute: data.settings.emergencyRoute ?? 'Regional Admin 受付',
+      emergencyRoute: data.settings.emergencyRoute ?? 'リージョン管理者 受付',
       nightDelegationEnabled: data.settings.nightDelegationEnabled ?? 'off',
       forwardingPhone: normalizePhone(data.settings.forwardingPhone ?? ''),
       defaultMorningNote: data.settings.defaultMorningNote ?? '',
@@ -276,7 +276,7 @@ export default function PharmacySettingsPage() {
       <div className="space-y-6 text-slate-900">
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
-          この画面は Pharmacy Admin または Regional Admin のみ確認できます
+          この画面は 薬局管理者 または リージョン管理者 のみ確認できます
         </div>
       </div>
     )
@@ -320,7 +320,7 @@ export default function PharmacySettingsPage() {
       {!isPharmacyAdmin && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield className="h-4 w-4" />
-          この画面は確認できますが、編集と保存は Pharmacy Admin のみ可能です
+          この画面は確認できますが、編集と保存は 薬局管理者 のみ可能です
         </div>
       )}
 

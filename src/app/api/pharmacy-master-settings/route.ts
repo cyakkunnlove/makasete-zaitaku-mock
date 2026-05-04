@@ -8,7 +8,7 @@ import { createClient as createServerSupabaseClient } from '@/lib/supabase/serve
 const DEFAULT_MASTER_SETTINGS = {
   admin_owner_name: '未設定',
   contract_plan: '加盟店 / 夜間受託あり',
-  emergency_route: 'Regional Admin 受付',
+  emergency_route: 'リージョン管理者 受付',
   default_morning_note: '夜間申し送りは pharmacy_admin が朝一確認し、必要に応じて pharmacy_staff へ共有する。',
   workload_light_max: 4,
   workload_medium_max: 8,

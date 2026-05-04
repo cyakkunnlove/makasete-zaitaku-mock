@@ -70,7 +70,7 @@ export default function MedicalMastersPage() {
     return (
       <div className="space-y-4 text-slate-900">
         <Link href="/dashboard/more"><Button variant="ghost" className="text-slate-600 hover:text-slate-900"><ArrowLeft className="mr-2 h-4 w-4" />戻る</Button></Link>
-        <Card className="border-slate-200 bg-white shadow-sm"><CardContent className="p-6 text-sm text-slate-600">この画面は Pharmacy Admin / Pharmacy Staff 向けです。</CardContent></Card>
+        <Card className="border-slate-200 bg-white shadow-sm"><CardContent className="p-6 text-sm text-slate-600">この画面は 薬局管理者 / 薬局スタッフ 向けです。</CardContent></Card>
       </div>
     )
   }

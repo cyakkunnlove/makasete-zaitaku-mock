@@ -112,15 +112,15 @@ export const DEMO_ROLE = 'regional_admin'
 export function getUnifiedRoleLabel(role: UserRole): string {
   switch (role) {
     case 'system_admin':
-      return 'System Admin'
+      return 'システム管理者'
     case 'regional_admin':
-      return 'Regional Admin'
+      return 'リージョン管理者'
     case 'pharmacy_admin':
-      return 'Pharmacy Admin'
+      return '薬局管理者'
     case 'pharmacy_staff':
-      return 'Pharmacy Staff'
+      return '薬局スタッフ'
     case 'night_pharmacist':
-      return 'Night Pharmacist'
+      return '夜間薬剤師'
     default:
       return role
   }
@@ -760,7 +760,7 @@ export const auditLogData: AuditEntry[] = [
   { id: 'AL-010', timestamp: '2026-03-04 23:59:57', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'export_csv', target: '実績レポート', details: '2026-02の実績CSVをエクスポート。', result: 'warning' },
   { id: 'AL-011', timestamp: '2026-03-04 23:51:26', user: '伊藤 真理', role: 'pharmacy_staff', scopeType: 'request', scopeLabel: 'RQ-2405', action: 'request_update', target: 'RQ-2405', details: '患者連絡履歴を追加し優先度を normal に維持。', result: 'success' },
   { id: 'AL-012', timestamp: '2026-03-04 23:44:02', user: '田中 直樹', role: 'regional_admin', scopeType: 'pharmacy', scopeLabel: 'PH-05 / 西新宿いろは薬局', action: 'pharmacy_update', target: 'PH-05', details: '加盟店ステータスを pending から active に変更。', result: 'success' },
-  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', role: 'pharmacy_staff', scopeType: 'pharmacy', scopeLabel: 'PH-01 / 城南みらい薬局', action: 'login', target: '管理画面', details: 'Pharmacy Staff 権限でログイン。', result: 'success' },
+  { id: 'AL-013', timestamp: '2026-03-04 23:31:18', user: '木村 恒一', role: 'pharmacy_staff', scopeType: 'pharmacy', scopeLabel: 'PH-01 / 城南みらい薬局', action: 'login', target: '管理画面', details: '薬局スタッフ 権限でログイン。', result: 'success' },
   { id: 'AL-014', timestamp: '2026-03-04 23:19:42', user: '山田 美咲', role: 'pharmacy_admin', scopeType: 'request', scopeLabel: 'RQ-2403', action: 'request_update', target: 'RQ-2403', details: '主訴を修正し、既往歴リンクを添付。', result: 'success' },
   { id: 'AL-015', timestamp: '2026-03-04 23:12:27', user: '小林 恒一', role: 'system_admin', scopeType: 'system', scopeLabel: 'platform', action: 'staff_update', target: 'ST-08', details: 'スタッフ状態を inactive に変更。退職予定登録。', result: 'warning' },
   { id: 'AL-016', timestamp: '2026-03-04 22:58:33', user: '田中 直樹', role: 'regional_admin', scopeType: 'region', scopeLabel: '世田谷・城南リージョン', action: 'billing_generate', target: '請求管理', details: '再発行対応としてINV-2026-03-004を単体再生成。', result: 'success' },

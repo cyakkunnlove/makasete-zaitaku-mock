@@ -49,7 +49,7 @@ export default function LineSettingsPage() {
       <div className="space-y-6 text-gray-100">
         <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-300">
           <Shield size={16} />
-          この画面は Regional Admin のみ確認できます
+          この画面は リージョン管理者 のみ確認できます
         </div>
       </div>
     )

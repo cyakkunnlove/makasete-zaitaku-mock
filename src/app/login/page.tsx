@@ -16,12 +16,25 @@ const roleOptions = [
   { value: 'night_pharmacist', label: '夜間薬剤師', destination: '/dashboard/night-patients' },
 ]
 
+const loginErrorMessages: Record<string, string> = {
+  invalid_state: 'ログインの確認情報が一致しませんでした。もう一度ログインしてください。',
+  missing_code: '認証結果を確認できませんでした。もう一度ログインしてください。',
+  missing_env: '認証設定が不足しています。管理者に連絡してください。',
+  token_exchange_failed: 'Cognito との認証確認に失敗しました。時間をおいて再度お試しください。',
+  user_not_provisioned: 'このメールアドレスはまだ招待または登録されていません。管理者に確認してください。',
+  user_inactive: 'このアカウントは現在利用できません。管理者に確認してください。',
+  user_lookup_failed: 'アカウント情報の確認に失敗しました。管理者に確認してください。',
+  invalid_demo_role: 'デモログインの立場を確認できませんでした。選び直してください。',
+}
+
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [role, setRole] = useState(DEMO_ROLE)
   const selected = useMemo(() => roleOptions.find((item) => item.value === role) ?? roleOptions[0], [role])
   const loggedOut = searchParams.get('logged_out') === '1'
+  const loginError = searchParams.get('error')
+  const loginErrorMessage = loginError ? loginErrorMessages[loginError] ?? 'ログイン処理を完了できませんでした。もう一度お試しください。' : null
 
   const handleDemoLogin = () => {
     router.push(`/api/demo-login?role=${role}`)
@@ -44,6 +57,13 @@ function LoginPageContent() {
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100/90">
               <p className="font-medium text-white">ログアウトしました</p>
               <p className="mt-1 text-xs leading-6">必要に応じて、ここから再度ログインできます。</p>
+            </div>
+          )}
+
+          {loginErrorMessage && (
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100/90">
+              <p className="font-medium text-white">ログインできませんでした</p>
+              <p className="mt-1 text-xs leading-6">{loginErrorMessage}</p>
             </div>
           )}
 

@@ -143,7 +143,7 @@ export default function PharmacyDetailPage() {
       <Card className={adminCardClass}>
         <CardHeader>
           <CardTitle className="text-base text-slate-900">加盟店詳細</CardTitle>
-          <CardDescription className="text-slate-500">このページは Regional Admin のみ閲覧できます。</CardDescription>
+          <CardDescription className="text-slate-500">このページは リージョン管理者 のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )

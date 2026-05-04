@@ -170,7 +170,7 @@ export default function NewHandoverPage() {
   if (!canWriteHandover) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] p-4 text-gray-100 md:p-6">
-        <EmptyState title="権限がありません" description="申し送り作成は Night Pharmacist のDB夜間対応フローから実行します。" className="mx-auto max-w-xl border-[#2a3553] bg-[#111827] text-gray-100" />
+        <EmptyState title="権限がありません" description="申し送り作成は 夜間薬剤師 のDB夜間対応フローから実行します。" className="mx-auto max-w-xl border-[#2a3553] bg-[#111827] text-gray-100" />
       </div>
     )
   }

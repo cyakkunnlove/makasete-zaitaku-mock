@@ -120,7 +120,7 @@ export default function NightPatientDetailPage() {
   if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-        <CardContent className="p-6 text-sm text-gray-400">この画面はNight PharmacistまたはRegional Adminのみ利用できます。</CardContent>
+        <CardContent className="p-6 text-sm text-gray-400">この画面は夜間薬剤師またはリージョン管理者のみ利用できます。</CardContent>
       </Card>
     )
   }
@@ -309,7 +309,7 @@ export default function NightPatientDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-100">
-            この画面では検索・閲覧・対応結果保存を監査対象にする想定です。異常時の通知先は System Admin / Regional Admin。
+            この画面では検索・閲覧・対応結果保存を監査対象にする想定です。異常時の通知先は システム管理者 / リージョン管理者。
           </div>
           <Textarea
             value={nightNote}

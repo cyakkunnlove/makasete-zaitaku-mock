@@ -1374,7 +1374,7 @@ export default function NewPatientPage() {
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs text-slate-500">
           <div>
-            <p>登録者: {user?.full_name ?? 'Pharmacy Staff'}</p>
+            <p>登録者: {user?.full_name ?? '薬局スタッフ'}</p>
             <p><span className="text-rose-500">*</span> は登録時に必要です。電話は未入力でも登録できます。</p>
           </div>
           <Button disabled={isSubmitting} onClick={() => void handleSave()} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"><Save className="h-4 w-4" />{isSubmitting ? '登録中...' : '登録する'}</Button>

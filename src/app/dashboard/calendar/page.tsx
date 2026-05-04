@@ -272,7 +272,7 @@ export default function CalendarPage() {
       <div className="space-y-4 text-slate-900">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">在宅カレンダー</h1>
-          <p className="text-sm text-slate-500">この画面は Pharmacy Staff / Pharmacy Admin 向けです。</p>
+          <p className="text-sm text-slate-500">この画面は 薬局スタッフ / 薬局管理者 向けです。</p>
         </div>
       </div>
     )
@@ -629,7 +629,7 @@ export default function CalendarPage() {
                 <li>・過去は確定実績ベースで見ます</li>
                 <li>・未来は予定なので変更される前提です</li>
                 <li>・地図/ルートは必要時だけ使う導線にします</li>
-                <li>・過去修正は Pharmacy Admin のみを想定しています</li>
+                <li>・過去修正は 薬局管理者 のみを想定しています</li>
               </ul>
             </details>
           </CardContent>

@@ -68,8 +68,8 @@ type ManagedStaffItem = {
 }
 type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 
-type RoleFilter = 'all' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
-type AddStaffRole = 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type RoleFilter = 'all' | 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
+type AddStaffRole = 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 
 const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
@@ -116,6 +116,15 @@ const invitationStatusLabel: Record<InvitationStatus, string> = {
   accepted: '受諾済み',
   revoked: '取消済み',
 }
+
+const systemFilterItems: Array<{ key: RoleFilter; label: string }> = [
+  { key: 'all', label: '全員' },
+  { key: 'system_admin', label: 'システム管理者' },
+  { key: 'regional_admin', label: 'リージョン管理者' },
+  { key: 'night_pharmacist', label: '夜間薬剤師' },
+  { key: 'pharmacy_admin', label: '薬局管理者' },
+  { key: 'pharmacy_staff', label: '薬局スタッフ' },
+]
 
 const regionalFilterItems: Array<{ key: RoleFilter; label: string }> = [
   { key: 'all', label: '全員' },
@@ -305,7 +314,7 @@ export default function StaffPage() {
     return staffMembers
   }, [isPharmacyAdmin, staffMembers])
 
-  const availableFilterItems = isPharmacyAdmin ? pharmacyFilterItems : regionalFilterItems
+  const availableFilterItems = isSystemAdmin ? systemFilterItems : isPharmacyAdmin ? pharmacyFilterItems : regionalFilterItems
 
   const filteredStaff = useMemo(() => {
     const base = activeFilter === 'all'
@@ -676,8 +685,8 @@ export default function StaffPage() {
 
     if (isSystemAdmin || isRegionalAdmin || isPharmacyAdmin) {
       try {
-        const endpoint = isSystemAdmin ? '/api/admin/regional-admins' : '/api/account-invitations'
-        const payload = isSystemAdmin
+        const endpoint = isSystemAdmin && formData.role === 'regional_admin' ? '/api/admin/regional-admins' : '/api/account-invitations'
+        const payload = isSystemAdmin && formData.role === 'regional_admin'
           ? {
               fullName: formData.name,
               email: formData.email,
@@ -688,9 +697,9 @@ export default function StaffPage() {
               fullName: formData.name,
               email: formData.email,
               phone: formData.phone,
-              regionId: formData.regionId,
+              regionId: formData.role === 'system_admin' ? null : formData.regionId,
               pharmacyId: formData.pharmacyId,
-              targetRole: isRegionalAdmin ? formData.role : 'pharmacy_staff',
+              targetRole: isSystemAdmin ? formData.role : isRegionalAdmin ? formData.role : 'pharmacy_staff',
             }
 
         const response = await fetch(endpoint, {
@@ -703,8 +712,7 @@ export default function StaffPage() {
           throw new Error(data.error ?? 'regional_admin_create_failed')
         }
 
-        const createdRoleLabel =
-          isSystemAdmin ? 'リージョン管理者' : isRegionalAdmin ? (formData.role === 'pharmacy_admin' ? '薬局管理者' : '夜間薬剤師') : '薬局スタッフ'
+        const createdRoleLabel = roleLabel[(isSystemAdmin ? formData.role : isRegionalAdmin ? formData.role : 'pharmacy_staff') as UserRole]
         setToast(
           data.invitation?.emailSent
             ? `${createdRoleLabel}を作成し、招待メールも送信しました: ${data.user.email}`
@@ -715,7 +723,7 @@ export default function StaffPage() {
             id: data.user.id,
             name: data.user.full_name,
             role: (isSystemAdmin
-              ? 'regional_admin'
+              ? formData.role
               : isRegionalAdmin
                 ? formData.role
                 : 'pharmacy_staff') as AddStaffRole,
@@ -729,7 +737,7 @@ export default function StaffPage() {
           {
             id: data.invitation.id,
             email: data.user.email,
-            role: (isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? formData.role : 'pharmacy_staff') as UserRole,
+            role: (isSystemAdmin ? formData.role : isRegionalAdmin ? formData.role : 'pharmacy_staff') as UserRole,
             status: 'pending',
             expires_at: data.invitation.expiresAt,
             last_sent_at: data.invitation.emailSent ? new Date().toISOString() : null,
@@ -952,7 +960,7 @@ export default function StaffPage() {
     <div className={adminPageClass}>
       <AdminPageHeader
         title={isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}
-        description={isSystemAdmin ? 'リージョン管理者の招待、状態変更、連絡先更新を行います。' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、シフト管理を行います。' : '自店スタッフの招待、状態変更、連絡先更新を行います。'}
+        description={isSystemAdmin ? 'システム管理者とリージョン管理者の招待、状態変更、連絡先更新を行います。' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、シフト管理を行います。' : '自店スタッフの招待、状態変更、連絡先更新を行います。'}
         actions={pageTab === 'staff' ? (
           <Button
             onClick={() => {
@@ -1708,14 +1716,20 @@ export default function StaffPage() {
                 <Select
                   value={formData.role}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, role: value as AddStaffRole }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      role: value as AddStaffRole,
+                      regionId: value === 'system_admin' ? '' : prev.regionId,
+                      regionIds: value === 'system_admin' ? [] : prev.regionIds,
+                      pharmacyId: '',
+                    }))
                   }
-                  disabled={isSystemAdmin}
                 >
                   <SelectTrigger className={adminInputClass}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-slate-200 bg-white text-slate-900">
+                    {isSystemAdmin && <SelectItem value="system_admin">システム管理者</SelectItem>}
                     {isSystemAdmin && <SelectItem value="regional_admin">リージョン管理者</SelectItem>}
                     {isRegionalAdmin && <SelectItem value="night_pharmacist">夜間薬剤師</SelectItem>}
                     {isRegionalAdmin && <SelectItem value="pharmacy_admin">薬局管理者</SelectItem>}
@@ -1732,7 +1746,7 @@ export default function StaffPage() {
               </div>
             </div>
 
-            {isSystemAdmin && (
+            {isSystemAdmin && formData.role === 'regional_admin' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <Label className="text-slate-700">所属リージョン</Label>
@@ -1799,12 +1813,11 @@ export default function StaffPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-slate-700">電話</Label>
+              <Label htmlFor="phone" className="text-slate-700">電話（任意）</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
-                required
                 className={adminInputClass}
               />
             </div>

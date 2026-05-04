@@ -43,7 +43,7 @@ export default function NotificationsPage() {
       <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
         <CardContent className="p-6">
           <h1 className="text-base font-semibold text-slate-900">通知ログ</h1>
-          <p className="mt-2 text-sm text-slate-500">このページは Regional Admin のみ確認できます。</p>
+          <p className="mt-2 text-sm text-slate-500">このページは リージョン管理者 のみ確認できます。</p>
         </CardContent>
       </Card>
     )

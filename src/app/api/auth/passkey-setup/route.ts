@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 
+import { createOAuthState, OAUTH_STATE_COOKIE, sanitizeInternalPath } from '@/lib/auth/oauth-state'
+
 export async function GET(request: Request) {
   const domain = process.env.COGNITO_DOMAIN
   const clientId = process.env.COGNITO_CLIENT_ID
   const redirectUri = process.env.COGNITO_REDIRECT_URI
   const requestUrl = new URL(request.url)
-  const nextPath = requestUrl.searchParams.get('next') || '/dashboard/account-security'
+  const nextPath = sanitizeInternalPath(requestUrl.searchParams.get('next'), '/dashboard/account-security')
+  const nonce = crypto.randomUUID()
 
   if (!domain || !clientId || !redirectUri) {
     return NextResponse.redirect(new URL('/dashboard/account-security?passkey_error=missing_cognito_env', request.url))
@@ -16,7 +19,16 @@ export async function GET(request: Request) {
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid email')
   url.searchParams.set('redirect_uri', redirectUri)
-  url.searchParams.set('state', `passkey_setup:${encodeURIComponent(nextPath)}`)
+  url.searchParams.set('state', createOAuthState({ kind: 'passkey_setup', nextPath, nonce }))
 
-  return NextResponse.redirect(url)
+  const response = NextResponse.redirect(url)
+  response.cookies.set(OAUTH_STATE_COOKIE, nonce, {
+    httpOnly: true,
+    secure: requestUrl.protocol === 'https:',
+    sameSite: 'lax',
+    path: '/api/auth/callback',
+    maxAge: 10 * 60,
+  })
+
+  return response
 }

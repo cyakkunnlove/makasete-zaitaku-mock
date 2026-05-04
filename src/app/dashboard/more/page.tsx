@@ -244,8 +244,8 @@ export default function MorePage() {
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium text-slate-900">パスキー設定</p>
                 <p className="text-xs leading-5 text-slate-500">
-                  パスキーの追加は account-security 画面からも開始できます。登録時は app 内で完結せず、
-                  Cognito managed login の画面に移動して、必要に応じて再認証後に設定を進めます。
+                  パスキーの追加は「アカウント / セキュリティ」画面からも開始できます。登録時はアプリ内だけで完結せず、
+                  Cognito の認証画面に移動して、必要に応じて再認証後に設定を進めます。
                   登録後は、少なくとも現時点では Eメール入力後にパスキーでログインできます。
                 </p>
               </div>
@@ -266,7 +266,7 @@ export default function MorePage() {
                 <Link href="/dashboard/account-security">アカウント / セキュリティを開く</Link>
               </Button>
               <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
-                <a href="/api/auth/passkey-setup">Cognito でパスキー設定を開く</a>
+                <a href="/api/auth/passkey-setup">パスキー設定を開く</a>
               </Button>
             </div>
           </CardContent>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getAuthCookieNames } from '@/lib/auth'
+import { OAUTH_STATE_COOKIE, parseOAuthState, sanitizeInternalPath } from '@/lib/auth/oauth-state'
 import { attachCognitoSubToUser, findAppUserByIdentity, touchLastReverified } from '@/lib/auth/user-bridge'
 import { listRoleContextsForUser } from '@/lib/repositories/role-contexts'
 import { acceptInvitationByToken } from '@/lib/account-invitation-accept'
@@ -8,12 +9,29 @@ import { acceptInvitationByToken } from '@/lib/account-invitation-accept'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const state = requestUrl.searchParams.get('state')
+  const state = parseOAuthState(requestUrl.searchParams.get('state'))
+  const stateNonce = request.headers.get('cookie')
+    ?.split(';')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${OAUTH_STATE_COOKIE}=`))
+    ?.slice(OAUTH_STATE_COOKIE.length + 1)
 
-  const [stateKind, encodedNextPath, encodedInvitationToken] = (state ?? '').split(':', 3)
-  const nextPath = encodedNextPath ? decodeURIComponent(encodedNextPath) : null
-  const invitationToken = encodedInvitationToken ? decodeURIComponent(encodedInvitationToken) : null
-  const isPasskeySetupFlow = stateKind === 'passkey_setup'
+  const nextPath = sanitizeInternalPath(state?.nextPath, '/dashboard')
+  const invitationToken = state?.invitationToken ?? null
+  const isPasskeySetupFlow = state?.kind === 'passkey_setup'
+
+  if (!state?.kind || !state?.nonce || !stateNonce || state.nonce !== decodeURIComponent(stateNonce)) {
+    const invalidStateResponse = NextResponse.redirect(new URL('/login?error=invalid_state', request.url))
+    invalidStateResponse.cookies.set(OAUTH_STATE_COOKIE, '', {
+      httpOnly: true,
+      secure: requestUrl.protocol === 'https:',
+      sameSite: 'lax',
+      path: '/api/auth/callback',
+      maxAge: 0,
+      expires: new Date(0),
+    })
+    return invalidStateResponse
+  }
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', request.url))
@@ -124,11 +142,7 @@ export async function GET(request: Request) {
       return new URL(`/invitations/accept?token=${encodeURIComponent(invitationToken)}&result=accepted`, request.url)
     }
 
-    if (nextPath && nextPath.startsWith('/')) {
-      return new URL(nextPath, request.url)
-    }
-
-    return new URL('/dashboard', request.url)
+    return new URL(nextPath, request.url)
   })()
 
   const response = NextResponse.redirect(redirectTarget)
@@ -142,6 +156,14 @@ export async function GET(request: Request) {
   } = getAuthCookieNames()
 
   response.cookies.delete(DEMO_SESSION_COOKIE)
+  response.cookies.set(OAUTH_STATE_COOKIE, '', {
+    httpOnly: true,
+    secure: requestUrl.protocol === 'https:',
+    sameSite: 'lax',
+    path: '/api/auth/callback',
+    maxAge: 0,
+    expires: new Date(0),
+  })
   if (shouldForceChooser) {
     response.cookies.delete(ACTIVE_ROLE_ASSIGNMENT_COOKIE)
   } else if (defaultAssignmentId) {

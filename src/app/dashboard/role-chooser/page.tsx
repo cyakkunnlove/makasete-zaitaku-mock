@@ -12,11 +12,11 @@ import { useRoleContexts } from '@/hooks/use-role-contexts'
 import type { UserRole } from '@/types/database'
 
 const roleLabels: Record<UserRole, string> = {
-  system_admin: 'System Admin',
-  regional_admin: 'Regional Admin',
-  pharmacy_admin: 'Pharmacy Admin',
-  pharmacy_staff: 'Pharmacy Staff',
-  night_pharmacist: 'Night Pharmacist',
+  system_admin: 'システム管理者',
+  regional_admin: 'リージョン管理者',
+  pharmacy_admin: '薬局管理者',
+  pharmacy_staff: '薬局スタッフ',
+  night_pharmacist: '夜間薬剤師',
 }
 
 const roleBadgeClass: Record<UserRole, string> = {
@@ -59,9 +59,9 @@ export default function RoleChooserPage() {
           </div>
 
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100/90">
-            <p className="font-medium">現在は mock API 接続です</p>
+            <p className="font-medium">現在は確認用の接続です</p>
             <p className="mt-1">
-              いまは mock assignment を API 経由で返し、選択結果は active role context cookie へ保存する土台まで入っています。
+              複数の立場を持つアカウントでは、ここで選んだ立場を基準に表示範囲と操作範囲を切り替えます。
             </p>
           </div>
 

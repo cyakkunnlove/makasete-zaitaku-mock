@@ -2138,7 +2138,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const completedTaskCount = draftDayTasks.filter((task) => task.status === 'completed').length
   const flowDescription = isPharmacyStaff
     ? `今日対応する患者を確認して、対応完了まで記録します。完了した訪問は請求処理が必要な一覧に上がります。操作後 ${UNDO_WINDOW_MS / 1000} 秒だけ取り消せます。`
-    : '自局の日中対応フローを確認します。Pharmacy Admin は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
+    : '自局の日中対応フローを確認します。薬局管理者 は完了後の予定変更も可能ですが、注意喚起を出して履歴確認前提で扱います。'
   const summaryTitle = isPharmacyStaff ? 'スタッフごとの本日の状況' : '自局スタッフの本日の状況'
   const ownHandledCount = draftDayTasks.filter((task) => task.handledById === (user?.id ?? 'ST-07')).length
   const primarySummaryBadge = isPharmacyStaff
@@ -3036,7 +3036,7 @@ export default function DashboardPage() {
             <div className="rounded-lg border border-amber-500/20 bg-black/10 p-3 text-xs leading-6">
               <p>確認ポイント:</p>
               <ul className="list-disc pl-5">
-                <li>デモモードなら上部のロール切替から <strong>Regional Admin</strong> / <strong>Night Pharmacist</strong> / <strong>Pharmacy Admin</strong> などを選ぶ</li>
+                <li>デモモードなら上部のロール切替から <strong>リージョン管理者</strong> / <strong>夜間薬剤師</strong> / <strong>薬局管理者</strong> などを選ぶ</li>
                 <li>本番モードなら users テーブルの role が入っているか確認する</li>
               </ul>
             </div>

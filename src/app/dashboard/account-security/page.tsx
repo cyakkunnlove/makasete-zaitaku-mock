@@ -138,7 +138,7 @@ export default function AccountSecurityPage() {
             <p className="font-medium text-slate-900">パスキー設定について</p>
             <p className="mt-2 text-xs leading-6 text-slate-500">
               パスキーの追加は、単なるプロフィール設定ではなく、認証手段の追加として扱います。
-              続行すると Cognito managed login の画面に移動し、本人確認後にパスキー登録を進めます。
+              続行すると Cognito の認証画面に移動し、本人確認後にパスキー登録を進めます。
               ログイン時は、少なくとも現時点では <span className="text-slate-900">Eメール入力後にパスキーを使う形</span> です。
             </p>
           </div>
@@ -188,8 +188,8 @@ export default function AccountSecurityPage() {
             <li>パスキーは推奨だが必須ではない</li>
             <li>ユーザーごとに任意で設定できる形を目標にする</li>
             <li>通常ログインも残す</li>
-            <li>既存ユーザー向け passkey enrollment は再認証付きの Cognito managed login フローとして扱う</li>
-            <li>将来的には custom domain / RP ID / branded login も本番向けに整理する</li>
+            <li>既存ユーザー向けのパスキー追加は、再認証付きの Cognito 認証フローとして扱う</li>
+            <li>将来的にはカスタムドメイン、RP ID、ブランド表示も本番向けに整理する</li>
           </ul>
         </CardContent>
       </Card>

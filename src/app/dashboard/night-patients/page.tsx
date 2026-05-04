@@ -175,7 +175,7 @@ export default function NightPatientsPage() {
   if (role !== 'night_pharmacist' && role !== 'regional_admin') {
     return (
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
-        <CardContent className="p-6 text-sm text-gray-400">この画面はNight PharmacistまたはRegional Adminのみ利用できます。</CardContent>
+        <CardContent className="p-6 text-sm text-gray-400">この画面は夜間薬剤師またはリージョン管理者のみ利用できます。</CardContent>
       </Card>
     )
   }

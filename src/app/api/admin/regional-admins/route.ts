@@ -5,7 +5,7 @@ import { ensureRecentReverification } from '@/lib/api-reauth'
 import { getCurrentActorRole } from '@/lib/active-role'
 import { writeAuditLog } from '@/lib/audit-log'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { buildInvitationAcceptUrl, buildRegionalAdminInvitationEmail, createInvitationToken, getInvitationBaseUrl, hashInvitationToken, sendEmail } from '@/lib/account-invitations'
+import { buildInvitationAcceptUrl, buildAccountInvitationEmail, createInvitationToken, getInvitationBaseUrl, hashInvitationToken, sendEmail } from '@/lib/account-invitations'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -154,9 +154,10 @@ export async function POST(request: Request) {
   let messageId: string | null = null
 
   try {
-    const emailPayload = buildRegionalAdminInvitationEmail({
+    const emailPayload = buildAccountInvitationEmail({
       to: createdUser.email,
       fullName: createdUser.full_name,
+      role: createdUser.role,
       regionName: regionNames.join(' / ') || primaryRegionName,
       acceptUrl,
       expiresAt,

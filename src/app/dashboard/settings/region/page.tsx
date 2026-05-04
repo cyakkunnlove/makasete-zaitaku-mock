@@ -34,7 +34,7 @@ export default function RegionSettingsPage() {
       <div className="space-y-6 text-gray-100">
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
           <Shield className="h-4 w-4" />
-          この画面は Regional Admin のみ確認できます
+          この画面は リージョン管理者 のみ確認できます
         </div>
       </div>
     )
@@ -58,7 +58,7 @@ export default function RegionSettingsPage() {
 
       {!isRegionalAdmin && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
-          <Shield className="h-4 w-4" />地域設定の編集は Regional Admin のみ可能です
+          <Shield className="h-4 w-4" />地域設定の編集は リージョン管理者 のみ可能です
         </div>
       )}
 

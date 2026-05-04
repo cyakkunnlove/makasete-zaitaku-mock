@@ -750,7 +750,7 @@ export default function PatientDetailPage() {
       {isRegionalAdmin && (
         <Card className="border-indigo-500/30 bg-indigo-500/10">
           <CardContent className="pt-4 pb-4 text-xs text-indigo-100">
-            Regional Admin は地域夜間運用・患者照合補助のために必要最小限の患者情報を閲覧します。日中運用の編集主体ではなく、照合・進行確認が中心です。
+            リージョン管理者 は地域夜間運用・患者照合補助のために必要最小限の患者情報を閲覧します。日中運用の編集主体ではなく、照合・進行確認が中心です。
           </CardContent>
         </Card>
       )}
@@ -760,8 +760,8 @@ export default function PatientDetailPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
             <div className="space-y-1 text-slate-600">
               <p className="font-medium text-slate-900">患者編集</p>
-              <p>自局の Pharmacy Staff / Pharmacy Admin のみ編集できます。</p>
-              <p>Pharmacy Staff は実務項目、Pharmacy Admin は重要項目まで更新できます。</p>
+              <p>自局の 薬局スタッフ / 薬局管理者 のみ編集できます。</p>
+              <p>薬局スタッフ は実務項目、薬局管理者 は重要項目まで更新できます。</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
@@ -1498,8 +1498,8 @@ export default function PatientDetailPage() {
             <div>
               <p className="mb-2 text-xs text-slate-600">補足</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                <p>患者の所属薬局やステータス変更は Pharmacy Admin の責務です。</p>
-                <p className="mt-1">他薬局の Pharmacy Staff / Pharmacy Admin、Night Pharmacist、Regional Admin、System Admin は患者情報を編集できません。</p>
+                <p>患者の所属薬局やステータス変更は 薬局管理者 の責務です。</p>
+                <p className="mt-1">他薬局の 薬局スタッフ / 薬局管理者、夜間薬剤師、リージョン管理者、システム管理者 は患者情報を編集できません。</p>
               </div>
             </div>
           </div>

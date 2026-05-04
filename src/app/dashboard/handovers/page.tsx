@@ -49,10 +49,10 @@ export default function HandoversPage() {
           <h1 className="text-lg font-semibold text-slate-900">申し送り</h1>
           <p className="text-xs text-slate-500">{role === 'night_pharmacist' ? '今日、自分が作成した申し送りだけを表示し、必要に応じて編集します。' : 'SBAR形式で夜間対応内容を共有・確認'}</p>
           {role === 'pharmacy_admin' && (
-            <p className="mt-1 text-[11px] text-amber-700">Pharmacy Admin は自局に対する夜間申し送りの最終確認責任者候補です。</p>
+            <p className="mt-1 text-[11px] text-amber-700">薬局管理者 は自局に対する夜間申し送りの最終確認責任者候補です。</p>
           )}
           {role === 'pharmacy_staff' && (
-            <p className="mt-1 text-[11px] text-sky-700">Pharmacy Staff は申し送り確認者として閲覧・確認できます。最終確認責任は Pharmacy Admin 側に残します。</p>
+            <p className="mt-1 text-[11px] text-sky-700">薬局スタッフ は申し送り確認者として閲覧・確認できます。最終確認責任は 薬局管理者 側に残します。</p>
           )}
         </div>
 

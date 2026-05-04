@@ -91,7 +91,7 @@ export default function ShiftsPage() {
       <Card className="border-[#2a3553] bg-[#1a2035] text-gray-100">
         <CardHeader>
           <CardTitle className="text-base text-white">シフト管理</CardTitle>
-          <CardDescription className="text-gray-400">このページはRegional Adminのみ閲覧できます。</CardDescription>
+          <CardDescription className="text-gray-400">このページはリージョン管理者のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )

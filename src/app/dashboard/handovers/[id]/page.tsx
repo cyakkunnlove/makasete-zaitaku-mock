@@ -281,14 +281,14 @@ export default function HandoverDetailPage() {
           <CardContent className="space-y-4 pt-5">
             {role === 'pharmacy_admin' && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-                <p className="inline-flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4" />Pharmacy Admin は自局申し送りの最終確認責任者候補です</p>
-                <p className="mt-1 text-xs text-amber-200/80">Pharmacy Staff が閲覧していても、管理者としての確認導線を残します。</p>
+                <p className="inline-flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4" />薬局管理者 は自局申し送りの最終確認責任者候補です</p>
+                <p className="mt-1 text-xs text-amber-200/80">薬局スタッフ が閲覧していても、管理者としての確認導線を残します。</p>
               </div>
             )}
             {role === 'pharmacy_staff' && (
               <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-100">
-                <p className="font-medium">Pharmacy Staff は確認者として記録されます</p>
-                <p className="mt-1 text-xs text-sky-200/80">最終確認責任は Pharmacy Admin 側に残しつつ、誰が確認したかを個人単位で残します。</p>
+                <p className="font-medium">薬局スタッフ は確認者として記録されます</p>
+                <p className="mt-1 text-xs text-sky-200/80">最終確認責任は 薬局管理者 側に残しつつ、誰が確認したかを個人単位で残します。</p>
               </div>
             )}
             <div className="space-y-3">

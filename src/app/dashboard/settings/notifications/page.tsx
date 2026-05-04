@@ -48,7 +48,7 @@ export default function NotificationSettingsPage() {
       <div className="space-y-6 text-slate-900">
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <Shield size={16} />
-          この画面は Regional Admin または Pharmacy Admin のみ確認できます
+          この画面は リージョン管理者 または 薬局管理者 のみ確認できます
         </div>
       </div>
     )

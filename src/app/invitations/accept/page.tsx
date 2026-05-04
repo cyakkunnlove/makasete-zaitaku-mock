@@ -33,6 +33,8 @@ export default async function InvitationAcceptPage({
     role: string
     status: string
     expiresAt: string
+    regionName: string | null
+    pharmacyName: string | null
   } | null = null
   const result = searchParams.result?.trim() ?? null
 
@@ -42,7 +44,7 @@ export default async function InvitationAcceptPage({
     const supabase = createServerSupabaseClient()
     const response = await supabase
       .from('account_invitations')
-      .select('email, role, status, expires_at')
+      .select('email, role, status, expires_at, region:regions(name), pharmacy:pharmacies(name)')
       .eq('token_hash', hashInvitationToken(token))
       .maybeSingle()
 
@@ -56,6 +58,8 @@ export default async function InvitationAcceptPage({
         role: string
         status: string
         expires_at: string
+        region?: { name?: string | null } | null
+        pharmacy?: { name?: string | null } | null
       }
       invitation = {
         email: row.email,
@@ -65,6 +69,8 @@ export default async function InvitationAcceptPage({
             ? 'expired'
             : row.status,
         expiresAt: row.expires_at,
+        regionName: row.region?.name ?? null,
+        pharmacyName: row.pharmacy?.name ?? null,
       }
     }
   }
@@ -83,6 +89,8 @@ export default async function InvitationAcceptPage({
                 <div className="space-y-2 rounded-lg border border-[#2a3553] bg-[#1a2035] p-4">
                   <p>メール: {invitation.email}</p>
                   <p>立場: {roleLabel[invitation.role] ?? invitation.role}</p>
+                  {invitation.regionName && <p>対象リージョン: {invitation.regionName}</p>}
+                  {invitation.pharmacyName && <p>対象薬局: {invitation.pharmacyName}</p>}
                   <div className="flex items-center gap-2">
                     <span>状態:</span>
                     <Badge variant="outline" className="border border-[#2a3553] text-xs text-gray-200">
