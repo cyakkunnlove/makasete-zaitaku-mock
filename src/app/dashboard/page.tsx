@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { DragEvent, MouseEvent, PointerEvent, TouchEvent } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -1519,7 +1520,20 @@ function PharmacyDayTaskCardActions({
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="h-11 w-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto">
+        <Button
+          size="sm"
+          variant="outline"
+          onPointerDown={stopTaskActionEvent}
+          onMouseDown={stopTaskActionEvent}
+          onTouchStart={stopTaskActionEvent}
+          onDragStart={preventTaskActionDrag}
+          onClick={(event) => {
+            stopTaskActionEvent(event)
+            onPlanToggle()
+          }}
+          disabled={!canPlanToggle}
+          className="h-11 w-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto"
+        >
           {isSaving ? '保存中...' : planButtonLabel}
         </Button>
 
@@ -1529,7 +1543,14 @@ function PharmacyDayTaskCardActions({
             type="button"
             size="sm"
             variant="outline"
-            onClick={onMoveUp}
+            onPointerDown={stopTaskActionEvent}
+            onMouseDown={stopTaskActionEvent}
+            onTouchStart={stopTaskActionEvent}
+            onDragStart={preventTaskActionDrag}
+            onClick={(event) => {
+              stopTaskActionEvent(event)
+              onMoveUp()
+            }}
             disabled={!canMoveUp || isSaving}
             className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -1539,7 +1560,14 @@ function PharmacyDayTaskCardActions({
             type="button"
             size="sm"
             variant="outline"
-            onClick={onMoveDown}
+            onPointerDown={stopTaskActionEvent}
+            onMouseDown={stopTaskActionEvent}
+            onTouchStart={stopTaskActionEvent}
+            onDragStart={preventTaskActionDrag}
+            onClick={(event) => {
+              stopTaskActionEvent(event)
+              onMoveDown()
+            }}
             disabled={!canMoveDown || isSaving}
             className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -1547,15 +1575,29 @@ function PharmacyDayTaskCardActions({
           </Button>
           <button
             type="button"
+            data-drag-handle="true"
             className={cn(
               'soft-pop-sm inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition sm:flex-none',
               'cursor-grab border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100 active:cursor-grabbing',
               isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
             )}
-            onMouseDown={onDragHandlePointerDown}
-            onTouchStart={onDragHandlePointerDown}
-            onMouseUp={onDragHandlePointerUp}
-            onTouchEnd={onDragHandlePointerUp}
+            onClick={stopTaskActionEvent}
+            onMouseDown={(event) => {
+              stopTaskActionEvent(event)
+              onDragHandlePointerDown()
+            }}
+            onTouchStart={(event) => {
+              stopTaskActionEvent(event)
+              onDragHandlePointerDown()
+            }}
+            onMouseUp={(event) => {
+              stopTaskActionEvent(event)
+              onDragHandlePointerUp()
+            }}
+            onTouchEnd={(event) => {
+              stopTaskActionEvent(event)
+              onDragHandlePointerUp()
+            }}
             onMouseLeave={onDragHandlePointerUp}
             aria-label="ドラッグで並び替え"
           >
@@ -1565,10 +1607,36 @@ function PharmacyDayTaskCardActions({
         </div>
 
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-          <Button type="button" size="sm" onClick={onStart} disabled={!canStart} className="h-11 min-w-0 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]">
+          <Button
+            type="button"
+            size="sm"
+            onPointerDown={stopTaskActionEvent}
+            onMouseDown={stopTaskActionEvent}
+            onTouchStart={stopTaskActionEvent}
+            onDragStart={preventTaskActionDrag}
+            onClick={(event) => {
+              stopTaskActionEvent(event)
+              onStart()
+            }}
+            disabled={!canStart}
+            className="h-11 min-w-0 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
+          >
             {isSaving ? '保存中...' : '対応する'}
           </Button>
-          <Button type="button" size="sm" onClick={onComplete} disabled={!canComplete} className="h-11 min-w-0 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]">
+          <Button
+            type="button"
+            size="sm"
+            onPointerDown={stopTaskActionEvent}
+            onMouseDown={stopTaskActionEvent}
+            onTouchStart={stopTaskActionEvent}
+            onDragStart={preventTaskActionDrag}
+            onClick={(event) => {
+              stopTaskActionEvent(event)
+              onComplete()
+            }}
+            disabled={!canComplete}
+            className="h-11 min-w-0 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
+          >
             {isSaving ? '保存中...' : '対応完了'}
           </Button>
         </div>
@@ -1576,6 +1644,17 @@ function PharmacyDayTaskCardActions({
       <span className="block text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
   )
+}
+
+type TaskActionEvent = MouseEvent<HTMLElement> | PointerEvent<HTMLElement> | TouchEvent<HTMLElement> | DragEvent<HTMLElement>
+
+function stopTaskActionEvent(event: TaskActionEvent) {
+  event.stopPropagation()
+}
+
+function preventTaskActionDrag(event: DragEvent<HTMLElement>) {
+  event.preventDefault()
+  event.stopPropagation()
 }
 
 function PharmacyDayTaskCardMetaChips({
@@ -1674,8 +1753,11 @@ function PharmacyDayTaskCard({
     <Card
       ref={cardRef}
       draggable={dragEnabled}
-      onDragStart={() => {
-        if (!dragEnabled) return
+      onDragStart={(event) => {
+        if (!dragEnabled) {
+          event.preventDefault()
+          return
+        }
         setDraggingTaskId(visit.id)
         setDragOverTaskId(null)
       }}
