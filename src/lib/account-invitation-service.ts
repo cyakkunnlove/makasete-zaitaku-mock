@@ -1,9 +1,9 @@
 import { getCurrentActorRole, getCurrentScope, type RoleAwareUser } from '@/lib/active-role'
-import { writeAuditLog } from '@/lib/audit-log'
+import { writeRequiredAuditLog } from '@/lib/audit-log'
 import {
   buildInvitationAcceptUrl,
   getInvitationBaseUrl,
-  buildRegionalAdminInvitationEmail,
+  buildAccountInvitationEmail,
   createInvitationToken,
   hashInvitationToken,
   sendEmail,
@@ -84,7 +84,7 @@ export async function listManagedUsers(params: {
     .order('created_at', { ascending: false })
 
   if (actorRole === 'system_admin') {
-    query = query.in('role', ['regional_admin'])
+    query = query.in('role', ['system_admin', 'regional_admin'])
   } else if (actorRole === 'regional_admin' && actorScope.regionId) {
     query = query
       .in('role', ['pharmacy_admin', 'night_pharmacist'])
@@ -268,7 +268,7 @@ export async function updateManagedUser(params: {
     }
   }
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_user_updated',
     targetType: 'user',
@@ -404,7 +404,7 @@ export async function addRoleAssignmentsToExistingUser(params: {
     return { ok: false as const, status: 500, error: 'role_assignment_create_failed', details: insertResponse.error.message }
   }
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_role_assignment_added',
     targetType: 'user',
@@ -497,7 +497,7 @@ export async function setManagedUserStatus(params: {
     ? await enableCognitoUserByEmail(targetUser.email)
     : await disableCognitoUserByEmail(targetUser.email)
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_user_status_changed',
     targetType: 'user',
@@ -548,11 +548,18 @@ export async function listAccountInvitations(params: {
     .eq('organization_id', params.actor.organization_id)
     .order('created_at', { ascending: false })
 
-  if (actorRole === 'regional_admin' && actorScope.regionId) {
-    query = query.eq('region_id', actorScope.regionId)
-  }
-  if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId) {
-    query = query.eq('pharmacy_id', actorScope.pharmacyId)
+  if (actorRole === 'system_admin') {
+    query = query.in('role', ['system_admin', 'regional_admin'])
+  } else if (actorRole === 'regional_admin' && actorScope.regionId) {
+    query = query
+      .in('role', ['pharmacy_admin', 'night_pharmacist'])
+      .eq('region_id', actorScope.regionId)
+  } else if (actorRole === 'pharmacy_admin' && actorScope.pharmacyId) {
+    query = query
+      .in('role', ['pharmacy_staff'])
+      .eq('pharmacy_id', actorScope.pharmacyId)
+  } else {
+    return { ok: false as const, status: 403, error: 'forbidden' }
   }
 
   const response = await query.limit(50)
@@ -595,7 +602,7 @@ export async function resendAccountInvitation(params: {
 
   const invitationResponse = await supabase
     .from('account_invitations')
-    .select('id, invited_user_id, email, role, status, region_id, pharmacy_id')
+    .select('id, invited_user_id, email, role, status, region_id, pharmacy_id, region:regions(name), pharmacy:pharmacies(name)')
     .eq('id', params.invitationId)
     .eq('organization_id', params.actor.organization_id)
     .maybeSingle()
@@ -608,6 +615,8 @@ export async function resendAccountInvitation(params: {
     status: AccountInvitationStatus
     region_id: string | null
     pharmacy_id: string | null
+    region?: { name?: string | null } | null
+    pharmacy?: { name?: string | null } | null
   } | null
 
   if (invitationResponse.error) {
@@ -654,10 +663,12 @@ export async function resendAccountInvitation(params: {
   let messageId: string | null = null
 
   try {
-    const emailPayload = buildRegionalAdminInvitationEmail({
+    const emailPayload = buildAccountInvitationEmail({
       to: invitation.email,
       fullName: invitation.email,
-      regionName: '招待対象',
+      role: invitation.role,
+      regionName: invitation.region?.name ?? null,
+      pharmacyName: invitation.pharmacy?.name ?? null,
       acceptUrl,
       expiresAt,
     })
@@ -677,7 +688,7 @@ export async function resendAccountInvitation(params: {
     emailError = error instanceof Error ? error.message : 'email_send_failed'
   }
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_invitation_resent',
     targetType: 'invitation',
@@ -762,7 +773,7 @@ export async function revokeAccountInvitation(params: {
     return { ok: false as const, status: 500, error: 'invitation_revoke_failed', details: revokeResponse.error.message }
   }
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_invitation_revoked',
     targetType: 'invitation',
@@ -870,23 +881,25 @@ export async function createAccountInvitation(params: {
     regionName = (regionResponse.data as { name: string }).name
   }
 
+  let pharmacyName: string | null = null
   if (normalized.pharmacyId) {
     const pharmacyResponse = await supabase
       .from('pharmacies')
-      .select('id, region_id, organization_id')
+      .select('id, name, region_id, organization_id')
       .eq('id', normalized.pharmacyId)
       .eq('organization_id', params.actor.organization_id)
       .maybeSingle()
     if (pharmacyResponse.error) {
       return { ok: false as const, status: 500, error: 'pharmacy_lookup_failed', details: pharmacyResponse.error.message }
     }
-    const pharmacy = pharmacyResponse.data as { id: string; region_id: string | null; organization_id: string } | null
+    const pharmacy = pharmacyResponse.data as { id: string; name: string | null; region_id: string | null; organization_id: string } | null
     if (!pharmacy) {
       return { ok: false as const, status: 404, error: 'pharmacy_not_found' }
     }
     if (normalized.regionId && pharmacy.region_id !== normalized.regionId) {
       return { ok: false as const, status: 400, error: 'pharmacy_region_mismatch' }
     }
+    pharmacyName = pharmacy.name
   }
 
   const now = new Date().toISOString()
@@ -978,10 +991,12 @@ export async function createAccountInvitation(params: {
   let messageId: string | null = null
 
   try {
-    const emailPayload = buildRegionalAdminInvitationEmail({
+    const emailPayload = buildAccountInvitationEmail({
       to: createdUser.email,
       fullName: createdUser.full_name,
-      regionName: regionName ?? '未設定',
+      role: createdUser.role,
+      regionName,
+      pharmacyName,
       acceptUrl,
       expiresAt,
     })
@@ -1002,7 +1017,7 @@ export async function createAccountInvitation(params: {
     emailError = error instanceof Error ? error.message : 'email_send_failed'
   }
 
-  await writeAuditLog({
+  await writeRequiredAuditLog({
     user: params.actor as never,
     action: 'account_invitation_created',
     targetType: 'user',

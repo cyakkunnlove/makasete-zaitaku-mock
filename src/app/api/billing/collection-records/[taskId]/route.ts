@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
 import { getCurrentActorRole } from '@/lib/active-role'
-import { writeAuditLog } from '@/lib/audit-log'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { normalizeCollectionStatusToDb, type CollectionWorkflowDbStatus } from '@/lib/status-meta'
@@ -158,50 +157,48 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     }
   }
 
-  const { data, error } = await supabase
-    .from('patient_day_tasks')
-    .update({
-      collection_status: collectionStatus,
-      note,
-      handled_by: handledBy,
-      handled_by_id: handledById,
-      handled_at: handledAt,
-      updated_by_id: user.id,
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq('organization_id', user.organization_id)
-    .eq('pharmacy_id', scopedPharmacyId)
-    .eq('id', params.taskId)
-    .select('*')
-    .single()
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: 'billing_collection_update_failed', details: error.message }, { status: 500 })
+  const auditAction = previousCollectionStatus !== collectionStatus ? 'billing_collection_status_changed' : 'billing_collection_record_updated'
+  const auditDetails = {
+    patient_id: existingTask.patient_id,
+    flow_date: existingTask.flow_date,
+    previous_collection_status: previousCollectionStatus,
+    current_collection_status: collectionStatus,
+    previous_amount: previousAmount,
+    current_amount: previousAmount,
+    previous_note: previousNote,
+    current_note: note,
+    previous_handled_by_id: previousHandledById,
+    current_handled_by_id: handledById,
+    previous_handled_at: previousHandledAt,
+    current_handled_at: handledAt,
+    amount_changed: false,
+    note_changed: note !== previousNote,
+    correction_request_id: correctionRequestId || null,
   }
 
-  await writeAuditLog({
-    user,
-    action: previousCollectionStatus !== collectionStatus ? 'billing_collection_status_changed' : 'billing_collection_record_updated',
-    targetType: 'patient_day_task',
-    targetId: params.taskId,
-    details: {
-      patient_id: existingTask.patient_id,
-      flow_date: existingTask.flow_date,
-      previous_collection_status: previousCollectionStatus,
-      current_collection_status: collectionStatus,
-      previous_amount: previousAmount,
-      current_amount: previousAmount,
-      previous_note: previousNote,
-      current_note: note,
-      previous_handled_by_id: previousHandledById,
-      current_handled_by_id: handledById,
-      previous_handled_at: previousHandledAt,
-      current_handled_at: handledAt,
-      amount_changed: false,
-      note_changed: note !== previousNote,
-      correction_request_id: correctionRequestId || null,
-    },
+  type RpcClient = {
+    rpc: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+  }
+  const rpcResponse = await (supabase as unknown as RpcClient).rpc('update_billing_collection_with_audit', {
+    p_organization_id: user.organization_id,
+    p_pharmacy_id: scopedPharmacyId,
+    p_task_id: params.taskId,
+    p_collection_status: collectionStatus,
+    p_note: note,
+    p_handled_by: handledBy,
+    p_handled_by_id: handledById,
+    p_handled_at: handledAt,
+    p_updated_by_id: user.id,
+    p_audit_region_id: user.activeRoleContext?.regionId ?? user.region_id ?? null,
+    p_audit_operation_unit_id: user.activeRoleContext?.operationUnitId ?? user.operation_unit_id ?? null,
+    p_audit_action: auditAction,
+    p_audit_details: auditDetails,
   })
 
-  return NextResponse.json({ ok: true, task: data })
+  if (rpcResponse.error) {
+    return NextResponse.json({ ok: false, error: 'billing_collection_audited_update_failed', details: rpcResponse.error.message }, { status: 500 })
+  }
+
+  const rpcData = rpcResponse.data as { task?: unknown } | null
+  return NextResponse.json({ ok: true, task: rpcData?.task ?? null })
 }

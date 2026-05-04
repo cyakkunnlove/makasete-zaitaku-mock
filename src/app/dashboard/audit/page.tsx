@@ -32,7 +32,6 @@ import {
 } from '@/components/admin-ui'
 import { LoadingState } from '@/components/common/LoadingState'
 import {
-  auditLogData,
   auditActionLabel,
   auditActionClass,
   type AuditActionType,
@@ -106,14 +105,16 @@ export default function AuditPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [logs, setLogs] = useState<AuditPageEntry[]>(auditLogData)
+  const [logs, setLogs] = useState<AuditPageEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [billingStatusFocus, setBillingStatusFocus] = useState<'all' | 'on_hold'>('all')
 
   useEffect(() => {
     let cancelled = false
     setIsLoading(true)
+    setLoadError(null)
     fetch('/api/audit-logs', { cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json()
@@ -124,9 +125,10 @@ export default function AuditPage() {
           details: typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details, null, 2),
         })))
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return
-        setLogs(auditLogData)
+        setLogs([])
+        setLoadError(error instanceof Error ? error.message : 'audit_logs_fetch_failed')
       })
       .finally(() => {
         if (cancelled) return
@@ -296,7 +298,23 @@ export default function AuditPage() {
         </CardContent>
       </Card>
 
+      {loadError ? (
+        <Card className="border-rose-200 bg-rose-50">
+          <CardContent className="space-y-1 p-4">
+            <p className="text-sm font-medium text-rose-800">監査ログを取得できませんでした。</p>
+            <p className="text-xs text-rose-700">実ログの代わりにサンプルは表示していません。実患者POC前に API / DB / 権限を確認してください。</p>
+            <p className="text-[11px] text-rose-600">error: {loadError}</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {isLoading ? <LoadingState message="監査ログを読み込み中です。" className="text-xs" /> : <p className="text-xs text-slate-500">表示件数: {filteredLogs.length}件</p>}
+
+      {!isLoading && !loadError && filteredLogs.length === 0 ? (
+        <Card className={adminCardClass}>
+          <CardContent className="p-4 text-sm text-slate-600">条件に一致する監査ログはありません。</CardContent>
+        </Card>
+      ) : null}
 
       <div className="space-y-2 lg:hidden">
         {filteredLogs.map((entry) => {

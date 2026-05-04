@@ -10,7 +10,6 @@ import {
 import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
-import { writeAuditLog } from '@/lib/audit-log'
 import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -241,34 +240,32 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   }
 
-  const { data, error } = await supabase
-    .from('patients')
-    .update(payload as never)
-    .eq('organization_id', user.organization_id)
-    .eq('pharmacy_id', scopedPharmacyId)
-    .eq('id', params.id)
-    .select('*')
-    .single() as unknown as { data: { id: string } | null; error: { message: string } | null }
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: 'patient_update_failed', details: error.message }, { status: 500 })
+  const auditDetails = {
+    updated_fields: Object.keys(payload).filter((key) => !['updated_at', 'updated_by'].includes(key)),
+    role: actorRole ?? user.role,
+    correction_action: correctionAction,
+    correction_request_id: correctionRequestId || null,
+    geocode_status: payload.geocode_status ?? null,
   }
 
-  if (data) {
-    await writeAuditLog({
-      user,
-      action: 'patient_updated',
-      targetType: 'patient',
-      targetId: params.id,
-      details: {
-        updated_fields: Object.keys(payload).filter((key) => !['updated_at', 'updated_by'].includes(key)),
-        role: actorRole ?? user.role,
-        correction_action: correctionAction,
-        correction_request_id: correctionRequestId || null,
-        geocode_status: payload.geocode_status ?? null,
-      },
-    })
+  type RpcClient = {
+    rpc: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+  }
+  const rpcResponse = await (supabase as unknown as RpcClient).rpc('update_patient_with_audit', {
+    p_organization_id: user.organization_id,
+    p_pharmacy_id: scopedPharmacyId,
+    p_patient_id: params.id,
+    p_patch: payload,
+    p_audit_user_id: user.id,
+    p_audit_region_id: user.activeRoleContext?.regionId ?? user.region_id ?? null,
+    p_audit_operation_unit_id: user.activeRoleContext?.operationUnitId ?? user.operation_unit_id ?? null,
+    p_audit_details: auditDetails,
+  })
+
+  if (rpcResponse.error) {
+    return NextResponse.json({ ok: false, error: 'patient_audited_update_failed', details: rpcResponse.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, mode: 'supabase', patient: data, warnings })
+  const rpcData = rpcResponse.data as { patient?: unknown } | null
+  return NextResponse.json({ ok: true, mode: 'supabase', patient: rpcData?.patient ?? null, warnings })
 }
