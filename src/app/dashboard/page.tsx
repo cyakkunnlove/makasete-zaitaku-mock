@@ -1518,12 +1518,12 @@ function PharmacyDayTaskCardActions({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <Button size="sm" variant="outline" onClick={onPlanToggle} disabled={!canPlanToggle} className="h-11 w-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto">
           {isSaving ? '保存中...' : planButtonLabel}
         </Button>
 
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 sm:w-auto">
           <span className="text-[11px] font-medium text-slate-600">並び替え</span>
           <Button
             type="button"
@@ -1548,7 +1548,7 @@ function PharmacyDayTaskCardActions({
           <button
             type="button"
             className={cn(
-              'soft-pop-sm inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition',
+              'soft-pop-sm inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition sm:flex-none',
               'cursor-grab border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100 active:cursor-grabbing',
               isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
             )}
@@ -1564,12 +1564,14 @@ function PharmacyDayTaskCardActions({
           </button>
         </div>
 
-        <Button size="sm" onClick={onStart} disabled={!canStart} className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60">
-          {isSaving ? '保存中...' : '対応する'}
-        </Button>
-        <Button size="sm" onClick={onComplete} disabled={!canComplete} className="bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60">
-          {isSaving ? '保存中...' : '対応完了'}
-        </Button>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+          <Button type="button" size="sm" onClick={onStart} disabled={!canStart} className="h-11 min-w-0 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]">
+            {isSaving ? '保存中...' : '対応する'}
+          </Button>
+          <Button type="button" size="sm" onClick={onComplete} disabled={!canComplete} className="h-11 min-w-0 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]">
+            {isSaving ? '保存中...' : '対応完了'}
+          </Button>
+        </div>
       </div>
       <span className="block text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
