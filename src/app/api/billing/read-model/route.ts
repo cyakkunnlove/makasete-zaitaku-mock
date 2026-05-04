@@ -6,7 +6,7 @@ import type { RegisteredPatientRecord } from '@/lib/patient-master'
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
-import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
+import { listPatientsByPharmacy, listPatientVisitRulesByPatientIds } from '@/lib/repositories/patients'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
 function getTodayJstDateKey() {
@@ -68,16 +68,8 @@ export async function POST(request: Request) {
   let ownPatients: RegisteredPatientRecord[] = []
   if (canManagePatientsForUser(user)) {
     const patients = await listPatientsByPharmacy({ organizationId: user.organization_id, pharmacyId: scopedPharmacyId })
-    ownPatients = await Promise.all(
-      patients.map(async (patient) => {
-        const visitRules = await listPatientVisitRules({
-          organizationId: user.organization_id,
-          pharmacyId: scopedPharmacyId,
-          patientId: patient.id,
-        })
-        return mapDatabasePatientToPatientRecord(patient, visitRules, { pharmacyName })
-      }),
-    )
+    const visitRulesByPatientId = await listPatientVisitRulesByPatientIds({ patientIds: patients.map((patient) => patient.id) })
+    ownPatients = patients.map((patient) => mapDatabasePatientToPatientRecord(patient, visitRulesByPatientId.get(patient.id) ?? [], { pharmacyName }))
   }
 
   const ownPatientNames = new Set(ownPatients.map((patient) => patient.name))

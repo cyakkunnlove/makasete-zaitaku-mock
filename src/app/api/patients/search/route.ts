@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { getCurrentActorRole, getCurrentScope } from '@/lib/active-role'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { listPatientVisitRules } from '@/lib/repositories/patients'
+import { listPatientVisitRulesByPatientIds } from '@/lib/repositories/patients'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 
 export async function GET(request: Request) {
@@ -73,18 +73,11 @@ export async function GET(request: Request) {
     }
   }
 
-  const patients = await Promise.all(
-    ((response.data ?? []) as Array<Record<string, unknown>>).map(async (row) => {
-      const visitRules = await listPatientVisitRules({
-        organizationId: user.organization_id,
-        pharmacyId: scopedPharmacyId,
-        patientId: String(row.id),
-      })
-      return mapDatabasePatientToPatientRecord(row as never, visitRules, {
-        pharmacyName: pharmacyMap.get(String(row.pharmacy_id ?? '')) || null,
-      })
-    }),
-  )
+  const patientRows = (response.data ?? []) as Array<Record<string, unknown>>
+  const visitRulesByPatientId = await listPatientVisitRulesByPatientIds({ patientIds: patientRows.map((row) => String(row.id ?? '')) })
+  const patients = patientRows.map((row) => mapDatabasePatientToPatientRecord(row as never, visitRulesByPatientId.get(String(row.id)) ?? [], {
+    pharmacyName: pharmacyMap.get(String(row.pharmacy_id ?? '')) || null,
+  }))
 
   return NextResponse.json({ ok: true, patients })
 }
