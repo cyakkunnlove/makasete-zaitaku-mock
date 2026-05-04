@@ -92,6 +92,19 @@ export function buildAccountInvitationEmail(input: {
   return { subject, text, html }
 }
 
+export function buildRegionalAdminInvitationEmail(input: {
+  to: string
+  fullName: string
+  regionName: string
+  acceptUrl: string
+  expiresAt: string
+}) {
+  return buildAccountInvitationEmail({
+    ...input,
+    role: 'regional_admin',
+  })
+}
+
 export async function sendEmail(input: {
   to: string
   subject: string
