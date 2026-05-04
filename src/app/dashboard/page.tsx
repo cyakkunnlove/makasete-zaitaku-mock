@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { DragEvent, MouseEvent, PointerEvent, TouchEvent } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -27,7 +26,6 @@ import {
   Shield,
   RotateCcw,
   Receipt,
-  GripVertical,
   Settings2,
   FileClock,
   UserCog,
@@ -1064,18 +1062,9 @@ function PharmacyDashboardPriorityBrief({
 }
 
 function PharmacyDashboardTodayTaskList({
-  draggingTaskId,
   orderedVisits,
   selectedRoutePatientIds,
   handleToggleRoutePatient,
-  dragOverTaskId,
-  dragEnabledTaskId,
-  dragHandleActiveTaskId,
-  setDraggingTaskId,
-  setDragOverTaskId,
-  setDragEnabledTaskId,
-  setDragHandleActiveTaskId,
-  reorderTaskByDrag,
   taskCardRefs,
   handlePlanTask,
   moveTask,
@@ -1089,18 +1078,9 @@ function PharmacyDashboardTodayTaskList({
   updatedLabelPrefix,
   reorderHintText,
 }: {
-  draggingTaskId: string | null
   orderedVisits: Array<DayTaskItem & { patient?: RegisteredPatientRecord | undefined }>
   selectedRoutePatientIds: string[]
   handleToggleRoutePatient: (patientId: string) => void
-  dragOverTaskId: string | null
-  dragEnabledTaskId: string | null
-  dragHandleActiveTaskId: string | null
-  setDraggingTaskId: React.Dispatch<React.SetStateAction<string | null>>
-  setDragOverTaskId: React.Dispatch<React.SetStateAction<string | null>>
-  setDragEnabledTaskId: React.Dispatch<React.SetStateAction<string | null>>
-  setDragHandleActiveTaskId: React.Dispatch<React.SetStateAction<string | null>>
-  reorderTaskByDrag: (draggedTaskId: string, targetTaskId: string) => void
   taskCardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>
   handlePlanTask: (taskId: string) => void
   moveTask: (taskId: string, direction: 'up' | 'down') => void
@@ -1116,11 +1096,6 @@ function PharmacyDashboardTodayTaskList({
 }) {
   return (
     <div className="space-y-2">
-      {draggingTaskId && (
-        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-          青く光っている患者カードの位置にドロップすると、そこへ順番を移動します。
-        </div>
-      )}
       {orderedVisits.map((visit) => {
         const patient = visit.patient
         if (!patient) return null
@@ -1151,21 +1126,6 @@ function PharmacyDashboardTodayTaskList({
               statusClassName={status.className}
               statusLabel={status.label}
               collectionClassName={collection.className}
-              draggingTaskId={draggingTaskId}
-              dragOverTaskId={dragOverTaskId}
-              dragEnabled={dragEnabledTaskId === visit.id}
-              isDragHandleActive={dragHandleActiveTaskId === visit.id || draggingTaskId === visit.id}
-              setDraggingTaskId={setDraggingTaskId}
-              setDragOverTaskId={setDragOverTaskId}
-              onEnableDrag={() => {
-                setDragEnabledTaskId(visit.id)
-                setDragHandleActiveTaskId(visit.id)
-              }}
-              onDisableDrag={() => {
-                setDragEnabledTaskId(null)
-                setDragHandleActiveTaskId(null)
-              }}
-              onDropReorder={() => reorderTaskByDrag(draggingTaskId!, visit.id)}
               cardRef={(node) => {
                 taskCardRefs.current[visit.id] = node
               }}
@@ -1492,9 +1452,6 @@ function PharmacyDayTaskCardActions({
   onMoveDown,
   onStart,
   onComplete,
-  onDragHandlePointerDown,
-  onDragHandlePointerUp,
-  isDragHandleActive,
   completionHelpText,
   planButtonLabel,
   reorderHintText,
@@ -1510,9 +1467,6 @@ function PharmacyDayTaskCardActions({
   onMoveDown: () => void
   onStart: () => void
   onComplete: () => void
-  onDragHandlePointerDown: () => void
-  onDragHandlePointerUp: () => void
-  isDragHandleActive: boolean
   completionHelpText: string
   planButtonLabel: string
   reorderHintText: string
@@ -1523,14 +1477,7 @@ function PharmacyDayTaskCardActions({
         <Button
           size="sm"
           variant="outline"
-          onPointerDown={stopTaskActionEvent}
-          onMouseDown={stopTaskActionEvent}
-          onTouchStart={stopTaskActionEvent}
-          onDragStart={preventTaskActionDrag}
-          onClick={(event) => {
-            stopTaskActionEvent(event)
-            onPlanToggle()
-          }}
+          onClick={onPlanToggle}
           disabled={!canPlanToggle}
           className="h-11 w-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto"
         >
@@ -1543,14 +1490,7 @@ function PharmacyDayTaskCardActions({
             type="button"
             size="sm"
             variant="outline"
-            onPointerDown={stopTaskActionEvent}
-            onMouseDown={stopTaskActionEvent}
-            onTouchStart={stopTaskActionEvent}
-            onDragStart={preventTaskActionDrag}
-            onClick={(event) => {
-              stopTaskActionEvent(event)
-              onMoveUp()
-            }}
+            onClick={onMoveUp}
             disabled={!canMoveUp || isSaving}
             className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -1560,64 +1500,20 @@ function PharmacyDayTaskCardActions({
             type="button"
             size="sm"
             variant="outline"
-            onPointerDown={stopTaskActionEvent}
-            onMouseDown={stopTaskActionEvent}
-            onTouchStart={stopTaskActionEvent}
-            onDragStart={preventTaskActionDrag}
-            onClick={(event) => {
-              stopTaskActionEvent(event)
-              onMoveDown()
-            }}
+            onClick={onMoveDown}
             disabled={!canMoveDown || isSaving}
             className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ↓
           </Button>
-          <button
-            type="button"
-            data-drag-handle="true"
-            className={cn(
-              'soft-pop-sm inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition sm:flex-none',
-              'cursor-grab border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100 active:cursor-grabbing',
-              isDragHandleActive && 'scale-[0.98] border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
-            )}
-            onClick={stopTaskActionEvent}
-            onMouseDown={(event) => {
-              stopTaskActionEvent(event)
-              onDragHandlePointerDown()
-            }}
-            onTouchStart={(event) => {
-              stopTaskActionEvent(event)
-              onDragHandlePointerDown()
-            }}
-            onMouseUp={(event) => {
-              stopTaskActionEvent(event)
-              onDragHandlePointerUp()
-            }}
-            onTouchEnd={(event) => {
-              stopTaskActionEvent(event)
-              onDragHandlePointerUp()
-            }}
-            onMouseLeave={onDragHandlePointerUp}
-            aria-label="ドラッグで並び替え"
-          >
-            <GripVertical className={cn('h-3.5 w-3.5', isDragHandleActive ? 'text-indigo-600' : 'text-slate-400')} />
-            <span>{reorderHintText}</span>
-          </button>
+          <span className="text-[11px] text-slate-500">{reorderHintText}</span>
         </div>
 
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
           <Button
             type="button"
             size="sm"
-            onPointerDown={stopTaskActionEvent}
-            onMouseDown={stopTaskActionEvent}
-            onTouchStart={stopTaskActionEvent}
-            onDragStart={preventTaskActionDrag}
-            onClick={(event) => {
-              stopTaskActionEvent(event)
-              onStart()
-            }}
+            onClick={onStart}
             disabled={!canStart}
             className="h-11 min-w-0 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
           >
@@ -1626,14 +1522,7 @@ function PharmacyDayTaskCardActions({
           <Button
             type="button"
             size="sm"
-            onPointerDown={stopTaskActionEvent}
-            onMouseDown={stopTaskActionEvent}
-            onTouchStart={stopTaskActionEvent}
-            onDragStart={preventTaskActionDrag}
-            onClick={(event) => {
-              stopTaskActionEvent(event)
-              onComplete()
-            }}
+            onClick={onComplete}
             disabled={!canComplete}
             className="h-11 min-w-0 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
           >
@@ -1644,17 +1533,6 @@ function PharmacyDayTaskCardActions({
       <span className="block text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
   )
-}
-
-type TaskActionEvent = MouseEvent<HTMLElement> | PointerEvent<HTMLElement> | TouchEvent<HTMLElement> | DragEvent<HTMLElement>
-
-function stopTaskActionEvent(event: TaskActionEvent) {
-  event.stopPropagation()
-}
-
-function preventTaskActionDrag(event: DragEvent<HTMLElement>) {
-  event.preventDefault()
-  event.stopPropagation()
 }
 
 function PharmacyDayTaskCardMetaChips({
@@ -1686,15 +1564,6 @@ function PharmacyDayTaskCard({
   statusClassName,
   statusLabel,
   collectionClassName,
-  draggingTaskId,
-  dragOverTaskId,
-  dragEnabled,
-  isDragHandleActive,
-  setDraggingTaskId,
-  setDragOverTaskId,
-  onEnableDrag,
-  onDisableDrag,
-  onDropReorder,
   cardRef,
   canStart,
   canComplete,
@@ -1720,15 +1589,6 @@ function PharmacyDayTaskCard({
   statusClassName: string
   statusLabel: string
   collectionClassName: string
-  draggingTaskId: string | null
-  dragOverTaskId: string | null
-  dragEnabled: boolean
-  isDragHandleActive: boolean
-  setDraggingTaskId: (id: string | null) => void
-  setDragOverTaskId: (id: string | null) => void
-  onEnableDrag: () => void
-  onDisableDrag: () => void
-  onDropReorder: () => void
   cardRef?: React.Ref<HTMLDivElement>
   canStart: boolean
   canComplete: boolean
@@ -1752,42 +1612,11 @@ function PharmacyDayTaskCard({
   return (
     <Card
       ref={cardRef}
-      draggable={dragEnabled}
-      onDragStart={(event) => {
-        if (!dragEnabled) {
-          event.preventDefault()
-          return
-        }
-        setDraggingTaskId(visit.id)
-        setDragOverTaskId(null)
-      }}
-      onDragEnd={() => {
-        setDraggingTaskId(null)
-        setDragOverTaskId(null)
-        onDisableDrag()
-      }}
-      onDragOver={(event) => {
-        event.preventDefault()
-        if (draggingTaskId && draggingTaskId !== visit.id) setDragOverTaskId(visit.id)
-      }}
-      onDragLeave={() => {
-        if (dragOverTaskId === visit.id) setDragOverTaskId(null)
-      }}
-      onDrop={() => {
-        if (!draggingTaskId) return
-        onDropReorder()
-        setDraggingTaskId(null)
-        setDragOverTaskId(null)
-        onDisableDrag()
-      }}
       className={cn(
-        'soft-pop border border-slate-200 bg-white shadow-sm hover:border-indigo-200 hover:shadow-md',
-        isDragHandleActive && 'border-indigo-200 shadow-sm',
+        'border border-slate-200 bg-white shadow-sm',
         isSaving && 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft',
         isRecentlySaved && 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop',
-        isSaveFailed && 'border-rose-300 ring-2 ring-rose-100',
-        draggingTaskId === visit.id && 'scale-[0.99] -translate-y-0.5 opacity-85 ring-1 ring-indigo-400/60 shadow-lg',
-        dragOverTaskId === visit.id && 'border-sky-400 bg-sky-50/50 ring-2 ring-sky-400/40'
+        isSaveFailed && 'border-rose-300 ring-2 ring-rose-100'
       )}
     >
       <CardContent className="space-y-3 p-4">
@@ -1821,9 +1650,6 @@ function PharmacyDayTaskCard({
           onMoveDown={onMoveDown}
           onStart={onStart}
           onComplete={onComplete}
-          onDragHandlePointerDown={onEnableDrag}
-          onDragHandlePointerUp={onDisableDrag}
-          isDragHandleActive={isDragHandleActive}
           completionHelpText={completionHelpText}
           planButtonLabel={planButtonLabel}
           reorderHintText={reorderHintText}
@@ -1848,10 +1674,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [dayTasks, setDayTasks] = useState<DayTaskItem[]>([])
   const [draftDayTasks, setDraftDayTasks] = useState<DayTaskItem[]>([])
   const [undoTarget, setUndoTarget] = useState<{ taskId: string; previous: DayTaskItem; expiresAt: number; actionLabel: string } | null>(null)
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
-  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
-  const [dragEnabledTaskId, setDragEnabledTaskId] = useState<string | null>(null)
-  const [dragHandleActiveTaskId, setDragHandleActiveTaskId] = useState<string | null>(null)
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [failedTaskId, setFailedTaskId] = useState<string | null>(null)
@@ -2241,7 +2063,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     : 'Admin でも順番確認と完了状況の追跡ができます。完了後の予定変更は警告付きです。'
   const plannedLabelPrefix = isPharmacyStaff ? '対応予定: ' : 'Admin確認予定: '
   const updatedLabelPrefix = isPharmacyStaff ? '更新: ' : '最終更新: '
-  const reorderHintText = isPharmacyStaff ? 'ドラッグ移動' : 'ドラッグ移動'
+  const reorderHintText = isPharmacyStaff ? '上下で調整' : '上下で調整'
   const orderedVisits = useMemo(() => {
     return [...filteredVisits].sort((a, b) => a.sortOrder - b.sortOrder)
   }, [filteredVisits])
@@ -2407,7 +2229,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientIds: selectedRoutePatientIds }),
       })
-      setDragEnabledTaskId(null)
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.ok || !result?.routePlan) {
         setSaveToast(result?.details ?? 'ルート提案の取得に失敗しました')
@@ -2593,26 +2414,6 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }
 
-  const reorderTaskByDrag = (draggedTaskId: string, targetTaskId: string) => {
-    if (draggedTaskId === targetTaskId) return
-    setDraftDayTasks((prev) => {
-      const items = [...prev].sort((a, b) => a.sortOrder - b.sortOrder)
-      const fromIndex = items.findIndex((item) => item.id === draggedTaskId)
-      const toIndex = items.findIndex((item) => item.id === targetTaskId)
-      if (fromIndex === -1 || toIndex === -1) return prev
-      const [moved] = items.splice(fromIndex, 1)
-      items.splice(toIndex, 0, moved)
-      const now = new Date().toISOString()
-      const normalized = items.map((item, index) => ({
-        ...item,
-        sortOrder: index + 1,
-        updatedAt: now,
-        updatedById: user?.id ?? 'ST-07',
-      }))
-      setHasOrderDraft(true)
-      return normalized
-    })
-  }
 
   const handleSaveOrder = async () => {
     if (isSavingOrder) return
@@ -2828,18 +2629,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   routeMapRef={routeMapRef}
                 />
                 <PharmacyDashboardTodayTaskList
-                  draggingTaskId={draggingTaskId}
                   orderedVisits={orderedVisits}
                   selectedRoutePatientIds={selectedRoutePatientIds}
                   handleToggleRoutePatient={handleToggleRoutePatient}
-                  dragOverTaskId={dragOverTaskId}
-                  dragEnabledTaskId={dragEnabledTaskId}
-                  dragHandleActiveTaskId={dragHandleActiveTaskId}
-                  setDraggingTaskId={setDraggingTaskId}
-                  setDragOverTaskId={setDragOverTaskId}
-                  setDragEnabledTaskId={setDragEnabledTaskId}
-                  setDragHandleActiveTaskId={setDragHandleActiveTaskId}
-                  reorderTaskByDrag={reorderTaskByDrag}
                   taskCardRefs={taskCardRefs}
                   handlePlanTask={handlePlanTask}
                   moveTask={moveTask}
@@ -2889,18 +2681,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   routeMapRef={routeMapRef}
                 />
                 <PharmacyDashboardTodayTaskList
-                  draggingTaskId={draggingTaskId}
                   orderedVisits={orderedVisits}
                   selectedRoutePatientIds={selectedRoutePatientIds}
                   handleToggleRoutePatient={handleToggleRoutePatient}
-                  dragOverTaskId={dragOverTaskId}
-                  dragEnabledTaskId={dragEnabledTaskId}
-                  dragHandleActiveTaskId={dragHandleActiveTaskId}
-                  setDraggingTaskId={setDraggingTaskId}
-                  setDragOverTaskId={setDragOverTaskId}
-                  setDragEnabledTaskId={setDragEnabledTaskId}
-                  setDragHandleActiveTaskId={setDragHandleActiveTaskId}
-                  reorderTaskByDrag={reorderTaskByDrag}
                   taskCardRefs={taskCardRefs}
                   handlePlanTask={handlePlanTask}
                   moveTask={moveTask}
