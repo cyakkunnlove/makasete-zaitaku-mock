@@ -7,7 +7,7 @@ import { createClient as createServerSupabaseClient } from '@/lib/supabase/serve
 import { buildCalendarMonthSummary } from '@/lib/calendar-read-model'
 import { generateAutoDayTasksFromVisitRules } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
-import { listPatientsByPharmacy, listPatientVisitRules } from '@/lib/repositories/patients'
+import { listPatientsByPharmacy, listPatientVisitRulesByPatientIds } from '@/lib/repositories/patients'
 import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 function parseYearMonth(searchParams: URLSearchParams) {
@@ -91,13 +91,8 @@ export async function GET(request: Request) {
   }
 
   const persistedTasks = (data ?? []) as PatientDayTask[]
-  const patientRecords = await Promise.all(
-    patients.map(async (patient) => mapDatabasePatientToPatientRecord(patient, await listPatientVisitRules({
-      organizationId: user.organization_id,
-      pharmacyId: scopedPharmacyId,
-      patientId: patient.id,
-    }))),
-  )
+  const visitRulesByPatientId = await listPatientVisitRulesByPatientIds({ patientIds: patients.map((patient) => patient.id) })
+  const patientRecords = patients.map((patient) => mapDatabasePatientToPatientRecord(patient, visitRulesByPatientId.get(patient.id) ?? []))
 
   const generatedTasks = Array.from({ length: monthEnd.getDate() }, (_, index) => {
     const dateKey = `${monthKey}-${String(index + 1).padStart(2, '0')}`

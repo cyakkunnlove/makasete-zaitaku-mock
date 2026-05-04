@@ -8,7 +8,7 @@ import { createClient as createServerSupabaseClient } from '@/lib/supabase/serve
 import { buildCalendarDayDetail } from '@/lib/calendar-read-model'
 import { generateAutoDayTasksFromVisitRules } from '@/lib/day-flow'
 import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
-import { listPatientVisitRules } from '@/lib/repositories/patients'
+import { listPatientVisitRulesByPatientIds } from '@/lib/repositories/patients'
 import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 const PATIENT_LIST_SELECT = '*'
@@ -120,38 +120,33 @@ export async function GET(_request: Request, { params }: { params: { date: strin
 
   const patients = (patientResult.data ?? []) as Array<{ id: string; full_name: string; pharmacy_id?: string | null; organization_id?: string | null; date_of_birth?: string | null; address?: string; phone?: string | null; emergency_contact_name?: string; emergency_contact_phone?: string; emergency_contact_relation?: string | null; doctor_name?: string | null; doctor_clinic?: string | null; doctor_night_phone?: string | null; medical_history?: string | null; allergies?: string | null; current_medications?: string | null; visit_notes?: string | null; insurance_info?: string | null; disease_name?: string | null; risk_score?: number; requires_multi_visit?: boolean; status?: 'active' | 'inactive' | 'incomplete' }>
   const persistedTasks = (taskResult.data ?? []) as PatientDayTask[]
-  const detailedPatients = await Promise.all(
-    patients.map(async (patient) => mapDatabasePatientToPatientRecord({
-      id: patient.id,
-      organization_id: patient.organization_id ?? null,
-      pharmacy_id: patient.pharmacy_id ?? scopedPharmacyId,
-      full_name: patient.full_name,
-      date_of_birth: patient.date_of_birth ?? null,
-      address: patient.address ?? '',
-      phone: patient.phone ?? null,
-      emergency_contact_name: patient.emergency_contact_name ?? '',
-      emergency_contact_phone: patient.emergency_contact_phone ?? '',
-      emergency_contact_relation: patient.emergency_contact_relation ?? null,
-      doctor_name: patient.doctor_name ?? null,
-      doctor_clinic: patient.doctor_clinic ?? null,
-      doctor_night_phone: patient.doctor_night_phone ?? null,
-      medical_history: patient.medical_history ?? null,
-      allergies: patient.allergies ?? null,
-      current_medications: patient.current_medications ?? null,
-      visit_notes: patient.visit_notes ?? null,
-      insurance_info: patient.insurance_info ?? null,
-      disease_name: patient.disease_name ?? null,
-      risk_score: patient.risk_score ?? 0,
-      requires_multi_visit: patient.requires_multi_visit ?? false,
-      status: patient.status ?? 'active',
-      created_at: '',
-      updated_at: '',
-    }, await listPatientVisitRules({
-      organizationId: user.organization_id,
-      pharmacyId: scopedPharmacyId,
-      patientId: patient.id,
-    }))),
-  )
+  const visitRulesByPatientId = await listPatientVisitRulesByPatientIds({ patientIds: patients.map((patient) => patient.id) })
+  const detailedPatients = patients.map((patient) => mapDatabasePatientToPatientRecord({
+    id: patient.id,
+    organization_id: patient.organization_id ?? null,
+    pharmacy_id: patient.pharmacy_id ?? scopedPharmacyId,
+    full_name: patient.full_name,
+    date_of_birth: patient.date_of_birth ?? null,
+    address: patient.address ?? '',
+    phone: patient.phone ?? null,
+    emergency_contact_name: patient.emergency_contact_name ?? '',
+    emergency_contact_phone: patient.emergency_contact_phone ?? '',
+    emergency_contact_relation: patient.emergency_contact_relation ?? null,
+    doctor_name: patient.doctor_name ?? null,
+    doctor_clinic: patient.doctor_clinic ?? null,
+    doctor_night_phone: patient.doctor_night_phone ?? null,
+    medical_history: patient.medical_history ?? null,
+    allergies: patient.allergies ?? null,
+    current_medications: patient.current_medications ?? null,
+    visit_notes: patient.visit_notes ?? null,
+    insurance_info: patient.insurance_info ?? null,
+    disease_name: patient.disease_name ?? null,
+    risk_score: patient.risk_score ?? 0,
+    requires_multi_visit: patient.requires_multi_visit ?? false,
+    status: patient.status ?? 'active',
+    created_at: '',
+    updated_at: '',
+  }, visitRulesByPatientId.get(patient.id) ?? []))
   const generatedTasks = generateAutoDayTasksFromVisitRules(detailedPatients, params.date, persistedTasks.map(mapPersistedTask))
   const persistedIds = new Set(persistedTasks.map((task) => task.id))
   const mergedTasks = [
