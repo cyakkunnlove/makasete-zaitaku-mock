@@ -29,12 +29,14 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { CalendarDays, CheckCircle, ChevronDown, ChevronRight, FileText, Layers, Link2 } from 'lucide-react'
 
 import { billingData, type BillingRecord, type DayTaskItem } from '@/lib/mock-data'
-import { COLLECTION_HANDOFF_NOTE_PREFIX, buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary, type BillingUnbilledVisitRecord } from '@/lib/billing-read-model'
+import { buildDayTaskCollectionRecords, type BillingCollectionRecord, type BillingDateCollectionSummary } from '@/lib/billing-read-model'
+import { getBillingCollectionActions, type BillingCollectionAction } from '@/lib/billing-collection-actions'
 import { DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES, correctionReasonCategories, getBillingPaidCorrectionAction } from '@/lib/correction-policy'
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionStatusToLegacy, normalizeCollectionStatusToDb, type CollectionWorkflowStatus } from '@/lib/status-meta'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
+import { vibrateOnSaveSuccess } from '@/lib/haptics'
 
 const STABLE_PATIENT_CACHE_MS = 5 * 60 * 1000
 
@@ -67,6 +69,8 @@ type CalendarActionDraft = {
   status: CollectionWorkflowStatus
   note: string
 }
+
+type StaffCollectionFilter = 'all' | 'needs_action' | 'on_hold' | 'paid'
 
 function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayTaskItem['collectionStatus'] {
   return mapCollectionStatusToLegacy(status)
@@ -158,20 +162,20 @@ export default function BillingPage() {
   const [batchMonth, setBatchMonth] = useState('2026-03')
   const [generatedLabel, setGeneratedLabel] = useState('')
   const [adminBillingRecords, setAdminBillingRecords] = useState<BillingRecord[]>(billingData)
+  const [apiCollectionRecords, setApiCollectionRecords] = useState<BillingCollectionRecord[]>([])
   const [apiDateCollectionSummaries, setApiDateCollectionSummaries] = useState<BillingDateCollectionSummary[]>([])
-  const [apiUnbilledVisitRecords, setApiUnbilledVisitRecords] = useState<BillingUnbilledVisitRecord[]>([])
+  const [billingReadModelVersion, setBillingReadModelVersion] = useState(0)
   const [toastMessage, setToastMessage] = useState('')
   const [savingCollectionRecordId, setSavingCollectionRecordId] = useState<string | null>(null)
   const [recentlySavedCollectionRecordId, setRecentlySavedCollectionRecordId] = useState<string | null>(null)
   const [failedCollectionRecordId, setFailedCollectionRecordId] = useState<string | null>(null)
   const [collectionErrorMessage, setCollectionErrorMessage] = useState<string>('')
-  const [processedUnbilledIds, setProcessedUnbilledIds] = useState<Set<string>>(new Set())
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
   const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
   const [calendarActionNote, setCalendarActionNote] = useState('')
   const [patientSearch, setPatientSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | CollectionWorkflowStatus>('all')
+  const [staffFilter, setStaffFilter] = useState<StaffCollectionFilter>('needs_action')
   const [billingFlowDate, setBillingFlowDate] = useState(getTodayJstDateKey)
   const [selectedCollectionDate, setSelectedCollectionDate] = useState<string | null>(null)
   const [showCollectionTable, setShowCollectionTable] = useState(false)
@@ -298,11 +302,10 @@ export default function BillingPage() {
 	  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
+    if (isPharmacyRole) return apiCollectionRecords
     const manualOnly = collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId))
     return [...dayTaskCollectionRecords, ...manualOnly]
-  }, [collectionRecords, dayTaskCollectionRecords])
-
-  const unbilledVisitRecords = apiUnbilledVisitRecords
+  }, [apiCollectionRecords, collectionRecords, dayTaskCollectionRecords, isPharmacyRole])
 
   const dateCollectionSummaries = apiDateCollectionSummaries
 
@@ -310,13 +313,15 @@ export default function BillingPage() {
     return dateCollectionSummaries.find((item) => item.date === (selectedCollectionDate ?? billingFlowDate)) ?? null
   }, [billingFlowDate, dateCollectionSummaries, selectedCollectionDate])
 
-
   const summary = useMemo(() => {
     if (isPharmacyRole) {
       const source = mergedCollectionRecords.filter((r) => r.billable)
+      const needsBilling = source.filter((record) => record.status === 'ready').length
+      const billed = source.filter((record) => record.status === 'pending').length
       return {
-        needsBilling: source.filter((record) => record.status === 'ready').length,
-        billed: source.filter((record) => record.status === 'pending').length,
+        needsBilling,
+        billed,
+        needsAction: needsBilling + billed,
         paid: source.filter((record) => record.status === 'paid').length,
         needsAttention: source.filter((record) => record.status === 'on_hold').length,
       }
@@ -354,6 +359,25 @@ export default function BillingPage() {
     return Array.from(map.values()).sort((a, b) => (b.latestHandledAt ?? '').localeCompare(a.latestHandledAt ?? ''))
   }, [mergedCollectionRecords])
 
+  const primaryCollectionRecords = useMemo(() => {
+    const keyword = patientSearch.trim().toLowerCase()
+    const filtered = mergedCollectionRecords.filter((record) => {
+      if (!record.billable) return false
+      if (keyword && !record.patientName.toLowerCase().includes(keyword)) return false
+      if (staffFilter === 'needs_action') return record.status === 'ready' || record.status === 'pending'
+      if (staffFilter === 'on_hold') return record.status === 'on_hold'
+      if (staffFilter === 'paid') return record.status === 'paid'
+      return true
+    })
+
+    const priority = { on_hold: 0, ready: 1, pending: 2, paid: 3 } as const
+    return filtered.sort((a, b) => {
+      const priorityDiff = priority[a.status] - priority[b.status]
+      if (priorityDiff !== 0) return priorityDiff
+      return (b.handledAt ?? '').localeCompare(a.handledAt ?? '')
+    })
+  }, [mergedCollectionRecords, patientSearch, staffFilter])
+
   const filteredPatientCollectionHistories = useMemo(() => {
     const keyword = patientSearch.trim().toLowerCase()
 
@@ -378,8 +402,8 @@ export default function BillingPage() {
 	    async function fetchAdminBillingReadModel() {
 	      if (!user || !ownPharmacyId) {
 	        setAdminBillingRecords([])
+	        setApiCollectionRecords([])
 	        setApiDateCollectionSummaries([])
-	        setApiUnbilledVisitRecords([])
 	        return
 	      }
 
@@ -390,23 +414,22 @@ export default function BillingPage() {
           body: JSON.stringify({
             flowDate: billingFlowDate,
             patientSearch,
-            statusFilter,
-            processedUnbilledIds: Array.from(processedUnbilledIds),
+            statusFilter: 'all',
           }),
         })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.adminBillingRecords)) {
           setAdminBillingRecords(result.adminBillingRecords)
+          setApiCollectionRecords(Array.isArray(result.collectionRecords) ? result.collectionRecords : [])
           setApiDateCollectionSummaries(Array.isArray(result.dateCollectionSummaries) ? result.dateCollectionSummaries : [])
-          setApiUnbilledVisitRecords(Array.isArray(result.unbilledVisitRecords) ? result.unbilledVisitRecords : [])
           return
         }
       } catch {}
 
       if (!cancelled) {
         setAdminBillingRecords(billingData)
+        setApiCollectionRecords([])
         setApiDateCollectionSummaries([])
-        setApiUnbilledVisitRecords([])
       }
     }
 
@@ -414,7 +437,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true
     }
-  }, [billingFlowDate, ownPharmacyId, patientSearch, processedUnbilledIds, statusFilter, user])
+  }, [billingFlowDate, billingReadModelVersion, ownPharmacyId, patientSearch, user])
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
@@ -439,48 +462,54 @@ export default function BillingPage() {
     setFailedCollectionRecordId(null)
     setCollectionErrorMessage('')
 
-    if (target?.linkedTaskId) {
-      const dayTask = sharedDayTasks.find((task) => task.id === target.linkedTaskId)
-      if (dayTask) {
-        try {
-          const response = await fetch(`/api/billing/collection-records/${dayTask.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              collectionStatus: normalizeCollectionStatusToDb(status),
-              note: trimmedNote ? trimmedNote : dayTask.note,
-              handledBy: actorName,
-              handledById: user?.id ?? dayTask.handledById,
-              handledAt,
-            }),
-          })
-          if (!response.ok) {
-            throw new Error('collection_status_save_failed')
-          }
-          setSharedDayTasks((prev) => prev.map((task) => (
-            task.id === dayTask.id
-              ? {
-                  ...task,
-                  collectionStatus: toLegacyDayTaskCollectionStatus(status),
-                  note: trimmedNote ? trimmedNote : task.note,
-                  handledBy: actorName,
-                  handledById: user?.id ?? task.handledById,
-                  handledAt,
-                }
-              : task
-          )))
-        } catch {
-          setToastMessage('回収状況の保存に失敗しました')
-          setTimeout(() => setToastMessage(''), 3000)
-          setFailedCollectionRecordId(recordId)
-          setCollectionErrorMessage('この患者の回収状況はまだ保存できていません。もう一度お試しください。')
-          setSavingCollectionRecordId(null)
-          return
-        }
-      }
+    if (!target?.linkedTaskId) {
+      setToastMessage('対象の回収データが見つかりませんでした')
+      setTimeout(() => setToastMessage(''), 3000)
+      setFailedCollectionRecordId(recordId)
+      setCollectionErrorMessage('この患者の回収状況はまだ保存できていません。もう一度お試しください。')
+      setSavingCollectionRecordId(null)
+      return
     }
 
-    setToastMessage(`回収状況を更新しました`)
+    try {
+      const response = await fetch(`/api/billing/collection-records/${target.linkedTaskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          collectionStatus: normalizeCollectionStatusToDb(status),
+          note: trimmedNote ? trimmedNote : target.note,
+          handledBy: actorName,
+          handledById: user?.id ?? null,
+          handledAt,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error('collection_status_save_failed')
+      }
+      setSharedDayTasks((prev) => prev.map((task) => (
+        task.id === target.linkedTaskId
+          ? {
+              ...task,
+              collectionStatus: toLegacyDayTaskCollectionStatus(status),
+              note: trimmedNote ? trimmedNote : task.note,
+              handledBy: actorName,
+              handledById: user?.id ?? task.handledById,
+              handledAt,
+            }
+          : task
+      )))
+      setBillingReadModelVersion((current) => current + 1)
+    } catch {
+      setToastMessage('回収状況の保存に失敗しました')
+      setTimeout(() => setToastMessage(''), 3000)
+      setFailedCollectionRecordId(recordId)
+      setCollectionErrorMessage('この患者の回収状況はまだ保存できていません。もう一度お試しください。')
+      setSavingCollectionRecordId(null)
+      return
+    }
+
+    setToastMessage('回収状況を更新しました')
+    vibrateOnSaveSuccess()
     setTimeout(() => setToastMessage(''), 3000)
     setSavingCollectionRecordId(null)
     setFailedCollectionRecordId(null)
@@ -532,83 +561,8 @@ export default function BillingPage() {
     setCalendarActionNote('')
   }
 
-  const submitCalendarAction = async (status: CollectionWorkflowStatus) => {
-    if (!calendarActionDialog) return
-    await updateCollectionStatus(calendarActionDialog.recordId, status, calendarActionNote)
-    closeCalendarActionDialog()
-  }
-
   const applyCalendarReasonTag = (tag: string) => {
     setCalendarActionNote((current) => appendReasonTag(current, tag))
-  }
-
-  const sendUnbilledToCollections = async (record: {
-    id: string
-    linkedTaskId: string
-    patientName: string
-    amount: number
-    note: string
-    staffName: string
-    visitDate: string
-  }) => {
-    const dayTask = sharedDayTasks.find((task) => task.id === record.linkedTaskId)
-    if (!dayTask) {
-      setToastMessage('対象の訪問データが見つかりませんでした')
-      setTimeout(() => setToastMessage(''), 3000)
-      return
-    }
-
-    const nextNote = record.note?.trim().length
-      ? `${COLLECTION_HANDOFF_NOTE_PREFIX}: ${record.note}`
-      : COLLECTION_HANDOFF_NOTE_PREFIX
-
-    try {
-      setSavingCollectionRecordId(record.id)
-      setFailedCollectionRecordId(null)
-      setCollectionErrorMessage('')
-      const actorName = user?.full_name ?? '担当者'
-      const handledAt = new Date().toISOString()
-      const response = await fetch(`/api/billing/collection-records/${dayTask.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          collectionStatus: 'needs_billing',
-          note: nextNote,
-          handledBy: actorName,
-          handledById: user?.id ?? dayTask.handledById,
-          handledAt,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('add_collection_record_failed')
-      }
-
-      setSharedDayTasks((prev) => prev.map((task) => (
-        task.id === dayTask.id
-          ? {
-              ...task,
-              collectionStatus: toLegacyDayTaskCollectionStatus('ready'),
-              note: nextNote,
-              handledBy: actorName,
-              handledById: user?.id ?? task.handledById,
-              handledAt,
-            }
-          : task
-      )))
-      setProcessedUnbilledIds((prev) => new Set(prev).add(record.id))
-      setToastMessage(`${record.patientName} を回収管理へ追加しました`)
-      setTimeout(() => setToastMessage(''), 3000)
-      setSavingCollectionRecordId(null)
-      setRecentlySavedCollectionRecordId(record.id)
-      setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === record.id ? null : current), 1500)
-    } catch {
-      setToastMessage('回収管理への追加に失敗しました')
-      setTimeout(() => setToastMessage(''), 3000)
-      setFailedCollectionRecordId(record.id)
-      setCollectionErrorMessage('回収管理への追加がまだ保存できていません。少し待ってから再度お試しください。')
-      setSavingCollectionRecordId(null)
-    }
   }
 
   const createPaidCorrectionRequest = async (record: BillingCollectionRecord) => {
@@ -656,22 +610,62 @@ export default function BillingPage() {
     isPharmacyStaff,
   })
 
+  const getCollectionActionsForRecord = (record: BillingCollectionRecord) => getBillingCollectionActions({
+    record,
+    paidAction: getPaidActionForRecord(record),
+  })
+
+  const runCollectionAction = async (record: BillingCollectionRecord, action: BillingCollectionAction) => {
+    if (action.kind === 'request_correction') {
+      await createPaidCorrectionRequest(record)
+      return
+    }
+    if (!action.nextStatus) return
+    openStatusDialog(record.id, action.nextStatus)
+  }
+
+  const getCardActionClassName = (action: BillingCollectionAction) => {
+    if (action.kind === 'mark_paid') return 'min-h-11 touch-manipulation bg-emerald-600 text-white hover:bg-emerald-600/90 sm:min-h-9'
+    if (action.kind === 'mark_on_hold') return 'min-h-11 touch-manipulation border-rose-200 bg-white text-rose-700 hover:bg-rose-50 sm:min-h-9'
+    if (action.kind === 'return_ready') return 'min-h-11 touch-manipulation border-slate-200 bg-white text-slate-700 hover:bg-slate-50 sm:min-h-9'
+    return 'min-h-11 touch-manipulation border-amber-200 bg-white text-amber-700 hover:bg-amber-50 sm:min-h-9'
+  }
+
+  const getTableActionClassName = (action: BillingCollectionAction) => {
+    if (action.kind === 'mark_paid') return 'min-h-10 touch-manipulation text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60'
+    if (action.kind === 'mark_on_hold') return 'min-h-10 touch-manipulation text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60'
+    if (action.kind === 'return_ready') return 'min-h-10 touch-manipulation text-slate-700 hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60'
+    return 'min-h-10 touch-manipulation text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60'
+  }
+
+  const getPaidRecordNotice = (record: BillingCollectionRecord) => {
+    if (record.status !== 'paid') return null
+    const paidAction = getPaidActionForRecord(record)
+    if (paidAction === 'cancel') {
+      return `入金済み後 ${billingPaidCancelWindowMinutes} 分までは取消できます。以降は修正依頼に切り替わります。`
+    }
+    if (paidAction === 'request' || paidAction === 'edit_from_request') {
+      return `この入金済みはロック済みです。通常取消はできず、修正依頼に進みます。`
+    }
+    return null
+  }
+
   if (role === 'pharmacy_staff' || role === 'pharmacy_admin') {
     return (
       <div className={adminPageClass}>
-        <AdminPageHeader title="回収管理" description="対応完了した訪問タスクに紐づく回収状況を管理します。" />
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <AdminStatCard label="請求対象" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
-          <AdminStatCard label="未入金" value={summary.billed} tone="warning" icon={<Layers className="h-4 w-4" />} />
-          <AdminStatCard label="入金済み" value={summary.paid} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
+        <AdminPageHeader title="請求フォロー" description="対応完了した請求対象患者を自動で拾い、請求必要・請求済み・入金済み・要確認を追います。" />
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <AdminStatCard label="請求必要" value={summary.needsBilling} tone="primary" icon={<FileText className="h-4 w-4" />} />
+          <AdminStatCard label="請求済み" value={summary.billed} tone="primary" icon={<Layers className="h-4 w-4" />} />
           <AdminStatCard label="要確認" value={summary.needsAttention} tone="danger" icon={<CalendarDays className="h-4 w-4" />} />
+          <AdminStatCard label="入金済み" value={summary.paid} tone="success" icon={<CheckCircle className="h-4 w-4" />} />
         </section>
 
         <Card className={adminCardClass}>
           <CardContent className="space-y-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-              <span>現在使える範囲は、訪問タスクの回収ステータス更新です。独立した請求書発行・入金消込台帳は未実装です。</span>
-              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">タスク連動</Badge>
+              <span>患者対応が完了すると、請求対象患者は自動でここへ載ります。通常は `請求必要` から `請求済み` または `入金済み` へ進め、例外時だけ `要確認` に回します。</span>
+              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">day flow 連動</Badge>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Input
@@ -682,20 +676,19 @@ export default function BillingPage() {
               />
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: 'all', label: '全て' },
-                  { key: 'ready', label: '請求対象' },
-                  { key: 'pending', label: '未入金' },
+                  { key: 'needs_action', label: '請求必要・請求済み' },
                   { key: 'on_hold', label: '要確認' },
                   { key: 'paid', label: '入金済み' },
+                  { key: 'all', label: '全て' },
                 ].map((option) => (
                   <Button
                     key={option.key}
                     type="button"
                     size="sm"
-                    variant={statusFilter === option.key ? 'default' : 'outline'}
-                    onClick={() => setStatusFilter(option.key as 'all' | CollectionWorkflowStatus)}
+                    variant={staffFilter === option.key ? 'default' : 'outline'}
+                    onClick={() => setStaffFilter(option.key as StaffCollectionFilter)}
                     className={cn(
-                      statusFilter === option.key
+                      staffFilter === option.key
                         ? 'bg-indigo-600 text-white hover:bg-indigo-600/90'
                         : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
                     )}
@@ -708,66 +701,67 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <BillingCollapsibleSection
-          title="回収管理へ追加する訪問一覧"
-          description="対応完了した訪問タスクのうち、請求対象だけを回収管理対象にします。"
-          countLabel={`${unbilledVisitRecords.length}件`}
-          icon={FileText}
-          defaultOpen={unbilledVisitRecords.length > 0}
-        >
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-900">{unbilledVisitRecords.length}</p>
-                <p className="text-[10px] text-slate-500">回収管理へ追加待ち</p>
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-slate-900">今処理する患者</CardTitle>
+            <CardDescription className="text-slate-600">主作業はここだけです。請求必要または請求済みの患者を進め、例外時だけ要確認へ回します。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {primaryCollectionRecords.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                条件に合う患者はありません。通常は day flow で対応完了した請求対象患者がここに出ます。
               </div>
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-600">{unbilledVisitRecords.filter((record) => record.status === 'ready').length}</p>
-                <p className="text-[10px] text-slate-500">そのまま請求可</p>
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
-                <p className="text-2xl font-bold text-amber-600">{unbilledVisitRecords.filter((record) => record.status === 'review').length}</p>
-                <p className="text-[10px] text-slate-500">請求前に確認</p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-              請求対象外の患者はここに出ません。患者詳細の「請求設定」で対象外にしたものは、対応完了しても回収管理へ上がりません。
-            </div>
-
-            {unbilledVisitRecords.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">追加待ちの候補はありません。対応完了かつ請求対象の訪問があるとここに載ります。</p>
             ) : (
-              <div className="space-y-2">
-                {unbilledVisitRecords.map((record) => (
-                  <div key={record.id} className={cn("soft-pop rounded-lg border bg-white p-3 shadow-sm hover:border-slate-300 hover:shadow-md", savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === record.id ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
+              primaryCollectionRecords.map((record) => {
+                return (
+                  <div key={record.id} className={cn('rounded-xl border bg-white p-4 shadow-sm', savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === record.id ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-slate-900">{record.patientName}</p>
-                        <p className="mt-1 text-xs text-slate-500">訪問日 {record.visitDate} / 処方日 {record.prescriptionDate} / {record.visitType}</p>
-                        <p className="mt-1 text-xs text-slate-500">担当: {record.staffName} / task: {record.linkedTaskId}</p>
+                        <p className="text-base font-semibold text-slate-900">{record.patientName}</p>
+                        <p className="mt-1 text-xs text-slate-500">task: {record.linkedTaskId} / 最終更新 {formatJstDateTime(record.handledAt)}</p>
+                        <p className="mt-1 text-xs text-slate-500">{record.handledBy ?? '未対応'} / {record.note || 'メモなし'}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className={cn('border text-[10px]', record.status === 'ready' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700')}>
-                          {record.status === 'ready' ? 'そのまま請求可' : '請求前に確認'}
+                        <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
+                        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
+                          {record.status === 'ready'
+                            ? '請求必要'
+                            : record.status === 'pending'
+                              ? '請求済み'
+                              : record.status === 'on_hold'
+                                ? '例外対応'
+                                : '完了済み'}
                         </Badge>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">{record.note}</p>
                     {failedCollectionRecordId === record.id ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => sendUnbilledToCollections(record)} disabled={savingCollectionRecordId === record.id} className="soft-pop-sm bg-indigo-600 text-white hover:bg-indigo-600/90">{savingCollectionRecordId === record.id ? '保存中...' : '回収管理に追加'}</Button>
+                    {getPaidRecordNotice(record) ? <p className="mt-2 text-xs font-medium text-amber-700">{getPaidRecordNotice(record)}</p> : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {getCollectionActionsForRecord(record).map((action) => (
+                        <Button
+                          key={action.kind}
+                          type="button"
+                          variant={action.kind === 'mark_paid' ? 'default' : 'outline'}
+                          onClick={() => void runCollectionAction(record, action)}
+                          disabled={savingCollectionRecordId === record.id}
+                          className={getCardActionClassName(action)}
+                        >
+                          {savingCollectionRecordId === record.id
+                            ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
+                            : action.label}
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )
+              })
             )}
-          </div>
-        </BillingCollapsibleSection>
+          </CardContent>
+        </Card>
 
         <BillingCollapsibleSection
-          title="日付から回収状況を見る"
-          description="対象日を選び、その日の対象患者だけを確認します。"
+          title="日付別に見返す"
+          description="通常の処理では使いません。後から特定日を追いたい時だけ開きます。"
           countLabel={`${dateCollectionSummaries.length}日`}
           icon={CalendarDays}
         >
@@ -775,7 +769,7 @@ export default function BillingPage() {
             <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[220px_1fr] sm:items-center">
               <div>
                 <p className="text-xs font-semibold text-slate-900">対象日</p>
-                <p className="mt-0.5 text-[11px] text-slate-500">選択した日の訪問タスクから回収状況を読み込みます。</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">選択した日の回収状況を見返します。</p>
               </div>
               <Input
                 type="date"
@@ -791,7 +785,7 @@ export default function BillingPage() {
 
             {dateCollectionSummaries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                この日付に表示できる回収対象はありません。別の日付を選ぶか、検索語・ステータスを見直してください。
+                この日付に表示できる回収対象はありません。
               </div>
             ) : (
               <div className="space-y-2">
@@ -818,12 +812,12 @@ export default function BillingPage() {
                               ? '要確認の患者があります'
                               : allPaid
                                 ? 'この日はすべて入金済みです'
-                                : '未入金の患者があります'}
+                                : '請求必要または請求済みの患者があります'}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2 text-[11px]">
                           {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要確認あり</Badge> : null}
-                          {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">未入金あり</Badge> : null}
+                          {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700">請求対象あり</Badge> : null}
                           {allPaid ? <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">すべて入金済み</Badge> : null}
                         </div>
                       </div>
@@ -857,7 +851,7 @@ export default function BillingPage() {
                           type="button"
                           size="sm"
                           onClick={() => openCalendarActionDialog(item, selectedDateSummary.date)}
-                          className="bg-indigo-600 text-white hover:bg-indigo-600/90"
+                          className="min-h-11 touch-manipulation bg-indigo-600 text-white hover:bg-indigo-600/90 sm:min-h-8"
                         >
                           {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
                         </Button>
@@ -871,8 +865,8 @@ export default function BillingPage() {
         </BillingCollapsibleSection>
 
         <BillingCollapsibleSection
-          title="患者ごとの回収状況"
-          description="訪問タスクに紐づく現在の回収状況を、患者ごとに確認します。"
+          title="患者別の履歴を見返す"
+          description="通常の処理では使いません。前回メモや状態変化を追いたい時だけ開きます。"
           countLabel={`${filteredPatientCollectionHistories.length}名`}
           icon={Layers}
         >
@@ -980,8 +974,8 @@ export default function BillingPage() {
           <CardHeader className="pb-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <CardTitle className="text-sm text-slate-900">一覧で確認する</CardTitle>
-                <CardDescription className="text-slate-600">訪問タスクごとの現在状態を一覧で確認します。日付から確認しづらいときだけ使えます。</CardDescription>
+                <CardTitle className="text-sm text-slate-900">全件確認</CardTitle>
+                <CardDescription className="text-slate-600">通常の処理では使いません。監査や抜け漏れ確認が必要なときだけ開きます。</CardDescription>
               </div>
               <Button type="button" size="sm" variant="outline" onClick={() => setShowCollectionTable((prev) => !prev)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                 {showCollectionTable ? '一覧を閉じる' : '一覧を開く'}
@@ -1004,7 +998,6 @@ export default function BillingPage() {
                 </TableHeader>
                 <TableBody>
 	                  {mergedCollectionRecords.map((record) => {
-	                    const paidAction = getPaidActionForRecord(record)
 	                    return (
 	                    <TableRow key={record.id} className={cn('border-slate-200 transition hover:bg-slate-50', savingCollectionRecordId === record.id ? 'bg-indigo-50/70' : null, recentlySavedCollectionRecordId === record.id ? 'bg-emerald-50/70' : null, failedCollectionRecordId === record.id ? 'bg-rose-50/80' : null)}>
                       <TableCell className="font-medium text-slate-900">{record.patientName}</TableCell>
@@ -1037,12 +1030,22 @@ export default function BillingPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-	                          {record.billable && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'paid')} className="text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みにする'}</Button>}
-	                          {record.billable && record.status !== 'on_hold' && record.status !== 'paid' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'on_hold')} className="text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '要確認にする'}</Button>}
-	                          {record.billable && paidAction === 'cancel' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => openStatusDialog(record.id, 'pending')} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '保存中...' : '入金済みをキャンセル'}</Button>}
-	                          {record.billable && paidAction === 'request' && <Button size="sm" variant="ghost" disabled={savingCollectionRecordId === record.id} onClick={() => void createPaidCorrectionRequest(record)} className="text-amber-700 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">{savingCollectionRecordId === record.id ? '送信中...' : '修正依頼'}</Button>}
-	                        </div>
-	                      </TableCell>
+                          {getCollectionActionsForRecord(record).map((action) => (
+                            <Button
+                              key={action.kind}
+                              size="sm"
+                              variant="ghost"
+                              disabled={savingCollectionRecordId === record.id}
+                              onClick={() => void runCollectionAction(record, action)}
+                              className={getTableActionClassName(action)}
+                            >
+                              {savingCollectionRecordId === record.id
+                                ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
+                                : action.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </TableCell>
 	                    </TableRow>
 	                    )
 	                  })}
@@ -1053,6 +1056,111 @@ export default function BillingPage() {
             <CardContent className="px-4 pb-4 pt-0 text-xs text-slate-500">必要なときだけ一覧を開けます。</CardContent>
           )}
         </Card>
+
+        <Dialog open={!!statusDialog} onOpenChange={(open) => !open && setStatusDialog(null)}>
+          <DialogContent className={`${adminDialogClass} sm:max-w-md`}>
+            <DialogHeader>
+              <DialogTitle className="text-slate-900">回収状況を更新</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {statusDialog ? `${statusDialog.patientName} の回収状況を「${collectionWorkflowStatusMeta[statusDialog.to].label}」に変更します。` : '回収状況を変更します。'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className={`${adminPanelClass} p-4`}>
+                <p>変更前: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.from].label : '—'}</span></p>
+                <p className="mt-1">変更後: <span className="font-medium text-slate-900">{statusDialog ? collectionWorkflowStatusMeta[statusDialog.to].label : '—'}</span></p>
+                {statusDialog?.from === 'paid' ? <p className="mt-2 text-xs text-amber-700">入金済みは {billingPaidCancelWindowMinutes} 分を過ぎるとロックされます。ロック後は通常取消ではなく修正依頼に切り替わります。</p> : null}
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">メモ（任意）</p>
+                {statusDialog?.to === 'on_hold' ? (
+                  <div className="flex flex-wrap gap-2">
+                    {onHoldReasonTags.map((tag) => (
+                      <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyStatusReasonTag(tag)} className="min-h-10 touch-manipulation border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                        #{tag}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+                <Input value={statusChangeNote} onChange={(e) => setStatusChangeNote(e.target.value)} className={adminInputClass} placeholder="通帳確認、電話確認など" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setStatusDialog(null)} className="min-h-11 touch-manipulation sm:min-h-9">キャンセル</Button>
+              <Button type="button" onClick={confirmStatusChange} className="min-h-11 touch-manipulation bg-indigo-500 text-white hover:bg-indigo-500/90 sm:min-h-9">変更する</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!calendarActionDialog} onOpenChange={(open) => !open && closeCalendarActionDialog()}>
+          <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
+            <DialogHeader>
+              <DialogTitle className="text-slate-900">患者ごとの回収処理</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {calendarActionDialog ? `${calendarActionDialog.patientName} / ${calendarActionDialog.visitDate}` : '患者ごとの回収状況を更新します。'}
+              </DialogDescription>
+            </DialogHeader>
+            {calendarActionDialog ? (
+              <div className="space-y-3 text-sm text-slate-700">
+                <div className={`${adminPanelClass} p-4`}>
+                  <p>現在状態: <span className="font-medium text-slate-900">{collectionWorkflowStatusMeta[calendarActionDialog.status].label}</span></p>
+                  <p className="mt-1 text-xs text-slate-500">この患者の回収状況だけをここで更新できます。</p>
+                  {(() => {
+                    const record = mergedCollectionRecords.find((item) => item.id === calendarActionDialog.recordId)
+                    const notice = record ? getPaidRecordNotice(record) : null
+                    return notice ? <p className="mt-2 text-xs font-medium text-amber-700">{notice}</p> : null
+                  })()}
+                  {savingCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-indigo-600">保存中です。反映されるまでこのままお待ちください。</p> : null}
+                  {recentlySavedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs text-emerald-600">✓ 保存できました。一覧の状態も更新されています。</p> : null}
+                  {failedCollectionRecordId === calendarActionDialog.recordId ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
+                </div>
+                <div className={`${adminPanelClass} p-4`}>
+                  <p>最終処理者: <span className="text-slate-900">{mergedCollectionRecords.find((record) => record.id === calendarActionDialog.recordId)?.handledBy ?? '未対応'}</span></p>
+                  <p className="mt-1">最終処理日時: <span className="text-slate-900">{formatJstDateTime(mergedCollectionRecords.find((record) => record.id === calendarActionDialog.recordId)?.handledAt ?? null)}</span></p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500">処理メモ</p>
+                  {calendarActionDialog.status !== 'paid' ? (
+                    <div className="flex flex-wrap gap-2">
+                      {onHoldReasonTags.map((tag) => (
+                        <Button key={tag} type="button" size="sm" variant="outline" onClick={() => applyCalendarReasonTag(tag)} className="min-h-10 touch-manipulation border-rose-200 bg-white text-rose-700 hover:bg-rose-50">
+                          #{tag}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <Input
+                    value={calendarActionNote}
+                    onChange={(e) => setCalendarActionNote(e.target.value)}
+                    className={adminInputClass}
+                    placeholder="入金確認、連絡内容、差し戻し理由など"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={closeCalendarActionDialog} className="min-h-11 touch-manipulation sm:min-h-9">閉じる</Button>
+                  {(() => {
+                    const record = mergedCollectionRecords.find((item) => item.id === calendarActionDialog.recordId)
+                    if (!record) return null
+                    return getCollectionActionsForRecord(record).map((action) => (
+                      <Button
+                        key={action.kind}
+                        type="button"
+                        variant={action.kind === 'mark_paid' ? 'default' : 'outline'}
+                        onClick={() => void runCollectionAction(record, action)}
+                        disabled={savingCollectionRecordId === calendarActionDialog.recordId}
+                        className={getCardActionClassName(action)}
+                      >
+                        {savingCollectionRecordId === calendarActionDialog.recordId
+                          ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
+                          : action.label}
+                      </Button>
+                    ))
+                  })()}
+                </DialogFooter>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }
@@ -1251,23 +1359,24 @@ export default function BillingPage() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={closeCalendarActionDialog}>閉じる</Button>
-	                {(() => {
-	                  const record = mergedCollectionRecords.find((item) => item.id === calendarActionDialog.recordId)
-	                  const paidAction = record ? getPaidActionForRecord(record) : 'none'
-	                  if (record && paidAction === 'cancel') {
-	                    return <Button type="button" variant="outline" onClick={() => void submitCalendarAction('pending')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みをキャンセル'}</Button>
-	                  }
-	                  if (record && paidAction === 'request') {
-	                    return <Button type="button" variant="outline" onClick={() => void createPaidCorrectionRequest(record)} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '送信中...' : '修正依頼'}</Button>
-	                  }
-	                  return null
-	                })()}
-                {calendarActionDialog.status !== 'on_hold' && calendarActionDialog.status !== 'paid' ? (
-                  <Button type="button" variant="outline" onClick={() => void submitCalendarAction('on_hold')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '要確認にする'}</Button>
-                ) : null}
-                {calendarActionDialog.status !== 'paid' ? (
-                  <Button type="button" onClick={() => void submitCalendarAction('paid')} disabled={savingCollectionRecordId === calendarActionDialog.recordId} className="bg-emerald-600 text-white hover:bg-emerald-600/90">{savingCollectionRecordId === calendarActionDialog.recordId ? '保存中...' : '入金済みにする'}</Button>
-                ) : null}
+                {(() => {
+                  const record = mergedCollectionRecords.find((item) => item.id === calendarActionDialog.recordId)
+                  if (!record) return null
+                  return getCollectionActionsForRecord(record).map((action) => (
+                    <Button
+                      key={action.kind}
+                      type="button"
+                      variant={action.kind === 'mark_paid' ? 'default' : 'outline'}
+                      onClick={() => void runCollectionAction(record, action)}
+                      disabled={savingCollectionRecordId === calendarActionDialog.recordId}
+                      className={getCardActionClassName(action)}
+                    >
+                      {savingCollectionRecordId === calendarActionDialog.recordId
+                        ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
+                        : action.label}
+                    </Button>
+                  ))
+                })()}
               </DialogFooter>
             </div>
           ) : null}

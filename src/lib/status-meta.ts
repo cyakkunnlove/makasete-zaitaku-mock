@@ -18,8 +18,8 @@ export const billingStatusMeta: Record<BillingStatus, StatusMeta> = {
 }
 
 export const collectionWorkflowStatusMeta: Record<CollectionWorkflowStatus, StatusMeta> = {
-  ready: { label: '請求対象', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
-  pending: { label: '未入金', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  ready: { label: '請求必要', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  pending: { label: '請求済み', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
   paid: { label: '入金済み', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
   on_hold: { label: '要確認', className: 'border-rose-200 bg-rose-50 text-rose-700' },
 }

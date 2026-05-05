@@ -4,11 +4,12 @@ import { getCurrentUser } from '@/lib/auth'
 import { getCurrentActorRole } from '@/lib/active-role'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
-import { normalizeCollectionStatusToDb, type CollectionWorkflowDbStatus } from '@/lib/status-meta'
+import { mapCollectionDbStatusToApp, normalizeCollectionStatusToDb, type CollectionWorkflowDbStatus } from '@/lib/status-meta'
 import {
   DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES,
   getBillingPaidCorrectionAction,
 } from '@/lib/correction-policy'
+import { findBillingCollectionActionForStatusChange, type BillingPaidActionPolicy } from '@/lib/billing-collection-actions'
 
 type CollectionStatusPayload = {
   collectionStatus?: unknown
@@ -121,7 +122,10 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     hasValidCorrectionRequest = true
   }
 
-  if (previousCollectionStatus === 'paid' && collectionStatus !== 'paid') {
+  let paidActionPolicy: BillingPaidActionPolicy = 'none'
+  let billingPaidCancelWindowMinutes = DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES
+
+  if (previousCollectionStatus === 'paid') {
     const settingsResponse = await supabase
       .from('pharmacy_operation_settings')
       .select('billing_paid_cancel_window_minutes')
@@ -133,28 +137,46 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     }
 
     const settings = settingsResponse.data as { billing_paid_cancel_window_minutes?: number | null } | null
-    const windowMinutes = settings?.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES
-    const correctionAction = getBillingPaidCorrectionAction({
+    billingPaidCancelWindowMinutes = settings?.billing_paid_cancel_window_minutes ?? DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES
+    paidActionPolicy = getBillingPaidCorrectionAction({
       status: 'paid',
       handledAt: previousHandledAt,
-      windowMinutes,
+      windowMinutes: billingPaidCancelWindowMinutes,
       isPharmacyAdmin: actorRole === 'pharmacy_admin',
       isPharmacyStaff: actorRole === 'pharmacy_staff',
       hasCorrectionRequest: hasValidCorrectionRequest,
     })
+  }
 
-    if (correctionAction === 'request') {
+  const currentAppStatus = mapCollectionDbStatusToApp(previousCollectionStatus)
+  const nextAppStatus = mapCollectionDbStatusToApp(collectionStatus)
+  const transitionAction = findBillingCollectionActionForStatusChange({
+    currentStatus: currentAppStatus,
+    nextStatus: nextAppStatus,
+    billable: true,
+    paidAction: paidActionPolicy,
+  })
+
+  if (!transitionAction && currentAppStatus !== nextAppStatus) {
+    if (previousCollectionStatus === 'paid' && paidActionPolicy === 'request') {
       return NextResponse.json({
         ok: false,
         error: 'correction_request_required',
         reason: 'billing_paid_locked',
-        billingPaidCancelWindowMinutes: windowMinutes,
+        billingPaidCancelWindowMinutes,
       }, { status: 423 })
     }
 
-    if (correctionAction === 'none') {
+    if (previousCollectionStatus === 'paid' && paidActionPolicy === 'none') {
       return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
     }
+
+    return NextResponse.json({
+      ok: false,
+      error: 'invalid_collection_status_transition',
+      currentStatus: currentAppStatus,
+      nextStatus: nextAppStatus,
+    }, { status: 409 })
   }
 
   const auditAction = previousCollectionStatus !== collectionStatus ? 'billing_collection_status_changed' : 'billing_collection_record_updated'

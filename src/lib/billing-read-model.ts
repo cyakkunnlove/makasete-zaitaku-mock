@@ -139,8 +139,7 @@ export function buildDayTaskCollectionRecords({
   return sharedDayTasks
     .filter((task) => {
       if (task.pharmacyId !== ownPharmacyId || task.status !== 'completed' || !task.billable) return false
-      const appStatus = mapCollectionDbStatusToApp(task.collectionStatus)
-      return appStatus !== 'ready' || task.note.startsWith(COLLECTION_HANDOFF_NOTE_PREFIX)
+      return true
     })
     .map((task) => {
       const patient = patientMap.get(task.patientId)

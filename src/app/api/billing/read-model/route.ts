@@ -49,7 +49,8 @@ export async function POST(request: Request) {
       .select('*')
       .eq('organization_id', user.organization_id)
       .eq('pharmacy_id', scopedPharmacyId)
-      .eq('flow_date', flowDate)
+      .lte('flow_date', flowDate)
+      .order('flow_date', { ascending: false })
       .order('sort_order', { ascending: true }),
     supabase
       .from('pharmacies')
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     ]),
   )
 
-  const sharedDayTasks = ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => mapPatientDayTaskRowToDayTaskItem(task, flowDate))
+  const sharedDayTasks = ((tasksResult.data ?? []) as Array<Record<string, unknown>>).map((task) => mapPatientDayTaskRowToDayTaskItem(task, String(task.flow_date ?? flowDate)))
 
   const dayTaskCollectionRecords = buildDayTaskCollectionRecords({
     sharedDayTasks,
@@ -128,5 +129,12 @@ export async function POST(request: Request) {
     pharmacyName,
   })
 
-  return NextResponse.json({ ok: true, adminBillingRecords, pharmacyName, dateCollectionSummaries, unbilledVisitRecords })
+  return NextResponse.json({
+    ok: true,
+    adminBillingRecords,
+    pharmacyName,
+    collectionRecords: mergedCollectionRecords,
+    dateCollectionSummaries,
+    unbilledVisitRecords,
+  })
 }
