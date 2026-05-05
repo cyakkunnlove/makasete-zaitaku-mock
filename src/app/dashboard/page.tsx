@@ -39,6 +39,7 @@ import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRe
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
+import { vibrateOnSaveSuccess } from '@/lib/haptics'
 
 const staffStatusClass: Record<string, string> = {
   待機中: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
@@ -2199,6 +2200,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     try {
       await upsertTask(next)
+      vibrateOnSaveSuccess()
       setSaveToast(`${actionLabel} 保存しました`)
       setRecentlySavedTaskIds((prev) => prev.includes(taskId) ? prev : [...prev, taskId])
       setTimeout(() => {
@@ -2324,6 +2326,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     try {
       await upsertTask(nextTask)
+      vibrateOnSaveSuccess()
       setSaveError(null)
       setSaveToast('本日の対応フローに追加しました')
       setFlowLoadKey((prev) => prev + 1)
@@ -2357,18 +2360,22 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const handleCompleteTask = async (taskId: string) => {
     const now = new Date().toISOString()
-    await persistTaskChange(taskId, (task) => ({
-      ...task,
-      status: 'completed',
-      handledBy: task.handledBy ?? user?.full_name ?? '伊藤 真理',
-      handledById: task.handledById ?? user?.id ?? 'ST-07',
-      handledAt: task.handledAt ?? now,
-      completedAt: now,
-      billable: task.amount > 0,
-      collectionStatus: task.amount > 0 ? '請求準備OK' : '未着手',
-      updatedAt: now,
-      updatedById: user?.id ?? 'ST-07',
-    }), '対応完了を反映しました')
+    await persistTaskChange(taskId, (task) => {
+      const patient = dayFlowPatients.find((item) => item.id === task.patientId)
+      const isBillable = patient?.isBillable ?? task.billable ?? task.amount > 0
+      return {
+        ...task,
+        status: 'completed',
+        handledBy: task.handledBy ?? user?.full_name ?? '伊藤 真理',
+        handledById: task.handledById ?? user?.id ?? 'ST-07',
+        handledAt: task.handledAt ?? now,
+        completedAt: now,
+        billable: isBillable,
+        collectionStatus: isBillable ? '請求準備OK' : '未着手',
+        updatedAt: now,
+        updatedById: user?.id ?? 'ST-07',
+      }
+    }, '対応完了を反映しました')
   }
 
   const handleUndo = () => {
@@ -2449,6 +2456,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     try {
       await saveTasksBulk(normalizedDraftDayTasks)
+      vibrateOnSaveSuccess()
       setSaveError(null)
       setSaveToast('並び順を保存しました')
       if (movedTaskIds.length > 0) {
