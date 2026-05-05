@@ -511,7 +511,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-24 lg:pb-6', isAdminShell || isFieldShell ? 'bg-slate-50' : '')}>
+      <main className={cn('lg:ml-[260px] p-4 lg:p-6 pb-36 lg:pb-6', isAdminShell || isFieldShell ? 'bg-slate-50' : '')}>
         {canAccess(role, currentPermission) ? (
           children
         ) : (
@@ -520,7 +520,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Bottom Nav - Mobile */}
-      <nav className={cn('lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t pb-[env(safe-area-inset-bottom)]', isFieldShell ? 'border-slate-200 bg-white/95 backdrop-blur' : 'bg-[#111827] border-[#2a3553]')}>
+      <nav className={cn('lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(15,23,42,0.12)]', isFieldShell ? 'border-slate-200 bg-white' : 'bg-[#111827] border-[#2a3553]')}>
         <div className="flex items-center justify-around h-16 px-2">
           {visibleMobileNavItems.map((item) => {
             const active = isNavActive(item.href)

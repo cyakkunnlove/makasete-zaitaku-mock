@@ -1471,18 +1471,29 @@ function PharmacyDayTaskCardActions({
   planButtonLabel: string
   reorderHintText: string
 }) {
+  const primaryAction = isSaving
+    ? { label: '保存中...', onClick: undefined, disabled: true, className: 'bg-slate-400 text-white' }
+    : canComplete
+      ? { label: '対応完了', onClick: onComplete, disabled: false, className: 'bg-emerald-600 text-white hover:bg-emerald-500' }
+      : canStart
+        ? { label: '対応する', onClick: onStart, disabled: false, className: 'bg-indigo-600 text-white hover:bg-indigo-500' }
+        : null
+
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onPlanToggle}
-          disabled={!canPlanToggle}
-          className="h-11 w-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto"
-        >
-          {isSaving ? '保存中...' : planButtonLabel}
-        </Button>
+        {canPlanToggle ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onPlanToggle}
+            disabled={isSaving}
+            className="h-11 w-full touch-manipulation border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 sm:h-8 sm:w-auto"
+          >
+            {isSaving ? '保存中...' : planButtonLabel}
+          </Button>
+        ) : null}
 
         <div className="flex w-full min-w-0 flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 sm:w-auto">
           <span className="text-[11px] font-medium text-slate-600">並び替え</span>
@@ -1492,7 +1503,7 @@ function PharmacyDayTaskCardActions({
             variant="outline"
             onClick={onMoveUp}
             disabled={!canMoveUp || isSaving}
-            className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-11 min-w-11 touch-manipulation border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:min-w-8 sm:px-2"
           >
             ↑
           </Button>
@@ -1502,33 +1513,28 @@ function PharmacyDayTaskCardActions({
             variant="outline"
             onClick={onMoveDown}
             disabled={!canMoveDown || isSaving}
-            className="h-8 min-w-8 border-slate-200 bg-white px-2 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-11 min-w-11 touch-manipulation border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:min-w-8 sm:px-2"
           >
             ↓
           </Button>
           <span className="text-[11px] text-slate-500">{reorderHintText}</span>
         </div>
 
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+        {primaryAction ? (
           <Button
             type="button"
             size="sm"
-            onClick={onStart}
-            disabled={!canStart}
-            className="h-11 min-w-0 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
+            onClick={primaryAction.onClick}
+            disabled={primaryAction.disabled}
+            className={cn('h-11 w-full min-w-0 touch-manipulation disabled:opacity-60 sm:h-8 sm:w-auto sm:min-w-[96px]', primaryAction.className)}
           >
-            {isSaving ? '保存中...' : '対応する'}
+            {primaryAction.label}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={onComplete}
-            disabled={!canComplete}
-            className="h-11 min-w-0 bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60 sm:h-8 sm:min-w-[88px]"
-          >
-            {isSaving ? '保存中...' : '対応完了'}
-          </Button>
-        </div>
+        ) : (
+          <span className="inline-flex h-9 w-full items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 sm:w-auto">
+            対応完了済み
+          </span>
+        )}
       </div>
       <span className="block text-[11px] text-slate-500">{isSaving ? '保存中です。反映まで少しお待ちください。' : completionHelpText}</span>
     </div>
@@ -1629,15 +1635,6 @@ function PharmacyDayTaskCard({
           statusClassName={statusClassName}
           statusLabel={statusLabel}
         />
-        <PharmacyDayTaskCardMetrics
-          handledBy={visit.handledBy}
-          handledAt={visit.handledAt}
-          billable={visit.billable}
-          collectionStatus={visit.collectionStatus}
-          collectionClassName={collectionClassName}
-        />
-        {isRecentlySaved ? <div className="success-badge-pop -mt-1 text-[11px] font-medium text-emerald-600">✓ 保存できました</div> : null}
-        {isSaveFailed ? <div className="-mt-1 text-[11px] font-medium text-rose-600">保存に失敗しました。もう一度お試しください。</div> : null}
         <PharmacyDayTaskCardActions
           canStart={canStart}
           canComplete={canComplete}
@@ -1654,6 +1651,15 @@ function PharmacyDayTaskCard({
           planButtonLabel={planButtonLabel}
           reorderHintText={reorderHintText}
         />
+        <PharmacyDayTaskCardMetrics
+          handledBy={visit.handledBy}
+          handledAt={visit.handledAt}
+          billable={visit.billable}
+          collectionStatus={visit.collectionStatus}
+          collectionClassName={collectionClassName}
+        />
+        {isRecentlySaved ? <div className="success-badge-pop -mt-1 text-[11px] font-medium text-emerald-600">✓ 保存できました</div> : null}
+        {isSaveFailed ? <div className="-mt-1 text-[11px] font-medium text-rose-600">保存に失敗しました。もう一度お試しください。</div> : null}
         <PharmacyDayTaskCardMetaChips
           planningStatus={visit.planningStatus}
           plannedBy={visit.plannedBy}
