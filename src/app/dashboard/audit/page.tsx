@@ -175,12 +175,12 @@ export default function AuditPage() {
     })
   }, [actionFilter, billingStatusFocus, userFilter, endDate, startDate, logs, search])
 
-  if (role !== 'system_admin') {
+  if (role !== 'system_admin' && role !== 'regional_admin') {
     return (
       <Card className={adminCardClass}>
         <CardHeader>
           <CardTitle className="text-base text-slate-900">監査ログ</CardTitle>
-          <CardDescription className="text-slate-600">このページは管理者のみ閲覧できます。</CardDescription>
+          <CardDescription className="text-slate-600">このページは システム管理者 または リージョン管理者 のみ閲覧できます。</CardDescription>
         </CardHeader>
       </Card>
     )

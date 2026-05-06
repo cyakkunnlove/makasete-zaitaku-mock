@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentUser } from '@/lib/auth'
-import { getCurrentActorRole } from '@/lib/active-role'
+import { getCurrentActorRole, getCurrentScope } from '@/lib/active-role'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 
 const billingStatusLabel: Record<string, string> = {
@@ -34,15 +34,27 @@ function summarizeAuditDetails(action: string, details: Record<string, unknown> 
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  if (getCurrentActorRole(user) !== 'system_admin') {
+  const actorRole = getCurrentActorRole(user)
+  const actorScope = getCurrentScope(user)
+  const actorRegionId = actorScope.regionId
+  if (actorRole !== 'system_admin' && actorRole !== 'regional_admin') {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+  if (actorRole === 'regional_admin' && !actorRegionId) {
+    return NextResponse.json({ ok: false, error: 'region_scope_required' }, { status: 403 })
   }
 
   const supabase = createServerSupabaseClient()
-  const auditResponse = await supabase
+  let auditQuery = supabase
     .from('audit_logs')
     .select('id, user_id, action, target_type, target_id, details, region_id, pharmacy_id, created_at')
     .eq('organization_id', user.organization_id)
+
+  if (actorRole === 'regional_admin' && actorRegionId) {
+    auditQuery = auditQuery.eq('region_id', actorRegionId)
+  }
+
+  const auditResponse = await auditQuery
     .order('created_at', { ascending: false })
     .limit(200)
 

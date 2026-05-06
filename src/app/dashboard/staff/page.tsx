@@ -236,6 +236,7 @@ export default function StaffPage() {
   const isSystemAdmin = role === 'system_admin'
   const isRegionalAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
+  const showStaffActivity = isPharmacyAdmin
   const { guard, requiresReverification } = useReauthGuard()
   const [activityRange, setActivityRange] = useState<ActivityRange>('7d')
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
@@ -993,40 +994,41 @@ export default function StaffPage() {
             </CardContent>
           </Card>
 
-          <StaffManagementCollapsibleSection
-            title="スタッフ活動量の詳細"
-            description="直近 7日 / 30日 の実績を、持ち越しと未完了を優先して見やすくまとめます。"
-            countLabel={`${staffActivitySummaries.length}名`}
-            icon={Users}
-          >
-            <div className="space-y-3">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
-                  <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
-                    <TabsTrigger value="7d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
-                    <TabsTrigger value="30d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              {isActivityLoading ? (
-                <LoadingState message="活動量データを読み込み中です。" />
-              ) : staffActivitySummaries.length === 0 ? (
-                <EmptyState
-                  title="表示できる活動量データはまだありません"
-                  description="活動量データが入るとここに表示されます。"
-                  className="px-4 py-8 shadow-none"
-                />
-              ) : (
-                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2 2xl:grid-cols-3">
-                  {staffActivitySummaries.map((item) => {
-                    const isExpanded = expandedActivityCardId === item.id
-                    return (
-                      <button
-                        key={`${activityRange}-${item.id}`}
-                        type="button"
-                        onClick={() => setExpandedActivityCardId((current) => current === item.id ? null : item.id)}
-                        className={`${adminPanelClass} soft-pop space-y-2 p-2.5 text-left cursor-pointer hover:border-slate-300 hover:bg-white hover:shadow-md`}
-                      >
+          {showStaffActivity && (
+            <StaffManagementCollapsibleSection
+              title="スタッフ活動量の詳細"
+              description="直近 7日 / 30日 の実績を、持ち越しと未完了を優先して見やすくまとめます。"
+              countLabel={`${staffActivitySummaries.length}名`}
+              icon={Users}
+            >
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <Tabs value={activityRange} onValueChange={(value) => setActivityRange(value as ActivityRange)}>
+                    <TabsList className="h-auto rounded-lg bg-slate-100 p-1">
+                      <TabsTrigger value="7d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">7日</TabsTrigger>
+                      <TabsTrigger value="30d" className="press-squish focus-ring rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">30日</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                {isActivityLoading ? (
+                  <LoadingState message="活動量データを読み込み中です。" />
+                ) : staffActivitySummaries.length === 0 ? (
+                  <EmptyState
+                    title="表示できる活動量データはまだありません"
+                    description="活動量データが入るとここに表示されます。"
+                    className="px-4 py-8 shadow-none"
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 xl:grid-cols-2 2xl:grid-cols-3">
+                    {staffActivitySummaries.map((item) => {
+                      const isExpanded = expandedActivityCardId === item.id
+                      return (
+                        <button
+                          key={`${activityRange}-${item.id}`}
+                          type="button"
+                          onClick={() => setExpandedActivityCardId((current) => current === item.id ? null : item.id)}
+                          className={`${adminPanelClass} soft-pop space-y-2 p-2.5 text-left cursor-pointer hover:border-slate-300 hover:bg-white hover:shadow-md`}
+                        >
                         <div className="flex flex-wrap items-start justify-between gap-1.5">
                           <div>
                             <p className="text-sm font-semibold text-slate-900">{item.name}</p>
@@ -1082,7 +1084,8 @@ export default function StaffPage() {
                 </div>
               )}
             </div>
-          </StaffManagementCollapsibleSection>
+            </StaffManagementCollapsibleSection>
+          )}
 
           <StaffManagementCollapsibleSection
             title="スタッフ一覧"
