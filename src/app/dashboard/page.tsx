@@ -1445,22 +1445,25 @@ function PharmacyDayTaskCardSummary({
         <span className="shrink-0 text-[11px] text-slate-500">予定 {visit.scheduledTime}</span>
       </div>
       <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
-        <label
-          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600"
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onRouteSelectionToggle()
-          }}
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={isSelectedForRoute}
+          className="flex touch-manipulation items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-white"
+          onClick={(event) => handleSummaryAction(event, onRouteSelectionToggle)}
+          aria-label={`${patientName}を巡回順の候補${isSelectedForRoute ? 'から外す' : 'に入れる'}`}
         >
-          <input
-            type="checkbox"
-            checked={isSelectedForRoute}
-            readOnly
-            className="h-3.5 w-3.5 rounded border-slate-300 bg-white"
-          />
+          <span
+            aria-hidden="true"
+            className={cn(
+              'flex h-3.5 w-3.5 items-center justify-center rounded border text-[10px] leading-none',
+              isSelectedForRoute ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-transparent'
+            )}
+          >
+            ✓
+          </span>
           巡回順
-        </label>
+        </button>
         <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1">
           <span className="px-1 text-[10px] font-medium text-slate-500">並び替え</span>
           <button
