@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ArrowLeftRight, Building2, CheckCircle2, LogOut, Shield, Store, UserCircle2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -57,7 +56,6 @@ const roleDetails: Record<UserRole, { scope: string; actions: string[]; note: st
 
 export default function RoleChooserPage() {
   const { user, role, signOut } = useAuth()
-  const router = useRouter()
   const { assignments, loading, saving, error, selectAssignment } = useRoleContexts()
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null)
 
@@ -178,7 +176,7 @@ export default function RoleChooserPage() {
                     disabled={saving || !assignment.isActive}
                     onClick={async () => {
                       const ok = await selectAssignment(assignment.assignmentId)
-                      if (ok) router.push('/dashboard')
+                      if (ok) window.location.assign('/dashboard')
                     }}
                   >
                     <CheckCircle2 className="h-4 w-4" />
