@@ -10,6 +10,7 @@ import {
   getBillingPaidCorrectionAction,
 } from '@/lib/correction-policy'
 import { findBillingCollectionActionForStatusChange, type BillingPaidActionPolicy } from '@/lib/billing-collection-actions'
+import { writeAuditLog } from '@/lib/audit-log'
 
 type CollectionStatusPayload = {
   collectionStatus?: unknown
@@ -19,6 +20,14 @@ type CollectionStatusPayload = {
   handledById?: unknown
   handledAt?: unknown
   correctionRequestId?: unknown
+  expectedUpdatedAt?: unknown
+}
+
+function isSameTimestamp(left: unknown, right: unknown) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false
+  const leftTime = new Date(left).getTime()
+  const rightTime = new Date(right).getTime()
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime
 }
 
 export async function PATCH(request: Request, { params }: { params: { taskId: string } }) {
@@ -47,7 +56,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const supabase = createServerSupabaseClient()
   const existingResult = await supabase
     .from('patient_day_tasks')
-    .select('id, organization_id, pharmacy_id, patient_id, flow_date, status, billable, collection_status, note, amount, handled_by_id, handled_at')
+    .select('id, organization_id, pharmacy_id, patient_id, flow_date, status, billable, collection_status, note, amount, handled_by_id, handled_at, updated_at')
     .eq('organization_id', user.organization_id)
     .eq('id', params.taskId)
     .maybeSingle()
@@ -65,6 +74,17 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   }
   if (existingTask.status !== 'completed' || existingTask.billable !== true) {
     return NextResponse.json({ ok: false, error: 'billing_collection_not_eligible' }, { status: 409 })
+  }
+
+  const expectedUpdatedAt = typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : null
+  const previousUpdatedAt = String(existingTask.updated_at ?? '') || null
+  if (expectedUpdatedAt && previousUpdatedAt && !isSameTimestamp(expectedUpdatedAt, previousUpdatedAt)) {
+    return NextResponse.json({
+      ok: false,
+      error: 'billing_collection_update_conflict',
+      details: '他スタッフの更新が先に反映されています。最新の回収状況を読み込み直してください',
+      currentUpdatedAt: previousUpdatedAt,
+    }, { status: 409 })
   }
 
   const previousCollectionStatus = String(existingTask.collection_status ?? '') || null
@@ -198,29 +218,46 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     correction_request_id: correctionRequestId || null,
   }
 
-  type RpcClient = {
-    rpc: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+  let updateQuery = supabase
+    .from('patient_day_tasks')
+    .update({
+      collection_status: collectionStatus,
+      note,
+      handled_by: handledBy,
+      handled_by_id: handledById,
+      handled_at: handledAt,
+      updated_by_id: user.id,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('organization_id', user.organization_id)
+    .eq('pharmacy_id', scopedPharmacyId)
+    .eq('id', params.taskId)
+
+  if (expectedUpdatedAt && previousUpdatedAt) {
+    updateQuery = updateQuery.eq('updated_at', previousUpdatedAt)
   }
-  const rpcResponse = await (supabase as unknown as RpcClient).rpc('update_billing_collection_with_audit', {
-    p_organization_id: user.organization_id,
-    p_pharmacy_id: scopedPharmacyId,
-    p_task_id: params.taskId,
-    p_collection_status: collectionStatus,
-    p_note: note,
-    p_handled_by: handledBy,
-    p_handled_by_id: handledById,
-    p_handled_at: handledAt,
-    p_updated_by_id: user.id,
-    p_audit_region_id: user.activeRoleContext?.regionId ?? user.region_id ?? null,
-    p_audit_operation_unit_id: user.activeRoleContext?.operationUnitId ?? user.operation_unit_id ?? null,
-    p_audit_action: auditAction,
-    p_audit_details: auditDetails,
+
+  const updateResponse = await updateQuery.select('*').maybeSingle()
+
+  if (updateResponse.error) {
+    return NextResponse.json({ ok: false, error: 'billing_collection_update_failed', details: updateResponse.error.message }, { status: 500 })
+  }
+
+  if (!updateResponse.data) {
+    return NextResponse.json({
+      ok: false,
+      error: 'billing_collection_update_conflict',
+      details: '他スタッフの更新が先に反映されています。最新の回収状況を読み込み直してください',
+    }, { status: 409 })
+  }
+
+  await writeAuditLog({
+    user,
+    action: auditAction,
+    targetType: 'patient_day_task',
+    targetId: params.taskId,
+    details: auditDetails,
   })
 
-  if (rpcResponse.error) {
-    return NextResponse.json({ ok: false, error: 'billing_collection_audited_update_failed', details: rpcResponse.error.message }, { status: 500 })
-  }
-
-  const rpcData = rpcResponse.data as { task?: unknown } | null
-  return NextResponse.json({ ok: true, task: rpcData?.task ?? null })
+  return NextResponse.json({ ok: true, task: updateResponse.data })
 }

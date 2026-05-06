@@ -6,6 +6,13 @@ import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-per
 import { writeAuditLog } from '@/lib/audit-log'
 import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
+function isSameTimestamp(left: unknown, right: unknown) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false
+  const leftTime = new Date(left).getTime()
+  const rightTime = new Date(right).getTime()
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime
+}
+
 export async function PATCH(request: Request, { params }: { params: { taskId: string } }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
@@ -25,7 +32,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const supabase = createServerSupabaseClient()
   const existingResult = await supabase
     .from('patient_day_tasks')
-    .select('collection_status, note, amount, handled_by_id, handled_at, patient_id, flow_date, pharmacy_id, organization_id')
+    .select('status, collection_status, note, amount, handled_by, handled_by_id, handled_at, patient_id, flow_date, pharmacy_id, organization_id, updated_at')
     .eq('organization_id', user.organization_id)
     .eq('id', params.taskId)
     .maybeSingle()
@@ -42,11 +49,17 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
   const previousCollectionStatus = String(existingTask?.collection_status ?? '') || null
   const previousNote = String(existingTask?.note ?? '') || null
   const previousAmount = Number(existingTask?.amount ?? 0)
+  const previousStatus = String(existingTask?.status ?? '') || null
+  const previousHandledBy = String(existingTask?.handled_by ?? '') || null
   const previousHandledById = String(existingTask?.handled_by_id ?? '') || null
   const previousHandledAt = String(existingTask?.handled_at ?? '') || null
+  const previousUpdatedAt = String(existingTask?.updated_at ?? '') || null
 
   const patientId = typeof task.patientId === 'string' ? task.patientId : null
   const flowDate = typeof task.flowDate === 'string' ? task.flowDate : null
+  const expectedUpdatedAt = typeof (body as Record<string, unknown>).expectedUpdatedAt === 'string'
+    ? String((body as Record<string, unknown>).expectedUpdatedAt)
+    : null
 
   if (!patientId || !flowDate) {
     return NextResponse.json({ ok: false, error: 'patient_and_flow_date_required' }, { status: 400 })
@@ -113,14 +126,68 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
     updated_at: new Date().toISOString(),
   }
 
-  const { data, error } = await supabase
-    .from('patient_day_tasks')
-    .upsert(payload as never, { onConflict: 'id' })
-    .select('*')
-    .single()
+  let data: Record<string, unknown> | null = null
+  let error: { message: string } | null = null
 
-  if (error) {
-    return NextResponse.json({ ok: false, error: 'day_flow_upsert_failed', details: error.message }, { status: 500 })
+  if (existingTask) {
+    if (expectedUpdatedAt && previousUpdatedAt && !isSameTimestamp(expectedUpdatedAt, previousUpdatedAt)) {
+      return NextResponse.json({
+        ok: false,
+        error: 'task_update_conflict',
+        details: '他スタッフの更新が先に反映されています。最新状態を読み込み直してください',
+      }, { status: 409 })
+    }
+
+    if (payload.status === 'in_progress' && previousStatus !== 'scheduled') {
+      return NextResponse.json({ ok: false, error: 'task_already_handled', details: `${previousHandledBy ?? '他スタッフ'}がすでに対応中です` }, { status: 409 })
+    }
+
+    if (payload.status === 'completed' && previousHandledById && previousHandledById !== user.id) {
+      return NextResponse.json({ ok: false, error: 'task_already_handled', details: `${previousHandledBy ?? '他スタッフ'}が対応中のため完了できません` }, { status: 409 })
+    }
+
+    if (payload.status === 'completed' && previousStatus !== 'in_progress') {
+      return NextResponse.json({ ok: false, error: 'task_not_in_progress', details: '対応開始されていない予定は完了できません。最新状態を確認してください' }, { status: 409 })
+    }
+
+    let updateQuery = supabase
+      .from('patient_day_tasks')
+      .update(payload as never)
+      .eq('organization_id', user.organization_id)
+      .eq('pharmacy_id', scopedPharmacyId)
+      .eq('id', params.taskId)
+
+    if (expectedUpdatedAt && previousUpdatedAt) {
+      updateQuery = updateQuery.eq('updated_at', previousUpdatedAt)
+    }
+
+    if (payload.status === 'in_progress') {
+      updateQuery = updateQuery.eq('status', 'scheduled').is('handled_by_id', null)
+    }
+
+    const updateResult = await updateQuery.select('*').maybeSingle()
+    data = updateResult.data as Record<string, unknown> | null
+    error = updateResult.error
+
+    if (!error && !data) {
+      return NextResponse.json({
+        ok: false,
+        error: expectedUpdatedAt ? 'task_update_conflict' : 'task_already_handled',
+        details: expectedUpdatedAt ? '他スタッフの更新が先に反映されています。最新状態を読み込み直してください' : 'すでに他スタッフが対応中です',
+      }, { status: 409 })
+    }
+  } else {
+    const insertResult = await supabase
+      .from('patient_day_tasks')
+      .insert(payload as never)
+      .select('*')
+      .single()
+    data = insertResult.data as Record<string, unknown> | null
+    error = insertResult.error
+  }
+
+  if (error || !data) {
+    return NextResponse.json({ ok: false, error: 'day_flow_upsert_failed', details: error?.message ?? 'task_update_failed' }, { status: 500 })
   }
 
   await writeAuditLog({
@@ -132,6 +199,7 @@ export async function PATCH(request: Request, { params }: { params: { taskId: st
       patient_id: payload.patient_id,
       flow_date: payload.flow_date,
       status: payload.status,
+      previous_status: previousStatus,
       planning_status: payload.planning_status,
       collection_status: payload.collection_status,
       previous_collection_status: previousCollectionStatus,

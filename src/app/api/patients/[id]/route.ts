@@ -11,6 +11,14 @@ import { getRepositoryMode } from '@/lib/repositories'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { canManagePatientsForUser, getScopedPharmacyId } from '@/lib/patient-permissions'
 import { buildGeocodeWarnings, geocodeAddress } from '@/lib/google-maps'
+import { writeAuditLog } from '@/lib/audit-log'
+
+function isSameTimestamp(left: unknown, right: unknown) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false
+  const leftTime = new Date(left).getTime()
+  const rightTime = new Date(right).getTime()
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime
+}
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
@@ -57,6 +65,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const scopedPharmacyId = getScopedPharmacyId(user)
   if (!scopedPharmacyId || existingPatient.pharmacy_id !== scopedPharmacyId) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+
+  const expectedUpdatedAt = typeof patch.expectedUpdatedAt === 'string' ? patch.expectedUpdatedAt : null
+  if (expectedUpdatedAt && existingPatient.updated_at && !isSameTimestamp(expectedUpdatedAt, existingPatient.updated_at)) {
+    return NextResponse.json({
+      ok: false,
+      error: 'patient_update_conflict',
+      details: '他スタッフの更新が先に反映されています。最新の患者情報を読み込み直してください',
+      currentUpdatedAt: existingPatient.updated_at,
+    }, { status: 409 })
   }
 
   const settingsResponse = await supabase
@@ -248,24 +266,38 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     geocode_status: payload.geocode_status ?? null,
   }
 
-  type RpcClient = {
-    rpc: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>
+  let updateQuery = supabase
+    .from('patients')
+    .update(payload as never)
+    .eq('organization_id', user.organization_id)
+    .eq('pharmacy_id', scopedPharmacyId)
+    .eq('id', params.id)
+
+  if (expectedUpdatedAt && existingPatient.updated_at) {
+    updateQuery = updateQuery.eq('updated_at', existingPatient.updated_at)
   }
-  const rpcResponse = await (supabase as unknown as RpcClient).rpc('update_patient_with_audit', {
-    p_organization_id: user.organization_id,
-    p_pharmacy_id: scopedPharmacyId,
-    p_patient_id: params.id,
-    p_patch: payload,
-    p_audit_user_id: user.id,
-    p_audit_region_id: user.activeRoleContext?.regionId ?? user.region_id ?? null,
-    p_audit_operation_unit_id: user.activeRoleContext?.operationUnitId ?? user.operation_unit_id ?? null,
-    p_audit_details: auditDetails,
+
+  const updateResponse = await updateQuery.select('*').maybeSingle()
+
+  if (updateResponse.error) {
+    return NextResponse.json({ ok: false, error: 'patient_update_failed', details: updateResponse.error.message }, { status: 500 })
+  }
+
+  if (!updateResponse.data) {
+    return NextResponse.json({
+      ok: false,
+      error: 'patient_update_conflict',
+      details: '他スタッフの更新が先に反映されています。最新の患者情報を読み込み直してください',
+    }, { status: 409 })
+  }
+
+  await writeAuditLog({
+    user,
+    action: 'patient_updated',
+    targetType: 'patient',
+    targetId: params.id,
+    details: auditDetails,
   })
 
-  if (rpcResponse.error) {
-    return NextResponse.json({ ok: false, error: 'patient_audited_update_failed', details: rpcResponse.error.message }, { status: 500 })
-  }
-
-  const rpcData = rpcResponse.data as { patient?: unknown } | null
-  return NextResponse.json({ ok: true, mode: 'supabase', patient: rpcData?.patient ?? null, warnings })
+  return NextResponse.json({ ok: true, mode: 'supabase', patient: updateResponse.data, warnings })
 }

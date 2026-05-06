@@ -109,10 +109,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: 'day_flow_scope_lookup_failed', details: taskScopeResult.error.message }, { status: 500 })
   }
 
-  const outOfScopeTask = ((taskScopeResult.data ?? []) as Array<Record<string, unknown>>)
-    .some((row) => row.pharmacy_id !== scopedPharmacyId)
+  const scopedTaskRows = (taskScopeResult.data ?? []) as Array<Record<string, unknown>>
+  const outOfScopeTask = scopedTaskRows.some((row) => row.pharmacy_id !== scopedPharmacyId)
   if (outOfScopeTask) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
+  }
+  if (scopedTaskRows.length !== taskIds.length) {
+    return NextResponse.json({ ok: false, error: 'day_flow_bulk_existing_tasks_required', details: '並び順保存は既存タスクだけ更新できます' }, { status: 409 })
   }
 
   const existingDuplicateResult = await supabase
@@ -168,9 +171,14 @@ export async function PATCH(request: Request) {
     maxSortOrderByDate.set(flowDate, Math.max(maxSortOrderByDate.get(flowDate) ?? 0, sortOrder))
   }
 
+  const bulkUpdatedAt = new Date().toISOString()
   const tempTasks = normalizedTasks.map((task, index) => ({
-    ...task,
+    id: task.id,
+    organization_id: task.organization_id,
+    pharmacy_id: task.pharmacy_id,
     sort_order: (maxSortOrderByDate.get(task.flow_date) ?? 0) + index + 1,
+    updated_by_id: user.id,
+    updated_at: bulkUpdatedAt,
   }))
 
   const { error: tempError } = await supabase
@@ -181,9 +189,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: 'day_flow_bulk_temp_shift_failed', details: tempError.message }, { status: 500 })
   }
 
+  const orderTasks = normalizedTasks.map((task) => ({
+    id: task.id,
+    organization_id: task.organization_id,
+    pharmacy_id: task.pharmacy_id,
+    sort_order: task.sort_order,
+    updated_by_id: user.id,
+    updated_at: bulkUpdatedAt,
+  }))
+
   const { data, error } = await supabase
     .from('patient_day_tasks')
-    .upsert(normalizedTasks as never, { onConflict: 'id' })
+    .upsert(orderTasks as never, { onConflict: 'id' })
     .select('*')
 
   if (error) {

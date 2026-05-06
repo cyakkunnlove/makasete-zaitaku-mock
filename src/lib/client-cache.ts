@@ -1,5 +1,7 @@
 'use client'
 
+import { fetchWithGetRetry } from '@/lib/api-client'
+
 type ClientCacheEntry<T> = {
   savedAt: number
   data: T
@@ -41,7 +43,7 @@ export async function fetchJsonWithClientCache<T>(input: {
   const cached = readClientCache<T>(input.key, input.maxAgeMs)
   if (cached) input.onCached?.(cached)
 
-  const response = await fetch(input.url, input.init)
+  const response = await fetchWithGetRetry(input.url, input.init)
   const data = await response.json().catch(() => null) as T | null
   if (!response.ok || !data) throw new Error('fetch_failed')
   writeClientCache(input.key, data)

@@ -37,8 +37,10 @@ import { generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
+import { fetchWithGetRetry } from '@/lib/api-client'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
 import { vibrateOnSaveSuccess } from '@/lib/haptics'
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
@@ -161,7 +163,7 @@ function useNightFlowDashboardData(enabled = true) {
     async function fetchNightFlow() {
       setLoading(true)
       try {
-        const response = await fetch('/api/night-flow', { cache: 'no-store' })
+        const response = await fetchWithGetRetry('/api/night-flow', { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok) setData(result)
         if (!cancelled && !response.ok) setData(null)
@@ -735,6 +737,7 @@ function PharmacyDashboardRoutePlanner({
   pendingTaskIds,
   onStartRouteTask,
   onCompleteRouteTask,
+  currentUserId,
 }: {
   routePlanLoading: boolean
   selectedRoutePatientIds: string[]
@@ -747,6 +750,7 @@ function PharmacyDashboardRoutePlanner({
   pendingTaskIds: string[]
   onStartRouteTask: (taskId: string) => void
   onCompleteRouteTask: (taskId: string) => void
+  currentUserId: string | null
 }) {
   return (
     <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
@@ -803,8 +807,9 @@ function PharmacyDashboardRoutePlanner({
                     const routeTask = routeTaskByPatientId.get(patient.id)
                     const routeStatus = routeTask ? taskStatusMeta(routeTask.status) : null
                     const isRouteTaskSaving = routeTask ? pendingTaskIds.includes(routeTask.id) : false
-                    const canStartRouteTask = Boolean(routeTask && routeTask.status === 'scheduled' && !isRouteTaskSaving)
-                    const canCompleteRouteTask = Boolean(routeTask && routeTask.status !== 'completed' && !isRouteTaskSaving)
+                    const isRouteTaskHandledByOther = Boolean(routeTask?.handledById && currentUserId && routeTask.handledById !== currentUserId)
+                    const canStartRouteTask = Boolean(routeTask && routeTask.status === 'scheduled' && !routeTask.handledById && !isRouteTaskSaving)
+                    const canCompleteRouteTask = Boolean(routeTask && routeTask.status === 'in_progress' && !isRouteTaskHandledByOther && !isRouteTaskSaving)
 
                     return (
                       <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
@@ -830,7 +835,7 @@ function PharmacyDashboardRoutePlanner({
                                   onClick={() => onStartRouteTask(routeTask.id)}
                                   className="h-8 border-amber-200 bg-amber-50 px-2.5 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
                                 >
-                                  {isRouteTaskSaving ? '保存中...' : '対応中にする'}
+                                  {isRouteTaskSaving ? '保存中...' : isRouteTaskHandledByOther ? '他スタッフが対応中' : '対応中にする'}
                                 </Button>
                                 <Button
                                   type="button"
@@ -1101,6 +1106,7 @@ function PharmacyDashboardTodayTaskList({
   pendingTaskIds,
   recentlySavedTaskIds,
   failedTaskId,
+  currentUserId,
   plannedLabelPrefix,
   updatedLabelPrefix,
   reorderHintText,
@@ -1117,6 +1123,7 @@ function PharmacyDashboardTodayTaskList({
   pendingTaskIds: string[]
   recentlySavedTaskIds: string[]
   failedTaskId: string | null
+  currentUserId: string | null
   plannedLabelPrefix: string
   updatedLabelPrefix: string
   reorderHintText: string
@@ -1131,10 +1138,16 @@ function PharmacyDashboardTodayTaskList({
         const isCompleted = visit.status === 'completed'
         const isTaskSaving = pendingTaskIds.includes(visit.id)
         const isTaskRecentlySaved = recentlySavedTaskIds.includes(visit.id)
-        const canPlanToggle = !isCompleted && !isTaskSaving
-        const canStart = visit.status === 'scheduled' && !isTaskSaving
-        const canComplete = visit.status === 'in_progress' && !isTaskSaving
+        const isHandledByOther = Boolean(visit.handledById && currentUserId && visit.handledById !== currentUserId)
+        const canPlanToggle = !isCompleted && !isTaskSaving && !isHandledByOther
+        const canStart = visit.status === 'scheduled' && !visit.handledById && !isTaskSaving
+        const canComplete = visit.status === 'in_progress' && !isHandledByOther && !isTaskSaving
         const canReorder = !isTaskSaving
+        const unavailableLabel = isHandledByOther && visit.status === 'in_progress'
+          ? `${visit.handledBy ?? '他スタッフ'}が対応中`
+          : isCompleted
+            ? '対応完了済み'
+            : '操作できません'
         return (
           <div key={visit.id} className="space-y-2">
             <PharmacyDayTaskCard
@@ -1156,6 +1169,7 @@ function PharmacyDashboardTodayTaskList({
               isSaving={isTaskSaving}
               isRecentlySaved={isTaskRecentlySaved}
               isSaveFailed={failedTaskId === visit.id}
+              unavailableLabel={unavailableLabel}
               onRouteSelectionToggle={() => handleToggleRoutePatient(visit.patientId)}
               onPlanToggle={() => handlePlanTask(visit.id)}
               onMoveUp={() => moveTask(visit.id, 'up')}
@@ -1564,6 +1578,7 @@ function PharmacyDayTaskCardActions({
   canMoveDown,
   canPlanToggle,
   isSaving,
+  unavailableLabel,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1579,6 +1594,7 @@ function PharmacyDayTaskCardActions({
   canMoveDown: boolean
   canPlanToggle: boolean
   isSaving: boolean
+  unavailableLabel: string
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1648,8 +1664,8 @@ function PharmacyDayTaskCardActions({
             {primaryAction.label}
           </Button>
         ) : (
-          <span className="inline-flex h-9 w-full items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 sm:w-auto">
-            対応完了済み
+          <span className="inline-flex h-9 w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 sm:w-auto">
+            {unavailableLabel}
           </span>
         )}
       </div>
@@ -1697,6 +1713,7 @@ function PharmacyDayTaskCard({
   isSaving,
   isRecentlySaved,
   isSaveFailed,
+  unavailableLabel,
   onRouteSelectionToggle,
   onPlanToggle,
   onMoveUp,
@@ -1724,6 +1741,7 @@ function PharmacyDayTaskCard({
   isSaving: boolean
   isRecentlySaved: boolean
   isSaveFailed: boolean
+  unavailableLabel: string
   onRouteSelectionToggle: () => void
   onPlanToggle: () => void
   onMoveUp: () => void
@@ -1777,6 +1795,7 @@ function PharmacyDayTaskCard({
           canMoveDown={canMoveDown}
           canPlanToggle={canPlanToggle}
           isSaving={isSaving}
+          unavailableLabel={unavailableLabel}
           onPlanToggle={onPlanToggle}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
@@ -1912,7 +1931,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     async function loadFlow() {
       if (!cancelled) setIsDayFlowLoading(true)
       try {
-        const response = await fetch(`/api/day-flow/${flowDate}/tasks`, { cache: 'no-store' })
+        const response = await fetchWithGetRetry(`/api/day-flow/${flowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         const mapPersistedTask = (task: Record<string, unknown>): DayTaskItem => ({
           id: String(task.id),
@@ -1968,6 +1987,34 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       cancelled = true
     }
   }, [dayFlowPatients, flowDate, flowLoadKey, scopedBaseDayTasks])
+
+  useEffect(() => {
+    if (!ownPharmacyId || !flowDate) return
+
+    let channel: ReturnType<ReturnType<typeof createBrowserSupabaseClient>['channel']> | null = null
+    try {
+      const supabase = createBrowserSupabaseClient()
+      channel = supabase
+        .channel(`patient-day-tasks:${ownPharmacyId}:${flowDate}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'patient_day_tasks', filter: `flow_date=eq.${flowDate}` },
+          (payload) => {
+            const row = (payload.new ?? payload.old) as { pharmacy_id?: string | null } | null
+            if (row?.pharmacy_id === ownPharmacyId) {
+              setFlowLoadKey((prev) => prev + 1)
+            }
+          }
+        )
+        .subscribe()
+    } catch {
+      return
+    }
+
+    return () => {
+      if (channel) void channel.unsubscribe()
+    }
+  }, [flowDate, ownPharmacyId])
 
   useEffect(() => {
     if (!undoTarget) return
@@ -2323,11 +2370,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     }
   }, [])
 
-  const upsertTask = async (task: DayTaskItem) => {
+  const upsertTask = async (task: DayTaskItem, expectedUpdatedAt: string | null = task.updatedAt) => {
     const response = await fetch(`/api/day-flow/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task }),
+      body: JSON.stringify({ task, expectedUpdatedAt }),
     })
 
     if (!response.ok) {
@@ -2335,8 +2382,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
       try {
         const result = await response.json()
         if (result?.details) message = `保存に失敗しました: ${result.details}`
+        else if (result?.error === 'task_already_handled') message = 'すでに他スタッフが対応中です。最新状態に更新しました。'
+        else if (result?.error === 'task_update_conflict') message = '他スタッフの更新が先に反映されています。最新状態に更新しました。'
       } catch {}
-      throw new Error(message)
+      setFlowLoadKey((prev) => prev + 1)
+      throw new Error(`${message} 最新状態を再取得してから再度お試しください。`)
     }
   }
 
@@ -2369,7 +2419,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     setUndoTarget({ taskId, previous: current, expiresAt: Date.now() + UNDO_WINDOW_MS, actionLabel })
 
     try {
-      await upsertTask(next)
+      await upsertTask(next, current.updatedAt)
       vibrateOnSaveSuccess()
       setSaveToast(`${actionLabel} 保存しました`)
       setRecentlySavedTaskIds((prev) => prev.includes(taskId) ? prev : [...prev, taskId])
@@ -2815,6 +2865,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   pendingTaskIds={pendingTaskIds}
                   onStartRouteTask={handleStartTask}
                   onCompleteRouteTask={handleCompleteTask}
+                  currentUserId={user?.id ?? null}
                 />
                 <PharmacyDashboardTodayTaskList
                   orderedVisits={orderedVisits}
@@ -2829,6 +2880,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   pendingTaskIds={pendingTaskIds}
                   recentlySavedTaskIds={recentlySavedTaskIds}
                   failedTaskId={failedTaskId}
+                  currentUserId={user?.id ?? null}
                   plannedLabelPrefix={plannedLabelPrefix}
                   updatedLabelPrefix={updatedLabelPrefix}
                   reorderHintText={reorderHintText}
@@ -2871,6 +2923,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   pendingTaskIds={pendingTaskIds}
                   onStartRouteTask={handleStartTask}
                   onCompleteRouteTask={handleCompleteTask}
+                  currentUserId={user?.id ?? null}
                 />
                 <PharmacyDashboardTodayTaskList
                   orderedVisits={orderedVisits}
@@ -2885,6 +2938,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   pendingTaskIds={pendingTaskIds}
                   recentlySavedTaskIds={recentlySavedTaskIds}
                   failedTaskId={failedTaskId}
+                  currentUserId={user?.id ?? null}
                   plannedLabelPrefix={plannedLabelPrefix}
                   updatedLabelPrefix={updatedLabelPrefix}
                   reorderHintText={reorderHintText}

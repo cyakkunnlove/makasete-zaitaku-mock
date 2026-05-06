@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { AccessDenied } from '@/components/access-denied'
 import { canAccess, type PermissionKey } from '@/lib/rbac'
 import { getMockRoleContextLabel } from '@/lib/mock-role-contexts'
+import { fetchWithGetRetry } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -211,7 +212,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     let cancelled = false
     async function fetchPharmacyTaskStats() {
       try {
-        const response = await fetch(`/api/day-flow/${getTodayDateKey()}/tasks`, { cache: 'no-store' })
+        const response = await fetchWithGetRetry(`/api/day-flow/${getTodayDateKey()}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (cancelled || !response.ok || !result?.ok || !Array.isArray(result.tasks)) return
 

@@ -36,6 +36,7 @@ import { DEFAULT_BILLING_PAID_CANCEL_WINDOW_MINUTES, correctionReasonCategories,
 import { mapPatientDayTaskRowToDayTaskItem } from '@/lib/day-flow'
 import { mergePatientSources } from '@/lib/patient-read-model'
 import { billingStatusMeta, collectionWorkflowStatusMeta, mapCollectionStatusToLegacy, normalizeCollectionStatusToDb, type CollectionWorkflowStatus } from '@/lib/status-meta'
+import { fetchWithGetRetry } from '@/lib/api-client'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
 import { vibrateOnButtonPress, vibrateOnSaveSuccess } from '@/lib/haptics'
 
@@ -112,9 +113,9 @@ const billingCorrectionTemplates = [
 ] as const
 
 const initialPatientCollectionRecords = [
-  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
-  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'pending' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true },
-  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'on_hold' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false },
+  { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true, updatedAt: null },
+  { id: 'COL-02', patientName: '佐々木 恒一', month: '2026-03', amount: 9400, status: 'pending' as CollectionWorkflowStatus, dueDate: '2026-03-12', note: '電話フォロー予定', linkedTaskId: 'DT-260315-02', handledBy: '小林 薫', handledAt: '2026-03-15 11:58', billable: true, updatedAt: null },
+  { id: 'COL-03', patientName: '中村 恒一', month: '2026-03', amount: 15600, status: 'on_hold' as CollectionWorkflowStatus, dueDate: '2026-03-05', note: '再請求書送付待ち', linkedTaskId: 'DT-260315-03', handledBy: null, handledAt: null, billable: false, updatedAt: null },
 ]
 
 function appendReasonTag(note: string, tag: string) {
@@ -260,7 +261,7 @@ export default function BillingPage() {
     }
 
     let cancelled = false
-    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
+    fetchWithGetRetry('/api/pharmacy-operation-settings', { cache: 'no-store' })
       .then(async (response) => {
         const result = await response.json().catch(() => null)
         if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'operation_settings_fetch_failed')
@@ -283,7 +284,7 @@ export default function BillingPage() {
 
     async function fetchDayTasks() {
       try {
-        const response = await fetch(`/api/day-flow/${billingFlowDate}/tasks`, { cache: 'no-store' })
+        const response = await fetchWithGetRetry(`/api/day-flow/${billingFlowDate}/tasks`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.tasks)) {
           const mapped = result.tasks.map((task: Record<string, unknown>) => mapPatientDayTaskRowToDayTaskItem(task, billingFlowDate))
@@ -590,11 +591,14 @@ export default function BillingPage() {
           handledBy: actorName,
           handledById: user?.id ?? null,
           handledAt,
+          expectedUpdatedAt: target.updatedAt ?? null,
         }),
       })
+      const result = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error('collection_status_save_failed')
+        throw new Error(result?.details ?? 'collection_status_save_failed')
       }
+      const savedTask = result?.task as { updated_at?: string | null } | undefined
       setSharedDayTasks((prev) => prev.map((task) => (
         task.id === target.linkedTaskId
           ? {
@@ -604,14 +608,19 @@ export default function BillingPage() {
               handledBy: actorName,
               handledById: user?.id ?? task.handledById,
               handledAt,
+              updatedAt: savedTask?.updated_at ?? new Date().toISOString(),
             }
           : task
       )))
       setBillingReadModelVersion((current) => current + 1)
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error && error.message !== 'collection_status_save_failed'
+        ? error.message
+        : 'この患者の回収状況はまだ保存できていません。もう一度お試しください。'
       showToast('回収状況の保存に失敗しました', 'error')
       setFailedCollectionRecordId(recordId)
-      setCollectionErrorMessage('この患者の回収状況はまだ保存できていません。もう一度お試しください。')
+      setCollectionErrorMessage(`${message} 最新状態を再取得してから再度お試しください。`)
+      setBillingReadModelVersion((current) => current + 1)
       setSavingCollectionRecordId(null)
       return false
     }
@@ -961,7 +970,10 @@ export default function BillingPage() {
               </div>
             ) : fullReadModelError ? (
               <div className="rounded-lg border border-dashed border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-700">
-                {fullReadModelError}
+                <p>{fullReadModelError}</p>
+                <Button type="button" size="sm" variant="outline" className="mt-3 border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => void loadFullBillingReadModel()}>
+                  最新状態を再読み込み
+                </Button>
               </div>
             ) : dateCollectionSummaries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
@@ -1101,7 +1113,12 @@ export default function BillingPage() {
             {fullReadModelLoading ? (
               <p className="py-4 text-center text-xs text-indigo-700">患者別の履歴を読み込んでいます。</p>
             ) : fullReadModelError ? (
-              <p className="py-4 text-center text-xs text-rose-700">{fullReadModelError}</p>
+              <div className="py-4 text-center text-xs text-rose-700">
+                <p>{fullReadModelError}</p>
+                <Button type="button" size="sm" variant="outline" className="mt-3 border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => void loadFullBillingReadModel()}>
+                  最新状態を再読み込み
+                </Button>
+              </div>
             ) : filteredPatientCollectionHistories.length === 0 ? (
               <p className="py-4 text-center text-xs text-slate-500">条件に合う回収履歴はありません。</p>
             ) : (
@@ -1259,7 +1276,14 @@ export default function BillingPage() {
             </CardContent>
           ) : (
             <CardContent className="px-4 pb-4 pt-0 text-xs text-slate-500">
-              {fullReadModelError || '必要なときだけ一覧を開けます。開いた時に全件データを読み込みます。'}
+              {fullReadModelError ? (
+                <div className="space-y-2 text-rose-700">
+                  <p>{fullReadModelError}</p>
+                  <Button type="button" size="sm" variant="outline" className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => void loadFullBillingReadModel()}>
+                    最新状態を再読み込み
+                  </Button>
+                </div>
+              ) : '必要なときだけ一覧を開けます。開いた時に全件データを読み込みます。'}
             </CardContent>
           )}
         </Card>

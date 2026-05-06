@@ -31,6 +31,7 @@ import { adminCardClass } from '@/components/admin-ui'
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { cn } from '@/lib/utils'
+import { fetchWithGetRetry } from '@/lib/api-client'
 import { fetchJsonWithClientCache, writeClientCache } from '@/lib/client-cache'
 import {
   ArrowLeft,
@@ -199,7 +200,7 @@ export default function PatientDetailPage() {
   useEffect(() => {
     if (!user || !(role === 'pharmacy_admin' || role === 'pharmacy_staff')) return
     let cancelled = false
-    fetch('/api/pharmacy-operation-settings', { cache: 'no-store' })
+    fetchWithGetRetry('/api/pharmacy-operation-settings', { cache: 'no-store' })
       .then(async (response) => {
         const result = await response.json().catch(() => null)
         if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'operation_settings_fetch_failed')
@@ -225,7 +226,7 @@ export default function PatientDetailPage() {
     async function loadPhotos() {
       setPhotosLoading(true)
       try {
-        const response = await fetch(`/api/patients/${patientId}/photos`, { cache: 'no-store' })
+        const response = await fetchWithGetRetry(`/api/patients/${patientId}/photos`, { cache: 'no-store' })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.photos)) {
           setPatientPhotos(result.photos)
@@ -285,6 +286,7 @@ export default function PatientDetailPage() {
   const [adminOverrideConfirmed, setAdminOverrideConfirmed] = useState(false)
   const [adminPasswordConfirmed, setAdminPasswordConfirmed] = useState(false)
   const [adminPasskeyConfirmed, setAdminPasskeyConfirmed] = useState(false)
+  const [editOpenedUpdatedAt, setEditOpenedUpdatedAt] = useState<string | null>(null)
 
   if (detailLoadState === 'loading' && !patient) {
     return (
@@ -339,7 +341,7 @@ export default function PatientDetailPage() {
       return
     }
 
-    const refreshed = await fetch(`/api/patients/${patient.id}/detail`, { cache: 'no-store' })
+    const refreshed = await fetchWithGetRetry(`/api/patients/${patient.id}/detail`, { cache: 'no-store' })
     const refreshedResult = await refreshed.json().catch(() => null)
     if (refreshed.ok && refreshedResult?.ok && refreshedResult.patient) {
       setDatabasePatient(refreshedResult.patient)
@@ -434,7 +436,7 @@ export default function PatientDetailPage() {
 
     setMedicalInstitutionLoading(true)
     try {
-      const response = await fetch(`/api/medical-institutions?q=${encodeURIComponent(trimmed)}`, { cache: 'no-store' })
+      const response = await fetchWithGetRetry(`/api/medical-institutions?q=${encodeURIComponent(trimmed)}`, { cache: 'no-store' })
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.ok || !Array.isArray(result.medicalInstitutions)) {
         setMedicalInstitutionOptions([])
@@ -455,7 +457,7 @@ export default function PatientDetailPage() {
     setDoctorLoading(true)
     try {
       const suffix = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : ''
-      const response = await fetch(`/api/medical-institutions/${medicalInstitutionId}/doctors${suffix}`, { cache: 'no-store' })
+      const response = await fetchWithGetRetry(`/api/medical-institutions/${medicalInstitutionId}/doctors${suffix}`, { cache: 'no-store' })
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.ok || !Array.isArray(result.doctors)) {
         setDoctorOptions([])
@@ -659,6 +661,7 @@ export default function PatientDetailPage() {
         adminOverrideConfirmed,
         adminPasswordConfirmed,
         adminPasskeyConfirmed,
+        expectedUpdatedAt: editOpenedUpdatedAt ?? patient.registrationMeta?.updatedAt ?? null,
       }),
     })
 
@@ -672,6 +675,17 @@ export default function PatientDetailPage() {
         setEditSavedNotice('管理者単独修正には確認・パスワード・パスキー確認が必要です')
       } else if (result?.error === 'reauth_required') {
         setEditSavedNotice('再認証が必要です。アカウントセキュリティで確認してください')
+      } else if (result?.error === 'patient_update_conflict') {
+        setEditSavedNotice(result.details ?? '他スタッフが先に更新しました。最新状態を読み込み直してください')
+        void fetchWithGetRetry(`/api/patients/${patient.id}/detail`, { cache: 'no-store' })
+          .then(async (latest) => {
+            const latestResult = await latest.json().catch(() => null)
+            if (latest.ok && latestResult?.ok && latestResult.patient) {
+              setDatabasePatient(latestResult.patient)
+              writeClientCache(`makasete:patient-detail:${patient.id}:v1`, latestResult)
+            }
+          })
+          .catch(() => {})
       } else {
         setEditSavedNotice('患者情報の保存に失敗しました')
       }
@@ -682,6 +696,7 @@ export default function PatientDetailPage() {
     if (result?.patient) {
       setDatabasePatient(result.patient)
       writeClientCache(`makasete:patient-detail:${patient.id}:v1`, { ok: true, patient: result.patient })
+      setEditOpenedUpdatedAt(typeof result.patient.updated_at === 'string' ? result.patient.updated_at : null)
     }
 
     setGeocodeConfirmOpen(false)
@@ -764,7 +779,7 @@ export default function PatientDetailPage() {
               <p>薬局スタッフ は実務項目、薬局管理者 は重要項目まで更新できます。</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setEditDialogOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700">
+              <Button onClick={() => { setEditOpenedUpdatedAt(patient.registrationMeta?.updatedAt ?? null); setEditDialogOpen(true) }} className="bg-indigo-600 text-white hover:bg-indigo-700">
                 <Save className="mr-2 h-4 w-4" />基本情報を編集
               </Button>
               <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => document.getElementById('visit-schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
@@ -782,7 +797,7 @@ export default function PatientDetailPage() {
               <p className="font-medium text-amber-800">連絡先未設定</p>
               <p className="mt-1 text-xs text-amber-700">患者本人の連絡先電話が未設定です。必要に応じて登録してください。</p>
             </div>
-            <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+            <Button onClick={() => { setEditOpenedUpdatedAt(patient.registrationMeta?.updatedAt ?? null); setEditDialogOpen(true) }} className="bg-amber-500 text-black hover:bg-amber-400">
               連絡先を入力する
             </Button>
           </CardContent>
@@ -796,7 +811,7 @@ export default function PatientDetailPage() {
               <p className="font-medium text-amber-800">緊急連絡先未設定</p>
               <p className="mt-1 text-xs text-amber-700">夜間や緊急時に備えて、緊急連絡先の整備をおすすめします。</p>
             </div>
-            <Button onClick={() => setEditDialogOpen(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+            <Button onClick={() => { setEditOpenedUpdatedAt(patient.registrationMeta?.updatedAt ?? null); setEditDialogOpen(true) }} className="bg-amber-500 text-black hover:bg-amber-400">
               緊急連絡先を入力する
             </Button>
           </CardContent>

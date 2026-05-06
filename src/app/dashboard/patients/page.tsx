@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -19,11 +20,13 @@ import { cn } from '@/lib/utils'
 import { adminCardClass, adminInputClass, adminPageClass, adminTableClass } from '@/components/admin-ui'
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Search, MapPin, GripVertical, Plus } from 'lucide-react'
 import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { canManagePatients, getScopedPharmacyId } from '@/lib/patient-permissions'
 import type { DayTaskItem } from '@/lib/mock-data'
+import { fetchWithGetRetry } from '@/lib/api-client'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
 
 import { mergePatientSources } from '@/lib/patient-read-model'
@@ -71,6 +74,8 @@ export default function PatientsPage() {
   const [todayTasks, setTodayTasks] = useState<DayTaskItem[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [isSearchLoading, setIsSearchLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   const isNightPharmacist = role === 'night_pharmacist'
   const isRegionalAdmin = role === 'regional_admin'
@@ -95,7 +100,7 @@ export default function PatientsPage() {
     async function fetchTodayPatients() {
       setIsInitialLoading(true)
       try {
-        const taskResponse = await fetch(`/api/day-flow/${todayDateKey}/tasks`, { cache: 'no-store' })
+        const taskResponse = await fetchWithGetRetry(`/api/day-flow/${todayDateKey}/tasks`, { cache: 'no-store' })
         const taskResult = await taskResponse.json()
         if (cancelled) return
 
@@ -103,6 +108,7 @@ export default function PatientsPage() {
           ? taskResult.tasks.map((task: Record<string, unknown>) => mapDayTask(task))
           : []
         setTodayTasks(tasks)
+        setLoadError('')
 
         const patientIds = Array.from(new Set(tasks.map((task) => task.patientId).filter(Boolean)))
         if (patientIds.length === 0) {
@@ -130,6 +136,7 @@ export default function PatientsPage() {
         if (!cancelled) {
           setTodayTasks([])
           setDatabasePatients([])
+          setLoadError('患者情報の読み込みに失敗しました。')
         }
       } finally {
         if (!cancelled) setIsInitialLoading(false)
@@ -141,7 +148,7 @@ export default function PatientsPage() {
       cancelled = true
       setIsInitialLoading(false)
     }
-  }, [isDayContext, ownPharmacyId, searchQuery, todayDateKey])
+  }, [isDayContext, ownPharmacyId, reloadKey, searchQuery, todayDateKey])
 
   useEffect(() => {
     const query = searchQuery.trim()
@@ -154,16 +161,18 @@ export default function PatientsPage() {
     let cancelled = false
     setIsSearchLoading(true)
     const timer = window.setTimeout(() => {
-      fetch(`/api/patients/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
+      fetchWithGetRetry(`/api/patients/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
         .then(async (response) => {
           const data = await response.json()
           if (!response.ok || !data.ok) throw new Error(data.error ?? 'patient_search_failed')
           if (cancelled) return
           setDatabasePatients(Array.isArray(data.patients) ? data.patients : [])
+          setLoadError('')
         })
         .catch(() => {
           if (cancelled) return
           setDatabasePatients([])
+          setLoadError('患者検索に失敗しました。')
         })
         .finally(() => {
           if (!cancelled) setIsSearchLoading(false)
@@ -175,7 +184,7 @@ export default function PatientsPage() {
       window.clearTimeout(timer)
       setIsSearchLoading(false)
     }
-  }, [isDayContext, isRegionalAdmin, searchQuery])
+  }, [isDayContext, isRegionalAdmin, reloadKey, searchQuery])
 
   const patientMaster = useMemo(
     () =>
@@ -294,7 +303,16 @@ export default function PatientsPage() {
         </Card>
       )}
 
-      {filteredPatients.length === 0 && !isPatientListLoading && (
+      {loadError && !isPatientListLoading && (
+        <ErrorState
+          title="患者情報を読み込めませんでした"
+          description={loadError}
+          action={<Button type="button" variant="outline" onClick={() => setReloadKey((current) => current + 1)}>最新状態を再読み込み</Button>}
+          className={adminCardClass}
+        />
+      )}
+
+      {filteredPatients.length === 0 && !isPatientListLoading && !loadError && (
         <EmptyState
           title={isRegionalAdmin && !searchQuery.trim() ? '患者は最初から一覧表示しません' : isDayContext && !searchQuery.trim() ? '今日の対応患者はいません' : '該当する患者が見つかりません'}
           description={isRegionalAdmin && !searchQuery.trim() ? '検索すると候補が表示されます。' : isDayContext && !searchQuery.trim() ? '検索すると自局の患者だけが表示されます。' : '検索条件を変えると見つかる場合があります。'}

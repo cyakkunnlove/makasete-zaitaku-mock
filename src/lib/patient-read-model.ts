@@ -45,6 +45,17 @@ export function mapDatabasePatientToPatientRecord(
     manualTags: [],
     derivedFlags: [],
     visitRules,
+    registrationMeta: {
+      source: 'mock_registration_form',
+      createdAt: patient.created_at,
+      createdById: null,
+      createdByName: 'DB',
+      updatedAt: patient.updated_at,
+      updatedById: null,
+      updatedByName: 'DB',
+      version: 1,
+      manualSyncAt: null,
+    },
   }
 }
 

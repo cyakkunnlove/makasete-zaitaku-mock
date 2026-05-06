@@ -17,6 +17,7 @@ export type BillingCollectionRecord = {
   handledBy: string | null
   handledAt: string | null
   billable: boolean
+  updatedAt: string | null
 }
 
 export type BillingPatientVisitHistory = {
@@ -158,6 +159,7 @@ export function buildDayTaskCollectionRecords({
         handledBy: existing?.handledBy ?? task.handledBy,
         handledAt: existing?.handledAt ?? task.handledAt ?? task.completedAt,
         billable: task.billable && patientBilling?.isBillable !== false,
+        updatedAt: task.updatedAt,
       }
     })
     .filter((record) => ownPatientNames.has(record.patientName))
