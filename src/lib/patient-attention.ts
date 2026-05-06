@@ -1,5 +1,27 @@
 import type { AttentionFlag, PatientRecord } from '@/lib/mock-data'
 
+const NO_KNOWN_ALLERGY_VALUES = new Set([
+  'なし',
+  '無し',
+  '特になし',
+  '特に無し',
+  '該当なし',
+  'なし(確認済み)',
+  '無し(確認済み)',
+  '未設定',
+])
+
+export function hasKnownAllergies(allergies: string | null | undefined) {
+  const normalized = (allergies ?? '')
+    .normalize('NFKC')
+    .trim()
+    .replace(/[。．.]+$/g, '')
+    .replace(/\s+/g, '')
+
+  if (!normalized) return false
+  return !NO_KNOWN_ALLERGY_VALUES.has(normalized)
+}
+
 export function getPatientAttentionFlags(patient: PatientRecord): AttentionFlag[] {
   const flags: AttentionFlag[] = []
   const notes = patient.visitNotes ?? ''
@@ -34,7 +56,7 @@ export function getPatientAttentionFlags(patient: PatientRecord): AttentionFlag[
   if (notes.includes('認知症') || notes.includes('せん妄') || notes.includes('徘徊')) {
     push('cognitive', '認知症対応注意', 'danger')
   }
-  if (patient.allergies && patient.allergies !== 'なし') {
+  if (hasKnownAllergies(patient.allergies)) {
     push('allergy', 'アレルギーあり', 'danger')
   }
   if (notes.includes('医療機器') || notes.includes('酸素') || notes.includes('血糖測定器')) {

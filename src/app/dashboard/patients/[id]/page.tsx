@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getPatientAttentionFlags, getPatientAttentionFlagClass } from '@/lib/patient-attention'
+import { getPatientAttentionFlags, getPatientAttentionFlagClass, hasKnownAllergies } from '@/lib/patient-attention'
 import { formatVisitRuleSummary, type PatientVisitRule } from '@/lib/patient-master'
 import { canEditPatientRecord } from '@/lib/patient-permissions'
 import { mergeSinglePatient } from '@/lib/patient-read-model'
@@ -321,7 +321,7 @@ export default function PatientDetailPage() {
   const age = calculateAge(patient.dob)
   const isRegionalAdmin = role === 'regional_admin'
   const canEditThisPatient = canEditPatientRecord({ role, user, patient })
-  const hasAllergies = patient.allergies !== 'なし'
+  const hasAllergies = hasKnownAllergies(patient.allergies)
   const attentionFlags = getPatientAttentionFlags(patient)
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(patient.address)}`
   const handleSaveVisitRules = async (nextVisitRules: PatientVisitRule[]) => {
