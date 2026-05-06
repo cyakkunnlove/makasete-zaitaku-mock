@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -44,6 +44,7 @@ import {
   FileText,
   Stethoscope,
   Clock3,
+  ChevronDown,
   ExternalLink,
   Save,
   ShieldCheck,
@@ -105,6 +106,33 @@ function formatPhone(value: string) {
 const editInputClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
 const editTextareaClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
 const editOutlineButtonClass = 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+
+function PatientEditSection({
+  title,
+  description,
+  children,
+  defaultOpen = false,
+}: {
+  title: string
+  description?: string
+  children: ReactNode
+  defaultOpen?: boolean
+}) {
+  return (
+    <details className="group rounded-lg border border-slate-200 bg-white shadow-sm" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-left marker:hidden">
+        <span>
+          <span className="block text-sm font-medium text-slate-900">{title}</span>
+          {description ? <span className="mt-0.5 block text-xs text-slate-500">{description}</span> : null}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="space-y-3 border-t border-slate-100 px-3 py-3">
+        {children}
+      </div>
+    </details>
+  )
+}
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
@@ -1342,9 +1370,9 @@ export default function PatientDetailPage() {
                 </div>
               </div>
             ) : null}
-            <div>
-              <p className="mb-2 text-xs text-slate-600">編集項目</p>
-              <div className="space-y-3">
+            <div className="space-y-3">
+              <p className="text-xs text-slate-600">編集項目</p>
+              <PatientEditSection title="基本情報" description="住所と電話番号を編集します。" defaultOpen>
                 <div>
                   <p className="text-xs text-slate-600">住所</p>
                   <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
@@ -1353,6 +1381,8 @@ export default function PatientDetailPage() {
                   <p className="text-xs text-slate-600">電話番号</p>
                   <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-slate-200 bg-white text-slate-900" inputMode="tel" />
                 </div>
+              </PatientEditSection>
+              <PatientEditSection title="医療機関・主治医" description="病院、主治医、医師連絡先を編集します。">
                 <div>
                   <p className="text-xs text-gray-500">病院・クリニック</p>
                   <Input
@@ -1465,6 +1495,8 @@ export default function PatientDetailPage() {
                   <p className="text-xs text-gray-500">医師電話</p>
                   <Input value={formatPhone(editForm.doctorPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, doctorPhone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
                 </div>
+              </PatientEditSection>
+              <PatientEditSection title="訪問・薬剤情報" description="訪問時の注意事項、薬、既往歴、アレルギー、保険情報を編集します。">
                 <div>
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
                   <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className={`${editTextareaClass} min-h-[110px]`} />
@@ -1487,6 +1519,8 @@ export default function PatientDetailPage() {
                     <Input value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className={editInputClass} />
                   </div>
                 </div>
+              </PatientEditSection>
+              <PatientEditSection title="請求設定" description="請求対象か対象外かを編集します。">
                 <div>
                   <p className="text-xs text-gray-500">請求設定</p>
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -1512,14 +1546,13 @@ export default function PatientDetailPage() {
                     </div>
                   ) : null}
                 </div>
-              </div>
-            </div>
-            <div>
-              <p className="mb-2 text-xs text-slate-600">補足</p>
+              </PatientEditSection>
+              <PatientEditSection title="補足" description="編集できる範囲と責務の確認です。">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                 <p>患者の所属薬局やステータス変更は 薬局管理者 の責務です。</p>
                 <p className="mt-1">他薬局の 薬局スタッフ / 薬局管理者、夜間薬剤師、リージョン管理者、システム管理者 は患者情報を編集できません。</p>
               </div>
+              </PatientEditSection>
             </div>
           </div>
           <DialogFooter>
