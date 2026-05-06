@@ -466,6 +466,9 @@ export async function setManagedUserStatus(params: {
   if (!targetUser) {
     return { ok: false as const, status: 404, error: 'user_not_found' }
   }
+  if (params.actor.id === targetUser.id) {
+    return { ok: false as const, status: 403, error: 'cannot_change_own_status' }
+  }
   if (!canManageTargetRole(actorRole, targetUser.role)) {
     return { ok: false as const, status: 403, error: 'forbidden_target_role' }
   }

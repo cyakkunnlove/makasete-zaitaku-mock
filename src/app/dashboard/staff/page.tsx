@@ -71,7 +71,6 @@ type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 type RoleFilter = 'all' | 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type AddStaffRole = 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 
-const PHARMACY_ADMIN_EMAIL_DOMAIN = '@jonan-ph.jp'
 type PageTab = 'staff' | 'shift'
 type ActivityRange = '7d' | '30d'
 
@@ -307,12 +306,7 @@ export default function StaffPage() {
 
   const ownPharmacyId = getScopedPharmacyId(user)
 
-  const visibleStaffMembers = useMemo(() => {
-    if (isPharmacyAdmin) {
-      return staffMembers.filter((member) => ['pharmacy_admin', 'pharmacy_staff'].includes(member.role) && member.email.endsWith(PHARMACY_ADMIN_EMAIL_DOMAIN))
-    }
-    return staffMembers
-  }, [isPharmacyAdmin, staffMembers])
+  const visibleStaffMembers = useMemo(() => staffMembers, [staffMembers])
 
   const availableFilterItems = isSystemAdmin ? systemFilterItems : isPharmacyAdmin ? pharmacyFilterItems : regionalFilterItems
 
@@ -799,6 +793,7 @@ export default function StaffPage() {
       if (!response.ok || !data.ok) throw new Error(data.error ?? 'user_update_failed')
       setToast('アカウント情報を更新しました')
       setStaffMembers((prev) => prev.map((item) => item.id === editingMemberId ? { ...item, name: editFormData.name, phone: editFormData.phone } : item))
+      loadAccountManagementLists()
       setEditDialogOpen(false)
       setEditingMemberId(null)
       setEditingMemberRole(null)
@@ -1199,7 +1194,7 @@ export default function StaffPage() {
                           variant="outline"
                           className="border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                           onClick={() => handleUserStatusChange(member.id, member.status === 'active' ? 'suspended' : 'active')}
-                          disabled={userActionId === member.id || member.status === 'invited'}
+                          disabled={member.id === user?.id || userActionId === member.id || member.status === 'invited'}
                         >
                           {member.status === 'active' ? '停止' : '再開'}
                         </Button>
