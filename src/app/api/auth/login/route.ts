@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid email')
   url.searchParams.set('redirect_uri', redirectUri)
+  url.searchParams.set('lang', 'ja')
   url.searchParams.set('state', createOAuthState({ kind: 'login', nextPath, invitationToken, nonce }))
 
   const response = NextResponse.redirect(url)
