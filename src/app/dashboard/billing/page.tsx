@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -70,6 +71,16 @@ type CalendarActionDraft = {
   note: string
 }
 
+type CorrectionRequestDraft = {
+  recordId: string
+  patientName: string
+  linkedTaskId: string | null
+  note: string
+  reasonCategory: string
+  requestedChange: string
+  detail: string
+}
+
 type StaffCollectionFilter = 'all' | 'needs_action' | 'on_hold' | 'paid'
 type DateCollectionFlagFilter = 'all' | 'needs_attention' | 'has_billing' | 'all_paid'
 
@@ -78,6 +89,27 @@ function toLegacyDayTaskCollectionStatus(status: CollectionWorkflowStatus): DayT
 }
 
 const onHoldReasonTags = correctionReasonCategories
+
+const billingCorrectionTemplates = [
+  {
+    label: '入金確認の取り消し',
+    reasonCategory: '入金確認の誤り',
+    requestedChange: '入金済みを請求済みに戻したい',
+    detail: '入金済みにしましたが、入金確認前のため請求済みに戻してください。',
+  },
+  {
+    label: '金額・請求対象の確認',
+    reasonCategory: '請求対象設定の訂正',
+    requestedChange: '請求対象または金額を確認したい',
+    detail: '請求対象または金額に確認が必要です。内容確認後に回収状態を修正してください。',
+  },
+  {
+    label: '押し間違い',
+    reasonCategory: '押し間違い',
+    requestedChange: '誤って入金済みにしたため状態を戻したい',
+    detail: '操作時に誤って入金済みにしました。正しい状態へ戻してください。',
+  },
+] as const
 
 const initialPatientCollectionRecords = [
   { id: 'COL-01', patientName: '田中 優子', month: '2026-03', amount: 12800, status: 'paid' as CollectionWorkflowStatus, dueDate: '2026-03-10', note: '口座振替完了', linkedTaskId: 'DT-260315-01', handledBy: '小林 薫', handledAt: '2026-03-15 10:28', billable: true },
@@ -174,6 +206,7 @@ export default function BillingPage() {
   const [collectionErrorMessage, setCollectionErrorMessage] = useState<string>('')
   const [statusDialog, setStatusDialog] = useState<CollectionStatusChangeDraft | null>(null)
   const [statusChangeNote, setStatusChangeNote] = useState('')
+  const [correctionRequestDialog, setCorrectionRequestDialog] = useState<CorrectionRequestDraft | null>(null)
   const [calendarActionDialog, setCalendarActionDialog] = useState<CalendarActionDraft | null>(null)
   const [calendarActionNote, setCalendarActionNote] = useState('')
   const [patientSearch, setPatientSearch] = useState('')
@@ -587,9 +620,33 @@ export default function BillingPage() {
     setCalendarActionNote((current) => appendReasonTag(current, tag))
   }
 
-  const createPaidCorrectionRequest = async (record: BillingCollectionRecord) => {
+  const openPaidCorrectionRequestDialog = (record: BillingCollectionRecord) => {
+    const template = billingCorrectionTemplates[0]
+    setCorrectionRequestDialog({
+      recordId: record.id,
+      patientName: record.patientName,
+      linkedTaskId: record.linkedTaskId,
+      note: record.note,
+      reasonCategory: template.reasonCategory,
+      requestedChange: template.requestedChange,
+      detail: template.detail,
+    })
+  }
+
+  const applyCorrectionTemplate = (template: (typeof billingCorrectionTemplates)[number]) => {
+    setCorrectionRequestDialog((current) => current ? {
+      ...current,
+      reasonCategory: template.reasonCategory,
+      requestedChange: template.requestedChange,
+      detail: template.detail,
+    } : current)
+  }
+
+  const submitPaidCorrectionRequest = async () => {
+    if (!correctionRequestDialog) return
+    const draft = correctionRequestDialog
     try {
-      setSavingCollectionRecordId(record.id)
+      setSavingCollectionRecordId(draft.recordId)
       setFailedCollectionRecordId(null)
       setCollectionErrorMessage('')
       const response = await fetch('/api/correction-requests', {
@@ -597,25 +654,28 @@ export default function BillingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetType: 'billing_collection',
-          targetId: record.id,
-          patientDayTaskId: record.linkedTaskId,
-          reasonCategory: '入金確認の誤り',
-          reasonText: '入金済み確定後のロックにより修正依頼',
+          targetId: draft.recordId,
+          patientDayTaskId: draft.linkedTaskId,
+          reasonCategory: draft.reasonCategory,
+          reasonText: draft.detail.trim() || draft.requestedChange,
           requestedChanges: {
             from: 'paid',
             to: 'billed',
-            note: record.note,
+            note: draft.note,
+            requestedChange: draft.requestedChange.trim(),
+            detail: draft.detail.trim(),
           },
         }),
       })
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.ok) throw new Error(result?.error ?? 'correction_request_failed')
       showToast('管理者へ修正依頼を送信しました')
-      setRecentlySavedCollectionRecordId(record.id)
-      setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === record.id ? null : current), 1500)
+      setCorrectionRequestDialog(null)
+      setRecentlySavedCollectionRecordId(draft.recordId)
+      setTimeout(() => setRecentlySavedCollectionRecordId((current) => current === draft.recordId ? null : current), 1500)
     } catch {
       showToast('修正依頼の送信に失敗しました', 'error')
-      setFailedCollectionRecordId(record.id)
+      setFailedCollectionRecordId(draft.recordId)
       setCollectionErrorMessage('修正依頼がまだ送信できていません。もう一度お試しください。')
     } finally {
       setSavingCollectionRecordId(null)
@@ -637,7 +697,8 @@ export default function BillingPage() {
 
   const runCollectionAction = async (record: BillingCollectionRecord, action: BillingCollectionAction) => {
     if (action.kind === 'request_correction') {
-      await createPaidCorrectionRequest(record)
+      setCalendarActionDialog(null)
+      openPaidCorrectionRequestDialog(record)
       return
     }
     if (!action.nextStatus) return
@@ -737,44 +798,45 @@ export default function BillingPage() {
             ) : (
               primaryCollectionRecords.map((record) => {
                 return (
-                  <div key={record.id} className={cn('rounded-xl border bg-white p-4 shadow-sm', savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === record.id ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{record.patientName}</p>
-                        <p className="mt-1 text-xs text-slate-500">task: {record.linkedTaskId} / 最終更新 {formatJstDateTime(record.handledAt)}</p>
-                        <p className="mt-1 text-xs text-slate-500">{record.handledBy ?? '未対応'} / {record.note || 'メモなし'}</p>
+                  <div key={record.id} className={cn('rounded-lg border bg-white p-3 shadow-sm', savingCollectionRecordId === record.id ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === record.id ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === record.id ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">{record.patientName}</p>
+                          <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
+                          <Badge variant="outline" className="border-slate-200 bg-slate-50 text-[11px] text-slate-700">
+                            {record.status === 'ready'
+                              ? '請求必要'
+                              : record.status === 'pending'
+                                ? '請求済み'
+                                : record.status === 'on_hold'
+                                  ? '例外対応'
+                                  : '完了済み'}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 truncate text-[11px] text-slate-500">{record.linkedTaskId} / {formatJstDateTime(record.handledAt)} / {record.handledBy ?? '未対応'}</p>
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">{record.note || 'メモなし'}</p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge meta={collectionWorkflowStatusMeta[record.status]} />
-                        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
-                          {record.status === 'ready'
-                            ? '請求必要'
-                            : record.status === 'pending'
-                              ? '請求済み'
-                              : record.status === 'on_hold'
-                                ? '例外対応'
-                                : '完了済み'}
-                        </Badge>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        {getCollectionActionsForRecord(record).map((action) => (
+                          <Button
+                            key={action.kind}
+                            type="button"
+                            size="sm"
+                            variant={action.kind === 'mark_paid' ? 'default' : 'outline'}
+                            onClick={() => void runCollectionAction(record, action)}
+                            disabled={savingCollectionRecordId === record.id}
+                            className={getCardActionClassName(action)}
+                          >
+                            {savingCollectionRecordId === record.id
+                              ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
+                              : action.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                     {failedCollectionRecordId === record.id ? <p className="mt-2 text-xs font-medium text-rose-600">{collectionErrorMessage}</p> : null}
                     {getPaidRecordNotice(record) ? <p className="mt-2 text-xs font-medium text-amber-700">{getPaidRecordNotice(record)}</p> : null}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {getCollectionActionsForRecord(record).map((action) => (
-                        <Button
-                          key={action.kind}
-                          type="button"
-                          variant={action.kind === 'mark_paid' ? 'default' : 'outline'}
-                          onClick={() => void runCollectionAction(record, action)}
-                          disabled={savingCollectionRecordId === record.id}
-                          className={getCardActionClassName(action)}
-                        >
-                          {savingCollectionRecordId === record.id
-                            ? action.kind === 'request_correction' ? '送信中...' : '保存中...'
-                            : action.label}
-                        </Button>
-                      ))}
-                    </div>
                   </div>
                 )
               })
@@ -1152,6 +1214,94 @@ export default function BillingPage() {
               <Button type="button" variant="ghost" onClick={() => setStatusDialog(null)} disabled={savingCollectionRecordId === statusDialog?.recordId} className="min-h-11 touch-manipulation sm:min-h-9">キャンセル</Button>
               <Button type="button" onClick={confirmStatusChange} disabled={savingCollectionRecordId === statusDialog?.recordId} className="min-h-11 touch-manipulation bg-indigo-500 text-white shadow-sm transition active:scale-[0.98] active:shadow-inner hover:bg-indigo-500/90 sm:min-h-9">
                 {savingCollectionRecordId === statusDialog?.recordId ? '保存中...' : recentlySavedCollectionRecordId === statusDialog?.recordId ? '保存しました' : '保存して反映'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!correctionRequestDialog} onOpenChange={(open) => !open && setCorrectionRequestDialog(null)}>
+          <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
+            <DialogHeader>
+              <DialogTitle className="text-slate-900">修正依頼を作成</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {correctionRequestDialog ? `${correctionRequestDialog.patientName} の回収状態について、管理者へ修正依頼を送ります。` : '修正依頼を送ります。'}
+              </DialogDescription>
+            </DialogHeader>
+            {correctionRequestDialog ? (
+              <div className="space-y-4 text-sm text-slate-700">
+                <div className={`${adminPanelClass} p-4`}>
+                  <p>対象: <span className="font-medium text-slate-900">{correctionRequestDialog.patientName}</span></p>
+                  <p className="mt-1 text-xs text-slate-500">{correctionRequestDialog.linkedTaskId ?? correctionRequestDialog.recordId} / 現在は入金済みとしてロックされています。</p>
+                  {failedCollectionRecordId === correctionRequestDialog.recordId ? <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">{collectionErrorMessage}</p> : null}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-500">よくある修正パターン</p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {billingCorrectionTemplates.map((template) => (
+                      <Button
+                        key={template.label}
+                        type="button"
+                        variant="outline"
+                        onClick={() => applyCorrectionTemplate(template)}
+                        className={cn(
+                          'h-auto min-h-11 justify-start whitespace-normal border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50',
+                          correctionRequestDialog.requestedChange === template.requestedChange && 'border-indigo-300 bg-indigo-50 text-indigo-700',
+                        )}
+                      >
+                        {template.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500">理由カテゴリ</p>
+                    <div className="flex flex-wrap gap-2">
+                      {correctionReasonCategories.map((category) => (
+                        <Button
+                          key={category}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCorrectionRequestDialog((current) => current ? { ...current, reasonCategory: category } : current)}
+                          className={cn(
+                            'min-h-9 touch-manipulation border-slate-200 bg-white text-xs text-slate-700 hover:bg-slate-50',
+                            correctionRequestDialog.reasonCategory === category && 'border-indigo-300 bg-indigo-50 text-indigo-700',
+                          )}
+                        >
+                          {category}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500">どう修正してほしいか</p>
+                    <Input
+                      value={correctionRequestDialog.requestedChange}
+                      onChange={(e) => setCorrectionRequestDialog((current) => current ? { ...current, requestedChange: e.target.value } : current)}
+                      className={adminInputClass}
+                      placeholder="例: 入金済みを請求済みに戻したい"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500">補足メモ</p>
+                  <Textarea
+                    value={correctionRequestDialog.detail}
+                    onChange={(e) => setCorrectionRequestDialog((current) => current ? { ...current, detail: e.target.value } : current)}
+                    className={`${adminInputClass} min-h-24 resize-none`}
+                    placeholder="確認した内容、間違えた理由、管理者に見てほしい点"
+                  />
+                </div>
+              </div>
+            ) : null}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setCorrectionRequestDialog(null)} disabled={savingCollectionRecordId === correctionRequestDialog?.recordId} className="min-h-11 touch-manipulation sm:min-h-9">キャンセル</Button>
+              <Button type="button" onClick={() => void submitPaidCorrectionRequest()} disabled={savingCollectionRecordId === correctionRequestDialog?.recordId || !correctionRequestDialog?.detail.trim()} className="min-h-11 touch-manipulation bg-amber-600 text-white shadow-sm transition active:scale-[0.98] active:shadow-inner hover:bg-amber-600/90 sm:min-h-9">
+                {savingCollectionRecordId === correctionRequestDialog?.recordId ? '送信中...' : '修正依頼を送信'}
               </Button>
             </DialogFooter>
           </DialogContent>
