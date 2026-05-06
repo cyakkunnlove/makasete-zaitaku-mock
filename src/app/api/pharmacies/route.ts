@@ -7,9 +7,14 @@ import { writeAuditLog } from '@/lib/audit-log'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import type { PharmacyStatus } from '@/types/database'
 
+function hasEnteredValue(value: unknown) {
+  const normalized = String(value ?? '').trim()
+  return Boolean(normalized && normalized !== '未設定' && normalized !== '-')
+}
+
 function deriveOnboarding(row: Record<string, unknown>, pharmacyAdminStatus: string) {
   const checks = [
-    { key: 'basic_info', label: '基本情報', done: Boolean(String(row.name ?? '').trim() && String(row.address ?? '').trim() && String(row.phone ?? '').trim()) },
+    { key: 'basic_info', label: '基本情報', done: Boolean(hasEnteredValue(row.name) && hasEnteredValue(row.address) && hasEnteredValue(row.phone)) },
     { key: 'pharmacy_admin', label: '薬局管理者', done: pharmacyAdminStatus === 'active' },
     { key: 'forwarding_phone', label: '転送先電話', done: Boolean(String(row.forwarding_phone ?? '').trim()) },
     { key: 'forwarding_config', label: '転送運用設定', done: ['manual_on', 'manual_off', 'auto'].includes(String(row.forwarding_mode ?? 'manual_off')) },

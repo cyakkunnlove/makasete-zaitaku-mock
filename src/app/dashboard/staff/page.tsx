@@ -418,6 +418,21 @@ export default function StaffPage() {
   }, [activityRange, ownPatients, recentDayTasks, visibleStaffMembers, workloadSettings])
 
   useEffect(() => {
+    setFormData((prev) => {
+      if (isSystemAdmin && prev.role !== 'system_admin' && prev.role !== 'regional_admin') {
+        return { ...prev, role: 'regional_admin', pharmacyId: '' }
+      }
+      if (isRegionalAdmin && prev.role !== 'pharmacy_admin' && prev.role !== 'night_pharmacist') {
+        return { ...prev, role: 'pharmacy_admin', pharmacyId: '' }
+      }
+      if (isPharmacyAdmin && prev.role !== 'pharmacy_staff') {
+        return { ...prev, role: 'pharmacy_staff' }
+      }
+      return prev
+    })
+  }, [isSystemAdmin, isRegionalAdmin, isPharmacyAdmin])
+
+  useEffect(() => {
     if (!isSystemAdmin) return
     let cancelled = false
     fetch('/api/admin/regions', { cache: 'no-store' })
@@ -662,7 +677,12 @@ export default function StaffPage() {
 
     if (isSystemAdmin || isRegionalAdmin || isPharmacyAdmin) {
       try {
-        const endpoint = isSystemAdmin && formData.role === 'regional_admin' ? '/api/admin/regional-admins' : '/api/account-invitations'
+        const isNewPharmacyInvitation = isRegionalAdmin && formData.role === 'pharmacy_admin'
+        const endpoint = isSystemAdmin && formData.role === 'regional_admin'
+          ? '/api/admin/regional-admins'
+          : isNewPharmacyInvitation
+            ? '/api/pharmacies/invitations'
+            : '/api/account-invitations'
         const payload = isSystemAdmin && formData.role === 'regional_admin'
           ? {
               fullName: formData.name,
@@ -670,14 +690,20 @@ export default function StaffPage() {
               phone: formData.phone,
               regionIds: formData.regionIds,
             }
-          : {
-              fullName: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              regionId: formData.role === 'system_admin' ? null : formData.regionId,
-              pharmacyId: formData.pharmacyId,
-              targetRole: isSystemAdmin ? formData.role : isRegionalAdmin ? formData.role : 'pharmacy_staff',
-            }
+          : isNewPharmacyInvitation
+            ? {
+                pharmacyName: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+              }
+            : {
+                fullName: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                regionId: formData.role === 'system_admin' ? null : formData.regionId,
+                pharmacyId: formData.pharmacyId,
+                targetRole: isSystemAdmin ? formData.role : isRegionalAdmin ? formData.role : 'pharmacy_staff',
+              }
 
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -718,14 +744,18 @@ export default function StaffPage() {
             status: 'pending',
             expires_at: data.invitation.expiresAt,
             last_sent_at: data.invitation.emailSent ? new Date().toISOString() : null,
+            pharmacy_name: data.pharmacy?.name ?? null,
           },
           ...prev,
         ])
+        if (data.pharmacy?.id && data.pharmacy?.name) {
+          setPharmacies((prev) => [{ id: data.pharmacy.id, name: data.pharmacy.name, region_id: data.pharmacy.region_id ?? null }, ...prev])
+        }
         loadAccountManagementLists()
         setDialogOpen(false)
         setFormData({
           name: '',
-          role: isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? 'night_pharmacist' : 'pharmacy_staff',
+          role: isSystemAdmin ? 'regional_admin' : isRegionalAdmin ? 'pharmacy_admin' : 'pharmacy_staff',
           phone: '',
           email: '',
           status: 'invited',
@@ -1500,13 +1530,17 @@ export default function StaffPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className={`${adminDialogClass} sm:max-w-lg`}>
           <DialogHeader>
-            <DialogTitle className="text-slate-900">アカウントを招待</DialogTitle>
-            <DialogDescription className="text-slate-600">氏名、役割、連絡先を登録して招待メールを送ります。</DialogDescription>
+            <DialogTitle className="text-slate-900">{isRegionalAdmin && formData.role === 'pharmacy_admin' ? '新規薬局を招待' : 'アカウントを招待'}</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {isRegionalAdmin && formData.role === 'pharmacy_admin'
+                ? '薬局名と管理者メールを登録して、薬局側の初期設定を始められるようにします。'
+                : '氏名、役割、連絡先を登録して招待メールを送ります。'}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddStaff} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-700">氏名</Label>
+              <Label htmlFor="name" className="text-slate-700">{isRegionalAdmin && formData.role === 'pharmacy_admin' ? '新規薬局名' : '氏名'}</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -1597,7 +1631,13 @@ export default function StaffPage() {
               </div>
             )}
 
-            {isRegionalAdmin && (
+            {isRegionalAdmin && formData.role === 'pharmacy_admin' && (
+              <div className="rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-5 text-indigo-800">
+                新規薬局の枠を作成し、このメールアドレスへ薬局管理者の招待を送ります。住所・電話・転送設定などの詳細は、招待された薬局管理者がログイン後に自店設定で整えます。
+              </div>
+            )}
+
+            {isRegionalAdmin && formData.role === 'night_pharmacist' && (
               <div className="space-y-2">
                 <Label className="text-slate-700">対象薬局</Label>
                 <Select
@@ -1614,12 +1654,12 @@ export default function StaffPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-slate-500">薬局管理者と夜間薬剤師には対象薬局が必要です。加盟店詳細から来た場合は自動で選択されます。</p>
+                <p className="text-[11px] text-slate-500">夜間薬剤師は、対応対象になる既存薬局を選んで招待します。</p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-slate-700">電話（任意）</Label>
+              <Label htmlFor="phone" className="text-slate-700">{isRegionalAdmin && formData.role === 'pharmacy_admin' ? '薬局管理者電話（任意）' : '電話（任意）'}</Label>
               <Input
                 id="phone"
                 value={formData.phone}
@@ -1629,7 +1669,7 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700">メール</Label>
+              <Label htmlFor="email" className="text-slate-700">{isRegionalAdmin && formData.role === 'pharmacy_admin' ? '薬局管理者メール' : 'メール'}</Label>
               <Input
                 id="email"
                 type="email"
@@ -1645,7 +1685,7 @@ export default function StaffPage() {
                 キャンセル
               </Button>
               <Button type="submit" className="bg-indigo-500 text-white hover:bg-indigo-500/90" disabled={isSubmitting}>
-                {isSubmitting ? '作成中...' : '追加する'}
+                {isSubmitting ? '作成中...' : isRegionalAdmin && formData.role === 'pharmacy_admin' ? '新規薬局を招待' : '追加する'}
               </Button>
             </DialogFooter>
           </form>
