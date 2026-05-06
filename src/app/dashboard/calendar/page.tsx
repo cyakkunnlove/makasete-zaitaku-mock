@@ -119,10 +119,16 @@ function getTaskStatusMeta(task: CalendarDayDetail['tasks'][number], phase: Cale
     return { label: '未完了', className: 'border-rose-200 bg-rose-50 text-rose-700' }
   }
 
-  if (task.isGeneratedCandidate) return { label: '自動候補', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' }
+  if (task.isGeneratedCandidate) return { label: '訪問ルール候補', className: 'border-indigo-200 bg-indigo-50 text-indigo-700' }
   if (task.status === 'completed') return { label: '完了', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
   if (phase === 'today' && task.status === 'in_progress') return { label: '対応中', className: 'border-amber-200 bg-amber-50 text-amber-700' }
-  return { label: '予定', className: 'border-slate-200 bg-slate-50 text-slate-700' }
+  return { label: '保存済み予定', className: 'border-slate-200 bg-slate-50 text-slate-700' }
+}
+
+function getTaskScheduleSourceLabel(task: CalendarDayDetail['tasks'][number], phase: CalendarDatePhase) {
+  if (task.isGeneratedCandidate) return phase === 'past' ? '未確定候補' : '訪問ルール候補'
+  if (phase === 'past') return '保存済み実績'
+  return '保存済みタスク'
 }
 
 export default function CalendarPage() {
@@ -627,7 +633,7 @@ export default function CalendarPage() {
                           {task.isFirstVisit && !task.isGeneratedCandidate && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
-                          <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{task.scheduledTime}</span>
+                          <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />予定時刻 {task.scheduledTime}</span>
                           <span className="inline-flex items-center gap-1"><UserRound className="h-3 w-3" />{task.handledBy ?? '未担当'}</span>
                         </div>
                       </div>
@@ -638,13 +644,14 @@ export default function CalendarPage() {
                       <div className="flex flex-wrap items-center gap-2">
                       {task.isGeneratedCandidate && selectedDatePhase !== 'past' && <Badge className="border-indigo-200 bg-indigo-50 text-indigo-700">訪問ルールからの自動候補</Badge>}
                       {task.isGeneratedCandidate && selectedDatePhase === 'past' && <Badge className="border-rose-200 bg-rose-50 text-rose-700">過去日の未確定候補</Badge>}
+                      {!task.isGeneratedCandidate && <Badge className="border-slate-200 bg-slate-50 text-slate-700">{getTaskScheduleSourceLabel(task, selectedDatePhase)}</Badge>}
                       {task.isFirstVisit && !task.isGeneratedCandidate && <Badge className="border-sky-200 bg-sky-50 text-sky-700">初回</Badge>}
                       {task.isLongGapVisit && <Badge className="border-violet-200 bg-violet-50 text-violet-700">久しぶり</Badge>}
                       {task.hasNightHandover && <Badge className="border-amber-200 bg-amber-50 text-amber-700">夜間申し送りあり</Badge>}
                       {isCompletedUncollected && <Badge className="border-rose-200 bg-rose-50 text-rose-700">完了後未回収</Badge>}
                     </div>
                     <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-                      <p className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />予定 {task.scheduledTime}</p>
+                      <p className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />予定時刻 {task.scheduledTime}</p>
                       <p className="flex items-center gap-1"><UserRound className="h-3.5 w-3.5" />担当 {task.handledBy ?? '未対応'}</p>
                       <p>完了 {task.completedAt ? task.completedAt.replace('T', ' ').slice(0, 16) : '—'}</p>
                       <p>担当変更 {task.assigneeChangedAt ? task.assigneeChangedAt.replace('T', ' ').slice(0, 16) : '—'}</p>
