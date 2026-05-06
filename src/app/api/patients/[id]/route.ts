@@ -20,6 +20,27 @@ function isSameTimestamp(left: unknown, right: unknown) {
   return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime
 }
 
+function normalizeFullWidthAscii(value: string) {
+  return value.replace(/[！-～]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ')
+}
+
+function normalizeDateInput(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = normalizeFullWidthAscii(value).trim()
+  if (!trimmed) return null
+  const digits = trimmed.replace(/[^0-9]/g, '')
+  if (digits.length === 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) return trimmed.replace(/\//g, '-')
+  return null
+}
+
+function normalizePhoneInput(value: unknown) {
+  if (typeof value !== 'string') return null
+  const digits = normalizeFullWidthAscii(value).replace(/[^0-9]/g, '').slice(0, 11)
+  return digits || null
+}
+
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser()
 
@@ -159,8 +180,33 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
   const warnings: Array<{ code: string; message: string }> = []
 
+  if (typeof patch.fullName === 'string') {
+    const fullName = patch.fullName.trim()
+    if (!fullName) return NextResponse.json({ ok: false, error: 'full_name_required' }, { status: 400 })
+    payload.full_name = fullName
+  }
+
+  if (typeof patch.dateOfBirth === 'string') {
+    const dateOfBirth = normalizeDateInput(patch.dateOfBirth)
+    if (!dateOfBirth) return NextResponse.json({ ok: false, error: 'invalid_date_of_birth' }, { status: 400 })
+    payload.date_of_birth = dateOfBirth
+  }
+
   if (typeof patch.phone === 'string' || patch.phone === null) {
-    payload.phone = typeof patch.phone === 'string' ? patch.phone.trim() || null : null
+    payload.phone = typeof patch.phone === 'string' ? normalizePhoneInput(patch.phone) : null
+  }
+
+  if (typeof patch.status === 'string') {
+    if (patch.status !== 'active' && patch.status !== 'inactive') {
+      return NextResponse.json({ ok: false, error: 'invalid_patient_status' }, { status: 400 })
+    }
+    payload.status = patch.status
+  }
+
+  if (typeof patch.emergencyContactName === 'string') payload.emergency_contact_name = patch.emergencyContactName.trim() || '未設定'
+  if (typeof patch.emergencyContactRelation === 'string') payload.emergency_contact_relation = patch.emergencyContactRelation.trim() || null
+  if (typeof patch.emergencyContactPhone === 'string' || patch.emergencyContactPhone === null) {
+    payload.emergency_contact_phone = typeof patch.emergencyContactPhone === 'string' ? normalizePhoneInput(patch.emergencyContactPhone) ?? '-' : '-'
   }
 
   if (typeof patch.visitNotes === 'string') {
@@ -171,6 +217,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (typeof patch.medicalHistory === 'string') payload.medical_history = patch.medicalHistory.trim() || null
   if (typeof patch.allergies === 'string') payload.allergies = patch.allergies.trim() || null
   if (typeof patch.insuranceInfo === 'string') payload.insurance_info = patch.insuranceInfo.trim() || null
+  if (typeof patch.diseaseName === 'string') payload.disease_name = patch.diseaseName.trim() || null
   if (typeof patch.isBillable === 'boolean') {
     payload.is_billable = patch.isBillable
     payload.billing_exclusion_reason = patch.isBillable

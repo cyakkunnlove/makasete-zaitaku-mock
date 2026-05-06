@@ -103,6 +103,27 @@ function formatPhone(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
+function normalizeFullWidthAscii(value: string) {
+  return value.replace(/[！-～]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ')
+}
+
+function normalizeDateInput(value: string) {
+  const trimmed = normalizeFullWidthAscii(value).trim()
+  if (!trimmed) return ''
+  const digits = trimmed.replace(/[^0-9]/g, '')
+  if (digits.length === 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(trimmed)) return trimmed.replace(/\//g, '-')
+  return trimmed
+}
+
+function isValidDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
 const editInputClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
 const editTextareaClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
 const editOutlineButtonClass = 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -242,13 +263,20 @@ export default function PatientDetailPage() {
   useEffect(() => {
     if (!patient) return
     setEditForm({
+      fullName: patient.name ?? '',
+      dateOfBirth: patient.dob ?? '',
       address: patient.address ?? '',
       phone: patient.phone ?? '',
+      status: patient.status === 'inactive' ? 'inactive' : 'active',
+      emergencyContactName: patient.emergencyContact?.name ?? '',
+      emergencyContactRelation: patient.emergencyContact?.relation ?? '',
+      emergencyContactPhone: patient.emergencyContact?.phone ?? '',
       visitNotes: patient.visitNotes ?? '',
       currentMeds: patient.currentMeds ?? '',
       medicalHistory: patient.medicalHistory ?? '',
       allergies: patient.allergies ?? '',
       insuranceInfo: patient.insuranceInfo ?? '',
+      diseaseName: patient.diseaseName ?? '',
       doctorClinic: patient.doctor?.clinic ?? '',
       doctorName: patient.doctor?.name ?? '',
       doctorPhone: patient.doctor?.phone ?? '',
@@ -335,13 +363,20 @@ export default function PatientDetailPage() {
   const [institutionForm, setInstitutionForm] = useState({ name: '', phone: '', address: '' })
   const [doctorForm, setDoctorForm] = useState({ fullName: '', phone: '', department: '' })
   const [editForm, setEditForm] = useState({
+    fullName: '',
+    dateOfBirth: '',
     address: '',
     phone: '',
+    status: 'active',
+    emergencyContactName: '',
+    emergencyContactRelation: '',
+    emergencyContactPhone: '',
     visitNotes: '',
     currentMeds: '',
     medicalHistory: '',
     allergies: '',
     insuranceInfo: '',
+    diseaseName: '',
     doctorClinic: '',
     doctorName: '',
     doctorPhone: '',
@@ -656,13 +691,20 @@ export default function PatientDetailPage() {
   }
 
   const buildPatientEditPayload = () => ({
+    fullName: editForm.fullName,
+    dateOfBirth: editForm.dateOfBirth,
     address: editForm.address,
     phone: editForm.phone || null,
+    status: editForm.status,
+    emergencyContactName: editForm.emergencyContactName,
+    emergencyContactRelation: editForm.emergencyContactRelation,
+    emergencyContactPhone: editForm.emergencyContactPhone || null,
     visitNotes: editForm.visitNotes,
     currentMeds: editForm.currentMeds,
     medicalHistory: editForm.medicalHistory,
     allergies: editForm.allergies,
     insuranceInfo: editForm.insuranceInfo,
+    diseaseName: editForm.diseaseName,
     isBillable: editForm.isBillable,
     billingExclusionReason: editForm.isBillable ? null : editForm.billingExclusionReason,
     medicalInstitutionId: selectedMedicalInstitutionId,
@@ -702,6 +744,18 @@ export default function PatientDetailPage() {
 
   const handleSavePatientEdit = async (skipGeocodeConfirmation = false) => {
     if (!canEditThisPatient) return
+
+    if (!editForm.fullName.trim()) {
+      setEditSavedNotice('氏名を入力してください')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
+
+    if (!isValidDateInput(editForm.dateOfBirth)) {
+      setEditSavedNotice('生年月日は 1950-04-12 の形式で入力してください')
+      setTimeout(() => setEditSavedNotice(null), 2500)
+      return
+    }
 
     if (!skipGeocodeConfirmation && editForm.address.trim()) {
       try {
@@ -1385,14 +1439,59 @@ export default function PatientDetailPage() {
             ) : null}
             <div className="space-y-3">
               <p className="text-xs text-slate-600">編集項目</p>
-              <PatientEditSection title="基本情報" description="住所と電話番号を編集します。" defaultOpen>
+              <PatientEditSection title="基本情報" description="氏名、生年月日、住所、電話番号を編集します。" defaultOpen>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-slate-600">氏名</p>
+                    <Input value={editForm.fullName} onChange={(e) => setEditForm((prev) => ({ ...prev, fullName: e.target.value }))} className={editInputClass} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-600">生年月日</p>
+                    <Input value={editForm.dateOfBirth} onChange={(e) => setEditForm((prev) => ({ ...prev, dateOfBirth: normalizeDateInput(e.target.value) }))} className={editInputClass} inputMode="numeric" placeholder="1950-04-12" />
+                  </div>
+                </div>
                 <div>
                   <p className="text-xs text-slate-600">住所</p>
-                  <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-slate-200 bg-white text-slate-900" />
+                  <Input value={editForm.address} onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))} className={editInputClass} />
                 </div>
                 <div>
                   <p className="text-xs text-slate-600">電話番号</p>
-                  <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-slate-200 bg-white text-slate-900" inputMode="tel" />
+                  <Input value={formatPhone(editForm.phone)} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600">利用状態</p>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm((prev) => ({ ...prev, status: 'active' }))}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${editForm.status === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      利用中
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm((prev) => ({ ...prev, status: 'inactive' }))}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${editForm.status === 'inactive' ? 'border-slate-300 bg-slate-100 text-slate-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      休止
+                    </button>
+                  </div>
+                </div>
+              </PatientEditSection>
+              <PatientEditSection title="緊急連絡先" description="家族や施設など、夜間・緊急時に使う連絡先を編集します。">
+                <div>
+                  <p className="text-xs text-gray-500">氏名</p>
+                  <Input value={editForm.emergencyContactName} onChange={(e) => setEditForm((prev) => ({ ...prev, emergencyContactName: e.target.value }))} className={editInputClass} />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-gray-500">続柄</p>
+                    <Input value={editForm.emergencyContactRelation} onChange={(e) => setEditForm((prev) => ({ ...prev, emergencyContactRelation: e.target.value }))} className={editInputClass} placeholder="長男 / 妻 / 施設 など" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">電話番号</p>
+                    <Input value={formatPhone(editForm.emergencyContactPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, emergencyContactPhone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
+                  </div>
                 </div>
               </PatientEditSection>
               <PatientEditSection title="医療機関・主治医" description="病院、主治医、医師連絡先を編集します。">
@@ -1509,7 +1608,7 @@ export default function PatientDetailPage() {
                   <Input value={formatPhone(editForm.doctorPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, doctorPhone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
                 </div>
               </PatientEditSection>
-              <PatientEditSection title="訪問・薬剤情報" description="訪問時の注意事項、薬、既往歴、アレルギー、保険情報を編集します。">
+              <PatientEditSection title="訪問・薬剤情報" description="訪問時の注意事項、薬、主疾患、既往歴、アレルギー、保険情報を編集します。">
                 <div>
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
                   <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className={`${editTextareaClass} min-h-[110px]`} />
@@ -1517,6 +1616,10 @@ export default function PatientDetailPage() {
                 <div>
                   <p className="text-xs text-gray-500">現在薬</p>
                   <Textarea value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className={`${editTextareaClass} min-h-[80px]`} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">主疾患</p>
+                  <Input value={editForm.diseaseName} onChange={(e) => setEditForm((prev) => ({ ...prev, diseaseName: e.target.value }))} className={editInputClass} />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">既往歴</p>
