@@ -77,6 +77,14 @@ const resultClass: Record<'success' | 'warning' | 'denied', string> = {
   denied: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
+function getAuditActionLabel(action: string) {
+  return auditActionLabel[action as AuditActionType] ?? action.replaceAll('_', ' ')
+}
+
+function getAuditActionClass(action: string) {
+  return auditActionClass[action as AuditActionType] ?? 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
 function parseTimestamp(value: string) {
   return new Date(value.replace(' ', 'T'))
 }
@@ -329,8 +337,8 @@ export default function AuditPage() {
                     <p className="text-xs text-slate-500">{roleLabel[entry.role]} / {entry.timestamp}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <Badge variant="outline" className={cn('border text-[11px]', auditActionClass[entry.action])}>
-                      {auditActionLabel[entry.action]}
+                    <Badge variant="outline" className={cn('border text-[11px]', getAuditActionClass(entry.action))}>
+                      {getAuditActionLabel(entry.action)}
                     </Badge>
                     <Badge variant="outline" className={cn('border text-[10px]', resultClass[entry.result])}>{entry.result}</Badge>
                   </div>
@@ -395,8 +403,8 @@ export default function AuditPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn('border text-xs', auditActionClass[entry.action])}>
-                          {auditActionLabel[entry.action]}
+                        <Badge variant="outline" className={cn('border text-xs', getAuditActionClass(entry.action))}>
+                          {getAuditActionLabel(entry.action)}
                         </Badge>
                       </TableCell>
                       <TableCell>
