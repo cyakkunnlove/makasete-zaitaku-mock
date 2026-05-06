@@ -134,6 +134,42 @@ function PatientEditSection({
   )
 }
 
+function PatientViewSection({
+  title,
+  icon,
+  summary,
+  children,
+  defaultOpen = false,
+  className,
+  contentClassName,
+}: {
+  title: string
+  icon: ReactNode
+  summary?: ReactNode
+  children: ReactNode
+  defaultOpen?: boolean
+  className?: string
+  contentClassName?: string
+}) {
+  return (
+    <details className={cn('group rounded-lg border border-slate-200 bg-white shadow-sm', className)} open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left marker:hidden">
+        <span className="flex min-w-0 items-start gap-2.5">
+          <span className="mt-0.5 shrink-0">{icon}</span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-slate-900">{title}</span>
+            {summary ? <span className="mt-0.5 block truncate text-xs text-slate-500">{summary}</span> : null}
+          </span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className={cn('border-t border-slate-100 px-4 py-3', contentClassName)}>
+        {children}
+      </div>
+    </details>
+  )
+}
+
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
   const today = new Date()
@@ -868,280 +904,265 @@ export default function PatientDetailPage() {
       )}
 
       {/* Basic info */}
-      <Card className={adminCardClass}>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <User className="h-4 w-4 text-indigo-500" />
-            基本情報
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <p className="text-xs text-slate-500">生年月日</p>
-              <p className="mt-0.5 text-sm text-slate-700">{patient.dob}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500">年齢</p>
-              <p className="mt-0.5 text-sm text-slate-700">{age} 歳</p>
-            </div>
-            <div>
-              <p className="flex items-center gap-1 text-xs text-slate-600">
-                <MapPin className="h-3 w-3" />
-                住所
-              </p>
-              <div className="mt-0.5 flex items-center gap-2">
-                <p className="text-sm text-slate-800">{patient.address}</p>
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700 transition hover:bg-indigo-100"
-                >
-                  <MapPin className="h-3 w-3" />
-                  地図を開く
-                  <ExternalLink className="h-2.5 w-2.5" />
-                </a>
-              </div>
-            </div>
-            <div>
-              <p className="flex items-center gap-1 text-xs text-slate-600">
-                <Phone className="h-3 w-3" />
-                電話番号
-              </p>
-              <p className="mt-0.5 text-sm text-slate-800">{patient.phone ?? '-'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-600">請求設定</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={patient.isBillable === false ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
-                  {patient.isBillable === false ? '請求対象外' : '請求対象'}
-                </Badge>
-                {patient.isBillable === false && patient.billingExclusionReason ? (
-                  <span className="text-xs text-slate-500">{patient.billingExclusionReason}</span>
-                ) : null}
-              </div>
-            </div>
-            <div className="sm:col-span-2 lg:col-span-2">
-              <p className="text-xs text-slate-600">担当薬局</p>
-              <Link
-                href={`/dashboard/pharmacies/${patient.pharmacyId}`}
-                className="mt-0.5 inline-block text-sm text-indigo-700 hover:text-indigo-800 hover:underline"
+      <PatientViewSection
+        title="基本情報"
+        icon={<User className="h-4 w-4 text-indigo-500" />}
+        summary={`${age}歳 / ${patient.phone ?? '-'} / ${patient.isBillable === false ? '請求対象外' : '請求対象'}`}
+        defaultOpen
+        className={adminCardClass}
+      >
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-6">
+          <div>
+            <p className="text-xs text-slate-500">生年月日</p>
+            <p className="mt-0.5 text-sm text-slate-700">{patient.dob}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">年齢</p>
+            <p className="mt-0.5 text-sm text-slate-700">{age} 歳</p>
+          </div>
+          <div className="col-span-2 lg:col-span-3">
+            <p className="flex items-center gap-1 text-xs text-slate-600">
+              <MapPin className="h-3 w-3" />
+              住所
+            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <p className="text-sm text-slate-800">{patient.address}</p>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700 transition hover:bg-indigo-100"
               >
-                {patient.pharmacyName}
-              </Link>
+                <MapPin className="h-3 w-3" />
+                地図を開く
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="flex items-center gap-1 text-xs text-slate-600">
+              <Phone className="h-3 w-3" />
+              電話番号
+            </p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.phone ?? '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-600">請求設定</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={patient.isBillable === false ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
+                {patient.isBillable === false ? '請求対象外' : '請求対象'}
+              </Badge>
+              {patient.isBillable === false && patient.billingExclusionReason ? (
+                <span className="text-xs text-slate-500">{patient.billingExclusionReason}</span>
+              ) : null}
+            </div>
+          </div>
+          <div className="col-span-2 lg:col-span-3">
+            <p className="text-xs text-slate-600">担当薬局</p>
+            <Link
+              href={`/dashboard/pharmacies/${patient.pharmacyId}`}
+              className="mt-0.5 inline-block text-sm text-indigo-700 hover:text-indigo-800 hover:underline"
+            >
+              {patient.pharmacyName}
+            </Link>
+          </div>
+        </div>
+      </PatientViewSection>
 
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <ImageIcon className="h-4 w-4 text-indigo-500" />
-            訪問メモ写真
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <p>外観や入口など、次回訪問時の目印を共有します。常時は軽い画像で表示し、押すと拡大表示します。</p>
-            <label>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3}
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null
-                  void handlePhotoUpload(file)
-                  event.currentTarget.value = ''
-                }}
-              />
-              <Button asChild size="sm" disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3} className="bg-indigo-600 text-white hover:bg-indigo-700">
-                <span><Upload className="mr-2 h-4 w-4" />{photoUploading ? '追加中...' : `写真を追加 (${patientPhotos.length}/3)`}</span>
-              </Button>
-            </label>
-          </div>
-          {photosLoading ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">写真を読み込んでいます...</div>
-          ) : patientPhotos.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">まだ写真はありません。必要なら外観や入口の写真を3枚まで共有できます。</div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {patientPhotos.map((photo) => (
-                <div key={photo.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <button
-                    type="button"
-                    className="block w-full"
-                    onClick={() => {
-                      setSelectedPhoto(photo)
-                      setPhotoModalOpen(true)
-                    }}
-                  >
-                    {photo.thumbnail_url ? (
-                      <div className="relative h-40 w-full">
-                        <Image
-                          src={photo.thumbnail_url}
-                          alt={photo.caption ?? '患者宅写真'}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">画像なし</div>
-                    )}
-                  </button>
-                  <div className="space-y-2 p-3">
-                    <div>
-                      <p className="text-xs text-slate-500">追加情報</p>
-                      <p className="text-sm text-slate-900">{photo.caption || '外観写真'}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
-                      <p className="text-[11px] text-slate-500">追加者: {photo.uploaded_by_name ?? photo.uploaded_by ?? '不明'}</p>
+      <PatientViewSection
+        title="訪問メモ写真"
+        icon={<ImageIcon className="h-4 w-4 text-indigo-500" />}
+        summary={photosLoading ? '読み込み中' : patientPhotos.length > 0 ? `${patientPhotos.length}枚登録済み` : '写真なし'}
+        defaultOpen={patientPhotos.length > 0}
+        contentClassName="space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <p>外観や入口など、次回訪問時の目印を共有します。常時は軽い画像で表示し、押すと拡大表示します。</p>
+          <label>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null
+                void handlePhotoUpload(file)
+                event.currentTarget.value = ''
+              }}
+            />
+            <Button asChild size="sm" disabled={!canEditThisPatient || photoUploading || patientPhotos.length >= 3} className="bg-indigo-600 text-white hover:bg-indigo-700">
+              <span><Upload className="mr-2 h-4 w-4" />{photoUploading ? '追加中...' : `写真を追加 (${patientPhotos.length}/3)`}</span>
+            </Button>
+          </label>
+        </div>
+        {photosLoading ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">写真を読み込んでいます...</div>
+        ) : patientPhotos.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">まだ写真はありません。必要なら外観や入口の写真を3枚まで共有できます。</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {patientPhotos.map((photo) => (
+              <div key={photo.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <button
+                  type="button"
+                  className="block w-full"
+                  onClick={() => {
+                    setSelectedPhoto(photo)
+                    setPhotoModalOpen(true)
+                  }}
+                >
+                  {photo.thumbnail_url ? (
+                    <div className="relative h-40 w-full">
+                      <Image
+                        src={photo.thumbnail_url}
+                        alt={photo.caption ?? '患者宅写真'}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover"
+                      />
                     </div>
-                    {canEditThisPatient && (
-                      <Button size="sm" variant="outline" className="w-full border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20" onClick={() => void handleDeletePhoto(photo.id)}>
-                        <Trash2 className="mr-2 h-4 w-4" />削除
-                      </Button>
-                    )}
+                  ) : (
+                    <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">画像なし</div>
+                  )}
+                </button>
+                <div className="space-y-2 p-3">
+                  <div>
+                    <p className="text-xs text-slate-500">追加情報</p>
+                    <p className="text-sm text-slate-900">{photo.caption || '外観写真'}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">追加日時: {new Date(photo.uploaded_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+                    <p className="text-[11px] text-slate-500">追加者: {photo.uploaded_by_name ?? photo.uploaded_by ?? '不明'}</p>
                   </div>
+                  {canEditThisPatient && (
+                    <Button size="sm" variant="outline" className="w-full border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => void handleDeletePhoto(photo.id)}>
+                      <Trash2 className="mr-2 h-4 w-4" />削除
+                    </Button>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        )}
+      </PatientViewSection>
 
       {/* Emergency contact & Doctor info */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Emergency contact */}
-        <Card className="border border-rose-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-              <AlertTriangle className="h-4 w-4 text-rose-500" />
-              緊急連絡先
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-xs text-slate-500">氏名</p>
-              <p className="mt-0.5 text-sm font-medium text-slate-900">{patient.emergencyContact.name}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-600">続柄</p>
-              <p className="mt-0.5 text-sm text-slate-800">{patient.emergencyContact.relation}</p>
-            </div>
-            <div>
-              <p className="flex items-center gap-1 text-xs text-slate-600">
-                <Phone className="h-3 w-3" />
-                電話番号
-              </p>
-              <p className="mt-0.5 text-sm text-indigo-700">{patient.emergencyContact.phone}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <PatientViewSection
+          title="緊急連絡先"
+          icon={<AlertTriangle className="h-4 w-4 text-rose-500" />}
+          summary={`${patient.emergencyContact.name} / ${patient.emergencyContact.relation} / ${patient.emergencyContact.phone}`}
+          className="border-rose-200"
+          contentClassName="grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          <div>
+            <p className="text-xs text-slate-500">氏名</p>
+            <p className="mt-0.5 text-sm font-medium text-slate-900">{patient.emergencyContact.name}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-600">続柄</p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.emergencyContact.relation}</p>
+          </div>
+          <div>
+            <p className="flex items-center gap-1 text-xs text-slate-600">
+              <Phone className="h-3 w-3" />
+              電話番号
+            </p>
+            <p className="mt-0.5 text-sm text-indigo-700">{patient.emergencyContact.phone}</p>
+          </div>
+        </PatientViewSection>
 
-        {/* Doctor info */}
-        <Card className="border border-sky-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-              <Stethoscope className="h-4 w-4 text-sky-500" />
-              主治医情報
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-xs text-slate-600">医師名</p>
-              <p className="mt-0.5 text-sm font-medium text-slate-800">{patient.doctor.name}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-600">医療機関</p>
-              <p className="mt-0.5 text-sm text-slate-800">{patient.doctor.clinic}</p>
-            </div>
-            <div>
-              <p className="flex items-center gap-1 text-xs text-slate-600">
-                <Phone className="h-3 w-3" />
-                夜間連絡先
-              </p>
-              <p className="mt-0.5 text-sm text-indigo-700">{patient.doctor.phone}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PatientViewSection
+          title="主治医情報"
+          icon={<Stethoscope className="h-4 w-4 text-sky-500" />}
+          summary={`${patient.doctor.name} / ${patient.doctor.clinic}`}
+          className="border-sky-200"
+          contentClassName="grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          <div>
+            <p className="text-xs text-slate-600">医師名</p>
+            <p className="mt-0.5 text-sm font-medium text-slate-800">{patient.doctor.name}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-600">医療機関</p>
+            <p className="mt-0.5 text-sm text-slate-800">{patient.doctor.clinic}</p>
+          </div>
+          <div>
+            <p className="flex items-center gap-1 text-xs text-slate-600">
+              <Phone className="h-3 w-3" />
+              夜間連絡先
+            </p>
+            <p className="mt-0.5 text-sm text-indigo-700">{patient.doctor.phone}</p>
+          </div>
+        </PatientViewSection>
       </div>
 
       {/* Clinical info (without current meds and visit notes) */}
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <Heart className="h-4 w-4 text-rose-500" />
-            臨床情報
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <p className="text-xs text-slate-600">既往歴</p>
-            <p className="mt-0.5 text-sm text-slate-800">{patient.medicalHistory}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600">アレルギー</p>
-            <p
-              className={cn(
-                'mt-0.5 text-sm',
-                hasAllergies ? 'font-medium text-rose-700' : 'text-slate-800'
-              )}
-            >
-              {hasAllergies && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
-              {patient.allergies}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600">保険情報</p>
-            <p className="mt-0.5 text-sm text-slate-800">{patient.insuranceInfo}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600">主疾患</p>
-            <p className="mt-0.5 text-sm text-slate-800">{patient.diseaseName}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <PatientViewSection
+        title="臨床情報"
+        icon={<Heart className="h-4 w-4 text-rose-500" />}
+        summary={`主疾患: ${patient.diseaseName || '-'} / アレルギー: ${patient.allergies || '-'}`}
+        defaultOpen={hasAllergies}
+        contentClassName="grid grid-cols-1 gap-3 md:grid-cols-2"
+      >
+        <div>
+          <p className="text-xs text-slate-600">既往歴</p>
+          <p className="mt-0.5 text-sm text-slate-800">{patient.medicalHistory}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-600">アレルギー</p>
+          <p
+            className={cn(
+              'mt-0.5 text-sm',
+              hasAllergies ? 'font-medium text-rose-700' : 'text-slate-800'
+            )}
+          >
+            {hasAllergies && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
+            {patient.allergies}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-600">保険情報</p>
+          <p className="mt-0.5 text-sm text-slate-800">{patient.insuranceInfo}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-600">主疾患</p>
+          <p className="mt-0.5 text-sm text-slate-800">{patient.diseaseName}</p>
+        </div>
+      </PatientViewSection>
 
       {(patient.manualTags?.length || (authMode !== 'cognito' && patient.registrationMeta) || patient.visitRules?.length) && (
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-              <Clock3 className="h-4 w-4 text-cyan-500" />
-              補足情報
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-700">
-            {patient.manualTags && patient.manualTags.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-600">共有メモ</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {patient.manualTags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+        <PatientViewSection
+          title="補足情報"
+          icon={<Clock3 className="h-4 w-4 text-cyan-500" />}
+          summary={patient.visitRules?.length ? formatVisitRuleSummary(patient) : patient.manualTags?.length ? `共有メモ ${patient.manualTags.length}件` : '登録・反映情報'}
+          contentClassName="space-y-3 text-sm text-slate-700"
+        >
+          {patient.manualTags && patient.manualTags.length > 0 && (
+            <div>
+              <p className="text-xs text-slate-600">共有メモ</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {patient.manualTags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
-            )}
-            {patient.visitRules && patient.visitRules.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-600">訪問の目安</p>
-                <p className="mt-1">{formatVisitRuleSummary(patient)}</p>
-              </div>
-            )}
-            {authMode !== 'cognito' && patient.registrationMeta && (
-              <div className="grid gap-2 sm:grid-cols-2 text-xs text-slate-500">
-                <p>登録者: {patient.registrationMeta.createdByName}</p>
-                <p>登録日時: {new Date(patient.registrationMeta.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
-                <p>最終更新者: {patient.registrationMeta.updatedByName}</p>
-                <p>反映メモ: {patient.registrationMeta.manualSyncAt ? new Date(patient.registrationMeta.manualSyncAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '-'}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+          {patient.visitRules && patient.visitRules.length > 0 && (
+            <div>
+              <p className="text-xs text-slate-600">訪問の目安</p>
+              <p className="mt-1">{formatVisitRuleSummary(patient)}</p>
+            </div>
+          )}
+          {authMode !== 'cognito' && patient.registrationMeta && (
+            <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+              <p>登録者: {patient.registrationMeta.createdByName}</p>
+              <p>登録日時: {new Date(patient.registrationMeta.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+              <p>最終更新者: {patient.registrationMeta.updatedByName}</p>
+              <p>反映メモ: {patient.registrationMeta.manualSyncAt ? new Date(patient.registrationMeta.manualSyncAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '-'}</p>
+            </div>
+          )}
+        </PatientViewSection>
       )}
 
       {/* Visit Schedule */}
@@ -1155,41 +1176,33 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Current Medications - moved to bottom with (任意) label */}
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <Pill className="h-4 w-4 text-indigo-500" />
-            現在薬
-            <span className="text-xs font-normal text-slate-500">（任意）</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-700">{patient.currentMeds}</p>
-        </CardContent>
-      </Card>
+      <PatientViewSection
+        title="現在薬（任意）"
+        icon={<Pill className="h-4 w-4 text-indigo-500" />}
+        summary={patient.currentMeds || '未入力'}
+      >
+        <p className="text-sm text-slate-700">{patient.currentMeds}</p>
+      </PatientViewSection>
 
       {/* Attention flags */}
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            注意フラグ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {attentionFlags.length === 0 ? (
-            <p className="text-sm text-slate-500">注意フラグはありません。</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {attentionFlags.map((flag) => (
-                <Badge key={flag.key} variant="outline" className={cn('border text-xs', getPatientAttentionFlagClass(flag.tone))}>
-                  {flag.label}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <PatientViewSection
+        title="注意フラグ"
+        icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+        summary={attentionFlags.length === 0 ? '注意フラグなし' : `${attentionFlags.length}件`}
+        defaultOpen={attentionFlags.length > 0}
+      >
+        {attentionFlags.length === 0 ? (
+          <p className="text-sm text-slate-500">注意フラグはありません。</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {attentionFlags.map((flag) => (
+              <Badge key={flag.key} variant="outline" className={cn('border text-xs', getPatientAttentionFlagClass(flag.tone))}>
+                {flag.label}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </PatientViewSection>
 
       <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-slate-200 bg-white text-slate-900 shadow-xl sm:max-w-4xl">
