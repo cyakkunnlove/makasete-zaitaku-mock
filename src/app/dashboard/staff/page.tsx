@@ -39,12 +39,9 @@ import { AdminPageHeader, AdminStatCard, adminCardClass, adminDialogClass, admin
 import { LoadingState } from '@/components/common/LoadingState'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
-import { Plus, Calendar, Users, ChevronDown } from 'lucide-react'
+import { Plus, Users, ChevronDown } from 'lucide-react'
 
 import {
-  shiftData,
-  shiftPharmacists,
-  type ShiftEntry,
   type DayTaskItem,
 } from '@/lib/mock-data'
 import type { RegisteredPatientRecord } from '@/lib/patient-master'
@@ -71,7 +68,6 @@ type InvitationStatus = 'pending' | 'expired' | 'accepted' | 'revoked'
 type RoleFilter = 'all' | 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 type AddStaffRole = 'system_admin' | 'regional_admin' | 'night_pharmacist' | 'pharmacy_admin' | 'pharmacy_staff'
 
-type PageTab = 'staff' | 'shift'
 type ActivityRange = '7d' | '30d'
 
 const roleLabel: Record<UserRole, string> = {
@@ -181,7 +177,7 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`
 }
 
-function shiftDateKey(baseDateKey: string, diffDays: number) {
+function dateKeyWithOffset(baseDateKey: string, diffDays: number) {
   const date = new Date(`${baseDateKey}T00:00:00`)
   date.setDate(date.getDate() + diffDays)
   return toDateKey(date)
@@ -190,16 +186,6 @@ function shiftDateKey(baseDateKey: string, diffDays: number) {
 function getTodayDateKey() {
   return toDateKey(new Date())
 }
-
-const weekDays = [
-  { date: '2026-03-02', label: '月', full: '3/2(月)' },
-  { date: '2026-03-03', label: '火', full: '3/3(火)' },
-  { date: '2026-03-04', label: '水', full: '3/4(水)' },
-  { date: '2026-03-05', label: '木', full: '3/5(木)' },
-  { date: '2026-03-06', label: '金', full: '3/6(金)' },
-  { date: '2026-03-07', label: '土', full: '3/7(土)' },
-  { date: '2026-03-08', label: '日', full: '3/8(日)' },
-]
 
 function StaffManagementCollapsibleSection({
   title,
@@ -251,7 +237,6 @@ export default function StaffPage() {
   const isRegionalAdmin = role === 'regional_admin'
   const isPharmacyAdmin = role === 'pharmacy_admin'
   const { guard, requiresReverification } = useReauthGuard()
-  const [pageTab, setPageTab] = useState<PageTab>('staff')
   const [activityRange, setActivityRange] = useState<ActivityRange>('7d')
   const [databasePatients, setDatabasePatients] = useState<RegisteredPatientRecord[]>([])
   const [recentDayTasks, setRecentDayTasks] = useState<DayTaskItem[]>([])
@@ -301,9 +286,6 @@ export default function StaffPage() {
   const [newRegionName, setNewRegionName] = useState('')
   const [assignmentRegionIds, setAssignmentRegionIds] = useState<string[]>([])
 
-  // Shift state
-  const [shifts, setShifts] = useState<ShiftEntry[]>(shiftData)
-
   const ownPharmacyId = getScopedPharmacyId(user)
 
   const visibleStaffMembers = useMemo(() => staffMembers, [staffMembers])
@@ -346,7 +328,7 @@ export default function StaffPage() {
   const staffActivitySummaries = useMemo(() => {
     const days = activityRange === '30d' ? 30 : 7
     const today = getTodayDateKey()
-    const startDate = shiftDateKey(today, -(days - 1))
+    const startDate = dateKeyWithOffset(today, -(days - 1))
     const patientNameMap = new Map(ownPatients.map((patient) => [patient.id, patient.name]))
     const counts = new Map<string, {
       id: string
@@ -514,7 +496,7 @@ export default function StaffPage() {
     if (!ownPharmacyId) return
     let cancelled = false
     const today = getTodayDateKey()
-    const dateKeys = Array.from({ length: 30 }, (_, index) => shiftDateKey(today, -index)).reverse()
+    const dateKeys = Array.from({ length: 30 }, (_, index) => dateKeyWithOffset(today, -index)).reverse()
     const mapPersistedTask = (task: Record<string, unknown>): DayTaskItem => ({
       id: String(task.id),
       patientId: String(task.patient_id ?? ''),
@@ -926,20 +908,6 @@ export default function StaffPage() {
     }
   }
 
-  const toggleShiftType = (shiftId: string) => {
-    setShifts((prev) =>
-      prev.map((s) =>
-        s.id === shiftId
-          ? { ...s, shiftType: s.shiftType === 'primary' ? 'backup' : 'primary' }
-          : s
-      )
-    )
-  }
-
-  const getShiftForCell = (pharmacistId: string, date: string) => {
-    return shifts.find((s) => s.pharmacistId === pharmacistId && s.shiftDate === date)
-  }
-
   if (!isSystemAdmin && !isRegionalAdmin && !isPharmacyAdmin) {
     return (
       <Card className={adminCardClass}>
@@ -955,8 +923,8 @@ export default function StaffPage() {
     <div className={adminPageClass}>
       <AdminPageHeader
         title={isSystemAdmin ? '管理者アカウント管理' : isRegionalAdmin ? 'リージョン配下アカウント管理' : '自店スタッフ管理'}
-        description={isSystemAdmin ? 'システム管理者とリージョン管理者の招待、状態変更、連絡先更新を行います。' : isRegionalAdmin ? '薬局管理者と夜間薬剤師の招待、状態変更、シフト管理を行います。' : '自店スタッフの招待、状態変更、連絡先更新を行います。'}
-        actions={pageTab === 'staff' ? (
+        description={isSystemAdmin ? 'システム管理者とリージョン管理者の招待、状態変更、連絡先更新を行います。' : isRegionalAdmin ? '薬局管理者、夜間薬剤師、薬局スタッフの招待、状態変更、連絡先更新を行います。' : '自店スタッフの招待、状態変更、連絡先更新を行います。'}
+        actions={(
           <Button
             onClick={() => {
               if (guard()) return
@@ -967,7 +935,7 @@ export default function StaffPage() {
             <Plus className="h-4 w-4" />
             招待する
           </Button>
-        ) : undefined}
+        )}
       />
 
       {toast && (
@@ -987,38 +955,13 @@ export default function StaffPage() {
       {requiresReverification && (
         <Card className="border-amber-200 bg-amber-50 text-amber-900 shadow-sm">
           <CardContent className="p-4 text-sm">
-            スタッフ追加やシフト変更などの管理操作には再認証が必要です。操作時はセキュリティ確認画面へ移動します。
+            スタッフ追加や権限・連絡先変更などの管理操作には再認証が必要です。操作時はセキュリティ確認画面へ移動します。
           </CardContent>
         </Card>
       )}
 
-      {/* Page-level tabs */}
-      
-      {isRegionalAdmin && (<Card className={adminCardClass}>
-        <CardContent className="p-4">
-          <Tabs value={pageTab} onValueChange={(value) => setPageTab(value as PageTab)}>
-            <TabsList className="h-auto w-full justify-start gap-2 rounded-lg bg-slate-100 p-1">
-              <TabsTrigger
-                value="staff"
-                className="press-squish focus-ring flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
-              >
-                <Users className="h-4 w-4" />
-                スタッフ一覧
-              </TabsTrigger>
-              <TabsTrigger
-                value="shift"
-                className="press-squish focus-ring flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 data-[state=active]:border-indigo-500 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
-              >
-                <Calendar className="h-4 w-4" />
-                シフト管理
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
-      </Card>)}
-
-      {/* ===== Staff List Tab ===== */}
-      {(isSystemAdmin || isPharmacyAdmin || pageTab === 'staff') && (
+      {/* ===== Staff List ===== */}
+      {(isSystemAdmin || isRegionalAdmin || isPharmacyAdmin) && (
         <>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <AdminStatCard label="現在利用中" value={`${activeStaffCount}人`} tone="success" icon={<Users className="h-4 w-4" />} />
@@ -1372,141 +1315,6 @@ export default function StaffPage() {
         </>
       )}
 
-      {/* ===== Shift Management Tab ===== */}
-      {role === 'regional_admin' && pageTab === 'shift' && (
-        <>
-          <Card className="border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-900">週間シフト</CardTitle>
-              <CardDescription className="text-slate-500">
-                2026-03-02 Mon ~ 2026-03-08 Sun
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="text-xs text-slate-500">
-                セルをクリックして当番種別を切り替えられます
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Desktop: table grid */}
-          <Card className="hidden border-slate-200 bg-white shadow-sm lg:block">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableHead className="min-w-[120px] text-slate-500">夜間薬剤師</TableHead>
-                    {weekDays.map((day) => (
-                      <TableHead
-                        key={day.date}
-                        className={cn(
-                          'min-w-[100px] text-center text-slate-500',
-                          (day.label === '土' || day.label === '日') && 'text-slate-400'
-                        )}
-                      >
-                        <div className="text-xs">{day.full}</div>
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shiftPharmacists.map((pharmacist) => (
-                    <TableRow key={pharmacist.id} className="border-slate-200 hover:bg-slate-50">
-                      <TableCell className="font-medium text-slate-900">{pharmacist.name}</TableCell>
-                      {weekDays.map((day) => {
-                        const shift = getShiftForCell(pharmacist.id, day.date)
-                        return (
-                          <TableCell key={day.date} className="text-center">
-                            {shift ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (guard()) return
-                                  toggleShiftType(shift.id)
-                                }}
-                                className="inline-block cursor-pointer transition-opacity hover:opacity-80"
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    'border text-xs',
-                                    shift.shiftType === 'primary'
-                                      ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                      : 'border-slate-200 bg-slate-50 text-slate-600'
-                                  )}
-                                >
-                                  {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
-                                </Badge>
-                              </button>
-                            ) : (
-                              <span className="text-xs text-slate-400">-</span>
-                            )}
-                          </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-
-          {/* Mobile: day cards */}
-          <div className="grid grid-cols-1 gap-3 lg:hidden">
-            {weekDays.map((day) => {
-              const dayShifts = shifts.filter((s) => s.shiftDate === day.date)
-              return (
-                <Card key={day.date} className="border-slate-200 bg-white shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle
-                      className={cn(
-                        'text-sm',
-                        day.label === '土' || day.label === '日' ? 'text-slate-400' : 'text-slate-900'
-                      )}
-                    >
-                      {day.full}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 p-4 pt-0">
-                    {dayShifts.length === 0 ? (
-                      <p className="text-xs text-slate-500">シフトなし</p>
-                    ) : (
-                      dayShifts.map((shift) => (
-                        <div
-                          key={shift.id}
-                          className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
-                        >
-                          <span className="text-sm text-slate-700">{shift.pharmacistName}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (guard()) return
-                              toggleShiftType(shift.id)
-                            }}
-                            className="cursor-pointer transition-opacity hover:opacity-80"
-                          >
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                'border text-xs',
-                                shift.shiftType === 'primary'
-                                  ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
-                                  : 'border-slate-200 bg-slate-50 text-slate-600'
-                              )}
-                            >
-                              {shift.shiftType === 'primary' ? '当番' : 'バックアップ'}
-                            </Badge>
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </>
-      )}
 
       <Dialog open={editDialogOpen} onOpenChange={(open) => {
         setEditDialogOpen(open)

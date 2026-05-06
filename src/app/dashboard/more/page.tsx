@@ -11,7 +11,7 @@ import { adminCardClass, adminPageClass } from '@/components/admin-ui'
 import {
   Building2, Users, CreditCard, BarChart3,
   Shield, LogOut, Moon, Settings, Bell,
-  MessageCircle, Calendar, ArrowLeftRight, Stethoscope
+  MessageCircle, ArrowLeftRight, Stethoscope
 } from 'lucide-react'
 
 interface MenuItem {
@@ -50,13 +50,6 @@ const menuItems: MenuItem[] = [
     description: '候補の確認と軽い整理',
     icon: <Stethoscope size={20} className="text-sky-400" />,
     permission: 'patients',
-  },
-  {
-    href: '/dashboard/shifts',
-    label: 'シフト管理',
-    description: '当番スケジュールの管理',
-    icon: <Calendar size={20} className="text-indigo-400" />,
-    permission: 'shifts',
   },
   {
     href: '/dashboard/billing',

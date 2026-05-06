@@ -656,47 +656,6 @@ export const sbarStyles = {
   recommendation: { label: 'R: Recommendation（提言）', className: 'border-purple-500/40 bg-purple-500/10 text-purple-100' },
 }
 
-// ─── Shifts ───
-export interface ShiftEntry {
-  id: string
-  pharmacistId: string
-  pharmacistName: string
-  shiftDate: string // YYYY-MM-DD
-  shiftType: 'primary' | 'backup'
-}
-
-// Generate shifts for the week of 2026-03-02 to 2026-03-08
-export const shiftData: ShiftEntry[] = [
-  // Monday 03-02
-  { id: 'SH-01', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-02', shiftType: 'primary' },
-  { id: 'SH-02', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-02', shiftType: 'backup' },
-  // Tuesday 03-03
-  { id: 'SH-03', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-03', shiftType: 'primary' },
-  { id: 'SH-04', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-03', shiftType: 'backup' },
-  // Wednesday 03-04
-  { id: 'SH-05', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-04', shiftType: 'primary' },
-  { id: 'SH-06', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-04', shiftType: 'backup' },
-  // Thursday 03-05
-  { id: 'SH-07', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-05', shiftType: 'primary' },
-  { id: 'SH-08', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-05', shiftType: 'backup' },
-  // Friday 03-06
-  { id: 'SH-09', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-06', shiftType: 'primary' },
-  { id: 'SH-10', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-06', shiftType: 'backup' },
-  // Saturday 03-07
-  { id: 'SH-11', pharmacistId: 'ST-03', pharmacistName: '高橋 奈央', shiftDate: '2026-03-07', shiftType: 'primary' },
-  { id: 'SH-12', pharmacistId: 'ST-10', pharmacistName: '佐々木 翔', shiftDate: '2026-03-07', shiftType: 'backup' },
-  // Sunday 03-08
-  { id: 'SH-13', pharmacistId: 'ST-02', pharmacistName: '佐藤 健一', shiftDate: '2026-03-08', shiftType: 'primary' },
-  { id: 'SH-14', pharmacistId: 'ST-04', pharmacistName: '山口 美咲', shiftDate: '2026-03-08', shiftType: 'backup' },
-]
-
-// Pharmacist list for shift calendar
-export const shiftPharmacists = [
-  { id: 'ST-02', name: '佐藤 健一' },
-  { id: 'ST-03', name: '高橋 奈央' },
-  { id: 'ST-04', name: '山口 美咲' },
-  { id: 'ST-10', name: '佐々木 翔' },
-]
 
 // ─── Audit Logs ───
 export type AuditActionType =
@@ -885,7 +844,6 @@ export const notificationLogData: NotificationLogItem[] = [
   { id: 'NL-009', timestamp: '2026-03-06 00:15:42', event: 'assignment.completed', eventLabel: '対応完了', channel: 'line', recipientName: '田中 直樹', recipientContact: 'U1234567890abcdef', status: 'delivered', errorMessage: null },
   { id: 'NL-010', timestamp: '2026-03-05 23:55:01', event: 'sla.violated', eventLabel: 'SLA違反', channel: 'line', recipientName: '田中 直樹', recipientContact: 'U1234567890abcdef', status: 'delivered', errorMessage: null },
   { id: 'NL-011', timestamp: '2026-03-05 23:55:03', event: 'sla.violated', eventLabel: 'SLA違反', channel: 'phone', recipientName: '田中 直樹', recipientContact: '090-4400-1022', status: 'pending', errorMessage: null },
-  { id: 'NL-012', timestamp: '2026-03-05 23:40:18', event: 'shift.reminder', eventLabel: 'シフトリマインド', channel: 'line', recipientName: '山口 美咲', recipientContact: 'U4567890123abcdef', status: 'delivered', errorMessage: null },
   { id: 'NL-013', timestamp: '2026-03-05 23:22:05', event: 'pharmacy.forwarding_on', eventLabel: '転送開始', channel: 'push', recipientName: '小林 恒一', recipientContact: 'kobayashi@minami-ph.jp', status: 'delivered', errorMessage: null },
   { id: 'NL-014', timestamp: '2026-03-05 23:10:30', event: 'billing.generated', eventLabel: '請求書発行', channel: 'email', recipientName: '山田 美咲', recipientContact: 'yamada@jonan-ph.jp', status: 'failed', errorMessage: 'SMTP connection timeout' },
   { id: 'NL-015', timestamp: '2026-03-05 22:58:11', event: 'assignment.timeout', eventLabel: 'アサインタイムアウト', channel: 'line', recipientName: '高橋 奈央', recipientContact: 'U5678901234abcdef', status: 'delivered', errorMessage: null },
@@ -968,7 +926,5 @@ export const notificationSettingsData: NotificationSettingItem[] = [
   { event: 'handover.reminder', eventLabel: '確認リマインド', category: '申し送り', line: false, email: true, push: false, phone: false },
   { event: 'billing.generated', eventLabel: '請求書発行', category: '請求', line: false, email: true, push: false, phone: false },
   { event: 'billing.overdue', eventLabel: '支払い遅延', category: '請求', line: true, email: true, push: false, phone: false },
-  { event: 'shift.reminder', eventLabel: 'シフトリマインド', category: 'シフト', line: true, email: false, push: true, phone: false },
-  { event: 'shift.changed', eventLabel: 'シフト変更', category: 'シフト', line: true, email: false, push: true, phone: false },
   { event: 'pharmacy.forwarding_reminder', eventLabel: '転送解除リマインド', category: '加盟薬局', line: true, email: false, push: false, phone: false },
 ]

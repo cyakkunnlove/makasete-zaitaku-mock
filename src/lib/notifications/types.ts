@@ -7,7 +7,6 @@ export type NotificationEventCategory =
   | 'sla'
   | 'handover'
   | 'billing'
-  | 'shift'
   | 'pharmacy'
   | 'system'
 
@@ -40,10 +39,6 @@ export type NotificationEvent =
   | 'billing.paid'
   | 'billing.overdue'
   | 'billing.reminder'
-  // Shift events
-  | 'shift.reminder'
-  | 'shift.changed'
-  | 'shift.unassigned'
   // Pharmacy events
   | 'pharmacy.forwarding_on'
   | 'pharmacy.forwarding_off'
@@ -92,10 +87,6 @@ export const notificationEventConfigs: NotificationEventConfig[] = [
   { event: 'billing.paid', category: 'billing', label: '入金確認', description: '入金が確認された時', defaultChannels: ['email'] },
   { event: 'billing.overdue', category: 'billing', label: '支払い遅延', description: '支払い期限を超過した時', defaultChannels: ['email', 'line'] },
   { event: 'billing.reminder', category: 'billing', label: '支払いリマインド', description: '支払いリマインダー', defaultChannels: ['email'] },
-  // Shift
-  { event: 'shift.reminder', category: 'shift', label: 'シフトリマインド', description: '当番開始前のリマインダー', defaultChannels: ['line', 'push'] },
-  { event: 'shift.changed', category: 'shift', label: 'シフト変更', description: 'シフトスケジュールが変更された時', defaultChannels: ['line', 'push'] },
-  { event: 'shift.unassigned', category: 'shift', label: '未割当警告', description: 'シフトに薬剤師が未割当の時', defaultChannels: ['push', 'line'] },
   // Pharmacy
   { event: 'pharmacy.forwarding_on', category: 'pharmacy', label: '転送開始', description: '電話転送がONになった時', defaultChannels: ['push'] },
   { event: 'pharmacy.forwarding_off', category: 'pharmacy', label: '転送解除', description: '電話転送がOFFになった時', defaultChannels: ['push'] },
@@ -110,7 +101,6 @@ export const categoryLabels: Record<NotificationEventCategory, string> = {
   sla: 'SLA監視',
   handover: '申し送り',
   billing: '請求',
-  shift: 'シフト',
   pharmacy: '加盟薬局',
   system: 'システム',
 }

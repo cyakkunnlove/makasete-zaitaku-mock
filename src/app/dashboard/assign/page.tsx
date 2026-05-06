@@ -1,37 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { CheckCircle2, Clock3, MapPin, Route, UserCheck } from 'lucide-react'
-
-interface Pharmacist {
-  id: string
-  name: string
-  area: string
-}
-
-type ShiftMode = 'primary' | 'backup' | 'off'
-
-const weekDays = [
-  { id: 'thu', label: '3/5(木)' },
-  { id: 'fri', label: '3/6(金)' },
-  { id: 'sat', label: '3/7(土)' },
-  { id: 'sun', label: '3/8(日)' },
-  { id: 'mon', label: '3/9(月)' },
-  { id: 'tue', label: '3/10(火)' },
-  { id: 'wed', label: '3/11(水)' },
-]
-
-const pharmacists: Pharmacist[] = [
-  { id: 'ph-1', name: '佐藤 健一', area: '世田谷エリア' },
-  { id: 'ph-2', name: '高橋 奈央', area: '新宿・中野エリア' },
-  { id: 'ph-3', name: '山口 美咲', area: '渋谷・港エリア' },
-  { id: 'ph-4', name: '佐々木 翔', area: '文京・千代田エリア' },
-]
 
 const pendingAssignments = [
   {
@@ -68,56 +42,17 @@ const checklistTemplate = [
   '感染対策キットを準備',
 ]
 
-const shiftStates: ShiftMode[] = ['primary', 'backup', 'off']
-
-const shiftLabel: Record<ShiftMode, string> = {
-  primary: '🌙',
-  backup: '🔄',
-  off: '—',
-}
-
-const shiftStyle: Record<ShiftMode, string> = {
-  primary: 'border-indigo-500 bg-indigo-500 text-white hover:bg-indigo-500/90',
-  backup: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30',
-  off: 'border-[#2a3553] bg-[#1a2035] text-gray-400 hover:bg-[#1f2740]',
-}
-
-function cellKey(pharmacistId: string, dayId: string) {
-  return `${pharmacistId}-${dayId}`
-}
-
-function getNextShift(mode: ShiftMode): ShiftMode {
-  const currentIndex = shiftStates.indexOf(mode)
-  return shiftStates[(currentIndex + 1) % shiftStates.length]
-}
-
 function formatCountdown(seconds: number) {
   const minutes = String(Math.floor(seconds / 60)).padStart(2, '0')
   const sec = String(seconds % 60).padStart(2, '0')
   return `${minutes}:${sec}`
 }
 
-function createInitialSchedule() {
-  const schedule: Record<string, ShiftMode> = {}
-
-  pharmacists.forEach((pharmacist, staffIndex) => {
-    weekDays.forEach((day, dayIndex) => {
-      schedule[cellKey(pharmacist.id, day.id)] = shiftStates[(staffIndex + dayIndex) % 3]
-    })
-  })
-
-  return schedule
-}
-
 export default function AssignPage() {
-  const { role } = useAuth()
-  const [schedule, setSchedule] = useState<Record<string, ShiftMode>>(createInitialSchedule)
   const [countdown, setCountdown] = useState(600)
   const [checklist, setChecklist] = useState(
     checklistTemplate.map((label) => ({ label, checked: false }))
   )
-
-  const canEditSchedule = role === 'regional_admin'
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -126,15 +61,6 @@ export default function AssignPage() {
 
     return () => clearInterval(timer)
   }, [])
-
-  const toggleShift = (targetKey: string) => {
-    if (!canEditSchedule) return
-
-    setSchedule((prev) => ({
-      ...prev,
-      [targetKey]: getNextShift(prev[targetKey] ?? 'off'),
-    }))
-  }
 
   const toggleChecklist = (index: number) => {
     setChecklist((prev) =>
@@ -146,65 +72,6 @@ export default function AssignPage() {
 
   return (
     <div className="space-y-5 text-slate-900">
-      <section>
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base text-slate-900">週間当番スケジュール</CardTitle>
-            <CardDescription className="text-slate-500">
-              7日分の当番を切替（🌙 主担当 / 🔄 バックアップ / — 休み）
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-[860px] w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="px-2 py-2 text-left text-slate-500">夜間薬剤師</th>
-                    {weekDays.map((day) => (
-                      <th key={day.id} className="px-2 py-2 text-center text-gray-400">
-                        {day.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pharmacists.map((pharmacist) => (
-                    <tr key={pharmacist.id} className="border-b border-slate-200">
-                      <td className="px-2 py-3 align-middle">
-                        <p className="font-medium text-slate-900">{pharmacist.name}</p>
-                        <p className="text-xs text-slate-500">{pharmacist.area}</p>
-                      </td>
-                      {weekDays.map((day) => {
-                        const key = cellKey(pharmacist.id, day.id)
-                        const mode = schedule[key] ?? 'off'
-
-                        return (
-                          <td key={key} className="px-2 py-3 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={!canEditSchedule}
-                              onClick={() => toggleShift(key)}
-                              className={cn('w-[64px] border text-base', shiftStyle[mode])}
-                            >
-                              {shiftLabel[mode]}
-                            </Button>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {!canEditSchedule && (
-              <p className="mt-3 text-xs text-gray-400">シフト編集は管理者のみ可能です。</p>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
       <section>
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader>
@@ -255,7 +122,6 @@ export default function AssignPage() {
                       </div>
                       <Button
                         size="sm"
-                        disabled={!canEditSchedule}
                         className="bg-indigo-500 text-white hover:bg-indigo-500/90"
                       >
                         <UserCheck className="h-4 w-4" />

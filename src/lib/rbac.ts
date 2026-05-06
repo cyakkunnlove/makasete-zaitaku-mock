@@ -13,7 +13,6 @@ export type PermissionKey =
   | 'billing'
   | 'reports'
   | 'audit'
-  | 'shifts'
   | 'notifications'
   | 'onboarding'
   | 'settings'
@@ -32,7 +31,6 @@ export const permissionMatrix: Record<PermissionKey, UserRole[]> = {
   billing: ['pharmacy_admin', 'pharmacy_staff'],
   reports: ['regional_admin'],
   audit: ['system_admin', 'regional_admin'],
-  shifts: ['regional_admin'],
   notifications: ['regional_admin'],
   onboarding: ['system_admin', 'regional_admin', 'pharmacy_admin'],
   settings: ['system_admin', 'regional_admin', 'pharmacy_admin'],

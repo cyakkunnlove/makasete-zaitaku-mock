@@ -21,7 +21,6 @@ import {
   ClipboardList,
   ArrowUpRight,
   Timer,
-  Stethoscope,
   FileImage,
   Shield,
   RotateCcw,
@@ -33,19 +32,13 @@ import {
   MapPin,
   ChevronDown,
 } from 'lucide-react'
-import { getAttentionFlags, getAttentionFlagClass, pharmacyData, shiftData, type DayTaskItem } from '@/lib/mock-data'
-import { MOCK_FLOW_DATE, generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
+import { getAttentionFlags, getAttentionFlagClass, pharmacyData, type DayTaskItem } from '@/lib/mock-data'
+import { generateAutoDayTasksFromVisitRules, mergeDayFlowTasks } from '@/lib/day-flow'
 import { countVisitRuleTouches, formatVisitRuleSummary, type RegisteredPatientRecord } from '@/lib/patient-master'
 import { getScopedPharmacyId } from '@/lib/patient-permissions'
 import { isPatientInPharmacyScope } from '@/lib/patient-scope'
 import { fetchJsonWithClientCache } from '@/lib/client-cache'
 import { vibrateOnSaveSuccess } from '@/lib/haptics'
-
-const staffStatusClass: Record<string, string> = {
-  待機中: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
-  対応中: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  移動中: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-}
 
 const UNDO_WINDOW_MS = 8000
 const GOOGLE_MAP_SCRIPT_ID = 'google-maps-javascript-api'
@@ -467,44 +460,6 @@ function RegionalAdminDashboard() {
         </CardContent>
       </Card>
 
-      <Card className={adminCardClass}>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
-            <Stethoscope className="h-4 w-4 text-indigo-500" />
-            本日の担当スタッフ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(() => {
-            const today = MOCK_FLOW_DATE
-            const todayShifts = shiftData.filter((shift) => shift.shiftDate === today)
-            if (todayShifts.length === 0) {
-              return <p className="text-xs text-slate-500">本日の担当データがありません。</p>
-            }
-            return todayShifts.map((shift) => {
-              const activeRequest = nightCases.find((requestCase) => requestCase.handledBy?.id === shift.pharmacistId && requestCase.status === 'in_progress')
-              const status = activeRequest ? '対応中' : '待機中'
-              const assignment = activeRequest ? `${activeRequest.pharmacy?.name ?? '薬局未設定'} / ${activeRequest.patient?.fullName ?? '患者照合中'}` : '次回アサイン待機'
-              return (
-                <div key={shift.id} className={`${adminPanelClass} flex items-center justify-between p-3`}>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
-                      {shift.pharmacistName.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{shift.pharmacistName}</p>
-                      <p className="text-xs text-slate-500">{shift.shiftType === 'primary' ? '主担当' : 'バックアップ'} / {assignment}</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={cn('border text-xs', staffStatusClass[status])}>
-                    {status}
-                  </Badge>
-                </div>
-              )
-            })
-          })()}
-        </CardContent>
-      </Card>
     </div>
   )
 }

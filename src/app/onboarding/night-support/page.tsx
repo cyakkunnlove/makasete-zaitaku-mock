@@ -46,7 +46,7 @@ export default function NightSupportPage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-amber-500">•</span>
-            シフト / 申し送り運用
+            担当体制 / 申し送り運用
           </li>
         </ul>
       </section>

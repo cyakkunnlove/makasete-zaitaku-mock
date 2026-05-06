@@ -38,7 +38,6 @@ const navItems: NavItem[] = [
   { href: '/dashboard/billing', label: '請求管理', icon: <CreditCard size={20} />, permission: 'billing' },
   { href: '/dashboard/reports', label: '実績レポート', icon: <BarChart3 size={20} />, permission: 'reports' },
   { href: '/dashboard/audit', label: '監査ログ', icon: <Shield size={20} />, permission: 'audit' },
-  { href: '/dashboard/shifts', label: 'シフト管理', icon: <Calendar size={20} />, permission: 'shifts' },
   { href: '/dashboard/notifications', label: '通知ログ', icon: <Bell size={20} />, permission: 'notifications' },
 ]
 
@@ -85,7 +84,6 @@ function getPathPermission(pathname: string): PermissionKey {
   if (pathname.startsWith('/dashboard/notifications')) return 'notifications'
   if (pathname.startsWith('/dashboard/onboarding')) return 'onboarding'
   if (pathname.startsWith('/dashboard/assign')) return 'assign'
-  if (pathname.startsWith('/dashboard/shifts')) return 'shifts'
   if (pathname.startsWith('/dashboard/more')) return 'more'
   return 'dashboard'
 }
