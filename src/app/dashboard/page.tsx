@@ -1082,7 +1082,7 @@ function PharmacyDashboardTodayTaskList({
   orderedVisits: Array<DayTaskItem & { patient?: RegisteredPatientRecord | undefined }>
   selectedRoutePatientIds: string[]
   handleToggleRoutePatient: (patientId: string) => void
-  taskCardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>
+  taskCardRefs: React.MutableRefObject<Record<string, HTMLDetailsElement | null>>
   handlePlanTask: (taskId: string) => void
   moveTask: (taskId: string, direction: 'up' | 'down') => void
   handleStartTask: (taskId: string) => void
@@ -1111,15 +1111,6 @@ function PharmacyDashboardTodayTaskList({
         const canReorder = !isTaskSaving
         return (
           <div key={visit.id} className="space-y-2">
-            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 shadow-sm">
-              <input
-                type="checkbox"
-                checked={selectedRoutePatientIds.includes(visit.patientId)}
-                onChange={() => handleToggleRoutePatient(visit.patientId)}
-                className="h-4 w-4 rounded border-slate-300 bg-white"
-              />
-              <span>巡回順の提案に含める</span>
-            </label>
             <PharmacyDayTaskCard
               key={visit.id}
               visit={visit}
@@ -1127,6 +1118,7 @@ function PharmacyDashboardTodayTaskList({
               statusClassName={status.className}
               statusLabel={status.label}
               collectionClassName={collection.className}
+              isSelectedForRoute={selectedRoutePatientIds.includes(visit.patientId)}
               cardRef={(node) => {
                 taskCardRefs.current[visit.id] = node
               }}
@@ -1138,6 +1130,7 @@ function PharmacyDashboardTodayTaskList({
               isSaving={isTaskSaving}
               isRecentlySaved={isTaskRecentlySaved}
               isSaveFailed={failedTaskId === visit.id}
+              onRouteSelectionToggle={() => handleToggleRoutePatient(visit.patientId)}
               onPlanToggle={() => handlePlanTask(visit.id)}
               onMoveUp={() => moveTask(visit.id, 'up')}
               onMoveDown={() => moveTask(visit.id, 'down')}
@@ -1405,6 +1398,61 @@ function PharmacyDayTaskCardHeader({
   )
 }
 
+function PharmacyDayTaskCardSummary({
+  visit,
+  patientName,
+  statusClassName,
+  statusLabel,
+  isSelectedForRoute,
+  onRouteSelectionToggle,
+}: {
+  visit: DayTaskItem & { patient?: { name: string; address: string } | undefined }
+  patientName: string
+  statusClassName: string
+  statusLabel: string
+  isSelectedForRoute: boolean
+  onRouteSelectionToggle: () => void
+}) {
+  return (
+    <summary className="action-summary flex list-none items-center justify-between gap-3 rounded-xl px-3 py-2.5 marker:hidden">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="min-w-0 truncate text-sm font-semibold text-slate-900">
+            {patientName}
+          </span>
+          <Badge variant="outline" className={cn('shrink-0 border text-[10px]', statusClassName)}>{statusLabel}</Badge>
+          <Badge variant="outline" className={cn('shrink-0 border text-[10px]', visit.source === '手動追加' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
+            {visit.source}
+          </Badge>
+          <Badge variant="outline" className="shrink-0 border-slate-200 bg-white text-[10px] text-slate-700">{visit.visitType}</Badge>
+        </div>
+        <span className="shrink-0 text-[11px] text-slate-500">予定 {visit.scheduledTime}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <label
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            onRouteSelectionToggle()
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isSelectedForRoute}
+            readOnly
+            className="h-3.5 w-3.5 rounded border-slate-300 bg-white"
+          />
+          巡回順
+        </label>
+        <span className="action-summary-label rounded-full px-2 py-0.5 text-[11px] font-medium group-open:hidden">開く</span>
+        <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500 group-open:inline">閉じる</span>
+        <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+      </div>
+    </summary>
+  )
+}
+
 function PharmacyDayTaskCardMetrics({
   handledBy,
   handledAt,
@@ -1571,6 +1619,7 @@ function PharmacyDayTaskCard({
   statusClassName,
   statusLabel,
   collectionClassName,
+  isSelectedForRoute,
   cardRef,
   canStart,
   canComplete,
@@ -1580,6 +1629,7 @@ function PharmacyDayTaskCard({
   isSaving,
   isRecentlySaved,
   isSaveFailed,
+  onRouteSelectionToggle,
   onPlanToggle,
   onMoveUp,
   onMoveDown,
@@ -1596,7 +1646,8 @@ function PharmacyDayTaskCard({
   statusClassName: string
   statusLabel: string
   collectionClassName: string
-  cardRef?: React.Ref<HTMLDivElement>
+  isSelectedForRoute: boolean
+  cardRef?: React.Ref<HTMLDetailsElement>
   canStart: boolean
   canComplete: boolean
   canMoveUp: boolean
@@ -1605,6 +1656,7 @@ function PharmacyDayTaskCard({
   isSaving: boolean
   isRecentlySaved: boolean
   isSaveFailed: boolean
+  onRouteSelectionToggle: () => void
   onPlanToggle: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -1617,16 +1669,25 @@ function PharmacyDayTaskCard({
   reorderHintText: string
 }) {
   return (
-    <Card
+    <details
+      open={isSaving || isRecentlySaved || isSaveFailed}
       ref={cardRef}
       className={cn(
-        'border border-slate-200 bg-white shadow-sm',
+        'action-disclosure group rounded-xl border border-slate-200 bg-white shadow-sm',
         isSaving && 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft',
         isRecentlySaved && 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop',
         isSaveFailed && 'border-rose-300 ring-2 ring-rose-100'
       )}
     >
-      <CardContent className="space-y-3 p-4">
+      <PharmacyDayTaskCardSummary
+        visit={visit}
+        patientName={patient.name}
+        statusClassName={statusClassName}
+        statusLabel={statusLabel}
+        isSelectedForRoute={isSelectedForRoute}
+        onRouteSelectionToggle={onRouteSelectionToggle}
+      />
+      <CardContent className="space-y-3 border-t border-slate-100 p-4">
         <PharmacyDayTaskCardHeader
           visit={visit}
           patientName={patient.name}
@@ -1669,7 +1730,7 @@ function PharmacyDayTaskCard({
           updatedLabelPrefix={updatedLabelPrefix}
         />
       </CardContent>
-    </Card>
+    </details>
   )
 }
 
@@ -1699,7 +1760,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const [routePlanLoading, setRoutePlanLoading] = useState(false)
   const [workloadSettings, setWorkloadSettings] = useState<PharmacyWorkloadSettings>(defaultWorkloadSettings)
   const routeMapRef = useRef<HTMLDivElement | null>(null)
-  const taskCardRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const taskCardRefs = useRef<Record<string, HTMLDetailsElement | null>>({})
   const publicGoogleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const [routePlanResult, setRoutePlanResult] = useState<RoutePlanResult | null>(null)
   const routeEmailHref = useMemo(() => {
