@@ -102,6 +102,10 @@ function formatPhone(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
+const editInputClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
+const editTextareaClass = 'mt-1 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
+const editOutlineButtonClass = 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+
 function calculateAge(dob: string): number {
   const birth = new Date(dob)
   const today = new Date()
@@ -1201,15 +1205,15 @@ export default function PatientDetailPage() {
             </div>
             <div>
               <p className="text-xs text-gray-500">電話</p>
-              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+              <Input value={formatPhone(institutionForm.phone)} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
             </div>
             <div>
               <p className="text-xs text-gray-500">住所</p>
-              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              <Input value={institutionForm.address} onChange={(e) => setInstitutionForm((prev) => ({ ...prev, address: e.target.value }))} className={editInputClass} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button variant="outline" onClick={() => setInstitutionDialogOpen(false)} className={editOutlineButtonClass}>閉じる</Button>
             <Button onClick={() => void saveMedicalInstitution()} disabled={institutionSubmitting} className="bg-indigo-600 text-white hover:bg-indigo-500">{institutionSubmitting ? (editingInstitutionId ? '更新中...' : '追加中...') : (editingInstitutionId ? '病院を更新' : '病院を追加')}</Button>
           </DialogFooter>
         </DialogContent>
@@ -1224,19 +1228,19 @@ export default function PatientDetailPage() {
           <div className="space-y-3">
             <div>
               <p className="text-xs text-gray-500">医師名</p>
-              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              <Input value={doctorForm.fullName} onChange={(e) => setDoctorForm((prev) => ({ ...prev, fullName: e.target.value }))} className={editInputClass} />
             </div>
             <div>
               <p className="text-xs text-gray-500">診療科</p>
-              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+              <Input value={doctorForm.department} onChange={(e) => setDoctorForm((prev) => ({ ...prev, department: e.target.value }))} className={editInputClass} />
             </div>
             <div>
               <p className="text-xs text-gray-500">電話</p>
-              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+              <Input value={formatPhone(doctorForm.phone)} onChange={(e) => setDoctorForm((prev) => ({ ...prev, phone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">閉じる</Button>
+            <Button variant="outline" onClick={() => setDoctorDialogOpen(false)} className={editOutlineButtonClass}>閉じる</Button>
             <Button onClick={() => void saveDoctor()} disabled={doctorSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-500">{doctorSubmitting ? (editingDoctorId ? '更新中...' : '追加中...') : (editingDoctorId ? '医師を更新' : '医師を追加')}</Button>
           </DialogFooter>
         </DialogContent>
@@ -1255,13 +1259,13 @@ export default function PatientDetailPage() {
               <p className="text-xs text-slate-500">入力した住所</p>
               <p className="mt-1 text-slate-900">{geocodePreview?.inputAddress ?? '—'}</p>
             </div>
-            <div className="rounded-lg border border-[#2a3553] bg-[#11182c] p-3">
-              <p className="text-xs text-gray-500">解釈された住所</p>
-              <p className="mt-1 text-gray-100">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
-              <p className="mt-1 text-xs text-gray-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">解釈された住所</p>
+              <p className="mt-1 text-slate-900">{geocodePreview?.normalizedAddress ?? '未取得'}</p>
+              <p className="mt-1 text-xs text-slate-500">座標: {geocodePreview?.latitude ?? '-'}, {geocodePreview?.longitude ?? '-'}</p>
             </div>
             {typeof geocodePreview?.latitude === 'number' && typeof geocodePreview?.longitude === 'number' && (
-              <div className="overflow-hidden rounded-lg border border-[#2a3553] bg-[#11182c]">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                 <iframe
                   title="住所確認地図"
                   className="h-56 w-full"
@@ -1272,7 +1276,7 @@ export default function PatientDetailPage() {
               </div>
             )}
             {geocodePreview?.warnings?.length ? (
-              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
                 {geocodePreview.warnings.map((warning) => (
                   <p key={warning.code}>{warning.message}</p>
                 ))}
@@ -1280,7 +1284,7 @@ export default function PatientDetailPage() {
             ) : null}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className="border-[#2a3553] text-gray-200 hover:bg-[#11182c]">住所を見直す</Button>
+            <Button variant="outline" onClick={() => setGeocodeConfirmOpen(false)} className={editOutlineButtonClass}>住所を見直す</Button>
             <Button onClick={() => void handleSavePatientEdit(true)} className="bg-indigo-600 text-white hover:bg-indigo-500">この住所で保存する</Button>
           </DialogFooter>
         </DialogContent>
@@ -1361,11 +1365,11 @@ export default function PatientDetailPage() {
                       setEditForm((prev) => ({ ...prev, doctorClinic: nextValue }))
                       void searchMedicalInstitutions(nextValue)
                     }}
-                    className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100"
+                    className={editInputClass}
                   />
                   {medicalInstitutionLoading && <p className="mt-2 text-[11px] text-gray-500">病院候補を確認中です...</p>}
                   {medicalInstitutionOptions.length > 0 && (
-                    <div className="mt-2 space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                    <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                       {medicalInstitutionOptions.slice(0, 5).map((option) => (
                         <button
                           key={option.id}
@@ -1376,29 +1380,29 @@ export default function PatientDetailPage() {
                             setEditForm((prev) => ({ ...prev, doctorClinic: option.name }))
                             void searchDoctors(option.id)
                           }}
-                          className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedMedicalInstitutionId === option.id ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-xs transition ${selectedMedicalInstitutionId === option.id ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <p className="font-medium">{option.name}</p>
                             {editForm.doctorClinic.trim() && option.name === editForm.doctorClinic.trim() && (
-                              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">同名候補</span>
                             )}
                           </div>
-                          <p className="mt-1 text-[11px] text-gray-400">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
+                          <p className="mt-1 text-[11px] text-slate-500">{option.address || '住所未設定'} / 医師候補 {option.doctorCount}件</p>
                         </button>
                       ))}
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setEditingInstitutionId(null); setInstitutionForm({ name: editForm.doctorClinic, phone: '', address: '' }); setInstitutionDialogOpen(true) }}>
+                    <Button type="button" variant="outline" className={editOutlineButtonClass} onClick={() => { setEditingInstitutionId(null); setInstitutionForm({ name: editForm.doctorClinic, phone: '', address: '' }); setInstitutionDialogOpen(true) }}>
                       この病院を追加
                     </Button>
                     {selectedMedicalInstitutionId && (
                       <>
-                        <Button type="button" variant="ghost" className="text-sky-300 hover:bg-sky-500/10 hover:text-sky-200" onClick={() => { const current = medicalInstitutionOptions.find((item) => item.id === selectedMedicalInstitutionId); setEditingInstitutionId(selectedMedicalInstitutionId); setInstitutionForm({ name: current?.name ?? editForm.doctorClinic, phone: current?.phone ?? '', address: current?.address ?? '' }); setInstitutionDialogOpen(true) }}>
+                        <Button type="button" variant="ghost" className="text-sky-700 hover:bg-sky-50 hover:text-sky-800" onClick={() => { const current = medicalInstitutionOptions.find((item) => item.id === selectedMedicalInstitutionId); setEditingInstitutionId(selectedMedicalInstitutionId); setInstitutionForm({ name: current?.name ?? editForm.doctorClinic, phone: current?.phone ?? '', address: current?.address ?? '' }); setInstitutionDialogOpen(true) }}>
                           修正する
                         </Button>
-                        <Button type="button" variant="ghost" className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" onClick={() => void archiveMedicalInstitution()}>
+                        <Button type="button" variant="ghost" className="text-rose-700 hover:bg-rose-50 hover:text-rose-800" onClick={() => void archiveMedicalInstitution()}>
                           候補から外す
                         </Button>
                       </>
@@ -1415,11 +1419,11 @@ export default function PatientDetailPage() {
                       setEditForm((prev) => ({ ...prev, doctorName: nextValue }))
                       if (selectedMedicalInstitutionId) void searchDoctors(selectedMedicalInstitutionId, nextValue)
                     }}
-                    className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100"
+                    className={editInputClass}
                   />
                   {doctorLoading && selectedMedicalInstitutionId && <p className="mt-2 text-[11px] text-gray-500">医師候補を確認中です...</p>}
                   {selectedMedicalInstitutionId && doctorOptions.length > 0 && (
-                    <div className="mt-2 space-y-2 rounded-lg border border-[#2a3553] bg-[#11182c] p-2">
+                    <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                       {doctorOptions.slice(0, 5).map((option) => (
                         <button
                           key={option.id}
@@ -1428,29 +1432,29 @@ export default function PatientDetailPage() {
                             setSelectedDoctorMasterId(option.id)
                             setEditForm((prev) => ({ ...prev, doctorName: option.fullName, doctorPhone: normalizePhone(option.phone) }))
                           }}
-                          className={`w-full rounded-md border px-3 py-2 text-left text-xs ${selectedDoctorMasterId === option.id ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#0a0e1a] text-gray-300'}`}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-xs transition ${selectedDoctorMasterId === option.id ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <p className="font-medium">{option.fullName}</p>
                             {editForm.doctorName.trim() && option.fullName === editForm.doctorName.trim() && (
-                              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">同名候補</span>
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">同名候補</span>
                             )}
                           </div>
-                          <p className="mt-1 text-[11px] text-gray-400">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
+                          <p className="mt-1 text-[11px] text-slate-500">{option.department || '診療科未設定'}{option.phone ? ` / ${option.phone}` : ''}</p>
                         </button>
                       ))}
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" disabled={!selectedMedicalInstitutionId} className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]" onClick={() => { setEditingDoctorId(null); setDoctorForm({ fullName: editForm.doctorName, phone: editForm.doctorPhone, department: '' }); setDoctorDialogOpen(true) }}>
+                    <Button type="button" variant="outline" disabled={!selectedMedicalInstitutionId} className={editOutlineButtonClass} onClick={() => { setEditingDoctorId(null); setDoctorForm({ fullName: editForm.doctorName, phone: editForm.doctorPhone, department: '' }); setDoctorDialogOpen(true) }}>
                       この医師を追加
                     </Button>
                     {selectedDoctorMasterId && (
                       <>
-                        <Button type="button" variant="ghost" className="text-sky-300 hover:bg-sky-500/10 hover:text-sky-200" onClick={() => { const current = doctorOptions.find((item) => item.id === selectedDoctorMasterId); setEditingDoctorId(selectedDoctorMasterId); setDoctorForm({ fullName: current?.fullName ?? editForm.doctorName, phone: normalizePhone(current?.phone ?? editForm.doctorPhone), department: current?.department ?? '' }); setDoctorDialogOpen(true) }}>
+                        <Button type="button" variant="ghost" className="text-sky-700 hover:bg-sky-50 hover:text-sky-800" onClick={() => { const current = doctorOptions.find((item) => item.id === selectedDoctorMasterId); setEditingDoctorId(selectedDoctorMasterId); setDoctorForm({ fullName: current?.fullName ?? editForm.doctorName, phone: normalizePhone(current?.phone ?? editForm.doctorPhone), department: current?.department ?? '' }); setDoctorDialogOpen(true) }}>
                           修正する
                         </Button>
-                        <Button type="button" variant="ghost" className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200" onClick={() => void archiveDoctor()}>
+                        <Button type="button" variant="ghost" className="text-rose-700 hover:bg-rose-50 hover:text-rose-800" onClick={() => void archiveDoctor()}>
                           候補から外す
                         </Button>
                       </>
@@ -1459,28 +1463,28 @@ export default function PatientDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">医師電話</p>
-                  <Input value={formatPhone(editForm.doctorPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, doctorPhone: normalizePhone(e.target.value) }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" inputMode="tel" />
+                  <Input value={formatPhone(editForm.doctorPhone)} onChange={(e) => setEditForm((prev) => ({ ...prev, doctorPhone: normalizePhone(e.target.value) }))} className={editInputClass} inputMode="tel" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">訪問時注意事項</p>
-                  <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className="mt-1 min-h-[110px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  <Textarea value={editForm.visitNotes} onChange={(e) => setEditForm((prev) => ({ ...prev, visitNotes: e.target.value }))} className={`${editTextareaClass} min-h-[110px]`} />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">現在薬</p>
-                  <Textarea value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  <Textarea value={editForm.currentMeds} onChange={(e) => setEditForm((prev) => ({ ...prev, currentMeds: e.target.value }))} className={`${editTextareaClass} min-h-[80px]`} />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">既往歴</p>
-                  <Textarea value={editForm.medicalHistory} onChange={(e) => setEditForm((prev) => ({ ...prev, medicalHistory: e.target.value }))} className="mt-1 min-h-[80px] border-[#2a3553] bg-[#11182c] text-gray-100" />
+                  <Textarea value={editForm.medicalHistory} onChange={(e) => setEditForm((prev) => ({ ...prev, medicalHistory: e.target.value }))} className={`${editTextareaClass} min-h-[80px]`} />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
                     <p className="text-xs text-gray-500">アレルギー</p>
-                    <Input value={editForm.allergies} onChange={(e) => setEditForm((prev) => ({ ...prev, allergies: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                    <Input value={editForm.allergies} onChange={(e) => setEditForm((prev) => ({ ...prev, allergies: e.target.value }))} className={editInputClass} />
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">保険情報</p>
-                    <Input value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" />
+                    <Input value={editForm.insuranceInfo} onChange={(e) => setEditForm((prev) => ({ ...prev, insuranceInfo: e.target.value }))} className={editInputClass} />
                   </div>
                 </div>
                 <div>
@@ -1489,14 +1493,14 @@ export default function PatientDetailPage() {
                     <button
                       type="button"
                       onClick={() => setEditForm((prev) => ({ ...prev, isBillable: true, billingExclusionReason: '' }))}
-                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${editForm.isBillable ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-100' : 'border-[#2a3553] bg-[#11182c] text-gray-300'}`}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${editForm.isBillable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
                     >
                       請求対象
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditForm((prev) => ({ ...prev, isBillable: false }))}
-                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${!editForm.isBillable ? 'border-amber-500/30 bg-amber-500/15 text-amber-100' : 'border-[#2a3553] bg-[#11182c] text-gray-300'}`}
+                      className={`rounded-xl border px-4 py-3 text-left text-sm transition ${!editForm.isBillable ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
                     >
                       請求対象外
                     </button>
@@ -1504,7 +1508,7 @@ export default function PatientDetailPage() {
                   {!editForm.isBillable ? (
                     <div className="mt-3">
                       <p className="text-xs text-gray-500">対象外理由</p>
-                      <Input value={editForm.billingExclusionReason} onChange={(e) => setEditForm((prev) => ({ ...prev, billingExclusionReason: e.target.value }))} className="mt-1 border-[#2a3553] bg-[#11182c] text-gray-100" placeholder="保険上対象外、施設契約内など" />
+                      <Input value={editForm.billingExclusionReason} onChange={(e) => setEditForm((prev) => ({ ...prev, billingExclusionReason: e.target.value }))} className={editInputClass} placeholder="保険上対象外、施設契約内など" />
                     </div>
                   ) : null}
                 </div>
