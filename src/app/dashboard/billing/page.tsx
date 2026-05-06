@@ -146,6 +146,7 @@ function BillingCollapsibleSection({
   countLabel,
   icon: Icon,
   defaultOpen = false,
+  onOpen,
   children,
 }: {
   title: string
@@ -153,10 +154,17 @@ function BillingCollapsibleSection({
   countLabel?: string
   icon: ComponentType<{ className?: string }>
   defaultOpen?: boolean
+  onOpen?: () => void
   children: ReactNode
 }) {
   return (
-    <details open={defaultOpen} className="action-disclosure group rounded-xl border border-slate-200 bg-white shadow-sm">
+    <details
+      open={defaultOpen}
+      onToggle={(event) => {
+        if (event.currentTarget.open) onOpen?.()
+      }}
+      className="action-disclosure group rounded-xl border border-slate-200 bg-white shadow-sm"
+    >
       <summary className="action-summary flex list-none items-center justify-between gap-3 rounded-xl px-4 py-3 marker:hidden">
         <span className="flex min-w-0 items-start gap-2">
           <Icon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
@@ -198,6 +206,9 @@ export default function BillingPage() {
   const [apiCollectionRecords, setApiCollectionRecords] = useState<BillingCollectionRecord[]>([])
   const [apiDateCollectionSummaries, setApiDateCollectionSummaries] = useState<BillingDateCollectionSummary[]>([])
   const [billingReadModelVersion, setBillingReadModelVersion] = useState(0)
+  const [fullReadModelLoaded, setFullReadModelLoaded] = useState(false)
+  const [fullReadModelLoading, setFullReadModelLoading] = useState(false)
+  const [fullReadModelError, setFullReadModelError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
   const [toastTone, setToastTone] = useState<'success' | 'error'>('success')
   const [savingCollectionRecordId, setSavingCollectionRecordId] = useState<string | null>(null)
@@ -328,14 +339,14 @@ export default function BillingPage() {
 
   const patientMap = useMemo(() => new Map(ownPatients.map((patient) => [patient.id, patient])), [ownPatients])
 
-	  const dayTaskCollectionRecords = useMemo(() => buildDayTaskCollectionRecords({
-	    sharedDayTasks,
-	    ownPharmacyId: ownPharmacyId ?? '',
+  const dayTaskCollectionRecords = useMemo(() => buildDayTaskCollectionRecords({
+    sharedDayTasks,
+    ownPharmacyId: ownPharmacyId ?? '',
     ownPatientNames,
     patientMap,
     patientBillingSettings,
     collectionRecords,
-	  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
+  }), [collectionRecords, ownPatientNames, ownPharmacyId, patientBillingSettings, patientMap, sharedDayTasks])
 
   const mergedCollectionRecords = useMemo(() => {
     if (isPharmacyRole) return apiCollectionRecords
@@ -446,19 +457,25 @@ export default function BillingPage() {
   useEffect(() => {
     let cancelled = false
 
-	    async function fetchAdminBillingReadModel() {
-	      if (!user || !ownPharmacyId) {
-	        setAdminBillingRecords([])
-	        setApiCollectionRecords([])
-	        setApiDateCollectionSummaries([])
-	        return
-	      }
+    async function fetchAdminBillingReadModel() {
+      setFullReadModelLoaded(false)
+      setFullReadModelError('')
+      setShowCollectionTable(false)
+      setSelectedCollectionDate(null)
+      setExpandedHistoryPatients([])
+      if (!user || !ownPharmacyId) {
+        setAdminBillingRecords([])
+        setApiCollectionRecords([])
+        setApiDateCollectionSummaries([])
+        return
+      }
 
-	      try {
+      try {
         const response = await fetch('/api/billing/read-model', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            mode: 'overview',
             flowDate: billingFlowDate,
             patientSearch,
             statusFilter: 'all',
@@ -468,7 +485,7 @@ export default function BillingPage() {
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.adminBillingRecords)) {
           setAdminBillingRecords(result.adminBillingRecords)
           setApiCollectionRecords(Array.isArray(result.collectionRecords) ? result.collectionRecords : [])
-          setApiDateCollectionSummaries(Array.isArray(result.dateCollectionSummaries) ? result.dateCollectionSummaries : [])
+          setApiDateCollectionSummaries([])
           return
         }
       } catch {}
@@ -485,6 +502,47 @@ export default function BillingPage() {
       cancelled = true
     }
   }, [billingFlowDate, billingReadModelVersion, ownPharmacyId, patientSearch, user])
+
+  const loadFullBillingReadModel = async () => {
+    if (fullReadModelLoaded || fullReadModelLoading) return fullReadModelLoaded
+    if (!user || !ownPharmacyId) return false
+
+    setFullReadModelLoading(true)
+    setFullReadModelError('')
+    try {
+      const response = await fetch('/api/billing/read-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'full',
+          flowDate: billingFlowDate,
+          patientSearch,
+          statusFilter: 'all',
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.ok || !Array.isArray(result.adminBillingRecords)) {
+        throw new Error('billing_full_read_model_failed')
+      }
+      setAdminBillingRecords(result.adminBillingRecords)
+      setApiCollectionRecords(Array.isArray(result.collectionRecords) ? result.collectionRecords : [])
+      setApiDateCollectionSummaries(Array.isArray(result.dateCollectionSummaries) ? result.dateCollectionSummaries : [])
+      setFullReadModelLoaded(true)
+      return true
+    } catch {
+      setFullReadModelError('全件データの読み込みに失敗しました。時間をおいて再度お試しください。')
+      return false
+    } finally {
+      setFullReadModelLoading(false)
+    }
+  }
+
+  const handleStaffFilterChange = (nextFilter: StaffCollectionFilter) => {
+    setStaffFilter(nextFilter)
+    if (nextFilter === 'paid' || nextFilter === 'all') {
+      void loadFullBillingReadModel()
+    }
+  }
 
   const handleBatchGenerate = () => {
     setGeneratedLabel(`${batchMonth} の請求書を ${adminBillingRecords.length} 件生成しました（モック）`)
@@ -768,7 +826,7 @@ export default function BillingPage() {
                     type="button"
                     size="sm"
                     variant={staffFilter === option.key ? 'default' : 'outline'}
-                    onClick={() => setStaffFilter(option.key as StaffCollectionFilter)}
+                    onClick={() => handleStaffFilterChange(option.key as StaffCollectionFilter)}
                     className={cn(
                       staffFilter === option.key
                         ? 'bg-indigo-600 text-white hover:bg-indigo-600/90'
@@ -847,8 +905,9 @@ export default function BillingPage() {
         <BillingCollapsibleSection
           title="日付別に見返す"
           description="通常の処理では使いません。後から特定日を追いたい時だけ開きます。"
-          countLabel={`${dateCollectionSummaries.length}日`}
+          countLabel={fullReadModelLoaded ? `${dateCollectionSummaries.length}日` : '必要時読込'}
           icon={CalendarDays}
+          onOpen={() => { void loadFullBillingReadModel() }}
         >
           <div className="space-y-3">
             <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[220px_1fr] sm:items-center">
@@ -896,7 +955,15 @@ export default function BillingPage() {
               ))}
             </div>
 
-            {dateCollectionSummaries.length === 0 ? (
+            {fullReadModelLoading ? (
+              <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-6 text-center text-sm text-indigo-700">
+                日付別の履歴を読み込んでいます。
+              </div>
+            ) : fullReadModelError ? (
+              <div className="rounded-lg border border-dashed border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-700">
+                {fullReadModelError}
+              </div>
+            ) : dateCollectionSummaries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 条件に合う日付はありません。対象日かフラグを変えて確認してください。
               </div>
@@ -986,8 +1053,9 @@ export default function BillingPage() {
         <BillingCollapsibleSection
           title="患者別の履歴を見返す"
           description="通常の処理では使いません。前回メモや状態変化を追いたい時だけ開きます。"
-          countLabel={`${filteredPatientCollectionHistories.length}名`}
+          countLabel={fullReadModelLoaded ? `${filteredPatientCollectionHistories.length}名` : '必要時読込'}
           icon={Layers}
+          onOpen={() => { void loadFullBillingReadModel() }}
         >
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1030,7 +1098,11 @@ export default function BillingPage() {
                 </Button>
               </div>
             </div>
-            {filteredPatientCollectionHistories.length === 0 ? (
+            {fullReadModelLoading ? (
+              <p className="py-4 text-center text-xs text-indigo-700">患者別の履歴を読み込んでいます。</p>
+            ) : fullReadModelError ? (
+              <p className="py-4 text-center text-xs text-rose-700">{fullReadModelError}</p>
+            ) : filteredPatientCollectionHistories.length === 0 ? (
               <p className="py-4 text-center text-xs text-slate-500">条件に合う回収履歴はありません。</p>
             ) : (
               <div className="space-y-3">
@@ -1096,8 +1168,22 @@ export default function BillingPage() {
                 <CardTitle className="text-sm text-slate-900">全件確認</CardTitle>
                 <CardDescription className="text-slate-600">通常の処理では使いません。監査や抜け漏れ確認が必要なときだけ開きます。</CardDescription>
               </div>
-              <Button type="button" size="sm" variant="outline" onClick={() => setShowCollectionTable((prev) => !prev)} className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
-                {showCollectionTable ? '一覧を閉じる' : '一覧を開く'}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  if (showCollectionTable) {
+                    setShowCollectionTable(false)
+                    return
+                  }
+                  const loaded = await loadFullBillingReadModel()
+                  if (loaded) setShowCollectionTable(true)
+                }}
+                disabled={fullReadModelLoading}
+                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {fullReadModelLoading ? '読込中...' : showCollectionTable ? '一覧を閉じる' : '一覧を開く'}
               </Button>
             </div>
           </CardHeader>
@@ -1172,7 +1258,9 @@ export default function BillingPage() {
               </Table>
             </CardContent>
           ) : (
-            <CardContent className="px-4 pb-4 pt-0 text-xs text-slate-500">必要なときだけ一覧を開けます。</CardContent>
+            <CardContent className="px-4 pb-4 pt-0 text-xs text-slate-500">
+              {fullReadModelError || '必要なときだけ一覧を開けます。開いた時に全件データを読み込みます。'}
+            </CardContent>
           )}
         </Card>
 

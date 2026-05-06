@@ -32,6 +32,9 @@ export async function POST(request: Request) {
   const statusFilter = body && typeof body === 'object' && typeof (body as Record<string, unknown>).statusFilter === 'string'
     ? ((body as Record<string, unknown>).statusFilter as 'all' | 'ready' | 'pending' | 'paid' | 'on_hold')
     : 'all'
+  const mode = body && typeof body === 'object' && (body as Record<string, unknown>).mode === 'full'
+    ? 'full'
+    : 'overview'
   const processedUnbilledIds = body && typeof body === 'object' && Array.isArray((body as Record<string, unknown>).processedUnbilledIds)
     ? new Set(((body as Record<string, unknown>).processedUnbilledIds as unknown[]).filter((item): item is string => typeof item === 'string'))
     : new Set<string>()
@@ -43,13 +46,22 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServerSupabaseClient()
+  let taskQuery = supabase
+    .from('patient_day_tasks')
+    .select('*')
+    .eq('organization_id', user.organization_id)
+    .eq('pharmacy_id', scopedPharmacyId)
+    .lte('flow_date', flowDate)
+
+  if (mode === 'overview') {
+    taskQuery = taskQuery
+      .eq('status', 'completed')
+      .eq('billable', true)
+      .in('collection_status', ['needs_billing', 'billed', 'needs_attention'])
+  }
+
   const [tasksResult, pharmacyResult] = await Promise.all([
-    supabase
-      .from('patient_day_tasks')
-      .select('*')
-      .eq('organization_id', user.organization_id)
-      .eq('pharmacy_id', scopedPharmacyId)
-      .lte('flow_date', flowDate)
+    taskQuery
       .order('flow_date', { ascending: false })
       .order('sort_order', { ascending: true }),
     supabase
@@ -101,17 +113,21 @@ export async function POST(request: Request) {
     ...collectionRecords.filter((record) => !dayTaskCollectionRecords.some((taskRecord) => taskRecord.linkedTaskId === record.linkedTaskId)),
   ]
 
-  const patientVisitHistory = buildPatientVisitHistory({
-    ownPatients,
-    sharedDayTasks,
-    mergedCollectionRecords,
-  })
+  const patientVisitHistory = mode === 'full'
+    ? buildPatientVisitHistory({
+        ownPatients,
+        sharedDayTasks,
+        mergedCollectionRecords,
+      })
+    : []
 
-  const dateCollectionSummaries = buildDateCollectionSummaries({
-    patientVisitHistory,
-    patientSearch,
-    statusFilter,
-  })
+  const dateCollectionSummaries = mode === 'full'
+    ? buildDateCollectionSummaries({
+        patientVisitHistory,
+        patientSearch,
+        statusFilter,
+      })
+    : []
 
   const unbilledVisitRecords = buildUnbilledVisitRecords({
     sharedDayTasks,
@@ -131,6 +147,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    mode,
     adminBillingRecords,
     pharmacyName,
     collectionRecords: mergedCollectionRecords,
