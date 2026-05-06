@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeftRight, Building2, CheckCircle2, LogOut, Shield, Store, UserCircle2 } from 'lucide-react'
 
@@ -149,9 +148,6 @@ export default function RoleChooserPage() {
             立場を切り替えると、表示メニューや操作可能範囲がその立場基準に変わる想定です。
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild variant="outline" className="border-[#2a3553] bg-[#11182c] text-gray-200 hover:bg-[#1a2035]">
-              <Link href="/dashboard/more">その他へ戻る</Link>
-            </Button>
             <Button variant="ghost" onClick={signOut} className="text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
               <LogOut className="h-4 w-4" />
               いったんログアウト

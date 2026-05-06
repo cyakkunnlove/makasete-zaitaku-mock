@@ -184,6 +184,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const sidebarBgClass = isAdminShell ? 'bg-slate-950 border-slate-800' : isFieldShell ? 'bg-white border-slate-200' : 'bg-[#111827] border-[#2a3553]'
   const topBarBgClass = isAdminShell ? 'bg-white border-slate-200' : isFieldShell ? 'bg-white/95 border-slate-200 backdrop-blur' : 'bg-[#111827] border-[#2a3553]'
   const isNavActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
+  const isRoleChooserPage = pathname.startsWith('/dashboard/role-chooser')
   const handleSidebarNavigate = (href: string) => {
     if (pathname === href) {
       setSidebarOpen(false)
@@ -249,6 +250,33 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <p className="text-base font-semibold text-white">再認証が必要です</p>
           <p className="mt-2 text-sm leading-6 text-gray-400">12時間を超えたため、セキュリティ確認画面へ移動しています。</p>
         </div>
+      </div>
+    )
+  }
+
+  if (isRoleChooserPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-950">
+        <header className="sticky top-0 z-20 flex h-14 items-center border-b border-slate-200 bg-white/95 px-4 backdrop-blur">
+          <h2 className="font-semibold text-slate-900">立場選択</h2>
+          <div className="ml-3 flex items-center gap-1.5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+            <span className="text-xs text-emerald-500">LIVE</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="ml-auto text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <LogOut size={16} className="mr-2" />
+            ログアウト
+          </Button>
+        </header>
+
+        <main className="mx-auto max-w-5xl p-4 pb-10 lg:p-6">
+          {children}
+        </main>
       </div>
     )
   }
