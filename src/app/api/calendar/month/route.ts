@@ -10,6 +10,15 @@ import { mapDatabasePatientToPatientRecord } from '@/lib/patient-read-model'
 import { listPatientsByPharmacy, listPatientVisitRulesByPatientIds } from '@/lib/repositories/patients'
 import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
+function toTokyoDateKey(date: Date) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
 function parseYearMonth(searchParams: URLSearchParams) {
   const year = Number(searchParams.get('year'))
   const month = Number(searchParams.get('month'))
@@ -94,8 +103,10 @@ export async function GET(request: Request) {
   const visitRulesByPatientId = await listPatientVisitRulesByPatientIds({ patientIds: patients.map((patient) => patient.id) })
   const patientRecords = patients.map((patient) => mapDatabasePatientToPatientRecord(patient, visitRulesByPatientId.get(patient.id) ?? []))
 
+  const todayKey = toTokyoDateKey(new Date())
   const generatedTasks = Array.from({ length: monthEnd.getDate() }, (_, index) => {
     const dateKey = `${monthKey}-${String(index + 1).padStart(2, '0')}`
+    if (dateKey < todayKey) return []
     return generateAutoDayTasksFromVisitRules(patientRecords, dateKey, persistedTasks.map((task) => ({
       id: task.id,
       patientId: task.patient_id ?? '',
@@ -136,6 +147,7 @@ export async function GET(request: Request) {
     patients,
     year: parsed.year,
     month: parsed.month,
+    today: todayKey,
   })
 
   return NextResponse.json({

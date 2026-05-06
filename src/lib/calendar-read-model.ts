@@ -41,6 +41,8 @@ export type CalendarDayTaskDetail = {
   status: PatientDayTask['status']
   handledBy: string | null
   completedAt: string | null
+  billable: boolean
+  collectionStatus: PatientDayTask['collection_status'] | null
   isFirstVisit: boolean
   isLongGapVisit: boolean
   hasNightHandover: boolean
@@ -252,6 +254,8 @@ export function buildCalendarDayDetail(input: {
       status: task.status,
       handledBy: task.handled_by,
       completedAt: task.completed_at,
+      billable: Boolean(task.billable),
+      collectionStatus: task.collection_status,
       isFirstVisit: firstVisitTaskIds.has(task.id),
       isLongGapVisit,
       hasNightHandover: isNightHandoverTask(task),

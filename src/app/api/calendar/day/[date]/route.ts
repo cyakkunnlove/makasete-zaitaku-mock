@@ -13,6 +13,15 @@ import { normalizeCollectionStatusToDb } from '@/lib/status-meta'
 
 const PATIENT_LIST_SELECT = '*'
 
+function toTokyoDateKey(date: Date) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
 function isDateKey(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -147,7 +156,8 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     created_at: '',
     updated_at: '',
   }, visitRulesByPatientId.get(patient.id) ?? []))
-  const generatedTasks = generateAutoDayTasksFromVisitRules(detailedPatients, params.date, persistedTasks.map(mapPersistedTask))
+  const todayKey = toTokyoDateKey(new Date())
+  const generatedTasks = params.date < todayKey ? [] : generateAutoDayTasksFromVisitRules(detailedPatients, params.date, persistedTasks.map(mapPersistedTask))
   const persistedIds = new Set(persistedTasks.map((task) => task.id))
   const mergedTasks = [
     ...persistedTasks.map((task) => ({ ...task, isGeneratedCandidate: false })),
@@ -161,6 +171,7 @@ export async function GET(_request: Request, { params }: { params: { date: strin
     date: params.date,
     canEditPast: actorRole === 'pharmacy_admin',
     patientsById,
+    today: todayKey,
   })
 
   return NextResponse.json({ ok: true, detail })
