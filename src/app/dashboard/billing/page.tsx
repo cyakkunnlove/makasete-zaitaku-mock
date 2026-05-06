@@ -912,27 +912,27 @@ export default function BillingPage() {
                       ? 'border-sky-200 bg-sky-50'
                       : 'border-amber-200 bg-amber-50'
                   return (
-                    <div key={summaryItem.date} className={cn('overflow-hidden rounded-xl border transition', toneClass, isSelected && 'ring-2 ring-indigo-300 shadow-sm')}>
+                    <div key={summaryItem.date} className={cn('overflow-hidden rounded-lg border transition', toneClass, isSelected && 'ring-2 ring-indigo-300 shadow-sm')}>
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedCollectionDate((current) => current === summaryItem.date ? null : summaryItem.date)
                           setCalendarActionDialog(null)
                         }}
-                        className="w-full rounded-xl p-4 text-left"
+                        className="w-full rounded-lg px-3 py-2.5 text-left"
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{summaryItem.date}</p>
-                            <p className="mt-1 text-xs text-slate-600">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-900">{summaryItem.date}</p>
+                            <p className="mt-0.5 text-[11px] text-slate-600">
                               {summaryItem.attentionCount > 0
-                                ? '要確認の患者があります'
+                                ? '要確認あり'
                                 : allPaid
-                                  ? 'この日はすべて入金済みです'
-                                  : '請求必要または請求済みの患者があります'}
+                                  ? 'すべて入金済み'
+                                  : '請求必要または請求済みあり'}
                             </p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                             {summaryItem.attentionCount > 0 ? <Badge variant="outline" className="border-rose-200 bg-white text-rose-700">要確認あり</Badge> : null}
                             {summaryItem.billedCount > 0 ? <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700">請求対象あり</Badge> : null}
                             {allPaid ? <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">すべて入金済み</Badge> : null}
@@ -945,30 +945,27 @@ export default function BillingPage() {
                       </button>
 
                       {isSelected ? (
-                        <div className="fade-in-up border-t border-white/70 bg-white/80 p-4">
+                        <div className="fade-in-up border-t border-white/70 bg-white/80 p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900">{summaryItem.date} の対象患者</p>
-                              <p className="text-xs text-slate-500">クリックした日付の位置から、その日の対象だけを開いています。</p>
-                            </div>
-                            <Button type="button" variant="ghost" onClick={() => { setSelectedCollectionDate(null); setCalendarActionDialog(null) }}>閉じる</Button>
+                            <p className="text-xs font-semibold text-slate-900">{summaryItem.date} の対象患者</p>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedCollectionDate(null); setCalendarActionDialog(null) }} className="h-8 px-2 text-xs">閉じる</Button>
                           </div>
-                          <div className="mt-3 space-y-3">
+                          <div className="mt-2 space-y-2">
                             {summaryItem.items.map((item) => (
-                              <div key={`${item.patientId}-${item.visitDate}`} className={cn('rounded-lg border bg-slate-50 p-3', savingCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
-                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                  <div>
-                                    <p className="text-sm font-medium text-slate-900">{item.patientName}</p>
-                                    <p className="mt-1 text-xs text-slate-500">{item.visitDate} の回収状況を確認します</p>
+                              <div key={`${item.patientId}-${item.visitDate}`} className={cn('rounded-lg border bg-slate-50 p-2.5', savingCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-indigo-300 ring-2 ring-indigo-100 status-pulse-soft' : 'border-slate-200', recentlySavedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-emerald-300 ring-2 ring-emerald-100 success-badge-pop' : null, failedCollectionRecordId === (item.recordId ?? `TEMP-${item.patientId}-${item.visitDate}`) ? 'border-rose-300 ring-2 ring-rose-100' : null)}>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold text-slate-900">{item.patientName}</p>
+                                    <p className="mt-0.5 text-[11px] text-slate-500">{item.visitDate} の回収状況</p>
                                   </div>
                                   <StatusBadge meta={collectionWorkflowStatusMeta[item.status]} />
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-2 flex flex-wrap gap-2">
                                   <Button
                                     type="button"
                                     size="sm"
                                     onClick={() => openCalendarActionDialog(item, summaryItem.date)}
-                                    className="min-h-11 touch-manipulation bg-indigo-600 text-white hover:bg-indigo-600/90 sm:min-h-8"
+                                    className="min-h-9 touch-manipulation bg-indigo-600 text-xs text-white hover:bg-indigo-600/90 sm:min-h-8"
                                   >
                                     {item.status === 'paid' ? '内容を確認する' : 'この患者を確認する'}
                                   </Button>
