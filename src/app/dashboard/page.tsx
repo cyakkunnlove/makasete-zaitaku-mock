@@ -760,6 +760,10 @@ function PharmacyDashboardRoutePlanner({
   routeEmailHref,
   onApplySuggestedOrder,
   routeMapRef,
+  routeTaskByPatientId,
+  pendingTaskIds,
+  onStartRouteTask,
+  onCompleteRouteTask,
 }: {
   routePlanLoading: boolean
   selectedRoutePatientIds: string[]
@@ -768,17 +772,21 @@ function PharmacyDashboardRoutePlanner({
   routeEmailHref: string | null
   onApplySuggestedOrder: () => void
   routeMapRef: React.MutableRefObject<HTMLDivElement | null>
+  routeTaskByPatientId: Map<string, DayTaskItem>
+  pendingTaskIds: string[]
+  onStartRouteTask: (taskId: string) => void
+  onCompleteRouteTask: (taskId: string) => void
 }) {
   return (
     <Card className="border-slate-200 bg-white text-slate-900 shadow-sm">
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-base font-semibold text-slate-900">巡回順のおすすめ</p>
-            <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点におすすめ順を提案します。2人以上選ぶと作成できます。</p>
+            <p className="text-base font-semibold text-slate-900">巡回候補</p>
+            <p className="text-xs leading-5 text-slate-500">今日の対応予定から患者を選ぶと、薬局を起点に候補内のおすすめ順を提案します。2人以上選ぶと作成できます。</p>
           </div>
           <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300" disabled={routePlanLoading || selectedRoutePatientIds.length === 0} onClick={onSuggestRoute}>
-            {routePlanLoading ? '作成中...' : `おすすめ順を作る (${selectedRoutePatientIds.length})`}
+            {routePlanLoading ? '作成中...' : `巡回候補を作る (${selectedRoutePatientIds.length})`}
           </Button>
         </div>
         {routePlanResult && (
@@ -793,7 +801,7 @@ function PharmacyDashboardRoutePlanner({
                 )}
                 {routePlanResult.ready && routePlanResult.suggestedOrder.length > 0 && (
                   <Button size="sm" onClick={onApplySuggestedOrder} className="bg-emerald-600 text-white hover:bg-emerald-500">
-                    この順番を今日の並びに反映
+                    候補順を今日の並びに反映
                   </Button>
                 )}
               </div>
@@ -807,7 +815,7 @@ function PharmacyDashboardRoutePlanner({
                 </p>
                 {routePlanResult.origin && (
                   <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                    <p className="font-medium text-slate-900">起点</p>
+                    <p className="font-medium text-slate-900">起点・終点</p>
                     <p className="mt-1">{routePlanResult.origin.name} / {routePlanResult.origin.address}</p>
                     <p className="mt-1 text-slate-500">解釈住所: {routePlanResult.origin.geocodeInputAddress ?? '未取得'}</p>
                     <p className="mt-1 text-slate-500">座標: {routePlanResult.origin.latitude ?? '-'}, {routePlanResult.origin.longitude ?? '-'}</p>
@@ -818,23 +826,66 @@ function PharmacyDashboardRoutePlanner({
                     )}
                   </div>
                 )}
-                <ol className="mt-3 space-y-2">
-                  {routePlanResult.suggestedOrder.map((patient, index) => (
-                    <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-                      <div>
-                        <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
-                        <span className="font-medium text-slate-900">{patient.name}</span>
-                        <span className="ml-2 text-xs text-slate-500">{patient.address}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
-                      {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
-                        <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                          {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                <p className="mt-3 text-xs font-medium text-rose-700">地図上の赤い番号は、巡回候補内のおすすめ順です。</p>
+                <ol className="mt-2 space-y-2">
+                  {routePlanResult.suggestedOrder.map((patient, index) => {
+                    const routeTask = routeTaskByPatientId.get(patient.id)
+                    const routeStatus = routeTask ? taskStatusMeta(routeTask.status) : null
+                    const isRouteTaskSaving = routeTask ? pendingTaskIds.includes(routeTask.id) : false
+                    const canStartRouteTask = Boolean(routeTask && routeTask.status === 'scheduled' && !isRouteTaskSaving)
+                    const canCompleteRouteTask = Boolean(routeTask && routeTask.status !== 'completed' && !isRouteTaskSaving)
+
+                    return (
+                      <li key={patient.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">{index + 1}</span>
+                              <span className="font-medium text-slate-900">{patient.name}</span>
+                              {routeStatus ? (
+                                <Badge variant="outline" className={cn('shrink-0 border text-[10px]', routeStatus.className)}>{routeStatus.label}</Badge>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">{patient.address}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            {routeTask ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!canStartRouteTask}
+                                  onClick={() => onStartRouteTask(routeTask.id)}
+                                  className="h-8 border-amber-200 bg-amber-50 px-2.5 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                                >
+                                  {isRouteTaskSaving ? '保存中...' : '対応中にする'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={!canCompleteRouteTask}
+                                  onClick={() => onCompleteRouteTask(routeTask.id)}
+                                  className="h-8 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-500 disabled:bg-emerald-300 disabled:opacity-60"
+                                >
+                                  完了
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-500">本日予定なし</span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </li>
-                  ))}
+                        <p className="mt-2 text-xs text-slate-500">解釈住所: {patient.geocodeInputAddress ?? '未取得'} / geocode: {patient.geocodeStatus ?? 'unknown'}</p>
+                        <p className="mt-1 text-[11px] text-slate-500">座標: {patient.latitude ?? '-'}, {patient.longitude ?? '-'}</p>
+                        {patient.geocodeWarnings && patient.geocodeWarnings.length > 0 && (
+                          <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                            {patient.geocodeWarnings.map((warning) => warning.message).join(' / ')}
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ol>
               </>
             )}
@@ -978,7 +1029,7 @@ function PharmacyDashboardPriorityBrief({
       : scheduledCount > 0
         ? {
           label: '今日の訪問予定を確認',
-          detail: `${scheduledCount}件の予定があります。必要なら巡回順を作ってスタッフへ共有します。`,
+          detail: `${scheduledCount}件の予定があります。必要なら巡回候補を作ってスタッフへ共有します。`,
           tone: 'indigo' as const,
         }
         : billableReadyCount > 0
@@ -1451,7 +1502,7 @@ function PharmacyDayTaskCardSummary({
           aria-checked={isSelectedForRoute}
           className="flex touch-manipulation items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600 transition hover:bg-white"
           onClick={(event) => handleSummaryAction(event, onRouteSelectionToggle)}
-          aria-label={`${patientName}を巡回順の候補${isSelectedForRoute ? 'から外す' : 'に入れる'}`}
+          aria-label={`${patientName}を巡回候補${isSelectedForRoute ? 'から外す' : 'に入れる'}`}
         >
           <span
             aria-hidden="true"
@@ -1462,7 +1513,7 @@ function PharmacyDayTaskCardSummary({
           >
             ✓
           </span>
-          巡回順
+          巡回候補
         </button>
         <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1">
           <span className="px-1 text-[10px] font-medium text-slate-500">並び替え</span>
@@ -1813,14 +1864,14 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
   const routeEmailHref = useMemo(() => {
     if (!user?.email || !routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) return null
 
-    const subject = `【マカセテ在宅】${flowDate} の巡回ルート`
+    const subject = `【マカセテ在宅】${flowDate} の巡回候補`
     const lines = [
-      `${flowDate} の巡回ルートです。`,
+      `${flowDate} の巡回候補です。`,
       '',
       routePlanResult.totalDuration ? `総移動時間目安: ${routePlanResult.totalDuration}` : null,
       typeof routePlanResult.totalDistanceMeters === 'number' ? `総距離: ${(routePlanResult.totalDistanceMeters / 1000).toFixed(1)}km` : null,
       '',
-      '巡回順',
+      '巡回候補',
       ...routePlanResult.suggestedOrder.map((patient, index) => `${index + 1}. ${patient.name} / ${patient.address}`),
     ].filter(Boolean)
 
@@ -1999,6 +2050,19 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
     })
   }, [searchQuery, enrichedVisits])
 
+  const routeTaskByPatientId = useMemo(() => {
+    const map = new Map<string, DayTaskItem>()
+    const todayTasks = [...draftDayTasks]
+      .filter((task) => task.flowDate === flowDate)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+
+    todayTasks.forEach((task) => {
+      if (!map.has(task.patientId)) map.set(task.patientId, task)
+    })
+
+    return map
+  }, [draftDayTasks, flowDate])
+
   useEffect(() => {
     if (!routePlanResult?.ready || !routePlanResult.origin || !routeMapRef.current || !publicGoogleMapsApiKey) return
 
@@ -2024,15 +2088,17 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         new googleMaps.Marker({
           map,
           position: originPosition,
-          title: `起点: ${origin.name}`,
+          title: `起点・終点: ${origin.name}`,
+          label: { text: '薬', color: '#ffffff', fontWeight: '700', fontSize: '12px' },
           icon: {
             path: googleMaps.SymbolPath.CIRCLE,
-            scale: 10,
+            scale: 12,
             fillColor: '#10b981',
             fillOpacity: 1,
             strokeColor: '#ecfdf5',
             strokeWeight: 2,
           },
+          zIndex: 1,
         })
         bounds.extend(originPosition)
       }
@@ -2044,8 +2110,16 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
           map,
           position,
           title: `${index + 1}. ${patient.name}`,
-          label: { text: `${index + 1}`, color: '#ffffff', fontWeight: '700' },
-          icon: `https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=${index + 1}|6366f1|ffffff`,
+          label: { text: `${index + 1}`, color: '#ffffff', fontWeight: '700', fontSize: '13px' },
+          icon: {
+            path: googleMaps.SymbolPath.CIRCLE,
+            scale: 14,
+            fillColor: '#dc2626',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+          },
+          zIndex: index + 10,
         })
         bounds.extend(position)
       })
@@ -2330,11 +2404,11 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const handleSuggestRoute = async () => {
     if (selectedRoutePatientIds.length === 0) {
-      setSaveToast('ルート提案したい患者を選んでください')
+      setSaveToast('巡回候補に入れる患者を選んでください')
       return
     }
     if (selectedRoutePatientIds.length === 1) {
-      setSaveToast('ルート提案は2人以上選ぶと作成できます')
+      setSaveToast('巡回候補は2人以上選ぶと作成できます')
       return
     }
 
@@ -2358,7 +2432,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
   const handleApplySuggestedOrder = () => {
     if (!routePlanResult?.ready || routePlanResult.suggestedOrder.length === 0) {
-      setSaveToast('先におすすめ順を作ってください')
+      setSaveToast('先に巡回候補を作ってください')
       return
     }
 
@@ -2392,7 +2466,7 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
 
     setHasOrderDraft(true)
     setSaveError(null)
-    setSaveToast('おすすめ順を今日の並び順に反映しました。必要なら「順番を保存」を押してください。')
+    setSaveToast('巡回候補の順番を今日の並び順に反映しました。必要なら「順番を保存」を押してください。')
   }
 
   const handleAddPatientToTodayFlow = async (patient: RegisteredPatientRecord) => {
@@ -2749,6 +2823,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   routeEmailHref={routeEmailHref}
                   onApplySuggestedOrder={handleApplySuggestedOrder}
                   routeMapRef={routeMapRef}
+                  routeTaskByPatientId={routeTaskByPatientId}
+                  pendingTaskIds={pendingTaskIds}
+                  onStartRouteTask={handleStartTask}
+                  onCompleteRouteTask={handleCompleteTask}
                 />
                 <PharmacyDashboardTodayTaskList
                   orderedVisits={orderedVisits}
@@ -2801,6 +2879,10 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
                   routeEmailHref={routeEmailHref}
                   onApplySuggestedOrder={handleApplySuggestedOrder}
                   routeMapRef={routeMapRef}
+                  routeTaskByPatientId={routeTaskByPatientId}
+                  pendingTaskIds={pendingTaskIds}
+                  onStartRouteTask={handleStartTask}
+                  onCompleteRouteTask={handleCompleteTask}
                 />
                 <PharmacyDashboardTodayTaskList
                   orderedVisits={orderedVisits}
