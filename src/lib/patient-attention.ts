@@ -19,6 +19,7 @@ export function hasKnownAllergies(allergies: string | null | undefined) {
     .replace(/\s+/g, '')
 
   if (!normalized) return false
+  if (/^(?:特に)?(?:なし|無し)(?:\([^)]*\))?$/.test(normalized)) return false
   return !NO_KNOWN_ALLERGY_VALUES.has(normalized)
 }
 

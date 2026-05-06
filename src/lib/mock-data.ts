@@ -1,3 +1,4 @@
+import { hasKnownAllergies } from '@/lib/patient-attention'
 import type {
   User,
   UserRole,
@@ -621,7 +622,7 @@ export function getAttentionFlags(patient: PatientRecord): AttentionFlag[] {
   if (notes.includes('認知症') || notes.includes('せん妄') || notes.includes('徘徊')) {
     push('cognitive', '認知症対応注意', 'danger')
   }
-  if (patient.allergies && patient.allergies !== 'なし') {
+  if (hasKnownAllergies(patient.allergies)) {
     push('allergy', 'アレルギーあり', 'danger')
   }
   if (notes.includes('医療機器') || notes.includes('酸素') || notes.includes('血糖測定器')) {
