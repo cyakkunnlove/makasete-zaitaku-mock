@@ -291,6 +291,22 @@ function decodeGooglePolyline(encoded: string) {
   return coordinates
 }
 
+function buildCoordinateKey(position: GoogleMapsLatLng) {
+  return `${position.lat.toFixed(6)},${position.lng.toFixed(6)}`
+}
+
+function offsetDuplicateMarkerPosition(position: GoogleMapsLatLng, duplicateIndex: number, duplicateCount: number) {
+  if (duplicateCount <= 1) return position
+
+  const radius = 0.00016 + Math.floor(duplicateIndex / 8) * 0.00006
+  const angle = (-Math.PI / 2) + ((Math.PI * 2 * duplicateIndex) / duplicateCount)
+
+  return {
+    lat: position.lat + Math.sin(angle) * radius,
+    lng: position.lng + Math.cos(angle) * radius,
+  }
+}
+
 function formatJapanDateTime(value: string | null | undefined) {
   if (!value) return '—'
   const normalized = value.includes('T') ? value : value.replace(' ', 'T')
@@ -2103,12 +2119,25 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
         bounds.extend(originPosition)
       }
 
+      const coordinateCounts = new Map<string, number>()
+      routePlanResult.suggestedOrder.forEach((patient) => {
+        if (typeof patient.latitude !== 'number' || typeof patient.longitude !== 'number') return
+        const key = buildCoordinateKey({ lat: patient.latitude, lng: patient.longitude })
+        coordinateCounts.set(key, (coordinateCounts.get(key) ?? 0) + 1)
+      })
+
+      const coordinateSeen = new Map<string, number>()
       routePlanResult.suggestedOrder.forEach((patient, index) => {
         if (typeof patient.latitude !== 'number' || typeof patient.longitude !== 'number') return
         const position = { lat: patient.latitude, lng: patient.longitude }
+        const coordinateKey = buildCoordinateKey(position)
+        const duplicateIndex = coordinateSeen.get(coordinateKey) ?? 0
+        coordinateSeen.set(coordinateKey, duplicateIndex + 1)
+        const displayPosition = offsetDuplicateMarkerPosition(position, duplicateIndex, coordinateCounts.get(coordinateKey) ?? 1)
+
         new googleMaps.Marker({
           map,
-          position,
+          position: displayPosition,
           title: `${index + 1}. ${patient.name}`,
           label: { text: `${index + 1}`, color: '#ffffff', fontWeight: '700', fontSize: '13px' },
           icon: {
@@ -2119,9 +2148,9 @@ function PharmacyDashboard({ isPharmacyStaff = false }: { isPharmacyStaff?: bool
             strokeColor: '#ffffff',
             strokeWeight: 3,
           },
-          zIndex: index + 10,
+          zIndex: index + 100,
         })
-        bounds.extend(position)
+        bounds.extend(displayPosition)
       })
 
       if (routePlanResult.polyline) {
