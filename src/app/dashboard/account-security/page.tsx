@@ -35,6 +35,14 @@ export default function AccountSecurityPage() {
       }
     }
 
+    if (passkeyStatus === 'pending') {
+      return {
+        tone: 'warning' as const,
+        title: 'パスキー設定の反映を確認しています',
+        body: '登録直後は Cognito 側の反映に少し時間がかかる場合があります。次回ログインでパスキーが表示されない場合だけ、少し待ってからもう一度追加してください。',
+      }
+    }
+
     if (passkeyError) {
       return {
         tone: 'error' as const,

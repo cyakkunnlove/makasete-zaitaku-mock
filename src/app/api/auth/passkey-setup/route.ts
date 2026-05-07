@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { getCurrentUser } from '@/lib/auth'
 import { createOAuthState, OAUTH_STATE_COOKIE, sanitizeInternalPath } from '@/lib/auth/oauth-state'
 
 export async function GET(request: Request) {
@@ -9,6 +10,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const nextPath = sanitizeInternalPath(requestUrl.searchParams.get('next'), '/dashboard/account-security')
   const nonce = crypto.randomUUID()
+  const currentUser = await getCurrentUser().catch(() => null)
 
   if (!domain || !clientId || !redirectUri) {
     return NextResponse.redirect(new URL('/dashboard/account-security?passkey_error=missing_cognito_env', request.url))
@@ -20,6 +22,9 @@ export async function GET(request: Request) {
   url.searchParams.set('scope', 'openid email')
   url.searchParams.set('redirect_uri', redirectUri)
   url.searchParams.set('lang', 'ja')
+  if (currentUser?.email) {
+    url.searchParams.set('login_hint', currentUser.email)
+  }
   url.searchParams.set('state', createOAuthState({ kind: 'passkey_setup', nextPath, nonce }))
 
   const response = NextResponse.redirect(url)

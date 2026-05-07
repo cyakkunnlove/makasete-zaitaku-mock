@@ -9,6 +9,7 @@ import { acceptInvitationByToken } from '@/lib/account-invitation-accept'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const callbackError = requestUrl.searchParams.get('error')
   const state = parseOAuthState(requestUrl.searchParams.get('state'))
   const stateNonce = request.headers.get('cookie')
     ?.split(';')
@@ -33,7 +34,19 @@ export async function GET(request: Request) {
     return invalidStateResponse
   }
 
+  if (callbackError) {
+    if (isPasskeySetupFlow) {
+      return NextResponse.redirect(new URL(`/dashboard/account-security?passkey=pending&passkey_error=${encodeURIComponent(callbackError)}`, request.url))
+    }
+
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(callbackError)}`, request.url))
+  }
+
   if (!code) {
+    if (isPasskeySetupFlow) {
+      return NextResponse.redirect(new URL('/dashboard/account-security?passkey=pending&passkey_error=missing_code', request.url))
+    }
+
     return NextResponse.redirect(new URL('/login?error=missing_code', request.url))
   }
 
@@ -86,22 +99,33 @@ export async function GET(request: Request) {
 
   if (payload?.sub || payload?.email) {
     try {
-      const matched = await findAppUserByIdentity({
-        cognitoSub: payload?.sub ?? null,
-        email: payload?.email ?? null,
-      })
+      if (invitationToken) {
+        if (!payload?.sub) {
+          const failureTarget = new URL(`/invitations/accept?token=${encodeURIComponent(invitationToken)}&result=missing_cognito_sub`, request.url)
+          return NextResponse.redirect(failureTarget)
+        }
 
-      if (!matched.user) {
-        return NextResponse.redirect(new URL('/login?error=user_not_provisioned', request.url))
-      }
-
-      if (invitationToken && payload?.sub) {
-        const acceptance = await acceptInvitationByToken({ token: invitationToken, cognitoSub: payload.sub })
+        const acceptance = await acceptInvitationByToken({
+          token: invitationToken,
+          cognitoSub: payload.sub,
+          email: payload?.email ?? null,
+        })
         if (!acceptance.ok) {
           const failureTarget = new URL(`/invitations/accept?token=${encodeURIComponent(invitationToken)}&result=${encodeURIComponent(acceptance.error)}`, request.url)
           return NextResponse.redirect(failureTarget)
         }
+
+        matchedUserId = acceptance.invitedUserId
       } else {
+        const matched = await findAppUserByIdentity({
+          cognitoSub: payload?.sub ?? null,
+          email: payload?.email ?? null,
+        })
+
+        if (!matched.user) {
+          return NextResponse.redirect(new URL('/login?error=user_not_provisioned', request.url))
+        }
+
         if (!matched.user.is_active || matched.user.status !== 'active') {
           return NextResponse.redirect(new URL('/login?error=user_inactive', request.url))
         }
@@ -111,11 +135,11 @@ export async function GET(request: Request) {
         } else {
           await touchLastReverified(matched.user.id)
         }
+
+        matchedUserId = matched.user.id
       }
 
-      matchedUserId = matched.user.id
-
-      const roleContexts = await listRoleContextsForUser(matched.user.id)
+      const roleContexts = await listRoleContextsForUser(matchedUserId)
       roleContextsCount = roleContexts.length
       defaultAssignmentId = roleContexts.find((item) => item.isDefault)?.assignmentId ?? roleContexts[0]?.assignmentId ?? null
     } catch {
